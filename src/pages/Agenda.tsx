@@ -22,6 +22,7 @@ import {
   Calendar as CalendarIcon,
   List,
   LayoutGrid,
+  MapPin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -50,6 +51,7 @@ import {
   EventDetailsSheet,
   CalendarEvent,
 } from '@/components/agenda/EventDetailsSheet'
+import { LocationManagerDialog } from '@/components/agenda/LocationManagerDialog'
 import { useToast } from '@/hooks/use-toast'
 import { Event } from '@/lib/data'
 import { cn } from '@/lib/utils'
@@ -67,7 +69,8 @@ export default function Agenda() {
   // Dialogs State
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null)
 
   // Filters State
@@ -89,7 +92,9 @@ export default function Agenda() {
     type: e.type,
     description: e.description,
     location: e.location,
-    originalEvent: e,
+    originalEvent: e, // IMPORTANT: pass full event object including timeline/reminders
+    // Mapped for CalendarEvent interface, but originalEvent holds rich data
+    ...e,
   }))
 
   const currentYear = getYear(currentDate)
@@ -172,7 +177,9 @@ export default function Agenda() {
   }
 
   const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event)
+    // If it's a standard event, use the original object which has full details
+    const fullEvent = event.originalEvent ? event.originalEvent : event
+    setSelectedEvent(fullEvent)
     setIsDetailsOpen(true)
   }
 
@@ -207,10 +214,15 @@ export default function Agenda() {
     }
   }
 
-  const handleEditEventFromDetails = (event: CalendarEvent) => {
+  const handleEditEventFromDetails = (event: any) => {
     setIsDetailsOpen(false)
-    if (event.originalEvent) {
-      setEventToEdit(event.originalEvent)
+    // If it's a milestone, we can't edit as an event usually, but here we assume event is Event type
+    if (
+      event.id &&
+      !event.id.startsWith('dob-') &&
+      !event.id.startsWith('init-')
+    ) {
+      setEventToEdit(event)
       setIsEventDialogOpen(true)
     }
   }
@@ -363,6 +375,16 @@ export default function Agenda() {
               </div>
             </PopoverContent>
           </Popover>
+
+          {/* Location Manager Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsLocationDialogOpen(true)}
+            title="Gerenciar Locais"
+          >
+            <MapPin className="h-4 w-4" />
+          </Button>
 
           <Button onClick={handleCreateEvent}>
             <Plus className="mr-2 h-4 w-4" /> Novo
@@ -562,6 +584,11 @@ export default function Agenda() {
         event={selectedEvent}
         onEdit={handleEditEventFromDetails}
         onDelete={handleDeleteEvent}
+      />
+
+      <LocationManagerDialog
+        open={isLocationDialogOpen}
+        onOpenChange={setIsLocationDialogOpen}
       />
     </Tabs>
   )

@@ -24,15 +24,48 @@ export interface Brother {
   address?: string
 }
 
+export interface Location {
+  id: string
+  name: string
+  capacity: number
+  description?: string
+  equipment?: string
+}
+
+export interface EventReminder {
+  id: string
+  type: 'notification' | 'email'
+  minutesBefore: number
+}
+
+export interface EventTimelineItem {
+  id: string
+  time: string
+  title: string
+  description?: string
+}
+
 export interface Event {
   id: string
   title: string
   date: string
   time: string
   type: 'Sessão' | 'Reunião' | 'Evento Social' | 'Outro'
-  location: string
+  location: string // Legacy text location or fallback
+  locationId?: string // Link to structured Location
   description: string
   attendees: number
+  reminders?: EventReminder[]
+  timeline?: EventTimelineItem[]
+}
+
+export interface Notification {
+  id: string
+  title: string
+  message: string
+  date: string
+  read: boolean
+  type: 'reminder' | 'system'
 }
 
 export interface Announcement {
@@ -248,6 +281,30 @@ export const mockBrothers: Brother[] = [
   },
 ]
 
+export const mockLocations: Location[] = [
+  {
+    id: '1',
+    name: 'Templo Principal',
+    capacity: 60,
+    description: 'Templo para sessões magnas e ordinárias.',
+    equipment: 'Som, Ar Condicionado, Projetor',
+  },
+  {
+    id: '2',
+    name: 'Salão de Banqueteria',
+    capacity: 100,
+    description: 'Área para ágapes e eventos sociais.',
+    equipment: 'Cozinha Industrial, Palco, Som',
+  },
+  {
+    id: '3',
+    name: 'Sala de Reuniões',
+    capacity: 15,
+    description: 'Sala para reuniões administrativas e comissões.',
+    equipment: 'TV, Quadro Branco',
+  },
+]
+
 export const mockEvents: Event[] = [
   {
     id: '1',
@@ -256,8 +313,18 @@ export const mockEvents: Event[] = [
     time: '20:00',
     type: 'Sessão',
     location: 'Templo Principal',
+    locationId: '1',
     description: 'Sessão regular de instrução.',
     attendees: 25,
+    timeline: [
+      { id: 't1', time: '19:30', title: 'Recepção dos Irmãos' },
+      { id: 't2', time: '20:00', title: 'Abertura da Sessão' },
+      { id: 't3', time: '22:00', title: 'Encerramento' },
+    ],
+    reminders: [
+      { id: 'r1', type: 'notification', minutesBefore: 60 },
+      { id: 'r2', type: 'email', minutesBefore: 1440 }, // 1 day
+    ],
   },
   {
     id: '2',
@@ -266,8 +333,13 @@ export const mockEvents: Event[] = [
     time: '19:00',
     type: 'Evento Social',
     location: 'Salão de Festas',
+    locationId: '2',
     description: 'Comemoração do Solstício.',
     attendees: 40,
+    timeline: [
+      { id: 't1', time: '19:00', title: 'Coquetel' },
+      { id: 't2', time: '20:30', title: 'Jantar' },
+    ],
   },
   {
     id: '3',
@@ -276,6 +348,7 @@ export const mockEvents: Event[] = [
     time: '19:30',
     type: 'Reunião',
     location: 'Sala Administrativa',
+    locationId: '3',
     description: 'Planejamento do trimestre.',
     attendees: 7,
   },
@@ -286,8 +359,28 @@ export const mockEvents: Event[] = [
     time: '16:00',
     type: 'Sessão',
     location: 'Templo Principal',
+    locationId: '1',
     description: 'Iniciação de 2 candidatos.',
     attendees: 50,
+  },
+]
+
+export const mockNotifications: Notification[] = [
+  {
+    id: '1',
+    title: 'Lembrete de Sessão',
+    message: 'Sessão Ordinária Grau I começa em 1 hora.',
+    date: '2025-05-20T19:00:00',
+    read: false,
+    type: 'reminder',
+  },
+  {
+    id: '2',
+    title: 'Novo Documento',
+    message: 'Novo ritual disponível na biblioteca.',
+    date: '2025-05-18T10:00:00',
+    read: true,
+    type: 'system',
   },
 ]
 

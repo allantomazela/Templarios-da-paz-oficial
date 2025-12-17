@@ -5,11 +5,15 @@ import {
   Brother,
   Event,
   Solid,
+  Location,
+  Notification,
   mockSessionRecords,
   mockAttendance,
   mockBrothers,
   mockEvents,
   mockSolids,
+  mockLocations,
+  mockNotifications,
 } from '@/lib/data'
 
 interface ChancellorState {
@@ -18,6 +22,8 @@ interface ChancellorState {
   brothers: Brother[]
   events: Event[]
   solids: Solid[]
+  locations: Location[]
+  notifications: Notification[]
   reviewedAlerts: string[] // List of brotherIds whose alerts have been reviewed
 
   addSessionRecord: (record: SessionRecord) => void
@@ -37,6 +43,16 @@ interface ChancellorState {
   updateSolid: (solid: Solid) => void
   deleteSolid: (id: string) => void
 
+  // Locations
+  addLocation: (location: Location) => void
+  updateLocation: (location: Location) => void
+  deleteLocation: (id: string) => void
+
+  // Notifications
+  addNotification: (notification: Notification) => void
+  markNotificationAsRead: (id: string) => void
+  deleteNotification: (id: string) => void
+
   // Alerts
   markAlertAsReviewed: (brotherId: string) => void
 }
@@ -47,6 +63,8 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
   brothers: mockBrothers,
   events: mockEvents,
   solids: mockSolids,
+  locations: mockLocations,
+  notifications: mockNotifications,
   reviewedAlerts: [],
 
   addSessionRecord: (record) =>
@@ -105,6 +123,32 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
     })),
   deleteSolid: (id) =>
     set((state) => ({ solids: state.solids.filter((s) => s.id !== id) })),
+
+  addLocation: (location) =>
+    set((state) => ({ locations: [...state.locations, location] })),
+  updateLocation: (location) =>
+    set((state) => ({
+      locations: state.locations.map((l) =>
+        l.id === location.id ? location : l,
+      ),
+    })),
+  deleteLocation: (id) =>
+    set((state) => ({
+      locations: state.locations.filter((l) => l.id !== id),
+    })),
+
+  addNotification: (notification) =>
+    set((state) => ({ notifications: [notification, ...state.notifications] })),
+  markNotificationAsRead: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n,
+      ),
+    })),
+  deleteNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+    })),
 
   markAlertAsReviewed: (brotherId) =>
     set((state) => ({

@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { useToast } from '@/hooks/use-toast'
 import { mockBrothers, ReminderLog } from '@/lib/data'

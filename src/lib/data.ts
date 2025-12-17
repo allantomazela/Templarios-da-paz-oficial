@@ -16,6 +16,8 @@ export interface Brother {
     | 'Administrador'
   status: 'Ativo' | 'Inativo'
   initiationDate: string
+  elevationDate?: string
+  exaltationDate?: string
   attendanceRate: number
   dob?: string
   cpf?: string
@@ -138,6 +140,24 @@ export interface ReminderLog {
   method: 'Email' | 'WhatsApp'
 }
 
+// Chancellor Specific Types
+export interface SessionRecord {
+  id: string
+  eventId: string
+  date: string
+  charityCollection: number
+  observations: string
+  status: 'Pendente' | 'Finalizada'
+}
+
+export interface Attendance {
+  id: string
+  sessionRecordId: string
+  brotherId: string
+  status: 'Presente' | 'Ausente' | 'Justificado'
+  justification?: string
+}
+
 // Mock Data
 export const mockBrothers: Brother[] = [
   {
@@ -149,6 +169,8 @@ export const mockBrothers: Brother[] = [
     role: 'Venerável Mestre',
     status: 'Ativo',
     initiationDate: '2010-05-15',
+    elevationDate: '2011-06-20',
+    exaltationDate: '2012-08-10',
     attendanceRate: 98,
     dob: '1980-03-10',
     cpf: '123.456.789-00',
@@ -163,6 +185,8 @@ export const mockBrothers: Brother[] = [
     role: 'Secretário',
     status: 'Ativo',
     initiationDate: '2012-08-20',
+    elevationDate: '2013-09-15',
+    exaltationDate: '2014-11-20',
     attendanceRate: 95,
     dob: '1982-07-22',
     cpf: '234.567.890-11',
@@ -177,6 +201,8 @@ export const mockBrothers: Brother[] = [
     role: 'Tesoureiro',
     status: 'Ativo',
     initiationDate: '2015-03-10',
+    elevationDate: '2016-04-22',
+    exaltationDate: '2017-06-15',
     attendanceRate: 92,
     dob: '1985-01-15',
     cpf: '345.678.901-22',
@@ -191,6 +217,7 @@ export const mockBrothers: Brother[] = [
     role: 'Irmão',
     status: 'Ativo',
     initiationDate: '2023-01-15',
+    elevationDate: '2024-02-20',
     attendanceRate: 85,
     dob: '1990-11-05',
     cpf: '456.789.012-33',
@@ -287,6 +314,7 @@ export const mockCategories: Category[] = [
   { id: '10', name: 'Administrativo', type: 'Despesa' },
   { id: '11', name: 'Beneficência', type: 'Despesa' },
   { id: '12', name: 'Outros', type: 'Despesa' },
+  { id: '13', name: 'Tronco de Beneficência', type: 'Receita' },
 ]
 
 export const mockBankAccounts: BankAccount[] = [
@@ -558,5 +586,51 @@ export const mockReminderLogs: ReminderLog[] = [
     contributionId: '3',
     sentDate: '2025-05-10',
     method: 'Email',
+  },
+]
+
+// Mock Chancellor Data
+export const mockSessionRecords: SessionRecord[] = [
+  {
+    id: '1',
+    eventId: '1',
+    date: '2025-05-20',
+    charityCollection: 150.5,
+    observations: 'Sessão tranquila.',
+    status: 'Finalizada',
+  },
+]
+
+export const mockAttendance: Attendance[] = [
+  {
+    id: '1',
+    sessionRecordId: '1',
+    brotherId: '1',
+    status: 'Presente',
+  },
+  {
+    id: '2',
+    sessionRecordId: '1',
+    brotherId: '2',
+    status: 'Presente',
+  },
+  {
+    id: '3',
+    sessionRecordId: '1',
+    brotherId: '3',
+    status: 'Presente',
+  },
+  {
+    id: '4',
+    sessionRecordId: '1',
+    brotherId: '4',
+    status: 'Ausente',
+  },
+  {
+    id: '5',
+    sessionRecordId: '1',
+    brotherId: '5',
+    status: 'Justificado',
+    justification: 'Viagem a trabalho',
   },
 ]

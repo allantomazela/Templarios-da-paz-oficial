@@ -41,6 +41,14 @@ export interface Announcement {
   content: string
 }
 
+export interface BankAccount {
+  id: string
+  name: string
+  type: 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento'
+  initialBalance: number
+  color?: string
+}
+
 export interface Transaction {
   id: string
   date: string
@@ -48,6 +56,7 @@ export interface Transaction {
   category: string
   type: 'Receita' | 'Despesa'
   amount: number
+  accountId?: string
 }
 
 export interface Contribution {
@@ -280,6 +289,30 @@ export const mockCategories: Category[] = [
   { id: '12', name: 'Outros', type: 'Despesa' },
 ]
 
+export const mockBankAccounts: BankAccount[] = [
+  {
+    id: '1',
+    name: 'Banco do Brasil',
+    type: 'Corrente',
+    initialBalance: 12000,
+    color: 'hsl(var(--chart-1))',
+  },
+  {
+    id: '2',
+    name: 'Caixa da Tesouraria',
+    type: 'Caixa',
+    initialBalance: 500,
+    color: 'hsl(var(--chart-2))',
+  },
+  {
+    id: '3',
+    name: 'Investimento CDI',
+    type: 'Investimento',
+    initialBalance: 50000,
+    color: 'hsl(var(--chart-3))',
+  },
+]
+
 export const mockTransactions: Transaction[] = [
   {
     id: '1',
@@ -288,6 +321,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Mensalidades',
     type: 'Receita',
     amount: 5500.0,
+    accountId: '1',
   },
   {
     id: '2',
@@ -296,6 +330,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Utilidades',
     type: 'Despesa',
     amount: 450.0,
+    accountId: '1',
   },
   {
     id: '3',
@@ -304,6 +339,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Manutenção',
     type: 'Despesa',
     amount: 1200.0,
+    accountId: '1',
   },
   {
     id: '4',
@@ -312,6 +348,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Doações',
     type: 'Receita',
     amount: 1000.0,
+    accountId: '2',
   },
   {
     id: '5',
@@ -320,6 +357,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Ritualística',
     type: 'Despesa',
     amount: 800.0,
+    accountId: '1',
   },
   {
     id: '6',
@@ -328,6 +366,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Aluguéis',
     type: 'Receita',
     amount: 2500.0,
+    accountId: '1',
   },
   {
     id: '7',
@@ -336,6 +375,7 @@ export const mockTransactions: Transaction[] = [
     category: 'Eventos',
     type: 'Despesa',
     amount: 3500.0,
+    accountId: '2',
   },
 ]
 

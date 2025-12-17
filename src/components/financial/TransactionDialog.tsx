@@ -36,6 +36,7 @@ const transactionSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   type: z.enum(['Receita', 'Despesa']),
+  accountId: z.string().min(1, 'Conta é obrigatória'),
 })
 
 type TransactionFormValues = z.infer<typeof transactionSchema>
@@ -55,7 +56,7 @@ export function TransactionDialog({
   onSave,
   defaultType,
 }: TransactionDialogProps) {
-  const { categories } = useFinancialStore()
+  const { categories, accounts } = useFinancialStore()
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -64,6 +65,7 @@ export function TransactionDialog({
       date: format(new Date(), 'yyyy-MM-dd'),
       category: '',
       type: defaultType,
+      accountId: '',
     },
   })
 
@@ -75,6 +77,7 @@ export function TransactionDialog({
         date: transactionToEdit.date,
         category: transactionToEdit.category,
         type: transactionToEdit.type,
+        accountId: transactionToEdit.accountId || '',
       })
     } else {
       form.reset({
@@ -83,9 +86,10 @@ export function TransactionDialog({
         date: format(new Date(), 'yyyy-MM-dd'),
         category: '',
         type: defaultType,
+        accountId: accounts.length > 0 ? accounts[0].id : '',
       })
     }
-  }, [transactionToEdit, form, open, defaultType])
+  }, [transactionToEdit, form, open, defaultType, accounts])
 
   const currentType = form.watch('type') || defaultType
   const availableCategories = categories.filter((c) => c.type === currentType)
@@ -142,6 +146,36 @@ export function TransactionDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="accountId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Conta Bancária / Caixa</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a conta..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="category"

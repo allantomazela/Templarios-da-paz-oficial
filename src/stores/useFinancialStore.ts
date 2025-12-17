@@ -7,12 +7,14 @@ import {
   FinancialGoal,
   ReminderSettings,
   ReminderLog,
+  BankAccount,
   mockTransactions,
   mockCategories,
   mockContributions,
   mockBudgets,
   mockGoals,
   mockReminderLogs,
+  mockBankAccounts,
 } from '@/lib/data'
 
 interface FinancialState {
@@ -21,6 +23,7 @@ interface FinancialState {
   contributions: Contribution[]
   budgets: Budget[]
   goals: FinancialGoal[]
+  accounts: BankAccount[]
   reminderSettings: ReminderSettings
   reminderLogs: ReminderLog[]
 
@@ -44,6 +47,10 @@ interface FinancialState {
   updateGoal: (g: FinancialGoal) => void
   deleteGoal: (id: string) => void
 
+  addAccount: (a: BankAccount) => void
+  updateAccount: (a: BankAccount) => void
+  deleteAccount: (id: string) => void
+
   updateReminderSettings: (s: ReminderSettings) => void
   addReminderLog: (l: ReminderLog) => void
 }
@@ -54,6 +61,7 @@ export const useFinancialStore = create<FinancialState>((set) => ({
   contributions: mockContributions,
   budgets: mockBudgets,
   goals: mockGoals,
+  accounts: mockBankAccounts,
   reminderSettings: {
     enabled: false,
     frequency: 'before',
@@ -111,6 +119,14 @@ export const useFinancialStore = create<FinancialState>((set) => ({
     })),
   deleteGoal: (id) =>
     set((state) => ({ goals: state.goals.filter((g) => g.id !== id) })),
+
+  addAccount: (a) => set((state) => ({ accounts: [...state.accounts, a] })),
+  updateAccount: (a) =>
+    set((state) => ({
+      accounts: state.accounts.map((acc) => (acc.id === a.id ? a : acc)),
+    })),
+  deleteAccount: (id) =>
+    set((state) => ({ accounts: state.accounts.filter((a) => a.id !== id) })),
 
   updateReminderSettings: (s) => set(() => ({ reminderSettings: s })),
   addReminderLog: (l) =>

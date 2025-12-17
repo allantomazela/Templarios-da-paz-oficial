@@ -15,10 +15,16 @@ import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
+import { Badge } from '@/components/ui/badge'
 
 export function IncomeList() {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
-    useFinancialStore()
+  const {
+    transactions,
+    accounts,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useFinancialStore()
   const incomes = transactions.filter((t) => t.type === 'Receita')
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -60,6 +66,11 @@ export function IncomeList() {
     setIsDialogOpen(true)
   }
 
+  const getAccountName = (id?: string) => {
+    const acc = accounts.find((a) => a.id === id)
+    return acc ? acc.name : 'N/A'
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -84,6 +95,7 @@ export function IncomeList() {
               <TableHead>Data</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>Conta</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -91,7 +103,7 @@ export function IncomeList() {
           <TableBody>
             {filteredIncomes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   Nenhuma receita encontrada.
                 </TableCell>
               </TableRow>
@@ -105,6 +117,14 @@ export function IncomeList() {
                     {income.description}
                   </TableCell>
                   <TableCell>{income.category}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="font-normal text-muted-foreground"
+                    >
+                      {getAccountName(income.accountId)}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right font-mono text-green-600">
                     R$ {income.amount.toFixed(2)}
                   </TableCell>

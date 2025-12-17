@@ -7,6 +7,8 @@ import { FinancialReports } from '@/components/financial/FinancialReports'
 import { CategoryList } from '@/components/financial/CategoryList'
 import { BudgetsAndGoals } from '@/components/financial/BudgetsAndGoals'
 import { ReminderSettings } from '@/components/financial/ReminderSettings'
+import { BankAccounts } from '@/components/financial/BankAccounts'
+import { CashFlowReport } from '@/components/financial/CashFlowReport'
 
 export default function Financial() {
   return (
@@ -14,19 +16,21 @@ export default function Financial() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
         <p className="text-muted-foreground">
-          Controle de receitas, despesas, contribuições e relatórios.
+          Controle de receitas, despesas, fluxo de caixa e gestão bancária.
         </p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <div className="flex items-center overflow-x-auto">
           <TabsList className="w-full justify-start md:w-auto">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="overview">Dashboard</TabsTrigger>
+            <TabsTrigger value="bank-accounts">Contas Bancárias</TabsTrigger>
+            <TabsTrigger value="cash-flow">Fluxo de Caixa</TabsTrigger>
             <TabsTrigger value="income">Receitas</TabsTrigger>
             <TabsTrigger value="expenses">Despesas</TabsTrigger>
             <TabsTrigger value="contributions">Contribuições</TabsTrigger>
             <TabsTrigger value="budgets">Metas e Orçamentos</TabsTrigger>
-            <TabsTrigger value="reports">Relatórios</TabsTrigger>
+            <TabsTrigger value="reports">Outros Relatórios</TabsTrigger>
             <TabsTrigger value="categories">Categorias</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
@@ -34,6 +38,14 @@ export default function Financial() {
 
         <TabsContent value="overview">
           <FinancialOverview />
+        </TabsContent>
+
+        <TabsContent value="bank-accounts">
+          <BankAccounts />
+        </TabsContent>
+
+        <TabsContent value="cash-flow">
+          <CashFlowReport />
         </TabsContent>
 
         <TabsContent value="income">

@@ -15,10 +15,16 @@ import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
+import { Badge } from '@/components/ui/badge'
 
 export function ExpenseList() {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
-    useFinancialStore()
+  const {
+    transactions,
+    accounts,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useFinancialStore()
   const expenses = transactions.filter((t) => t.type === 'Despesa')
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -62,6 +68,11 @@ export function ExpenseList() {
     setIsDialogOpen(true)
   }
 
+  const getAccountName = (id?: string) => {
+    const acc = accounts.find((a) => a.id === id)
+    return acc ? acc.name : 'N/A'
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -86,6 +97,7 @@ export function ExpenseList() {
               <TableHead>Data</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>Conta</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -93,7 +105,7 @@ export function ExpenseList() {
           <TableBody>
             {filteredExpenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   Nenhuma despesa encontrada.
                 </TableCell>
               </TableRow>
@@ -107,6 +119,14 @@ export function ExpenseList() {
                     {expense.description}
                   </TableCell>
                   <TableCell>{expense.category}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="font-normal text-muted-foreground"
+                    >
+                      {getAccountName(expense.accountId)}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right font-mono text-destructive">
                     R$ {expense.amount.toFixed(2)}
                   </TableCell>

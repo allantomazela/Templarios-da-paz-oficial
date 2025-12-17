@@ -14,7 +14,6 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
-import { mockContributions } from '@/lib/data'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import useFinancialStore from '@/stores/useFinancialStore'
@@ -64,9 +63,9 @@ export function FinancialOverview() {
 
   const { start, end } = getDateRange()
 
-  const filteredTransactions = transactions.filter((t) =>
-    isWithinInterval(parseISO(t.date), { start, end }),
-  )
+  const filteredTransactions = transactions
+    .filter((t) => isWithinInterval(parseISO(t.date), { start, end }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   const totalIncome = filteredTransactions
     .filter((t) => t.type === 'Receita')
@@ -75,10 +74,7 @@ export function FinancialOverview() {
     .filter((t) => t.type === 'Despesa')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
-  // Total Balance is global, not just for the period, usually.
-  // But here we might want "Net result for the period".
-  // Let's keep "Saldo Atual" as global (sum of all accounts) and add "Resultado do Período".
-
+  // Global Balance (All time)
   const globalBalance = accounts.reduce((acc, account) => {
     const accountTransactions = transactions.filter(
       (t) => t.accountId === account.id,
@@ -112,47 +108,9 @@ export function FinancialOverview() {
     {} as Record<string, { name: string; receita: number; despesa: number }>,
   )
 
-  const chartData = Object.values(aggregatedData).sort((a, b) => {
-    // Simple sort, for months it relies on insertion order mostly or we need better parsing
-    return 0
-  })
+  const chartData = Object.values(aggregatedData)
 
   // Category Distribution Data
-  const expenseCategoryData = filteredTransactions
-    .filter((t) => t.type === 'Despesa')
-    .reduce(
-      (acc, curr) => {
-        const found = acc.find((i) => i.name === curr.category)
-        if (found) found.value += curr.amount
-        else acc.push({ name: curr.category, value: curr.amount, fill: '' })
-        return acc
-      },
-      {} as { name: string; value: number; fill: string }[],
-    )
-  // Convert to array if it's an object, but reduce above is initialized as array... wait, logic check
-  // Actually the reduce initial value was [], so let's fix type
-  // Wait, the original code had:
-  // .reduce((acc, curr) => { ... }, [] as ...)
-  // which is correct. Let's maintain that logic.
-  // However, reduce logic was slightly flawed in original code if it didn't handle finding index correctly for complex types, but array find is fine.
-  // Let's re-implement strictly as before but fix potential type issues if any.
-  // Actually, looking at original code:
-  /*
-        const expenseCategoryData = filteredTransactions
-        .filter(t => t.type === 'Despesa')
-        .reduce((acc, curr) => {
-            const found = acc.find(i => i.name === curr.category)
-            if (found) found.value += curr.amount
-            else acc.push({ name: curr.category, value: curr.amount, fill: '' })
-            return acc
-        }, [] as { name: string, value: number, fill: string }[])
-    */
-  // This looks correct.
-  // We just need to assert it is an array for map.
-  // But since I'm rewriting, I'll use `as any[]` if TS complains, or correct types.
-  // It's standard array reduce.
-
-  // Let's rewrite the reduce cleanly:
   const expenseCategoryData = filteredTransactions
     .filter((t) => t.type === 'Despesa')
     .reduce(

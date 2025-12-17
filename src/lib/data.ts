@@ -8,7 +8,7 @@ export interface Brother {
   phone: string
   degree: 'Aprendiz' | 'Companheiro' | 'Mestre'
   role:
-    | 'Mestre'
+    | 'Venerável Mestre'
     | 'Secretário'
     | 'Tesoureiro'
     | 'Chanceler'
@@ -17,6 +17,9 @@ export interface Brother {
   status: 'Ativo' | 'Inativo'
   initiationDate: string
   attendanceRate: number
+  dob?: string
+  cpf?: string
+  address?: string
 }
 
 export interface Event {
@@ -55,6 +58,28 @@ export interface LibraryItem {
   addedAt: string
 }
 
+export interface LodgeDocument {
+  id: string
+  title: string
+  description: string
+  uploadDate: string
+  category: string
+  type: string
+  url: string
+}
+
+export interface Message {
+  id: string
+  subject: string
+  content: string
+  sender: string
+  senderId: string
+  recipients: string[]
+  date: string
+  read: boolean
+  type: 'received' | 'sent'
+}
+
 // Mock Data
 export const mockBrothers: Brother[] = [
   {
@@ -67,6 +92,9 @@ export const mockBrothers: Brother[] = [
     status: 'Ativo',
     initiationDate: '2010-05-15',
     attendanceRate: 98,
+    dob: '1980-03-10',
+    cpf: '123.456.789-00',
+    address: 'Rua das Acácias, 123',
   },
   {
     id: '2',
@@ -78,6 +106,9 @@ export const mockBrothers: Brother[] = [
     status: 'Ativo',
     initiationDate: '2012-08-20',
     attendanceRate: 95,
+    dob: '1982-07-22',
+    cpf: '234.567.890-11',
+    address: 'Av. Brasil, 456',
   },
   {
     id: '3',
@@ -89,6 +120,9 @@ export const mockBrothers: Brother[] = [
     status: 'Ativo',
     initiationDate: '2015-03-10',
     attendanceRate: 92,
+    dob: '1985-01-15',
+    cpf: '345.678.901-22',
+    address: 'Rua da Fraternidade, 789',
   },
   {
     id: '4',
@@ -100,6 +134,9 @@ export const mockBrothers: Brother[] = [
     status: 'Ativo',
     initiationDate: '2023-01-15',
     attendanceRate: 85,
+    dob: '1990-11-05',
+    cpf: '456.789.012-33',
+    address: 'Travessa da Luz, 321',
   },
   {
     id: '5',
@@ -111,6 +148,9 @@ export const mockBrothers: Brother[] = [
     status: 'Ativo',
     initiationDate: '2023-11-20',
     attendanceRate: 100,
+    dob: '1995-05-30',
+    cpf: '567.890.123-44',
+    address: 'Alameda dos Obreiros, 654',
   },
 ]
 
@@ -247,5 +287,73 @@ export const mockLibrary: LibraryItem[] = [
     type: 'PDF',
     degree: 'Aprendiz',
     addedAt: '2023-11-05',
+  },
+]
+
+export const mockDocuments: LodgeDocument[] = [
+  {
+    id: '1',
+    title: 'Estatuto Social',
+    description: 'Estatuto consolidado da loja - 2024',
+    uploadDate: '2024-01-10',
+    category: 'Jurídico',
+    type: 'PDF',
+    url: '#',
+  },
+  {
+    id: '2',
+    title: 'Ata de Eleição',
+    description: 'Ata da eleição da diretoria atual',
+    uploadDate: '2024-05-20',
+    category: 'Atas',
+    type: 'PDF',
+    url: '#',
+  },
+  {
+    id: '3',
+    title: 'Balaústre Nº 1250',
+    description: 'Registro da sessão de 15/05/2025',
+    uploadDate: '2025-05-16',
+    category: 'Balaústres',
+    type: 'DOCX',
+    url: '#',
+  },
+]
+
+export const mockMessages: Message[] = [
+  {
+    id: '1',
+    subject: 'Solicitação de Documentos',
+    content:
+      'Prezado Ir. Secretário, solicito o envio da minha certidão de regularidade.',
+    sender: 'Marcos Souza',
+    senderId: '4',
+    recipients: ['Secretaria'],
+    date: '2025-05-19',
+    read: false,
+    type: 'received',
+  },
+  {
+    id: '2',
+    subject: 'Confirmação de Presença',
+    content: 'Informo que estarei presente no Banquete Ritualístico.',
+    sender: 'Lucas Pereira',
+    senderId: '5',
+    recipients: ['Secretaria'],
+    date: '2025-05-18',
+    read: true,
+    type: 'received',
+  },
+  {
+    id: '3',
+    subject: 'Convocação Extraordinária',
+    content:
+      'Lembramos a todos da convocação para a sessão extraordinária de amanhã.',
+    sender: 'Secretaria',
+    senderId: '2',
+    recipients: ['Todos'],
+    date: '2025-05-15',
+    read: true,
+    type: 'sent',
   },
 ]

@@ -6,6 +6,12 @@ import {
   isSameDay,
   setYear,
   getYear,
+  addWeeks,
+  subWeeks,
+  addDays,
+  subDays,
+  startOfWeek,
+  endOfWeek,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -15,6 +21,7 @@ import {
   Filter,
   Calendar as CalendarIcon,
   List,
+  LayoutGrid,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,6 +44,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 import useChancellorStore from '@/stores/useChancellorStore'
 import { CalendarGrid } from '@/components/agenda/CalendarGrid'
+import { WeeklyCalendar } from '@/components/agenda/WeeklyCalendar'
 import { AgendaEventDialog } from '@/components/agenda/AgendaEventDialog'
 import {
   EventDetailsSheet,
@@ -44,6 +52,7 @@ import {
 } from '@/components/agenda/EventDetailsSheet'
 import { useToast } from '@/hooks/use-toast'
 import { Event } from '@/lib/data'
+import { cn } from '@/lib/utils'
 
 export default function Agenda() {
   const { events, brothers, addEvent, updateEvent, deleteEvent } =
@@ -51,7 +60,7 @@ export default function Agenda() {
   const { toast } = useToast()
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<'month' | 'day' | 'list'>('month')
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month')
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
   // Dialogs State
@@ -71,11 +80,10 @@ export default function Agenda() {
 
   // --- Data Processing ---
 
-  // 1. Process standard events
   const standardEvents: CalendarEvent[] = events.map((e) => ({
     id: e.id,
     title: e.title,
-    date: e.date, // YYYY-MM-DD
+    date: e.date,
     time: e.time,
     type: e.type,
     description: e.description,
@@ -83,53 +91,56 @@ export default function Agenda() {
     originalEvent: e,
   }))
 
-  // 2. Process Milestones (Birthdays & Masonic)
   const currentYear = getYear(currentDate)
   const milestoneEvents: CalendarEvent[] = []
 
   brothers.forEach((brother) => {
-    // Birthdays
     if (brother.dob && filters.birthday) {
-      // Create date for current year
-      const dob = new Date(brother.dob) // Typically YYYY-MM-DD
-      const birthdayThisYear = setYear(
-        new Date(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()),
-        currentYear,
-      )
-
-      milestoneEvents.push({
-        id: `dob-${brother.id}-${currentYear}`,
-        title: `Aniversário: Ir. ${brother.name}`,
-        date: format(birthdayThisYear, 'yyyy-MM-dd'),
-        type: 'Aniversário',
-        description: `Aniversário natalício do Irmão ${brother.name} (${brother.degree})`,
-        brotherId: brother.id,
-      })
-    }
-
-    // Initiation Anniversary
-    if (brother.initiationDate && filters.masonic) {
-      const init = new Date(brother.initiationDate)
-      const initThisYear = setYear(
-        new Date(init.getUTCFullYear(), init.getUTCMonth(), init.getUTCDate()),
-        currentYear,
-      )
-      const years = currentYear - getYear(init)
-
-      if (years > 0) {
+      const dob = new Date(brother.dob)
+      // Check for valid date
+      if (!isNaN(dob.getTime())) {
+        const birthdayThisYear = setYear(
+          new Date(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()),
+          currentYear,
+        )
         milestoneEvents.push({
-          id: `init-${brother.id}-${currentYear}`,
-          title: `Aniversário de Iniciação: Ir. ${brother.name}`,
-          date: format(initThisYear, 'yyyy-MM-dd'),
-          type: 'Maçônico',
-          description: `Completando ${years} anos de vida maçônica.`,
+          id: `dob-${brother.id}-${currentYear}`,
+          title: `Aniv. Ir. ${brother.name}`,
+          date: format(birthdayThisYear, 'yyyy-MM-dd'),
+          type: 'Aniversário',
+          description: `Aniversário natalício do Irmão ${brother.name} (${brother.degree})`,
           brotherId: brother.id,
         })
       }
     }
+
+    if (brother.initiationDate && filters.masonic) {
+      const init = new Date(brother.initiationDate)
+      if (!isNaN(init.getTime())) {
+        const initThisYear = setYear(
+          new Date(
+            init.getUTCFullYear(),
+            init.getUTCMonth(),
+            init.getUTCDate(),
+          ),
+          currentYear,
+        )
+        const years = currentYear - getYear(init)
+
+        if (years > 0) {
+          milestoneEvents.push({
+            id: `init-${brother.id}-${currentYear}`,
+            title: `Iniciação Ir. ${brother.name}`,
+            date: format(initThisYear, 'yyyy-MM-dd'),
+            type: 'Maçônico',
+            description: `Completando ${years} anos de vida maçônica.`,
+            brotherId: brother.id,
+          })
+        }
+      }
+    }
   })
 
-  // Combine and Filter Events
   const allEvents = [...standardEvents, ...milestoneEvents].filter((e) => {
     if (e.type === 'Sessão' && !filters.session) return false
     if (e.type === 'Evento Social' && !filters.social) return false
@@ -140,16 +151,22 @@ export default function Agenda() {
 
   // --- Handlers ---
 
-  const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1))
-  const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1))
+  const handlePrev = () => {
+    if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1))
+    if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1))
+    if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1))
+  }
+
+  const handleNext = () => {
+    if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1))
+    if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1))
+    if (viewMode === 'day') setCurrentDate(addDays(currentDate, 1))
+  }
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
-    // If mobile or explicit day view preference, switch view?
-    // For now, update selected date which updates side calendar or day view
     if (viewMode === 'month') {
-      // Maybe open a small popover or just scroll?
-      // Let's keep it simple: selectedDate is used for "New Event" default
+      // Just select
     }
   }
 
@@ -164,20 +181,29 @@ export default function Agenda() {
   }
 
   const handleSaveEvent = (data: any) => {
-    if (eventToEdit) {
-      updateEvent({ ...eventToEdit, ...data })
+    try {
+      if (eventToEdit) {
+        updateEvent({ ...eventToEdit, ...data })
+        toast({
+          title: 'Evento Atualizado',
+          description: 'As alterações foram salvas com sucesso.',
+        })
+      } else {
+        addEvent({ id: crypto.randomUUID(), ...data })
+        toast({
+          title: 'Evento Criado',
+          description: 'Novo evento adicionado à agenda.',
+        })
+      }
+      setIsEventDialogOpen(false)
+    } catch (error) {
+      console.error(error)
       toast({
-        title: 'Evento Atualizado',
-        description: 'As alterações foram salvas.',
-      })
-    } else {
-      addEvent({ id: crypto.randomUUID(), ...data })
-      toast({
-        title: 'Evento Criado',
-        description: 'Novo evento adicionado à agenda.',
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível salvar o evento. Tente novamente.',
       })
     }
-    setIsEventDialogOpen(false)
   }
 
   const handleEditEventFromDetails = (event: CalendarEvent) => {
@@ -189,50 +215,68 @@ export default function Agenda() {
   }
 
   const handleDeleteEvent = (id: string) => {
-    // Check if it's a real event (not milestone)
-    const isReal = events.some((e) => e.id === id)
-    if (isReal) {
-      deleteEvent(id)
-      setIsDetailsOpen(false)
+    try {
+      const isReal = events.some((e) => e.id === id)
+      if (isReal) {
+        deleteEvent(id)
+        setIsDetailsOpen(false)
+        toast({
+          title: 'Evento Excluído',
+          description: 'O evento foi removido da agenda.',
+        })
+      }
+    } catch (error) {
       toast({
-        title: 'Evento Excluído',
-        description: 'O evento foi removido da agenda.',
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao excluir o evento.',
       })
     }
   }
 
-  // Derived for Day View / List View
   const selectedDayEvents = allEvents.filter((e) =>
     isSameDay(new Date(e.date + 'T12:00:00'), selectedDate),
   )
 
+  const getHeaderTitle = () => {
+    if (viewMode === 'day')
+      return format(currentDate, "dd 'de' MMMM", { locale: ptBR })
+    if (viewMode === 'week') {
+      const start = startOfWeek(currentDate, { weekStartsOn: 0 })
+      const end = endOfWeek(currentDate, { weekStartsOn: 0 })
+      return `${format(start, 'dd MMM', { locale: ptBR })} - ${format(end, 'dd MMM', { locale: ptBR })}`
+    }
+    return format(currentDate, 'MMMM yyyy', { locale: ptBR })
+  }
+
   return (
     <div className="space-y-6 h-full flex flex-col">
-      {/* Header Toolbar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+            <Button variant="outline" size="icon" onClick={handlePrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h2 className="text-xl font-bold min-w-[200px] text-center capitalize">
-              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            <h2 className="text-lg font-bold min-w-[200px] text-center capitalize">
+              {getHeaderTitle()}
             </h2>
-            <Button variant="outline" size="icon" onClick={handleNextMonth}>
+            <Button variant="outline" size="icon" onClick={handleNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentDate(new Date())}
+            onClick={() => {
+              setCurrentDate(new Date())
+              setSelectedDate(new Date())
+            }}
           >
             Hoje
           </Button>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
-          {/* View Tabs */}
           <Tabs
             value={viewMode}
             onValueChange={(v: any) => setViewMode(v)}
@@ -242,6 +286,10 @@ export default function Agenda() {
               <TabsTrigger value="month">
                 <CalendarIcon className="h-4 w-4 md:mr-2" />
                 <span className="hidden md:inline">Mês</span>
+              </TabsTrigger>
+              <TabsTrigger value="week">
+                <LayoutGrid className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Semana</span>
               </TabsTrigger>
               <TabsTrigger value="day">
                 <List className="h-4 w-4 md:mr-2" />
@@ -318,13 +366,12 @@ export default function Agenda() {
           </Popover>
 
           <Button onClick={handleCreateEvent}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Evento
+            <Plus className="mr-2 h-4 w-4" /> Novo
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1">
-        {/* Sidebar / Mini Calendar & Day List */}
         <Card className="lg:col-span-1 h-fit">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Calendário Rápido</CardTitle>
@@ -334,7 +381,12 @@ export default function Agenda() {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(d)}
+                onSelect={(d) => {
+                  if (d) {
+                    setSelectedDate(d)
+                    setCurrentDate(d)
+                  }
+                }}
                 month={currentDate}
                 onMonthChange={setCurrentDate}
                 className="rounded-md border shadow-sm"
@@ -363,7 +415,14 @@ export default function Agenda() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-[10px] h-5">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-[10px] h-5',
+                            event.type === 'Sessão' &&
+                              'border-blue-200 text-blue-700 bg-blue-50',
+                          )}
+                        >
                           {event.type}
                         </Badge>
                         {event.time && (
@@ -380,14 +439,28 @@ export default function Agenda() {
           </CardContent>
         </Card>
 
-        {/* Main Calendar View */}
         <div className="lg:col-span-3 min-h-[600px] flex flex-col">
           <TabsContent value="month" className="mt-0 h-full">
             <CalendarGrid
               currentDate={currentDate}
               events={allEvents}
               onEventClick={handleEventClick}
-              onDateClick={handleDateClick}
+              onDateClick={(date) => {
+                handleDateClick(date)
+                setViewMode('day')
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="week" className="mt-0 h-full">
+            <WeeklyCalendar
+              currentDate={currentDate}
+              events={allEvents}
+              onEventClick={handleEventClick}
+              onDateClick={(date) => {
+                handleDateClick(date)
+                setViewMode('day')
+              }}
             />
           </TabsContent>
 
@@ -395,59 +468,68 @@ export default function Agenda() {
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>
-                  Agenda do Dia {format(selectedDate, 'dd/MM/yyyy')}
+                  Agenda do Dia {format(currentDate, 'dd/MM/yyyy')}
                 </CardTitle>
                 <CardDescription>
                   Detalhamento dos eventos do dia.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {selectedDayEvents.length === 0 ? (
+                {allEvents.filter((e) =>
+                  isSameDay(new Date(e.date + 'T12:00:00'), currentDate),
+                ).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
                     <CalendarIcon className="h-16 w-16 mb-4 opacity-20" />
-                    <p>Nenhum evento agendado para hoje.</p>
+                    <p>Nenhum evento agendado para este dia.</p>
                     <Button variant="link" onClick={handleCreateEvent}>
                       Adicionar Evento
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {selectedDayEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className="flex gap-4 p-4 border rounded-lg hover:bg-secondary/10 transition-colors"
-                      >
-                        <div className="flex flex-col items-center justify-center min-w-[80px] border-r pr-4">
-                          <span className="text-xl font-bold">
-                            {event.time || 'Dia'}
-                          </span>
-                          <span className="text-xs text-muted-foreground uppercase">
-                            {event.type}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold">{event.title}</h3>
-                          <p className="text-muted-foreground text-sm mt-1">
-                            {event.description || 'Sem descrição.'}
-                          </p>
-                          {event.location && (
-                            <p className="text-xs font-medium mt-2 flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-primary/50" />{' '}
-                              {event.location}
+                    {allEvents
+                      .filter((e) =>
+                        isSameDay(new Date(e.date + 'T12:00:00'), currentDate),
+                      )
+                      .sort((a, b) =>
+                        (a.time || '00:00').localeCompare(b.time || '00:00'),
+                      )
+                      .map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex gap-4 p-4 border rounded-lg hover:bg-secondary/10 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center min-w-[80px] border-r pr-4">
+                            <span className="text-xl font-bold">
+                              {event.time || '-'}
+                            </span>
+                            <span className="text-xs text-muted-foreground uppercase text-center mt-1">
+                              {event.type}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold">{event.title}</h3>
+                            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+                              {event.description || 'Sem descrição.'}
                             </p>
-                          )}
+                            {event.location && (
+                              <p className="text-xs font-medium mt-2 flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-primary/50" />{' '}
+                                {event.location}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEventClick(event)}
+                            >
+                              Detalhes
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEventClick(event)}
-                          >
-                            Detalhes
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </CardContent>

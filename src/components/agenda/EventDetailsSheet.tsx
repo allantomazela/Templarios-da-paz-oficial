@@ -8,7 +8,15 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, MapPin, Users, Clock, Edit, Trash2 } from 'lucide-react'
+import {
+  CalendarDays,
+  MapPin,
+  Users,
+  Clock,
+  Edit,
+  Trash2,
+  FileText,
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -46,15 +54,15 @@ export function EventDetailsSheet({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'Sessão':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200'
       case 'Reunião':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-100 border-gray-200'
       case 'Evento Social':
-        return 'bg-green-100 text-green-800 hover:bg-green-100'
+        return 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200'
       case 'Aniversário':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200'
       case 'Maçônico':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-100'
+        return 'bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200'
       default:
         return 'bg-secondary text-secondary-foreground'
     }
@@ -62,7 +70,7 @@ export function EventDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-md">
+      <SheetContent className="overflow-y-auto sm:max-w-md w-full">
         <SheetHeader className="space-y-4">
           <div className="flex items-center gap-2">
             <Badge className={getTypeColor(event.type)} variant="outline">
@@ -110,16 +118,29 @@ export function EventDetailsSheet({
           )}
 
           {event.description && (
-            <div className="p-4 bg-muted/30 rounded-lg border text-sm leading-relaxed">
-              {event.description}
+            <div className="flex items-start gap-3">
+              <div className="bg-secondary/20 p-2 rounded-md">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-sm mb-1">
+                  Descrição e Requisitos
+                </h4>
+                <div className="p-3 bg-muted/30 rounded-lg border text-sm leading-relaxed whitespace-pre-wrap">
+                  {event.description}
+                </div>
+              </div>
             </div>
           )}
 
           {!isMilestone && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>
-                Participantes estimados: {event.originalEvent?.attendees || 0}
+            <div className="flex items-center gap-3 p-4 border rounded-lg bg-secondary/5">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                Participantes estimados:{' '}
+                <span className="font-bold">
+                  {event.originalEvent?.attendees || 0}
+                </span>
               </span>
             </div>
           )}
@@ -129,7 +150,7 @@ export function EventDetailsSheet({
               <img
                 src={`https://img.usecurling.com/ppl/medium?gender=male&seed=${event.brotherId}`}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full mb-3 border-2 border-background shadow-sm"
+                className="w-24 h-24 rounded-full mb-3 border-4 border-background shadow-sm"
               />
               <p className="text-sm font-medium">Irmão da Loja</p>
             </div>
@@ -137,7 +158,7 @@ export function EventDetailsSheet({
         </div>
 
         {!isMilestone && (
-          <SheetFooter className="mt-10 flex-col sm:flex-row gap-3 sm:gap-2">
+          <SheetFooter className="mt-10 flex flex-col sm:flex-row gap-3 sm:gap-2 border-t pt-6">
             <Button
               variant="outline"
               className="w-full sm:w-auto"

@@ -71,34 +71,36 @@ export function AgendaEventDialog({
   })
 
   useEffect(() => {
-    if (eventToEdit) {
-      form.reset({
-        title: eventToEdit.title,
-        date: eventToEdit.date,
-        time: eventToEdit.time,
-        type: eventToEdit.type,
-        location: eventToEdit.location,
-        description: eventToEdit.description,
-        attendees: eventToEdit.attendees,
-      })
-    } else {
-      form.reset({
-        title: '',
-        date: selectedDate
-          ? format(selectedDate, 'yyyy-MM-dd')
-          : format(new Date(), 'yyyy-MM-dd'),
-        time: '20:00',
-        type: 'Sessão',
-        location: 'Templo Principal',
-        description: '',
-        attendees: 0,
-      })
+    if (open) {
+      if (eventToEdit) {
+        form.reset({
+          title: eventToEdit.title,
+          date: eventToEdit.date,
+          time: eventToEdit.time,
+          type: eventToEdit.type,
+          location: eventToEdit.location,
+          description: eventToEdit.description,
+          attendees: eventToEdit.attendees,
+        })
+      } else {
+        form.reset({
+          title: '',
+          date: selectedDate
+            ? format(selectedDate, 'yyyy-MM-dd')
+            : format(new Date(), 'yyyy-MM-dd'),
+          time: '20:00',
+          type: 'Sessão',
+          location: 'Templo Principal',
+          description: '',
+          attendees: 0,
+        })
+      }
     }
   }, [eventToEdit, selectedDate, form, open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {eventToEdit ? 'Editar Evento' : 'Novo Evento na Agenda'}
@@ -111,7 +113,7 @@ export function AgendaEventDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Título</FormLabel>
+                  <FormLabel>Título do Evento</FormLabel>
                   <FormControl>
                     <Input placeholder="Ex: Sessão Ordinária" {...field} />
                   </FormControl>
@@ -208,9 +210,13 @@ export function AgendaEventDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição</FormLabel>
+                  <FormLabel>Descrição e Requisitos</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Detalhes do evento" {...field} />
+                    <Textarea
+                      placeholder="Detalhes, trajes, requisitos, etc."
+                      className="min-h-[100px]"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -224,7 +230,7 @@ export function AgendaEventDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar</Button>
+              <Button type="submit">Salvar Evento</Button>
             </DialogFooter>
           </form>
         </Form>

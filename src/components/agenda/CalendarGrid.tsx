@@ -12,7 +12,6 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CalendarEvent } from './EventDetailsSheet'
-import { Badge } from '@/components/ui/badge'
 
 interface CalendarGridProps {
   currentDate: Date
@@ -29,8 +28,8 @@ export function CalendarGrid({
 }: CalendarGridProps) {
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(monthStart)
-  const startDate = startOfWeek(monthStart)
-  const endDate = endOfWeek(monthEnd)
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 0 })
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 })
 
   const calendarDays = eachDayOfInterval({
     start: startDate,
@@ -40,11 +39,14 @@ export function CalendarGrid({
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
   const getEventsForDay = (day: Date) => {
-    return events.filter((event) => {
-      // Handle simple date string comparison
-      // If event.date is YYYY-MM-DD
-      return isSameDay(new Date(event.date + 'T12:00:00'), day)
-    })
+    return events
+      .filter((event) => {
+        return isSameDay(new Date(event.date + 'T12:00:00'), day)
+      })
+      .sort((a, b) => {
+        if (a.time && b.time) return a.time.localeCompare(b.time)
+        return 0
+      })
   }
 
   const getTypeStyle = (type: string) => {
@@ -67,7 +69,7 @@ export function CalendarGrid({
   return (
     <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-background shadow-sm">
       {/* Header Week Days */}
-      <div className="grid grid-cols-7 border-b bg-muted/40">
+      <div className="grid grid-cols-7 border-b bg-muted/40 divide-x">
         {weekDays.map((day) => (
           <div
             key={day}
@@ -79,7 +81,7 @@ export function CalendarGrid({
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 grid-rows-5 md:grid-rows-auto flex-1 auto-rows-fr">
+      <div className="grid grid-cols-7 grid-rows-5 md:grid-rows-auto flex-1 auto-rows-fr bg-muted/20 gap-px border-b">
         {calendarDays.map((day, dayIdx) => {
           const dayEvents = getEventsForDay(day)
           const isCurrentMonth = isSameMonth(day, monthStart)
@@ -89,10 +91,9 @@ export function CalendarGrid({
               key={day.toString()}
               onClick={() => onDateClick(day)}
               className={cn(
-                'min-h-[100px] md:min-h-[120px] p-2 border-b border-r relative transition-colors cursor-pointer group',
-                !isCurrentMonth && 'bg-muted/10 text-muted-foreground',
+                'min-h-[100px] md:min-h-[120px] p-2 relative transition-colors cursor-pointer group flex flex-col gap-1 bg-background',
+                !isCurrentMonth && 'bg-muted/5 text-muted-foreground',
                 isToday(day) && 'bg-primary/5',
-                dayIdx % 7 === 6 && 'border-r-0', // Remove right border for last col
                 'hover:bg-accent/50',
               )}
             >
@@ -115,7 +116,7 @@ export function CalendarGrid({
               </div>
 
               {/* Events List (Desktop) */}
-              <div className="mt-1 space-y-1 hidden md:block overflow-y-auto max-h-[90px] no-scrollbar">
+              <div className="mt-1 space-y-1 hidden md:block overflow-y-auto flex-1 no-scrollbar">
                 {dayEvents.map((event) => (
                   <div
                     key={`${event.id}-${event.type}`}
@@ -124,13 +125,15 @@ export function CalendarGrid({
                       onEventClick(event)
                     }}
                     className={cn(
-                      'text-[10px] px-1.5 py-0.5 rounded border truncate cursor-pointer transition-all hover:scale-[1.02]',
+                      'text-[10px] px-1.5 py-1 rounded border truncate cursor-pointer transition-all hover:scale-[1.02]',
                       getTypeStyle(event.type),
                     )}
                     title={event.title}
                   >
                     {event.time && (
-                      <span className="opacity-75 mr-1">{event.time}</span>
+                      <span className="opacity-75 mr-1 font-mono">
+                        {event.time}
+                      </span>
                     )}
                     <span className="font-medium">{event.title}</span>
                   </div>
@@ -138,7 +141,7 @@ export function CalendarGrid({
               </div>
 
               {/* Mobile Indicator (Dots) */}
-              <div className="mt-2 flex flex-wrap gap-1 md:hidden justify-center">
+              <div className="mt-auto flex flex-wrap gap-1 md:hidden justify-center pb-1">
                 {dayEvents.slice(0, 4).map((event, i) => (
                   <div
                     key={i}
@@ -152,6 +155,9 @@ export function CalendarGrid({
                     )}
                   />
                 ))}
+                {dayEvents.length > 4 && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                )}
               </div>
             </div>
           )

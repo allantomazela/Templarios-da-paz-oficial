@@ -13,16 +13,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-} from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
 import { mockContributions } from '@/lib/data'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -60,9 +51,10 @@ export function FinancialOverview() {
     switch (period) {
       case 'current_month':
         return { start: startOfMonth(now), end: endOfMonth(now) }
-      case 'last_month':
+      case 'last_month': {
         const lastMonth = subMonths(now, 1)
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) }
+      }
       case 'current_year':
         return { start: startOfYear(now), end: endOfYear(now) }
       default:
@@ -102,10 +94,6 @@ export function FinancialOverview() {
 
   const periodResult = totalIncome - totalExpense
 
-  const pendingContributions = mockContributions.filter(
-    (c) => c.status !== 'Pago',
-  ).length
-
   // Process Chart Data (Monthly Aggregation for the selected period if it is Year, otherwise Daily)
   const isYearView = period === 'current_year'
 
@@ -137,6 +125,44 @@ export function FinancialOverview() {
         const found = acc.find((i) => i.name === curr.category)
         if (found) found.value += curr.amount
         else acc.push({ name: curr.category, value: curr.amount, fill: '' })
+        return acc
+      },
+      {} as { name: string; value: number; fill: string }[],
+    )
+  // Convert to array if it's an object, but reduce above is initialized as array... wait, logic check
+  // Actually the reduce initial value was [], so let's fix type
+  // Wait, the original code had:
+  // .reduce((acc, curr) => { ... }, [] as ...)
+  // which is correct. Let's maintain that logic.
+  // However, reduce logic was slightly flawed in original code if it didn't handle finding index correctly for complex types, but array find is fine.
+  // Let's re-implement strictly as before but fix potential type issues if any.
+  // Actually, looking at original code:
+  /*
+        const expenseCategoryData = filteredTransactions
+        .filter(t => t.type === 'Despesa')
+        .reduce((acc, curr) => {
+            const found = acc.find(i => i.name === curr.category)
+            if (found) found.value += curr.amount
+            else acc.push({ name: curr.category, value: curr.amount, fill: '' })
+            return acc
+        }, [] as { name: string, value: number, fill: string }[])
+    */
+  // This looks correct.
+  // We just need to assert it is an array for map.
+  // But since I'm rewriting, I'll use `as any[]` if TS complains, or correct types.
+  // It's standard array reduce.
+
+  // Let's rewrite the reduce cleanly:
+  const expenseCategoryData = filteredTransactions
+    .filter((t) => t.type === 'Despesa')
+    .reduce(
+      (acc, curr) => {
+        const found = acc.find((i) => i.name === curr.category)
+        if (found) {
+          found.value += curr.amount
+        } else {
+          acc.push({ name: curr.category, value: curr.amount, fill: '' })
+        }
         return acc
       },
       [] as { name: string; value: number; fill: string }[],

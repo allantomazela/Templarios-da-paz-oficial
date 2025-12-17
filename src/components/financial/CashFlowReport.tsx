@@ -1,12 +1,5 @@
 import { useState } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -19,7 +12,6 @@ import { Download, Printer } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import useFinancialStore from '@/stores/useFinancialStore'
 import {
-  format,
   parseISO,
   isWithinInterval,
   startOfMonth,
@@ -40,9 +32,10 @@ export function CashFlowReport() {
     switch (period) {
       case 'current_month':
         return { start: startOfMonth(now), end: endOfMonth(now) }
-      case 'last_month':
+      case 'last_month': {
         const lastMonth = subMonths(now, 1)
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) }
+      }
       case 'current_year':
         return { start: startOfYear(now), end: endOfYear(now) }
       default:

@@ -53,6 +53,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Event } from '@/lib/data'
 import { cn } from '@/lib/utils'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function Agenda() {
   const { events, brothers, addEvent, updateEvent, deleteEvent } =
@@ -250,7 +251,11 @@ export default function Agenda() {
   }
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <Tabs
+      value={viewMode}
+      onValueChange={(v) => setViewMode(v as 'month' | 'week' | 'day')}
+      className="space-y-6 h-full flex flex-col"
+    >
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
@@ -277,26 +282,20 @@ export default function Agenda() {
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Tabs
-            value={viewMode}
-            onValueChange={(v: any) => setViewMode(v)}
-            className="mr-auto md:mr-0"
-          >
-            <TabsList>
-              <TabsTrigger value="month">
-                <CalendarIcon className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Mês</span>
-              </TabsTrigger>
-              <TabsTrigger value="week">
-                <LayoutGrid className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Semana</span>
-              </TabsTrigger>
-              <TabsTrigger value="day">
-                <List className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Dia</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <TabsList className="mr-auto md:mr-0">
+            <TabsTrigger value="month">
+              <CalendarIcon className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Mês</span>
+            </TabsTrigger>
+            <TabsTrigger value="week">
+              <LayoutGrid className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Semana</span>
+            </TabsTrigger>
+            <TabsTrigger value="day">
+              <List className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Dia</span>
+            </TabsTrigger>
+          </TabsList>
 
           <Popover>
             <PopoverTrigger asChild>
@@ -441,99 +440,110 @@ export default function Agenda() {
 
         <div className="lg:col-span-3 min-h-[600px] flex flex-col">
           <TabsContent value="month" className="mt-0 h-full">
-            <CalendarGrid
-              currentDate={currentDate}
-              events={allEvents}
-              onEventClick={handleEventClick}
-              onDateClick={(date) => {
-                handleDateClick(date)
-                setViewMode('day')
-              }}
-            />
+            <ErrorBoundary>
+              <CalendarGrid
+                currentDate={currentDate}
+                events={allEvents}
+                onEventClick={handleEventClick}
+                onDateClick={(date) => {
+                  handleDateClick(date)
+                  setViewMode('day')
+                }}
+              />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="week" className="mt-0 h-full">
-            <WeeklyCalendar
-              currentDate={currentDate}
-              events={allEvents}
-              onEventClick={handleEventClick}
-              onDateClick={(date) => {
-                handleDateClick(date)
-                setViewMode('day')
-              }}
-            />
+            <ErrorBoundary>
+              <WeeklyCalendar
+                currentDate={currentDate}
+                events={allEvents}
+                onEventClick={handleEventClick}
+                onDateClick={(date) => {
+                  handleDateClick(date)
+                  setViewMode('day')
+                }}
+              />
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="day" className="mt-0 h-full">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>
-                  Agenda do Dia {format(currentDate, 'dd/MM/yyyy')}
-                </CardTitle>
-                <CardDescription>
-                  Detalhamento dos eventos do dia.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allEvents.filter((e) =>
-                  isSameDay(new Date(e.date + 'T12:00:00'), currentDate),
-                ).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-                    <CalendarIcon className="h-16 w-16 mb-4 opacity-20" />
-                    <p>Nenhum evento agendado para este dia.</p>
-                    <Button variant="link" onClick={handleCreateEvent}>
-                      Adicionar Evento
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {allEvents
-                      .filter((e) =>
-                        isSameDay(new Date(e.date + 'T12:00:00'), currentDate),
-                      )
-                      .sort((a, b) =>
-                        (a.time || '00:00').localeCompare(b.time || '00:00'),
-                      )
-                      .map((event) => (
-                        <div
-                          key={event.id}
-                          className="flex gap-4 p-4 border rounded-lg hover:bg-secondary/10 transition-colors"
-                        >
-                          <div className="flex flex-col items-center justify-center min-w-[80px] border-r pr-4">
-                            <span className="text-xl font-bold">
-                              {event.time || '-'}
-                            </span>
-                            <span className="text-xs text-muted-foreground uppercase text-center mt-1">
-                              {event.type}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold">{event.title}</h3>
-                            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
-                              {event.description || 'Sem descrição.'}
-                            </p>
-                            {event.location && (
-                              <p className="text-xs font-medium mt-2 flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-primary/50" />{' '}
-                                {event.location}
+            <ErrorBoundary>
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>
+                    Agenda do Dia {format(currentDate, 'dd/MM/yyyy')}
+                  </CardTitle>
+                  <CardDescription>
+                    Detalhamento dos eventos do dia.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {allEvents.filter((e) =>
+                    isSameDay(new Date(e.date + 'T12:00:00'), currentDate),
+                  ).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                      <CalendarIcon className="h-16 w-16 mb-4 opacity-20" />
+                      <p>Nenhum evento agendado para este dia.</p>
+                      <Button variant="link" onClick={handleCreateEvent}>
+                        Adicionar Evento
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {allEvents
+                        .filter((e) =>
+                          isSameDay(
+                            new Date(e.date + 'T12:00:00'),
+                            currentDate,
+                          ),
+                        )
+                        .sort((a, b) =>
+                          (a.time || '00:00').localeCompare(b.time || '00:00'),
+                        )
+                        .map((event) => (
+                          <div
+                            key={event.id}
+                            className="flex gap-4 p-4 border rounded-lg hover:bg-secondary/10 transition-colors"
+                          >
+                            <div className="flex flex-col items-center justify-center min-w-[80px] border-r pr-4">
+                              <span className="text-xl font-bold">
+                                {event.time || '-'}
+                              </span>
+                              <span className="text-xs text-muted-foreground uppercase text-center mt-1">
+                                {event.type}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-bold">
+                                {event.title}
+                              </h3>
+                              <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+                                {event.description || 'Sem descrição.'}
                               </p>
-                            )}
+                              {event.location && (
+                                <p className="text-xs font-medium mt-2 flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-primary/50" />{' '}
+                                  {event.location}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex flex-col justify-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEventClick(event)}
+                              >
+                                Detalhes
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex flex-col justify-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEventClick(event)}
-                            >
-                              Detalhes
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
           </TabsContent>
         </div>
       </div>
@@ -553,6 +563,6 @@ export default function Agenda() {
         onEdit={handleEditEventFromDetails}
         onDelete={handleDeleteEvent}
       />
-    </div>
+    </Tabs>
   )
 }

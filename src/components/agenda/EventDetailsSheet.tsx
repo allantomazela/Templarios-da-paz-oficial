@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export interface CalendarEvent {
   id: string
@@ -147,11 +148,13 @@ export function EventDetailsSheet({
 
           {isMilestone && event.brotherId && (
             <div className="flex flex-col items-center justify-center p-6 bg-secondary/10 rounded-lg border border-dashed">
-              <img
-                src={`https://img.usecurling.com/ppl/medium?gender=male&seed=${event.brotherId}`}
-                alt="Avatar"
-                className="w-24 h-24 rounded-full mb-3 border-4 border-background shadow-sm"
-              />
+              <Avatar className="w-24 h-24 mb-3 border-4 border-background shadow-sm">
+                <AvatarImage
+                  src={`https://img.usecurling.com/ppl/medium?gender=male&seed=${event.brotherId}`}
+                  alt="Avatar"
+                />
+                <AvatarFallback className="text-xl bg-muted">Ir</AvatarFallback>
+              </Avatar>
               <p className="text-sm font-medium">Irmão da Loja</p>
             </div>
           )}

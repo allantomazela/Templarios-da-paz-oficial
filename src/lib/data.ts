@@ -158,6 +158,15 @@ export interface Attendance {
   justification?: string
 }
 
+export interface Solid {
+  id: string
+  date: string
+  amount: number
+  category: 'Hospitalaria' | 'Manutenção' | 'Eventos' | 'Outros'
+  description: string
+  brotherId?: string
+}
+
 // Mock Data
 export const mockBrothers: Brother[] = [
   {
@@ -632,5 +641,24 @@ export const mockAttendance: Attendance[] = [
     brotherId: '5',
     status: 'Justificado',
     justification: 'Viagem a trabalho',
+  },
+]
+
+export const mockSolids: Solid[] = [
+  {
+    id: '1',
+    date: '2025-05-20',
+    amount: 50.0,
+    category: 'Hospitalaria',
+    description: 'Doação para cesta básica',
+    brotherId: '1',
+  },
+  {
+    id: '2',
+    date: '2025-05-20',
+    amount: 100.0,
+    category: 'Manutenção',
+    description: 'Ajuda para pintura',
+    brotherId: '3',
   },
 ]

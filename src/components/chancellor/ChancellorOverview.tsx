@@ -14,10 +14,23 @@ import {
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { Users, TrendingUp, HandCoins } from 'lucide-react'
+import {
+  Users,
+  TrendingUp,
+  HandCoins,
+  AlertTriangle,
+  Check,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function ChancellorOverview() {
-  const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
+  const {
+    sessionRecords,
+    attendanceRecords,
+    brothers,
+    reviewedAlerts,
+    markAlertAsReviewed,
+  } = useChancellorStore()
 
   // Metrics
   const totalCharity = sessionRecords.reduce(
@@ -41,15 +54,41 @@ export function ChancellorOverview() {
           ar.sessionRecordId === session.id &&
           (ar.status === 'Presente' || ar.status === 'Justificado'),
       )
-      // Assuming all brothers should attend
       const percentage = (sessionAttendance.length / brothers.length) * 100
       totalAttendancePercentage += percentage
     })
     totalAttendancePercentage = totalAttendancePercentage / last5Sessions.length
   }
 
+  // --- Presence Notifications Logic ---
+  // Identify brothers with unjustified absences in the last 3 sessions
+  const last3Sessions = last5Sessions.slice(0, 3)
+  const alertBrothers = brothers
+    .filter((brother) => {
+      if (reviewedAlerts.includes(brother.id)) return false
+      if (last3Sessions.length === 0) return false
+
+      let unjustifiedCount = 0
+      for (const session of last3Sessions) {
+        const record = attendanceRecords.find(
+          (ar) =>
+            ar.sessionRecordId === session.id && ar.brotherId === brother.id,
+        )
+        if (!record || record.status === 'Ausente') {
+          unjustifiedCount++
+        }
+      }
+      // Alert if absent in all checked sessions (or > 50% if logic requires)
+      // Let's say: absent in all of the last 3 (or available) sessions
+      return unjustifiedCount === last3Sessions.length
+    })
+    .map((b) => ({
+      ...b,
+      absenceCount: last3Sessions.length,
+    }))
+  // ------------------------------------
+
   // Charts Data
-  // Degree Distribution
   const degrees = brothers.reduce(
     (acc, curr) => {
       acc[curr.degree] = (acc[curr.degree] || 0) + 1
@@ -64,7 +103,6 @@ export function ChancellorOverview() {
     fill: `hsl(var(--chart-${index + 1}))`,
   }))
 
-  // Attendance History
   const attendanceHistory = last5Sessions
     .map((session) => {
       const present = attendanceRecords.filter(
@@ -92,6 +130,46 @@ export function ChancellorOverview() {
 
   return (
     <div className="space-y-6">
+      {/* Presence Notifications Widget */}
+      {alertBrothers.length > 0 && (
+        <Card className="border-l-4 border-l-amber-500 bg-amber-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-amber-700">
+              <AlertTriangle className="h-5 w-5" /> Alerta de Frequência
+            </CardTitle>
+            <CardDescription>
+              Irmãos com ausências injustificadas consecutivas nas últimas{' '}
+              {last3Sessions.length} sessões.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {alertBrothers.map((brother) => (
+                <div
+                  key={brother.id}
+                  className="flex items-center justify-between p-2 bg-background rounded border"
+                >
+                  <span className="font-medium text-sm">{brother.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {brother.absenceCount} ausências
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => markAlertAsReviewed(brother.id)}
+                    >
+                      <Check className="mr-1 h-3 w-3" /> Revisar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

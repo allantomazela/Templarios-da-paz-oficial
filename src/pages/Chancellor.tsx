@@ -3,6 +3,8 @@ import { ChancellorOverview } from '@/components/chancellor/ChancellorOverview'
 import { AttendanceManager } from '@/components/chancellor/AttendanceManager'
 import { DegreeManager } from '@/components/chancellor/DegreeManager'
 import { ChancellorReports } from '@/components/chancellor/ChancellorReports'
+import { SolidsManager } from '@/components/chancellor/SolidsManager'
+import { EventsManager } from '@/components/chancellor/EventsManager'
 
 export default function Chancellor() {
   return (
@@ -15,9 +17,11 @@ export default function Chancellor() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="attendance">Sessões e Presença</TabsTrigger>
+          <TabsTrigger value="attendance">Presença</TabsTrigger>
+          <TabsTrigger value="events">Agenda da Loja</TabsTrigger>
+          <TabsTrigger value="solids">Sólidos</TabsTrigger>
           <TabsTrigger value="degrees">Controle de Graus</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
@@ -28,6 +32,14 @@ export default function Chancellor() {
 
         <TabsContent value="attendance">
           <AttendanceManager />
+        </TabsContent>
+
+        <TabsContent value="events">
+          <EventsManager />
+        </TabsContent>
+
+        <TabsContent value="solids">
+          <SolidsManager />
         </TabsContent>
 
         <TabsContent value="degrees">

@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { mockEvents, Event, SessionRecord } from '@/lib/data'
+import { Event, SessionRecord } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
 import { CheckCircle, Clock, CalendarIcon } from 'lucide-react'
@@ -17,7 +17,7 @@ import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
 
 export function AttendanceManager() {
-  const { sessionRecords } = useChancellorStore()
+  const { sessionRecords, events } = useChancellorStore()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<SessionRecord | null>(
     null,
@@ -25,8 +25,8 @@ export function AttendanceManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { toast } = useToast()
 
-  // Merge events with records
-  const eventsWithStatus = mockEvents.map((event) => {
+  // Merge events from store with records
+  const eventsWithStatus = events.map((event) => {
     const record = sessionRecords.find((r) => r.eventId === event.id)
     return {
       event,
@@ -34,6 +34,12 @@ export function AttendanceManager() {
       status: record ? record.status : 'Pendente',
     }
   })
+
+  // Sort by date descending
+  eventsWithStatus.sort(
+    (a, b) =>
+      new Date(b.event.date).getTime() - new Date(a.event.date).getTime(),
+  )
 
   const handleOpen = (event: Event, record?: SessionRecord) => {
     setSelectedEvent(event)
@@ -62,50 +68,60 @@ export function AttendanceManager() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {eventsWithStatus.map(({ event, record, status }) => (
-              <TableRow key={event.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    {format(new Date(event.date), 'dd/MM/yyyy')}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">{event.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {event.type}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={status === 'Finalizada' ? 'default' : 'secondary'}
-                    className={status === 'Finalizada' ? 'bg-green-600' : ''}
-                  >
-                    {status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {record ? `R$ ${record.charityCollection.toFixed(2)}` : '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant={status === 'Finalizada' ? 'outline' : 'default'}
-                    onClick={() => handleOpen(event, record)}
-                  >
-                    {status === 'Finalizada' ? (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" /> Editar
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="mr-2 h-4 w-4" /> Registrar
-                      </>
-                    )}
-                  </Button>
+            {eventsWithStatus.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  Nenhum evento agendado.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              eventsWithStatus.map(({ event, record, status }) => (
+                <TableRow key={event.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      {format(new Date(event.date), 'dd/MM/yyyy')}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{event.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {event.type}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        status === 'Finalizada' ? 'default' : 'secondary'
+                      }
+                      className={status === 'Finalizada' ? 'bg-green-600' : ''}
+                    >
+                      {status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {record ? `R$ ${record.charityCollection.toFixed(2)}` : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant={status === 'Finalizada' ? 'outline' : 'default'}
+                      onClick={() => handleOpen(event, record)}
+                    >
+                      {status === 'Finalizada' ? (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" /> Editar
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="mr-2 h-4 w-4" /> Registrar
+                        </>
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

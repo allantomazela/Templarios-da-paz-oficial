@@ -3,15 +3,22 @@ import {
   SessionRecord,
   Attendance,
   Brother,
+  Event,
+  Solid,
   mockSessionRecords,
   mockAttendance,
   mockBrothers,
+  mockEvents,
+  mockSolids,
 } from '@/lib/data'
 
 interface ChancellorState {
   sessionRecords: SessionRecord[]
   attendanceRecords: Attendance[]
-  brothers: Brother[] // We keep a local reference to brothers for degree updates
+  brothers: Brother[]
+  events: Event[]
+  solids: Solid[]
+  reviewedAlerts: string[] // List of brotherIds whose alerts have been reviewed
 
   addSessionRecord: (record: SessionRecord) => void
   updateSessionRecord: (record: SessionRecord) => void
@@ -19,12 +26,28 @@ interface ChancellorState {
   updateAttendanceRecord: (record: Attendance) => void
   bulkAddAttendance: (records: Attendance[]) => void
   updateBrotherDegree: (brotherId: string, updates: Partial<Brother>) => void
+
+  // Events
+  addEvent: (event: Event) => void
+  updateEvent: (event: Event) => void
+  deleteEvent: (id: string) => void
+
+  // Solids
+  addSolid: (solid: Solid) => void
+  updateSolid: (solid: Solid) => void
+  deleteSolid: (id: string) => void
+
+  // Alerts
+  markAlertAsReviewed: (brotherId: string) => void
 }
 
 export const useChancellorStore = create<ChancellorState>((set) => ({
   sessionRecords: mockSessionRecords,
   attendanceRecords: mockAttendance,
   brothers: mockBrothers,
+  events: mockEvents,
+  solids: mockSolids,
+  reviewedAlerts: [],
 
   addSessionRecord: (record) =>
     set((state) => ({ sessionRecords: [...state.sessionRecords, record] })),
@@ -65,6 +88,27 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
       brothers: state.brothers.map((b) =>
         b.id === brotherId ? { ...b, ...updates } : b,
       ),
+    })),
+
+  addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
+  updateEvent: (event) =>
+    set((state) => ({
+      events: state.events.map((e) => (e.id === event.id ? event : e)),
+    })),
+  deleteEvent: (id) =>
+    set((state) => ({ events: state.events.filter((e) => e.id !== id) })),
+
+  addSolid: (solid) => set((state) => ({ solids: [...state.solids, solid] })),
+  updateSolid: (solid) =>
+    set((state) => ({
+      solids: state.solids.map((s) => (s.id === solid.id ? solid : s)),
+    })),
+  deleteSolid: (id) =>
+    set((state) => ({ solids: state.solids.filter((s) => s.id !== id) })),
+
+  markAlertAsReviewed: (brotherId) =>
+    set((state) => ({
+      reviewedAlerts: [...state.reviewedAlerts, brotherId],
     })),
 }))
 

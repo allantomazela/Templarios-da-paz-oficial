@@ -50,6 +50,16 @@ export interface Transaction {
   amount: number
 }
 
+export interface Contribution {
+  id: string
+  brotherId: string
+  month: string
+  year: number
+  amount: number
+  status: 'Pago' | 'Pendente' | 'Atrasado'
+  paymentDate?: string
+}
+
 export interface LibraryItem {
   id: string
   title: string
@@ -256,6 +266,59 @@ export const mockTransactions: Transaction[] = [
     category: 'Ritualística',
     type: 'Despesa',
     amount: 800.0,
+  },
+  {
+    id: '6',
+    date: '2025-05-20',
+    description: 'Aluguel Salão',
+    category: 'Aluguéis',
+    type: 'Receita',
+    amount: 2500.0,
+  },
+  {
+    id: '7',
+    date: '2025-05-25',
+    description: 'Jantar Solstício',
+    category: 'Eventos',
+    type: 'Despesa',
+    amount: 3500.0,
+  },
+]
+
+export const mockContributions: Contribution[] = [
+  {
+    id: '1',
+    brotherId: '1',
+    month: 'Maio',
+    year: 2025,
+    amount: 150.0,
+    status: 'Pago',
+    paymentDate: '2025-05-05',
+  },
+  {
+    id: '2',
+    brotherId: '2',
+    month: 'Maio',
+    year: 2025,
+    amount: 150.0,
+    status: 'Pago',
+    paymentDate: '2025-05-10',
+  },
+  {
+    id: '3',
+    brotherId: '3',
+    month: 'Maio',
+    year: 2025,
+    amount: 150.0,
+    status: 'Pendente',
+  },
+  {
+    id: '4',
+    brotherId: '4',
+    month: 'Abril',
+    year: 2025,
+    amount: 150.0,
+    status: 'Atrasado',
   },
 ]
 

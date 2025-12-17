@@ -9,6 +9,8 @@ import { Brother } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import useFinancialStore from '@/stores/useFinancialStore'
+import { AlertTriangle, CheckCircle } from 'lucide-react'
 
 interface BrotherDetailsProps {
   open: boolean
@@ -21,6 +23,8 @@ export function BrotherDetails({
   onOpenChange,
   brother,
 }: BrotherDetailsProps) {
+  const { contributions } = useFinancialStore()
+
   if (!brother) return null
 
   const formatDate = (dateStr?: string) => {
@@ -31,6 +35,10 @@ export function BrotherDetails({
       return dateStr
     }
   }
+
+  const brotherContributions = contributions.filter(
+    (c) => c.brotherId === brother.id && c.status !== 'Pago',
+  )
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -59,6 +67,47 @@ export function BrotherDetails({
           </div>
 
           <div className="space-y-4">
+            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider border-b pb-1">
+              Situação Financeira
+            </h4>
+            <div className="bg-card border rounded-md p-4">
+              {brotherContributions.length === 0 ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">
+                    Nenhuma pendência financeira.
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-amber-600 mb-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    <span className="text-sm font-medium">
+                      Pendências Encontradas
+                    </span>
+                  </div>
+                  {brotherContributions.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          Mensalidade {c.month}/{c.year}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {c.status}
+                        </p>
+                      </div>
+                      <span className="font-mono font-medium text-destructive">
+                        R$ {c.amount.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider border-b pb-1">
               Dados Pessoais
             </h4>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Contribution, mockContributions, mockBrothers } from '@/lib/data'
+import { Contribution, mockBrothers } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -15,10 +15,15 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { ContributionDialog } from './ContributionDialog'
 import { format } from 'date-fns'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 export function ContributionsList() {
-  const [contributions, setContributions] =
-    useState<Contribution[]>(mockContributions)
+  const {
+    contributions,
+    addContribution,
+    updateContribution,
+    deleteContribution,
+  } = useFinancialStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedContribution, setSelectedContribution] =
@@ -35,25 +40,21 @@ export function ContributionsList() {
 
   const handleSave = (data: any) => {
     if (selectedContribution) {
-      setContributions(
-        contributions.map((c) =>
-          c.id === selectedContribution.id ? { ...c, ...data } : c,
-        ),
-      )
+      updateContribution({ ...selectedContribution, ...data })
       toast({ title: 'Sucesso', description: 'Contribuição atualizada.' })
     } else {
       const newContribution: Contribution = {
-        id: String(Math.random()),
+        id: crypto.randomUUID(),
         ...data,
       }
-      setContributions([...contributions, newContribution])
+      addContribution(newContribution)
       toast({ title: 'Sucesso', description: 'Contribuição registrada.' })
     }
     setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    setContributions(contributions.filter((c) => c.id !== id))
+    deleteContribution(id)
     toast({ title: 'Removido', description: 'Contribuição removida.' })
   }
 

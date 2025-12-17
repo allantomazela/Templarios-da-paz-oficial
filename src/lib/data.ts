@@ -96,6 +96,39 @@ export interface Category {
   type: 'Receita' | 'Despesa'
 }
 
+export interface Budget {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+  category?: string
+  amount: number
+  period: 'Mensal' | 'Anual' | 'Personalizado'
+  startDate?: string
+  endDate?: string
+}
+
+export interface FinancialGoal {
+  id: string
+  name: string
+  targetAmount: number
+  linkedCategory?: string
+  deadline: string
+}
+
+export interface ReminderSettings {
+  enabled: boolean
+  frequency: 'before' | 'on_due' | 'after'
+  days: number
+}
+
+export interface ReminderLog {
+  id: string
+  brotherId: string
+  contributionId: string
+  sentDate: string
+  method: 'Email' | 'WhatsApp'
+}
+
 // Mock Data
 export const mockBrothers: Brother[] = [
   {
@@ -439,5 +472,51 @@ export const mockMessages: Message[] = [
     date: '2025-05-15',
     read: true,
     type: 'sent',
+  },
+]
+
+export const mockBudgets: Budget[] = [
+  {
+    id: '1',
+    name: 'Despesas Eventos 2025',
+    type: 'Despesa',
+    category: 'Eventos',
+    amount: 15000,
+    period: 'Anual',
+  },
+  {
+    id: '2',
+    name: 'Manutenção Mensal',
+    type: 'Despesa',
+    category: 'Manutenção',
+    amount: 1500,
+    period: 'Mensal',
+  },
+]
+
+export const mockGoals: FinancialGoal[] = [
+  {
+    id: '1',
+    name: 'Fundo de Reserva',
+    targetAmount: 50000,
+    linkedCategory: 'Doações',
+    deadline: '2026-12-31',
+  },
+  {
+    id: '2',
+    name: 'Reforma do Templo',
+    targetAmount: 20000,
+    linkedCategory: 'Outros',
+    deadline: '2025-10-20',
+  },
+]
+
+export const mockReminderLogs: ReminderLog[] = [
+  {
+    id: '1',
+    brotherId: '3',
+    contributionId: '3',
+    sentDate: '2025-05-10',
+    method: 'Email',
   },
 ]

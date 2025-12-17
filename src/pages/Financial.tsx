@@ -5,6 +5,8 @@ import { ExpenseList } from '@/components/financial/ExpenseList'
 import { ContributionsList } from '@/components/financial/ContributionsList'
 import { FinancialReports } from '@/components/financial/FinancialReports'
 import { CategoryList } from '@/components/financial/CategoryList'
+import { BudgetsAndGoals } from '@/components/financial/BudgetsAndGoals'
+import { ReminderSettings } from '@/components/financial/ReminderSettings'
 
 export default function Financial() {
   return (
@@ -23,8 +25,10 @@ export default function Financial() {
             <TabsTrigger value="income">Receitas</TabsTrigger>
             <TabsTrigger value="expenses">Despesas</TabsTrigger>
             <TabsTrigger value="contributions">Contribuições</TabsTrigger>
+            <TabsTrigger value="budgets">Metas e Orçamentos</TabsTrigger>
             <TabsTrigger value="reports">Relatórios</TabsTrigger>
             <TabsTrigger value="categories">Categorias</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
         </div>
 
@@ -44,12 +48,20 @@ export default function Financial() {
           <ContributionsList />
         </TabsContent>
 
+        <TabsContent value="budgets">
+          <BudgetsAndGoals />
+        </TabsContent>
+
         <TabsContent value="reports">
           <FinancialReports />
         </TabsContent>
 
         <TabsContent value="categories">
           <CategoryList />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <ReminderSettings />
         </TabsContent>
       </Tabs>
     </div>

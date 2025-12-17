@@ -13,9 +13,10 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
-import { mockTransactions, mockContributions } from '@/lib/data'
+import { mockContributions } from '@/lib/data'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 const chartConfig = {
   receita: { label: 'Receitas', color: 'hsl(var(--chart-1))' },
@@ -33,10 +34,12 @@ const chartData = [
 ]
 
 export function FinancialOverview() {
-  const totalIncome = mockTransactions
+  const { transactions } = useFinancialStore()
+
+  const totalIncome = transactions
     .filter((t) => t.type === 'Receita')
     .reduce((acc, curr) => acc + curr.amount, 0)
-  const totalExpense = mockTransactions
+  const totalExpense = transactions
     .filter((t) => t.type === 'Despesa')
     .reduce((acc, curr) => acc + curr.amount, 0)
   const balance = totalIncome - totalExpense
@@ -110,33 +113,33 @@ export function FinancialOverview() {
             </p>
           </CardContent>
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Fluxo de Caixa (Semestral)</CardTitle>
-          <CardDescription>
-            Comparativo de receitas e despesas dos últimos 6 meses.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart accessibilityLayer data={chartData}>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="month"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="receita" fill="var(--color-receita)" radius={4} />
-              <Bar dataKey="despesa" fill="var(--color-despesa)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Fluxo de Caixa (Semestral)</CardTitle>
+            <CardDescription>
+              Comparativo de receitas e despesas dos últimos 6 meses.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <BarChart accessibilityLayer data={chartData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="receita" fill="var(--color-receita)" radius={4} />
+                <Bar dataKey="despesa" fill="var(--color-despesa)" radius={4} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

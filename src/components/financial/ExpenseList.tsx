@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Transaction, mockTransactions } from '@/lib/data'
+import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -14,11 +14,12 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 export function ExpenseList() {
-  const [expenses, setExpenses] = useState<Transaction[]>(
-    mockTransactions.filter((t) => t.type === 'Despesa'),
-  )
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
+    useFinancialStore()
+  const expenses = transactions.filter((t) => t.type === 'Despesa')
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
@@ -34,25 +35,20 @@ export function ExpenseList() {
 
   const handleSave = (data: any) => {
     if (selectedExpense) {
-      setExpenses(
-        expenses.map((e) =>
-          e.id === selectedExpense.id ? { ...e, ...data } : e,
-        ),
-      )
+      updateTransaction({ ...selectedExpense, ...data })
       toast({ title: 'Sucesso', description: 'Despesa atualizada.' })
     } else {
-      const newExpense: Transaction = {
-        id: String(Math.random()),
+      addTransaction({
+        id: crypto.randomUUID(),
         ...data,
-      }
-      setExpenses([...expenses, newExpense])
+      })
       toast({ title: 'Sucesso', description: 'Despesa registrada.' })
     }
     setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    setExpenses(expenses.filter((e) => e.id !== id))
+    deleteTransaction(id)
     toast({ title: 'Removido', description: 'Despesa removida.' })
   }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Transaction, mockTransactions } from '@/lib/data'
+import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -14,11 +14,12 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 export function IncomeList() {
-  const [incomes, setIncomes] = useState<Transaction[]>(
-    mockTransactions.filter((t) => t.type === 'Receita'),
-  )
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
+    useFinancialStore()
+  const incomes = transactions.filter((t) => t.type === 'Receita')
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
@@ -32,25 +33,20 @@ export function IncomeList() {
 
   const handleSave = (data: any) => {
     if (selectedIncome) {
-      setIncomes(
-        incomes.map((i) =>
-          i.id === selectedIncome.id ? { ...i, ...data } : i,
-        ),
-      )
+      updateTransaction({ ...selectedIncome, ...data })
       toast({ title: 'Sucesso', description: 'Receita atualizada.' })
     } else {
-      const newIncome: Transaction = {
-        id: String(Math.random()),
+      addTransaction({
+        id: crypto.randomUUID(),
         ...data,
-      }
-      setIncomes([...incomes, newIncome])
+      })
       toast({ title: 'Sucesso', description: 'Receita registrada.' })
     }
     setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    setIncomes(incomes.filter((i) => i.id !== id))
+    deleteTransaction(id)
     toast({ title: 'Removido', description: 'Receita removida.' })
   }
 

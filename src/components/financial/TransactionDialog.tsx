@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { format } from 'date-fns'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 const transactionSchema = z.object({
   description: z.string().min(3, 'Descrição é obrigatória'),
@@ -47,23 +48,6 @@ interface TransactionDialogProps {
   defaultType: 'Receita' | 'Despesa'
 }
 
-const INCOME_CATEGORIES = [
-  'Mensalidades',
-  'Doações',
-  'Aluguéis',
-  'Eventos',
-  'Outros',
-]
-const EXPENSE_CATEGORIES = [
-  'Utilidades',
-  'Manutenção',
-  'Ritualística',
-  'Eventos',
-  'Administrativo',
-  'Beneficência',
-  'Outros',
-]
-
 export function TransactionDialog({
   open,
   onOpenChange,
@@ -71,6 +55,7 @@ export function TransactionDialog({
   onSave,
   defaultType,
 }: TransactionDialogProps) {
+  const { categories } = useFinancialStore()
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -102,10 +87,8 @@ export function TransactionDialog({
     }
   }, [transactionToEdit, form, open, defaultType])
 
-  const categories =
-    (form.watch('type') || defaultType) === 'Receita'
-      ? INCOME_CATEGORIES
-      : EXPENSE_CATEGORIES
+  const currentType = form.watch('type') || defaultType
+  const availableCategories = categories.filter((c) => c.type === currentType)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,6 +151,7 @@ export function TransactionDialog({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -175,9 +159,9 @@ export function TransactionDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
+                      {availableCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

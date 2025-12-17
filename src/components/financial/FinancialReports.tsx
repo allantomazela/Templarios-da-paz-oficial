@@ -12,14 +12,15 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { Pie, PieChart, Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
-import { mockTransactions } from '@/lib/data'
+import { Pie, PieChart } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 export function FinancialReports() {
   const { toast } = useToast()
+  const { transactions } = useFinancialStore()
 
   const handleExport = () => {
     toast({
@@ -29,7 +30,7 @@ export function FinancialReports() {
   }
 
   // Aggregate Data for Charts
-  const incomeByCategory = mockTransactions
+  const incomeByCategory = transactions
     .filter((t) => t.type === 'Receita')
     .reduce(
       (acc, curr) => {
@@ -38,14 +39,14 @@ export function FinancialReports() {
         else acc.push({ category: curr.category, amount: curr.amount })
         return acc
       },
-      [] as { category: string; amount: number }[],
+      [] as { category: string; amount: number; fill?: string }[],
     )
     .map((i, index) => ({
       ...i,
       fill: `hsl(var(--chart-${(index % 5) + 1}))`,
     }))
 
-  const expenseByCategory = mockTransactions
+  const expenseByCategory = transactions
     .filter((t) => t.type === 'Despesa')
     .reduce(
       (acc, curr) => {
@@ -54,7 +55,7 @@ export function FinancialReports() {
         else acc.push({ category: curr.category, amount: curr.amount })
         return acc
       },
-      [] as { category: string; amount: number }[],
+      [] as { category: string; amount: number; fill?: string }[],
     )
     .map((i, index) => ({
       ...i,

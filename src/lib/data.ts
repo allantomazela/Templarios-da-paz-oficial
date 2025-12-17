@@ -90,6 +90,12 @@ export interface Message {
   type: 'received' | 'sent'
 }
 
+export interface Category {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+}
+
 // Mock Data
 export const mockBrothers: Brother[] = [
   {
@@ -224,6 +230,21 @@ export const mockAnnouncements: Announcement[] = [
     content:
       'Estamos arrecadando agasalhos para doação. Entregar na secretaria.',
   },
+]
+
+export const mockCategories: Category[] = [
+  { id: '1', name: 'Mensalidades', type: 'Receita' },
+  { id: '2', name: 'Doações', type: 'Receita' },
+  { id: '3', name: 'Aluguéis', type: 'Receita' },
+  { id: '4', name: 'Eventos', type: 'Receita' },
+  { id: '5', name: 'Outros', type: 'Receita' },
+  { id: '6', name: 'Utilidades', type: 'Despesa' },
+  { id: '7', name: 'Manutenção', type: 'Despesa' },
+  { id: '8', name: 'Ritualística', type: 'Despesa' },
+  { id: '9', name: 'Eventos', type: 'Despesa' },
+  { id: '10', name: 'Administrativo', type: 'Despesa' },
+  { id: '11', name: 'Beneficência', type: 'Despesa' },
+  { id: '12', name: 'Outros', type: 'Despesa' },
 ]
 
 export const mockTransactions: Transaction[] = [

@@ -4,6 +4,7 @@ import { IncomeList } from '@/components/financial/IncomeList'
 import { ExpenseList } from '@/components/financial/ExpenseList'
 import { ContributionsList } from '@/components/financial/ContributionsList'
 import { FinancialReports } from '@/components/financial/FinancialReports'
+import { CategoryList } from '@/components/financial/CategoryList'
 
 export default function Financial() {
   return (
@@ -16,13 +17,16 @@ export default function Financial() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="income">Receitas</TabsTrigger>
-          <TabsTrigger value="expenses">Despesas</TabsTrigger>
-          <TabsTrigger value="contributions">Contribuições</TabsTrigger>
-          <TabsTrigger value="reports">Relatórios</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center overflow-x-auto">
+          <TabsList className="w-full justify-start md:w-auto">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="income">Receitas</TabsTrigger>
+            <TabsTrigger value="expenses">Despesas</TabsTrigger>
+            <TabsTrigger value="contributions">Contribuições</TabsTrigger>
+            <TabsTrigger value="reports">Relatórios</TabsTrigger>
+            <TabsTrigger value="categories">Categorias</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           <FinancialOverview />
@@ -42,6 +46,10 @@ export default function Financial() {
 
         <TabsContent value="reports">
           <FinancialReports />
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <CategoryList />
         </TabsContent>
       </Tabs>
     </div>

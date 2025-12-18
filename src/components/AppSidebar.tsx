@@ -14,6 +14,7 @@ import {
   UserCircle,
   FileBarChart,
   Globe,
+  MonitorCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -61,6 +62,12 @@ export function AppSidebar() {
       : []),
     { name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' },
     { name: 'Biblioteca', icon: Library, path: '/dashboard/library' },
+    {
+      name: 'Config. Site',
+      icon: MonitorCog,
+      path: '/dashboard/settings',
+      allowedRoles: ['Administrador', 'Mestre'],
+    },
     {
       name: 'Admin',
       icon: Settings,

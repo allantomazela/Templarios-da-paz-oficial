@@ -14,11 +14,14 @@ import {
   Award,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
+  const { logoUrl, history, values, contact, venerables } =
+    useSiteSettingsStore()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -38,20 +41,21 @@ export default function Index() {
     }
   }
 
-  const worshipfulMasters = [
-    { name: 'Antônio Souza', period: '2022 - 2024', id: 'wm1' },
-    { name: 'Carlos Ferreira', period: '2020 - 2022', id: 'wm2' },
-    { name: 'Mário Quintana', period: '2018 - 2020', id: 'wm3' },
-    { name: 'Paulo Coelho', period: '2016 - 2018', id: 'wm4' },
-  ]
-
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
       {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl">
-            <ShieldCheck className="h-6 w-6 text-primary" />
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-10 w-auto object-contain"
+              />
+            ) : (
+              <ShieldCheck className="h-6 w-6 text-primary" />
+            )}
             <span>Templários da Paz</span>
           </div>
 
@@ -170,7 +174,15 @@ export default function Index() {
 
         <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-6 animate-fade-in-up">
           <div className="p-3 bg-primary/10 rounded-full mb-4">
-            <ShieldCheck className="h-12 w-12 text-primary" />
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-16 w-auto object-contain"
+              />
+            ) : (
+              <ShieldCheck className="h-12 w-12 text-primary" />
+            )}
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl">
             Augusta e Respeitável Loja Simbólica
@@ -206,24 +218,18 @@ export default function Index() {
                 <History className="mr-2 h-4 w-4" /> Nossa História
               </div>
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-                Tradição e Modernidade
+                {history.title}
               </h2>
-              <p className="text-muted-foreground text-lg leading-relaxed">
-                Fundada com o propósito de reunir homens livres e de bons
-                costumes, a ARLS Templários da Paz tem sido um pilar de
-                fraternidade em Botucatu. Nossa loja preserva as antigas
-                tradições maçônicas enquanto busca aplicar seus ensinamentos no
-                mundo contemporâneo.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                Através do estudo, da reflexão e da prática da beneficência,
-                buscamos construir uma sociedade mais justa e igualitária,
-                começando pela reforma íntima de cada um de nossos membros.
-              </p>
+              <div className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">
+                {history.text}
+              </div>
             </div>
             <div className="relative aspect-video md:aspect-square overflow-hidden rounded-xl shadow-xl">
               <img
-                src="https://img.usecurling.com/p/800/800?q=old%20books%20library"
+                src={
+                  history.imageUrl ||
+                  'https://img.usecurling.com/p/800/800?q=old%20books%20library'
+                }
                 alt="História da Loja"
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />
@@ -250,10 +256,7 @@ export default function Index() {
                 <Scale className="h-7 w-7" />
               </div>
               <h3 className="text-xl font-bold mb-3">Liberdade</h3>
-              <p className="text-muted-foreground">
-                Defendemos a liberdade de consciência, de pensamento e de
-                expressão, essenciais para a dignidade humana.
-              </p>
+              <p className="text-muted-foreground">{values.liberty}</p>
             </div>
 
             <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
@@ -261,10 +264,7 @@ export default function Index() {
                 <ShieldCheck className="h-7 w-7" />
               </div>
               <h3 className="text-xl font-bold mb-3">Igualdade</h3>
-              <p className="text-muted-foreground">
-                Reconhecemos que todos os homens nascem iguais em direitos e
-                deveres, sem distinção de raça, credo ou condição social.
-              </p>
+              <p className="text-muted-foreground">{values.equality}</p>
             </div>
 
             <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
@@ -272,10 +272,7 @@ export default function Index() {
                 <Heart className="h-7 w-7" />
               </div>
               <h3 className="text-xl font-bold mb-3">Fraternidade</h3>
-              <p className="text-muted-foreground">
-                Cultivamos o amor fraternal que une todos os maçons como irmãos,
-                estendendo essa benevolência a toda a humanidade.
-              </p>
+              <p className="text-muted-foreground">{values.fraternity}</p>
             </div>
           </div>
         </div>
@@ -298,7 +295,7 @@ export default function Index() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {worshipfulMasters.map((master) => (
+            {venerables.map((master) => (
               <div
                 key={master.id}
                 className="group relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -306,7 +303,10 @@ export default function Index() {
                 {/* Image Placeholder */}
                 <div className="aspect-[3/4] overflow-hidden bg-muted relative">
                   <img
-                    src={`https://img.usecurling.com/ppl/medium?gender=male&seed=${master.id}`}
+                    src={
+                      master.imageUrl ||
+                      `https://img.usecurling.com/ppl/medium?gender=male&seed=${master.id}`
+                    }
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     alt={`Venerável Mestre ${master.name}`}
                   />
@@ -350,9 +350,9 @@ export default function Index() {
                   <MapPin className="h-6 w-6 mt-1 opacity-80" />
                   <div>
                     <h4 className="font-semibold text-lg">Endereço</h4>
-                    <p className="opacity-80">Rua das Acácias, 123</p>
-                    <p className="opacity-80">Jardim Tropical</p>
-                    <p className="opacity-80">Botucatu - SP, 18600-000</p>
+                    <p className="opacity-80">{contact.address}</p>
+                    <p className="opacity-80">{contact.city}</p>
+                    <p className="opacity-80">{contact.zip}</p>
                   </div>
                 </div>
 
@@ -360,10 +360,10 @@ export default function Index() {
                   <Mail className="h-6 w-6 mt-1 opacity-80" />
                   <div>
                     <h4 className="font-semibold text-lg">Email</h4>
-                    <p className="opacity-80">contato@templariosdapaz.com.br</p>
-                    <p className="opacity-80">
-                      secretaria@templariosdapaz.com.br
-                    </p>
+                    <p className="opacity-80">{contact.email}</p>
+                    {contact.secondaryEmail && (
+                      <p className="opacity-80">{contact.secondaryEmail}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -415,7 +415,15 @@ export default function Index() {
       <footer className="py-8 bg-muted text-muted-foreground border-t">
         <div className="container px-4 md:px-6 text-center">
           <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
-            <ShieldCheck className="h-5 w-5" />
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-8 w-auto object-contain"
+              />
+            ) : (
+              <ShieldCheck className="h-5 w-5" />
+            )}
             <span>Templários da Paz</span>
           </div>
           <p className="text-sm mb-4">

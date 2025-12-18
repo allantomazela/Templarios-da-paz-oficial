@@ -13,6 +13,7 @@ import Reports from '@/pages/Reports'
 import Agenda from '@/pages/Agenda'
 import Library from '@/pages/Library'
 import Admin from '@/pages/Admin'
+import SiteSettings from '@/pages/SiteSettings'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="reports" element={<Reports />} />
           <Route path="agenda" element={<Agenda />} />
           <Route path="library" element={<Library />} />
+          <Route path="settings" element={<SiteSettings />} />
           <Route path="admin" element={<Admin />} />
         </Route>
 

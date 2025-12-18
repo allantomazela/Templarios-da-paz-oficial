@@ -30,6 +30,8 @@ export function AppHeader() {
     if (path.includes('/dashboard/agenda')) return 'Agenda'
     if (path.includes('/dashboard/library')) return 'Biblioteca Virtual'
     if (path.includes('/dashboard/admin')) return 'Gestão de Usuários'
+    if (path.includes('/dashboard/settings')) return 'Configurações do Site'
+    if (path.includes('/dashboard/reports')) return 'Central de Relatórios'
     return 'Painel Principal'
   }
 

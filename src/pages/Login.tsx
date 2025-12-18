@@ -1,6 +1,8 @@
 import { AuthCard } from '@/components/auth/AuthCard'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 export default function Login() {
   const { isAuthenticated } = useAuthStore()
@@ -16,6 +18,20 @@ export default function Login() {
         <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-5" />
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
+      </div>
+
+      {/* Return to Home Button */}
+      <div className="absolute top-4 left-4 z-20">
+        <Button
+          variant="ghost"
+          asChild
+          className="gap-2 hover:bg-background/50"
+        >
+          <Link to="/">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o Início
+          </Link>
+        </Button>
       </div>
 
       <div className="z-10 w-full flex flex-col items-center gap-8">

@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   UserCircle,
   FileBarChart,
+  Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,8 @@ export function AppSidebar() {
       path: '/dashboard/admin',
       allowedRoles: ['Administrador', 'Mestre'],
     },
+    // Public Site Link
+    { name: 'Ver Site', icon: Globe, path: '/' },
   ]
 
   return (
@@ -116,7 +119,7 @@ export function AppSidebar() {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group relative',
-                  isActive
+                  isActive && item.path !== '/' // Don't style 'Ver Site' as active in dashboard
                     ? 'bg-primary text-primary-foreground shadow-md'
                     : 'hover:bg-sidebar-accent hover:text-white text-muted-foreground',
                   collapsed && 'justify-center px-0',

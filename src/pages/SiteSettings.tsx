@@ -3,7 +3,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoSettings } from '@/components/settings/LogoSettings'
 import { InstitutionalSettings } from '@/components/settings/InstitutionalSettings'
 import { VenerablesManager } from '@/components/settings/VenerablesManager'
-import { LayoutTemplate, Users, FileText, Loader2 } from 'lucide-react'
+import { LayoutSettings } from '@/components/settings/LayoutSettings'
+import { ThemeSettings } from '@/components/settings/ThemeSettings'
+import {
+  LayoutTemplate,
+  Users,
+  FileText,
+  Loader2,
+  Palette,
+  Grid,
+} from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { Navigate } from 'react-router-dom'
@@ -37,14 +46,20 @@ export default function SiteSettings() {
           Configurações do Site
         </h2>
         <p className="text-muted-foreground">
-          Gerencie o conteúdo público do portal da loja.
+          Gerencie o conteúdo público, layout e aparência do portal da loja.
         </p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="general">
             <LayoutTemplate className="mr-2 h-4 w-4" /> Geral & Logo
+          </TabsTrigger>
+          <TabsTrigger value="layout">
+            <Grid className="mr-2 h-4 w-4" /> Layout Homepage
+          </TabsTrigger>
+          <TabsTrigger value="theme">
+            <Palette className="mr-2 h-4 w-4" /> Tema & Cores
           </TabsTrigger>
           <TabsTrigger value="content">
             <FileText className="mr-2 h-4 w-4" /> Conteúdo Institucional
@@ -58,6 +73,14 @@ export default function SiteSettings() {
           <div className="grid gap-6">
             <LogoSettings />
           </div>
+        </TabsContent>
+
+        <TabsContent value="layout">
+          <LayoutSettings />
+        </TabsContent>
+
+        <TabsContent value="theme">
+          <ThemeSettings />
         </TabsContent>
 
         <TabsContent value="content">

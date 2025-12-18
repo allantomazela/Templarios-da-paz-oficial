@@ -29,12 +29,16 @@ export interface SiteSettingsState {
     secondaryEmail: string
   }
   venerables: Venerable[]
+  sectionOrder: string[]
+  primaryColor: string
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
   updateHistory: (data: Partial<SiteSettingsState['history']>) => Promise<void>
   updateValues: (data: Partial<SiteSettingsState['values']>) => Promise<void>
   updateContact: (data: Partial<SiteSettingsState['contact']>) => Promise<void>
+  updateLayout: (order: string[]) => Promise<void>
+  updateTheme: (color: string) => Promise<void>
 
   fetchVenerables: () => Promise<void>
   addVenerable: (venerable: Omit<Venerable, 'id'>) => Promise<void>
@@ -62,6 +66,13 @@ const mapSettingsFromDB = (data: any) => ({
     email: data.contact_email || '',
     secondaryEmail: data.contact_secondary_email || '',
   },
+  sectionOrder: data.section_order || [
+    'history',
+    'venerables',
+    'news',
+    'contact',
+  ],
+  primaryColor: data.primary_color || '#0f172a',
 })
 
 export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
@@ -85,6 +96,8 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     secondaryEmail: '',
   },
   venerables: [],
+  sectionOrder: ['history', 'venerables', 'news', 'contact'],
+  primaryColor: '#0f172a',
 
   fetchSettings: async () => {
     set({ loading: true })
@@ -190,6 +203,36 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       }))
     } catch (error) {
       console.error('Error updating contact:', error)
+      throw error
+    }
+  },
+
+  updateLayout: async (order) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ section_order: order })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ sectionOrder: order })
+    } catch (error) {
+      console.error('Error updating layout:', error)
+      throw error
+    }
+  },
+
+  updateTheme: async (color) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ primary_color: color })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ primaryColor: color })
+    } catch (error) {
+      console.error('Error updating theme:', error)
       throw error
     }
   },

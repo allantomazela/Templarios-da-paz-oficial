@@ -15,7 +15,126 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      news_events: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          image_url: string | null
+          event_date: string | null
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          content: string
+          image_url?: string | null
+          event_date?: string | null
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string
+          image_url?: string | null
+          event_date?: string | null
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          contact_address: string | null
+          contact_city: string | null
+          contact_email: string | null
+          contact_secondary_email: string | null
+          contact_zip: string | null
+          created_at: string
+          history_image_url: string | null
+          history_text: string | null
+          history_title: string | null
+          id: number
+          logo_url: string | null
+          updated_at: string
+          values_equality: string | null
+          values_fraternity: string | null
+          values_liberty: string | null
+          section_order: Json
+          primary_color: string
+        }
+        Insert: {
+          contact_address?: string | null
+          contact_city?: string | null
+          contact_email?: string | null
+          contact_secondary_email?: string | null
+          contact_zip?: string | null
+          created_at?: string
+          history_image_url?: string | null
+          history_text?: string | null
+          history_title?: string | null
+          id?: number
+          logo_url?: string | null
+          updated_at?: string
+          values_equality?: string | null
+          values_fraternity?: string | null
+          values_liberty?: string | null
+          section_order?: Json
+          primary_color?: string
+        }
+        Update: {
+          contact_address?: string | null
+          contact_city?: string | null
+          contact_email?: string | null
+          contact_secondary_email?: string | null
+          contact_zip?: string | null
+          created_at?: string
+          history_image_url?: string | null
+          history_text?: string | null
+          history_title?: string | null
+          id?: number
+          logo_url?: string | null
+          updated_at?: string
+          values_equality?: string | null
+          values_fraternity?: string | null
+          values_liberty?: string | null
+          section_order?: Json
+          primary_color?: string
+        }
+        Relationships: []
+      }
+      venerables: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          period: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          period: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          period?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

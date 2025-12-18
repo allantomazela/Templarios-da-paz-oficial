@@ -15,8 +15,50 @@ import {
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { NewsSection } from '@/components/home/NewsSection'
+
+// Helper to convert hex to HSL string for Tailwind
+function hexToHSL(hex: string): string {
+  if (!hex) return '211 100% 50%' // Default
+  let r = 0,
+    g = 0,
+    b = 0
+  if (hex.length === 4) {
+    r = parseInt('0x' + hex[1] + hex[1])
+    g = parseInt('0x' + hex[2] + hex[2])
+    b = parseInt('0x' + hex[3] + hex[3])
+  } else if (hex.length === 7) {
+    r = parseInt('0x' + hex[1] + hex[2])
+    g = parseInt('0x' + hex[3] + hex[4])
+    b = parseInt('0x' + hex[5] + hex[6])
+  }
+  r /= 255
+  g /= 255
+  b /= 255
+  const cmin = Math.min(r, g, b),
+    cmax = Math.max(r, g, b),
+    delta = cmax - cmin
+  let h = 0,
+    s = 0,
+    l = 0
+
+  if (delta === 0) h = 0
+  else if (cmax === r) h = ((g - b) / delta) % 6
+  else if (cmax === g) h = (b - r) / delta + 2
+  else h = (r - g) / delta + 4
+
+  h = Math.round(h * 60)
+  if (h < 0) h += 360
+
+  l = (cmax + cmin) / 2
+  s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1))
+  s = +(s * 100).toFixed(1)
+  l = +(l * 100).toFixed(1)
+
+  return `${h} ${s}% ${l}%`
+}
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
@@ -26,6 +68,8 @@ export default function Index() {
     values,
     contact,
     venerables,
+    sectionOrder,
+    primaryColor,
     fetchSettings,
     fetchVenerables,
   } = useSiteSettingsStore()
@@ -36,6 +80,14 @@ export default function Index() {
     fetchSettings()
     fetchVenerables()
   }, [fetchSettings, fetchVenerables])
+
+  // Apply Theme
+  useEffect(() => {
+    if (primaryColor) {
+      const hsl = hexToHSL(primaryColor)
+      document.documentElement.style.setProperty('--primary', hsl)
+    }
+  }, [primaryColor])
 
   const handleMemberAccess = () => {
     if (isAuthenticated) {
@@ -52,6 +104,224 @@ export default function Index() {
       setIsMobileMenuOpen(false)
     }
   }
+
+  // --- Sections Components ---
+
+  const HistorySection = () => (
+    <section id="about" className="py-16 md:py-24 bg-muted/30">
+      <div className="container px-4 md:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+              <History className="mr-2 h-4 w-4" /> Nossa História
+            </div>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+              {history.title}
+            </h2>
+            <div className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">
+              {history.text}
+            </div>
+          </div>
+          <div className="relative aspect-video md:aspect-square overflow-hidden rounded-xl shadow-xl">
+            <img
+              src={
+                history.imageUrl ||
+                'https://img.usecurling.com/p/800/800?q=old%20books%20library'
+              }
+              alt="História da Loja"
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+
+  const ValuesSection = () => (
+    <section id="values" className="py-16 md:py-24">
+      <div className="container px-4 md:px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
+            Nossos Pilares
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
+            Os princípios que guiam nossas ações e fortalecem nossa união.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="h-14 w-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-6">
+              <Scale className="h-7 w-7" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">Liberdade</h3>
+            <p className="text-muted-foreground">{values.liberty}</p>
+          </div>
+
+          <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="h-14 w-14 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6">
+              <ShieldCheck className="h-7 w-7" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">Igualdade</h3>
+            <p className="text-muted-foreground">{values.equality}</p>
+          </div>
+
+          <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="h-14 w-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-6">
+              <Heart className="h-7 w-7" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">Fraternidade</h3>
+            <p className="text-muted-foreground">{values.fraternity}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+
+  const VenerablesSection = () => (
+    <section id="masters" className="py-16 md:py-24 bg-muted/20">
+      <div className="container px-4 md:px-6">
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
+            <Award className="mr-2 h-4 w-4" /> Nossa Liderança
+          </div>
+          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
+            Galeria dos Veneráveis
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
+            Homenagem aos irmãos que lideraram nossa oficina com sabedoria e
+            dedicação ao longo dos anos.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {venerables.map((master) => (
+            <div
+              key={master.id}
+              className="group relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="aspect-[3/4] overflow-hidden bg-muted relative">
+                <img
+                  src={
+                    master.imageUrl ||
+                    `https://img.usecurling.com/ppl/medium?gender=male&seed=${master.id}`
+                  }
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  alt={`Venerável Mestre ${master.name}`}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+              <div className="p-5 text-center relative">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-background flex items-center justify-center border-4 border-background shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <Award className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg mb-1">{master.name}</h3>
+                <p className="text-sm font-medium text-primary bg-primary/5 inline-block px-3 py-1 rounded-full">
+                  {master.period}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+
+  const ContactSection = () => (
+    <section
+      id="contact"
+      className="py-16 md:py-24 bg-primary text-primary-foreground"
+    >
+      <div className="container px-4 md:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-6">
+              Entre em Contato
+            </h2>
+            <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px]">
+              Interessado em saber mais sobre nossa ordem ou nossa loja? Estamos
+              à disposição para esclarecer suas dúvidas.
+            </p>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <MapPin className="h-6 w-6 mt-1 opacity-80" />
+                <div>
+                  <h4 className="font-semibold text-lg">Endereço</h4>
+                  <p className="opacity-80">{contact.address}</p>
+                  <p className="opacity-80">{contact.city}</p>
+                  <p className="opacity-80">{contact.zip}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <Mail className="h-6 w-6 mt-1 opacity-80" />
+                <div>
+                  <h4 className="font-semibold text-lg">Email</h4>
+                  <p className="opacity-80">{contact.email}</p>
+                  {contact.secondaryEmail && (
+                    <p className="opacity-80">{contact.secondaryEmail}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-background text-foreground rounded-xl p-6 shadow-2xl">
+            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium">
+                  Nome Completo
+                </label>
+                <input
+                  id="name"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Seu nome"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="seu@email.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="message" className="text-sm font-medium">
+                  Mensagem
+                </label>
+                <textarea
+                  id="message"
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Como podemos ajudar?"
+                />
+              </div>
+              <Button type="button" className="w-full">
+                Enviar Mensagem
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+
+  // Map section keys to components
+  const sectionComponents: Record<string, ReactNode> = {
+    history: <HistorySection key="history" />,
+    values: <ValuesSection key="values" />,
+    venerables: <VenerablesSection key="venerables" />,
+    news: <NewsSection key="news" />,
+    contact: <ContactSection key="contact" />,
+    masters: <VenerablesSection key="masters" />, // Fallback for legacy key
+  }
+
+  // Ensure 'values' is always rendered if not in order list (should be there by default though)
+  // Logic: Render Hero (fixed), then map order, then Footer (fixed)
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
@@ -89,14 +359,16 @@ export default function Index() {
               onClick={() => scrollToSection('values')}
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
-              Missão e Valores
+              Pilares
             </button>
-            <button
-              onClick={() => scrollToSection('masters')}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Galeria
-            </button>
+            {sectionOrder.includes('news') && (
+              <button
+                onClick={() => scrollToSection('news')}
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                Notícias
+              </button>
+            )}
             <button
               onClick={() => scrollToSection('contact')}
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -151,10 +423,10 @@ export default function Index() {
               Missão e Valores
             </button>
             <button
-              onClick={() => scrollToSection('masters')}
+              onClick={() => scrollToSection('news')}
               className="text-left text-sm font-medium py-2 border-b border-border/50"
             >
-              Galeria de Veneráveis
+              Notícias
             </button>
             <button
               onClick={() => scrollToSection('contact')}
@@ -221,207 +493,8 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Who We Are Section */}
-      <section id="about" className="py-16 md:py-24 bg-muted/30">
-        <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                <History className="mr-2 h-4 w-4" /> Nossa História
-              </div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-                {history.title}
-              </h2>
-              <div className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">
-                {history.text}
-              </div>
-            </div>
-            <div className="relative aspect-video md:aspect-square overflow-hidden rounded-xl shadow-xl">
-              <img
-                src={
-                  history.imageUrl ||
-                  'https://img.usecurling.com/p/800/800?q=old%20books%20library'
-                }
-                alt="História da Loja"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mission and Values Section */}
-      <section id="values" className="py-16 md:py-24">
-        <div className="container px-4 md:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
-              Nossos Pilares
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
-              Os princípios que guiam nossas ações e fortalecem nossa união.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="h-14 w-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-6">
-                <Scale className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Liberdade</h3>
-              <p className="text-muted-foreground">{values.liberty}</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="h-14 w-14 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6">
-                <ShieldCheck className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Igualdade</h3>
-              <p className="text-muted-foreground">{values.equality}</p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="h-14 w-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-6">
-                <Heart className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Fraternidade</h3>
-              <p className="text-muted-foreground">{values.fraternity}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Gallery of Worshipful Masters Section */}
-      <section id="masters" className="py-16 md:py-24 bg-muted/20">
-        <div className="container px-4 md:px-6">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-              <Award className="mr-2 h-4 w-4" /> Nossa Liderança
-            </div>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
-              Galeria dos Veneráveis
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
-              Homenagem aos irmãos que lideraram nossa oficina com sabedoria e
-              dedicação ao longo dos anos.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {venerables.map((master) => (
-              <div
-                key={master.id}
-                className="group relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                {/* Image Placeholder */}
-                <div className="aspect-[3/4] overflow-hidden bg-muted relative">
-                  <img
-                    src={
-                      master.imageUrl ||
-                      `https://img.usecurling.com/ppl/medium?gender=male&seed=${master.id}`
-                    }
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    alt={`Venerável Mestre ${master.name}`}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-
-                {/* Info */}
-                <div className="p-5 text-center relative">
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-background flex items-center justify-center border-4 border-background shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <Award className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-1">{master.name}</h3>
-                  <p className="text-sm font-medium text-primary bg-primary/5 inline-block px-3 py-1 rounded-full">
-                    {master.period}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section
-        id="contact"
-        className="py-16 md:py-24 bg-primary text-primary-foreground"
-      >
-        <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-6">
-                Entre em Contato
-              </h2>
-              <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px]">
-                Interessado em saber mais sobre nossa ordem ou nossa loja?
-                Estamos à disposição para esclarecer suas dúvidas.
-              </p>
-
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <MapPin className="h-6 w-6 mt-1 opacity-80" />
-                  <div>
-                    <h4 className="font-semibold text-lg">Endereço</h4>
-                    <p className="opacity-80">{contact.address}</p>
-                    <p className="opacity-80">{contact.city}</p>
-                    <p className="opacity-80">{contact.zip}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <Mail className="h-6 w-6 mt-1 opacity-80" />
-                  <div>
-                    <h4 className="font-semibold text-lg">Email</h4>
-                    <p className="opacity-80">{contact.email}</p>
-                    {contact.secondaryEmail && (
-                      <p className="opacity-80">{contact.secondaryEmail}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-background text-foreground rounded-xl p-6 shadow-2xl">
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Nome Completo
-                  </label>
-                  <input
-                    id="name"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Seu nome"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="seu@email.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="message" className="text-sm font-medium">
-                    Mensagem
-                  </label>
-                  <textarea
-                    id="message"
-                    className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Como podemos ajudar?"
-                  />
-                </div>
-                <Button type="button" className="w-full">
-                  Enviar Mensagem
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Dynamic Sections */}
+      {sectionOrder.map((sectionKey) => sectionComponents[sectionKey])}
 
       {/* Footer */}
       <footer className="py-8 bg-muted text-muted-foreground border-t">

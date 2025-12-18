@@ -9,7 +9,7 @@ export default function DashboardLayout() {
   const isMobile = useIsMobile()
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/login" replace />
   }
 
   return (

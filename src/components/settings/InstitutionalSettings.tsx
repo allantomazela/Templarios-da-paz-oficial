@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -22,6 +23,7 @@ import {
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2 } from 'lucide-react'
 
 const institutionalSchema = z.object({
   historyTitle: z.string().min(1, 'Título é obrigatório'),
@@ -34,11 +36,7 @@ const institutionalSchema = z.object({
   city: z.string().min(1, 'Cidade obrigatória'),
   zip: z.string().min(1, 'CEP obrigatório'),
   email: z.string().email('Email inválido'),
-  secondaryEmail: z
-    .string()
-    .email('Email inválido')
-    .optional()
-    .or(z.literal('')),
+  secondaryEmail: z.string().optional(),
 })
 
 export function InstitutionalSettings() {
@@ -69,29 +67,54 @@ export function InstitutionalSettings() {
     },
   })
 
-  const onSubmit = (data: z.infer<typeof institutionalSchema>) => {
-    updateHistory({
-      title: data.historyTitle,
-      text: data.historyText,
-      imageUrl: data.historyImageUrl || '',
+  // Synchronize form when store data changes (initial load)
+  useEffect(() => {
+    form.reset({
+      historyTitle: history.title,
+      historyText: history.text,
+      historyImageUrl: history.imageUrl,
+      libertyText: values.liberty,
+      equalityText: values.equality,
+      fraternityText: values.fraternity,
+      address: contact.address,
+      city: contact.city,
+      zip: contact.zip,
+      email: contact.email,
+      secondaryEmail: contact.secondaryEmail,
     })
-    updateValues({
-      liberty: data.libertyText,
-      equality: data.equalityText,
-      fraternity: data.fraternityText,
-    })
-    updateContact({
-      address: data.address,
-      city: data.city,
-      zip: data.zip,
-      email: data.email,
-      secondaryEmail: data.secondaryEmail || '',
-    })
+  }, [history, values, contact, form])
 
-    toast({
-      title: 'Conteúdo Atualizado',
-      description: 'As informações institucionais foram salvas com sucesso.',
-    })
+  const onSubmit = async (data: z.infer<typeof institutionalSchema>) => {
+    try {
+      await updateHistory({
+        title: data.historyTitle,
+        text: data.historyText,
+        imageUrl: data.historyImageUrl || '',
+      })
+      await updateValues({
+        liberty: data.libertyText,
+        equality: data.equalityText,
+        fraternity: data.fraternityText,
+      })
+      await updateContact({
+        address: data.address,
+        city: data.city,
+        zip: data.zip,
+        email: data.email,
+        secondaryEmail: data.secondaryEmail || '',
+      })
+
+      toast({
+        title: 'Conteúdo Atualizado',
+        description: 'As informações institucionais foram salvas com sucesso.',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao salvar as configurações.',
+      })
+    }
   }
 
   return (
@@ -307,7 +330,14 @@ export function InstitutionalSettings() {
         </Tabs>
 
         <div className="flex justify-end">
-          <Button type="submit" size="lg">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
             Salvar Todas as Configurações
           </Button>
         </div>

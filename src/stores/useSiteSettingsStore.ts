@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { supabase } from '@/lib/supabase/client'
 
 export interface Venerable {
   id: string
@@ -8,6 +9,7 @@ export interface Venerable {
 }
 
 export interface SiteSettingsState {
+  loading: boolean
   logoUrl: string
   history: {
     title: string
@@ -28,78 +30,262 @@ export interface SiteSettingsState {
   }
   venerables: Venerable[]
 
-  updateLogo: (url: string) => void
-  updateHistory: (data: Partial<SiteSettingsState['history']>) => void
-  updateValues: (data: Partial<SiteSettingsState['values']>) => void
-  updateContact: (data: Partial<SiteSettingsState['contact']>) => void
+  fetchSettings: () => Promise<void>
+  updateLogo: (url: string) => Promise<void>
+  updateHistory: (data: Partial<SiteSettingsState['history']>) => Promise<void>
+  updateValues: (data: Partial<SiteSettingsState['values']>) => Promise<void>
+  updateContact: (data: Partial<SiteSettingsState['contact']>) => Promise<void>
 
-  addVenerable: (venerable: Venerable) => void
-  updateVenerable: (venerable: Venerable) => void
-  deleteVenerable: (id: string) => void
+  fetchVenerables: () => Promise<void>
+  addVenerable: (venerable: Omit<Venerable, 'id'>) => Promise<void>
+  updateVenerable: (venerable: Venerable) => Promise<void>
+  deleteVenerable: (id: string) => Promise<void>
 }
 
-export const useSiteSettingsStore = create<SiteSettingsState>((set) => ({
-  logoUrl: '', // Empty means default ShieldCheck icon will be used if logic handles it, or we can set a default placeholder
+// Map database columns to store structure
+const mapSettingsFromDB = (data: any) => ({
+  logoUrl: data.logo_url || '',
   history: {
-    title: 'Tradição e Modernidade',
-    text: 'Fundada com o propósito de reunir homens livres e de bons costumes, a ARLS Templários da Paz tem sido um pilar de fraternidade em Botucatu. Nossa loja preserva as antigas tradições maçônicas enquanto busca aplicar seus ensinamentos no mundo contemporâneo.\n\nAtravés do estudo, da reflexão e da prática da beneficência, buscamos construir uma sociedade mais justa e igualitária, começando pela reforma íntima de cada um de nossos membros.',
-    imageUrl: 'https://img.usecurling.com/p/800/800?q=old%20books%20library',
+    title: data.history_title || '',
+    text: data.history_text || '',
+    imageUrl: data.history_image_url || '',
   },
   values: {
-    liberty:
-      'Defendemos a liberdade de consciência, de pensamento e de expressão, essenciais para a dignidade humana.',
-    equality:
-      'Reconhecemos que todos os homens nascem iguais em direitos e deveres, sem distinção de raça, credo ou condição social.',
-    fraternity:
-      'Cultivamos o amor fraternal que une todos os maçons como irmãos, estendendo essa benevolência a toda a humanidade.',
+    liberty: data.values_liberty || '',
+    equality: data.values_equality || '',
+    fraternity: data.values_fraternity || '',
   },
   contact: {
-    address: 'Rua das Acácias, 123',
-    city: 'Jardim Tropical, Botucatu - SP',
-    zip: '18600-000',
-    email: 'contato@templariosdapaz.com.br',
-    secondaryEmail: 'secretaria@templariosdapaz.com.br',
+    address: data.contact_address || '',
+    city: data.contact_city || '',
+    zip: data.contact_zip || '',
+    email: data.contact_email || '',
+    secondaryEmail: data.contact_secondary_email || '',
   },
-  venerables: [
-    { id: 'wm1', name: 'Antônio Souza', period: '2022 - 2024', imageUrl: '' },
-    { id: 'wm2', name: 'Carlos Ferreira', period: '2020 - 2022', imageUrl: '' },
-    { id: 'wm3', name: 'Mário Quintana', period: '2018 - 2020', imageUrl: '' },
-    { id: 'wm4', name: 'Paulo Coelho', period: '2016 - 2018', imageUrl: '' },
-  ],
+})
 
-  updateLogo: (url) => set({ logoUrl: url }),
+export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
+  loading: false,
+  logoUrl: '',
+  history: {
+    title: '',
+    text: '',
+    imageUrl: '',
+  },
+  values: {
+    liberty: '',
+    equality: '',
+    fraternity: '',
+  },
+  contact: {
+    address: '',
+    city: '',
+    zip: '',
+    email: '',
+    secondaryEmail: '',
+  },
+  venerables: [],
 
-  updateHistory: (data) =>
-    set((state) => ({
-      history: { ...state.history, ...data },
-    })),
+  fetchSettings: async () => {
+    set({ loading: true })
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 1)
+        .single()
 
-  updateValues: (data) =>
-    set((state) => ({
-      values: { ...state.values, ...data },
-    })),
+      if (error) throw error
 
-  updateContact: (data) =>
-    set((state) => ({
-      contact: { ...state.contact, ...data },
-    })),
+      if (data) {
+        set({ ...mapSettingsFromDB(data), loading: false })
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+      set({ loading: false })
+    }
+  },
 
-  addVenerable: (venerable) =>
-    set((state) => ({
-      venerables: [venerable, ...state.venerables],
-    })),
+  updateLogo: async (url) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ logo_url: url })
+        .eq('id', 1)
 
-  updateVenerable: (venerable) =>
-    set((state) => ({
-      venerables: state.venerables.map((v) =>
-        v.id === venerable.id ? venerable : v,
-      ),
-    })),
+      if (error) throw error
+      set({ logoUrl: url })
+    } catch (error) {
+      console.error('Error updating logo:', error)
+      throw error
+    }
+  },
 
-  deleteVenerable: (id) =>
-    set((state) => ({
-      venerables: state.venerables.filter((v) => v.id !== id),
-    })),
+  updateHistory: async (data) => {
+    try {
+      const updates: any = {}
+      if (data.title !== undefined) updates.history_title = data.title
+      if (data.text !== undefined) updates.history_text = data.text
+      if (data.imageUrl !== undefined) updates.history_image_url = data.imageUrl
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+
+      set((state) => ({
+        history: { ...state.history, ...data },
+      }))
+    } catch (error) {
+      console.error('Error updating history:', error)
+      throw error
+    }
+  },
+
+  updateValues: async (data) => {
+    try {
+      const updates: any = {}
+      if (data.liberty !== undefined) updates.values_liberty = data.liberty
+      if (data.equality !== undefined) updates.values_equality = data.equality
+      if (data.fraternity !== undefined)
+        updates.values_fraternity = data.fraternity
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+
+      set((state) => ({
+        values: { ...state.values, ...data },
+      }))
+    } catch (error) {
+      console.error('Error updating values:', error)
+      throw error
+    }
+  },
+
+  updateContact: async (data) => {
+    try {
+      const updates: any = {}
+      if (data.address !== undefined) updates.contact_address = data.address
+      if (data.city !== undefined) updates.contact_city = data.city
+      if (data.zip !== undefined) updates.contact_zip = data.zip
+      if (data.email !== undefined) updates.contact_email = data.email
+      if (data.secondaryEmail !== undefined)
+        updates.contact_secondary_email = data.secondaryEmail
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+
+      set((state) => ({
+        contact: { ...state.contact, ...data },
+      }))
+    } catch (error) {
+      console.error('Error updating contact:', error)
+      throw error
+    }
+  },
+
+  fetchVenerables: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('venerables')
+        .select('*')
+        .order('period', { ascending: false })
+
+      if (error) throw error
+
+      if (data) {
+        const mappedVenerables = data.map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          period: v.period,
+          imageUrl: v.image_url,
+        }))
+        set({ venerables: mappedVenerables })
+      }
+    } catch (error) {
+      console.error('Error fetching venerables:', error)
+    }
+  },
+
+  addVenerable: async (venerable) => {
+    try {
+      const { data, error } = await supabase
+        .from('venerables')
+        .insert({
+          name: venerable.name,
+          period: venerable.period,
+          image_url: venerable.imageUrl,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        const newVenerable: Venerable = {
+          id: data.id,
+          name: data.name,
+          period: data.period,
+          imageUrl: data.image_url,
+        }
+        set((state) => ({
+          venerables: [newVenerable, ...state.venerables],
+        }))
+      }
+    } catch (error) {
+      console.error('Error adding venerable:', error)
+      throw error
+    }
+  },
+
+  updateVenerable: async (venerable) => {
+    try {
+      const { error } = await supabase
+        .from('venerables')
+        .update({
+          name: venerable.name,
+          period: venerable.period,
+          image_url: venerable.imageUrl,
+        })
+        .eq('id', venerable.id)
+
+      if (error) throw error
+
+      set((state) => ({
+        venerables: state.venerables.map((v) =>
+          v.id === venerable.id ? venerable : v,
+        ),
+      }))
+    } catch (error) {
+      console.error('Error updating venerable:', error)
+      throw error
+    }
+  },
+
+  deleteVenerable: async (id) => {
+    try {
+      const { error } = await supabase.from('venerables').delete().eq('id', id)
+
+      if (error) throw error
+
+      set((state) => ({
+        venerables: state.venerables.filter((v) => v.id !== id),
+      }))
+    } catch (error) {
+      console.error('Error deleting venerable:', error)
+      throw error
+    }
+  },
 }))
 
 export default useSiteSettingsStore

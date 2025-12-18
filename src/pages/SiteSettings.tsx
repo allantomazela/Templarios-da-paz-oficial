@@ -1,17 +1,33 @@
+import { useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoSettings } from '@/components/settings/LogoSettings'
 import { InstitutionalSettings } from '@/components/settings/InstitutionalSettings'
 import { VenerablesManager } from '@/components/settings/VenerablesManager'
-import { LayoutTemplate, Users, FileText } from 'lucide-react'
+import { LayoutTemplate, Users, FileText, Loader2 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { Navigate } from 'react-router-dom'
 
 export default function SiteSettings() {
   const { user } = useAuthStore()
+  const { fetchSettings, fetchVenerables, loading } = useSiteSettingsStore()
+
+  useEffect(() => {
+    fetchSettings()
+    fetchVenerables()
+  }, [fetchSettings, fetchVenerables])
 
   // Guard: Only Admin or Master can access
   if (user?.role !== 'Administrador' && user?.role !== 'Mestre') {
     return <Navigate to="/dashboard" replace />
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (

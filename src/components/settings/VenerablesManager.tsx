@@ -31,23 +31,42 @@ export function VenerablesManager() {
     null,
   )
 
-  const handleSave = (data: any) => {
-    if (selectedVenerable) {
-      updateVenerable({ ...selectedVenerable, ...data })
-      toast({ title: 'Sucesso', description: 'Registro atualizado.' })
-    } else {
-      addVenerable({ id: crypto.randomUUID(), ...data })
+  const handleSave = async (data: any) => {
+    try {
+      if (selectedVenerable) {
+        await updateVenerable({ ...selectedVenerable, ...data })
+        toast({ title: 'Sucesso', description: 'Registro atualizado.' })
+      } else {
+        await addVenerable(data)
+        toast({
+          title: 'Sucesso',
+          description: 'Venerável adicionado à galeria.',
+        })
+      }
+      setIsDialogOpen(false)
+    } catch (error) {
       toast({
-        title: 'Sucesso',
-        description: 'Venerável adicionado à galeria.',
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao salvar o registro.',
       })
     }
-    setIsDialogOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    deleteVenerable(id)
-    toast({ title: 'Removido', description: 'Venerável removido da galeria.' })
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteVenerable(id)
+      toast({
+        title: 'Removido',
+        description: 'Venerável removido da galeria.',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao remover o registro.',
+      })
+    }
   }
 
   const openNew = () => {

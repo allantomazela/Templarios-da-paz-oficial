@@ -15,15 +15,27 @@ import {
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
-  const { logoUrl, history, values, contact, venerables } =
-    useSiteSettingsStore()
+  const {
+    logoUrl,
+    history,
+    values,
+    contact,
+    venerables,
+    fetchSettings,
+    fetchVenerables,
+  } = useSiteSettingsStore()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    fetchSettings()
+    fetchVenerables()
+  }, [fetchSettings, fetchVenerables])
 
   const handleMemberAccess = () => {
     if (isAuthenticated) {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Venerable } from '@/stores/useSiteSettingsStore'
+import { Loader2 } from 'lucide-react'
 
 const venerableSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
@@ -33,7 +34,7 @@ interface VenerableDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   venerableToEdit: Venerable | null
-  onSave: (data: VenerableFormValues) => void
+  onSave: (data: VenerableFormValues) => Promise<void>
 }
 
 export function VenerableDialog({
@@ -42,6 +43,7 @@ export function VenerableDialog({
   venerableToEdit,
   onSave,
 }: VenerableDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const form = useForm<VenerableFormValues>({
     resolver: zodResolver(venerableSchema),
     defaultValues: {
@@ -67,6 +69,12 @@ export function VenerableDialog({
     }
   }, [venerableToEdit, form, open])
 
+  const handleSubmit = async (data: VenerableFormValues) => {
+    setIsSubmitting(true)
+    await onSave(data)
+    setIsSubmitting(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -76,7 +84,10 @@ export function VenerableDialog({
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -121,10 +132,16 @@ export function VenerableDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Salvar
+              </Button>
             </DialogFooter>
           </form>
         </Form>

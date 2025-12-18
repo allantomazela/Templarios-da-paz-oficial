@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -11,19 +11,35 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
-import { ShieldCheck, Image as ImageIcon } from 'lucide-react'
+import { ShieldCheck, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 export function LogoSettings() {
   const { logoUrl, updateLogo } = useSiteSettingsStore()
   const [url, setUrl] = useState(logoUrl)
+  const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
 
-  const handleSave = () => {
-    updateLogo(url)
-    toast({
-      title: 'Logo Atualizado',
-      description: 'O logo do site foi atualizado com sucesso.',
-    })
+  useEffect(() => {
+    setUrl(logoUrl)
+  }, [logoUrl])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await updateLogo(url)
+      toast({
+        title: 'Logo Atualizado',
+        description: 'O logo do site foi atualizado com sucesso.',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar o logo.',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -51,11 +67,6 @@ export function LogoSettings() {
               ) : (
                 <ShieldCheck className="w-16 h-16 text-primary/50" />
               )}
-              {url && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
-                  {/* Overlay if needed */}
-                </div>
-              )}
             </div>
             <span className="text-xs text-muted-foreground">
               Pré-visualização
@@ -82,7 +93,10 @@ export function LogoSettings() {
                 512x512px).
               </p>
             </div>
-            <Button onClick={handleSave}>Salvar Alteração</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar Alteração
+            </Button>
           </div>
         </div>
       </CardContent>

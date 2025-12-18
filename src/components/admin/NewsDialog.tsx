@@ -23,7 +23,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { NewsEvent } from '@/stores/useNewsStore'
 import { compressImage } from '@/lib/image-utils'
+import { uploadToStorage } from '@/lib/upload-utils'
 import { Loader2, Upload } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -49,7 +51,9 @@ export function NewsDialog({
   onSave,
 }: NewsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const form = useForm<NewsFormValues>({
     resolver: zodResolver(newsSchema),
@@ -90,21 +94,29 @@ export function NewsDialog({
     const file = e.target.files?.[0]
     if (!file) return
 
+    setIsUploading(true)
     try {
-      // Optimize image before 'upload' (mock logic since we don't have real storage bucket setup in this context without specific instructions, assuming external URL or mocked behavior)
-      // Since user story asks for optimization:
-      const optimizedFile = await compressImage(file)
+      const optimizedFile = await compressImage(file, 1280) // HD width
+      const publicUrl = await uploadToStorage(
+        optimizedFile,
+        'site-assets',
+        'news',
+      )
 
-      // Create a local preview URL
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const result = event.target?.result as string
-        setPreviewImage(result)
-        form.setValue('imageUrl', result) // In a real app, we would upload optimizedFile to Supabase Storage here and get URL
-      }
-      reader.readAsDataURL(optimizedFile)
+      form.setValue('imageUrl', publicUrl, { shouldDirty: true })
+      setPreviewImage(publicUrl)
+      toast({
+        title: 'Upload Concluído',
+        description: 'Imagem da notícia carregada.',
+      })
     } catch (error) {
-      console.error('Image processing failed', error)
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao fazer upload da imagem.',
+      })
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -163,27 +175,30 @@ export function NewsDialog({
               <div className="space-y-2">
                 <FormLabel>Imagem de Destaque</FormLabel>
                 <div className="flex flex-col gap-3">
-                  <div className="relative aspect-video w-full border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden">
-                    {previewImage ? (
+                  <div className="relative aspect-video w-full border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden group">
+                    {isUploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    ) : previewImage ? (
                       <img
                         src={previewImage}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="flex flex-col items-center text-muted-foreground text-xs">
+                      <div className="flex flex-col items-center text-muted-foreground text-xs pointer-events-none">
                         <Upload className="h-8 w-8 mb-2 opacity-50" />
                         <span>Clique para enviar</span>
                       </div>
                     )}
                     <Input
                       type="file"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                       accept="image/*"
                       onChange={handleImageUpload}
+                      disabled={isUploading}
                     />
                   </div>
-                  {previewImage && (
+                  {previewImage && !isUploading && (
                     <Button
                       type="button"
                       variant="outline"
@@ -245,11 +260,11 @@ export function NewsDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isUploading}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -23,7 +23,9 @@ import {
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Upload, Image as ImageIcon } from 'lucide-react'
+import { compressImage } from '@/lib/image-utils'
+import { uploadToStorage } from '@/lib/upload-utils'
 
 const institutionalSchema = z.object({
   historyTitle: z.string().min(1, 'Título é obrigatório'),
@@ -49,6 +51,8 @@ export function InstitutionalSettings() {
     updateContact,
   } = useSiteSettingsStore()
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const form = useForm({
     resolver: zodResolver(institutionalSchema),
@@ -84,6 +88,35 @@ export function InstitutionalSettings() {
     })
   }, [history, values, contact, form])
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const optimizedFile = await compressImage(file, 1200)
+      const publicUrl = await uploadToStorage(
+        optimizedFile,
+        'site-assets',
+        'institutional',
+      )
+      form.setValue('historyImageUrl', publicUrl, { shouldDirty: true })
+      toast({
+        title: 'Upload Concluído',
+        description: 'Imagem carregada com sucesso.',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Upload',
+        description: 'Falha ao carregar a imagem.',
+      })
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const onSubmit = async (data: z.infer<typeof institutionalSchema>) => {
     try {
       await updateHistory({
@@ -116,6 +149,8 @@ export function InstitutionalSettings() {
       })
     }
   }
+
+  const historyImageUrl = form.watch('historyImageUrl')
 
   return (
     <Form {...form}>
@@ -174,11 +209,46 @@ export function InstitutionalSettings() {
                   name="historyImageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>URL da Imagem</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://..." {...field} />
-                      </FormControl>
+                      <FormLabel>Imagem da Seção</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input
+                            placeholder="https://..."
+                            {...field}
+                            disabled={isUploading}
+                          />
+                        </FormControl>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                       <FormMessage />
+                      {historyImageUrl && (
+                        <div className="mt-2 relative w-full h-40 rounded-md overflow-hidden bg-muted/20 border">
+                          <img
+                            src={historyImageUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -333,7 +403,7 @@ export function InstitutionalSettings() {
           <Button
             type="submit"
             size="lg"
-            disabled={form.formState.isSubmitting}
+            disabled={form.formState.isSubmitting || isUploading}
           >
             {form.formState.isSubmitting && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

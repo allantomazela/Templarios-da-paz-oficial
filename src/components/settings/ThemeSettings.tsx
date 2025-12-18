@@ -11,59 +11,21 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
-import { RotateCcw } from 'lucide-react'
-
-// Basic function to convert hex to HSL string for Tailwind
-// Note: This is a simplified version. A robust one would handle edge cases.
-function hexToHSL(hex: string): string {
-  let r = 0,
-    g = 0,
-    b = 0
-  if (hex.length === 4) {
-    r = parseInt('0x' + hex[1] + hex[1])
-    g = parseInt('0x' + hex[2] + hex[2])
-    b = parseInt('0x' + hex[3] + hex[3])
-  } else if (hex.length === 7) {
-    r = parseInt('0x' + hex[1] + hex[2])
-    g = parseInt('0x' + hex[3] + hex[4])
-    b = parseInt('0x' + hex[5] + hex[6])
-  }
-  r /= 255
-  g /= 255
-  b /= 255
-  const cmin = Math.min(r, g, b),
-    cmax = Math.max(r, g, b),
-    delta = cmax - cmin
-  let h = 0,
-    s = 0,
-    l = 0
-
-  if (delta === 0) h = 0
-  else if (cmax === r) h = ((g - b) / delta) % 6
-  else if (cmax === g) h = (b - r) / delta + 2
-  else h = (r - g) / delta + 4
-
-  h = Math.round(h * 60)
-  if (h < 0) h += 360
-
-  l = (cmax + cmin) / 2
-  s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1))
-  s = +(s * 100).toFixed(1)
-  l = +(l * 100).toFixed(1)
-
-  return `${h} ${s}% ${l}%`
-}
+import { RotateCcw, Loader2 } from 'lucide-react'
+import { hexToHSL } from '@/lib/utils'
 
 export function ThemeSettings() {
   const { primaryColor, updateTheme } = useSiteSettingsStore()
   const { toast } = useToast()
   const [color, setColor] = useState(primaryColor)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     setColor(primaryColor)
   }, [primaryColor])
 
   const handleSave = async () => {
+    setIsSaving(true)
     try {
       await updateTheme(color)
       // Apply immediately to current session
@@ -80,11 +42,15 @@ export function ThemeSettings() {
         title: 'Erro',
         description: 'Não foi possível salvar o tema.',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const handleReset = () => {
-    setColor('#0f172a') // Default slate-900 like color or blue '#007AFF'
+    // Restoration of the previous blue theme as requested by User Story
+    const defaultBlue = '#007AFF'
+    setColor(defaultBlue)
   }
 
   return (
@@ -134,9 +100,12 @@ export function ThemeSettings() {
 
         <div className="flex justify-between pt-4">
           <Button variant="ghost" onClick={handleReset}>
-            <RotateCcw className="mr-2 h-4 w-4" /> Restaurar Padrão
+            <RotateCcw className="mr-2 h-4 w-4" /> Restaurar Padrão (#007AFF)
           </Button>
-          <Button onClick={handleSave}>Salvar Tema</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar Tema
+          </Button>
         </div>
       </CardContent>
     </Card>

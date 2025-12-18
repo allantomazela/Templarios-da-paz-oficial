@@ -17,33 +17,33 @@ export type Database = {
     Tables: {
       news_events: {
         Row: {
-          id: string
-          title: string
           content: string
-          image_url: string | null
-          event_date: string | null
-          is_published: boolean
           created_at: string
+          event_date: string | null
+          id: string
+          image_url: string | null
+          is_published: boolean | null
+          title: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          title: string
           content: string
-          image_url?: string | null
-          event_date?: string | null
-          is_published?: boolean
           created_at?: string
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          title: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          title?: string
           content?: string
-          image_url?: string | null
-          event_date?: string | null
-          is_published?: boolean
           created_at?: string
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
@@ -61,12 +61,12 @@ export type Database = {
           history_title: string | null
           id: number
           logo_url: string | null
+          primary_color: string | null
+          section_order: Json | null
           updated_at: string
           values_equality: string | null
           values_fraternity: string | null
           values_liberty: string | null
-          section_order: Json
-          primary_color: string
         }
         Insert: {
           contact_address?: string | null
@@ -80,12 +80,12 @@ export type Database = {
           history_title?: string | null
           id?: number
           logo_url?: string | null
+          primary_color?: string | null
+          section_order?: Json | null
           updated_at?: string
           values_equality?: string | null
           values_fraternity?: string | null
           values_liberty?: string | null
-          section_order?: Json
-          primary_color?: string
         }
         Update: {
           contact_address?: string | null
@@ -99,12 +99,12 @@ export type Database = {
           history_title?: string | null
           id?: number
           logo_url?: string | null
+          primary_color?: string | null
+          section_order?: Json | null
           updated_at?: string
           values_equality?: string | null
           values_fraternity?: string | null
           values_liberty?: string | null
-          section_order?: Json
-          primary_color?: string
         }
         Relationships: []
       }

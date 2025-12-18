@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -121,6 +122,11 @@ export function VenerableDialog({
           <DialogTitle>
             {venerableToEdit ? 'Editar Venerável' : 'Adicionar Venerável'}
           </DialogTitle>
+          <DialogDescription>
+            {venerableToEdit
+              ? 'Edite as informações do venerável abaixo.'
+              : 'Preencha os dados do venerável para adicionar à galeria.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form

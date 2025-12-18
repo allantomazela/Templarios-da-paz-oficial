@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -133,6 +134,11 @@ export function NewsDialog({
           <DialogTitle>
             {newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Notícia'}
           </DialogTitle>
+          <DialogDescription>
+            {newsToEdit
+              ? 'Atualize as informações da notícia ou evento abaixo.'
+              : 'Preencha os campos para publicar uma nova notícia ou evento no site.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form

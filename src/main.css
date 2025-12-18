@@ -88,3 +88,44 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* Print Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #gob-report-container,
+  #gob-report-container * {
+    visibility: visible;
+  }
+
+  #gob-report-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+    z-index: 9999;
+  }
+
+  /* Force background colors for print if needed */
+  #gob-report-container .bg-muted {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide shadows and borders that don't look good in print */
+  #gob-report-container .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 1cm;
+  }
+}

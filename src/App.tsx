@@ -8,6 +8,7 @@ import Dashboard from '@/pages/Dashboard'
 import Secretariat from '@/pages/Secretariat'
 import Financial from '@/pages/Financial'
 import Chancellor from '@/pages/Chancellor'
+import Reports from '@/pages/Reports'
 import Agenda from '@/pages/Agenda'
 import Library from '@/pages/Library'
 import Admin from '@/pages/Admin'
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="secretariat" element={<Secretariat />} />
           <Route path="financial" element={<Financial />} />
           <Route path="chancellor" element={<Chancellor />} />
+          <Route path="reports" element={<Reports />} />
           <Route path="agenda" element={<Agenda />} />
           <Route path="library" element={<Library />} />
           <Route path="admin" element={<Admin />} />

@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Users,
   Banknote,
-  ScrollText,
   Calendar,
   Library,
   Settings,
@@ -13,6 +12,7 @@ import {
   ChevronRight,
   ShieldCheck,
   UserCircle,
+  FileBarChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -47,6 +47,7 @@ export function AppSidebar() {
       allowedRoles: ['Tesoureiro', 'Mestre', 'Administrador'],
     },
     { name: 'Chanceler', icon: ShieldCheck, path: '/dashboard/chancellor' },
+    { name: 'Relatórios', icon: FileBarChart, path: '/dashboard/reports' },
     { name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' },
     { name: 'Biblioteca', icon: Library, path: '/dashboard/library' },
     {
@@ -60,7 +61,7 @@ export function AppSidebar() {
   return (
     <div
       className={cn(
-        'flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ease-in-out relative z-20',
+        'flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ease-in-out relative z-20 no-print',
         collapsed ? 'w-[70px]' : 'w-[250px]',
       )}
     >

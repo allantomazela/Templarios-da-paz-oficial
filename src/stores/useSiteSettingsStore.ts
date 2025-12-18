@@ -72,7 +72,7 @@ const mapSettingsFromDB = (data: any) => ({
     'news',
     'contact',
   ],
-  primaryColor: data.primary_color || '#0f172a',
+  primaryColor: data.primary_color || '#007AFF',
 })
 
 export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
@@ -97,7 +97,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   },
   venerables: [],
   sectionOrder: ['history', 'venerables', 'news', 'contact'],
-  primaryColor: '#0f172a',
+  primaryColor: '#007AFF', // Updated default color to match brand guidelines
 
   fetchSettings: async () => {
     set({ loading: true })

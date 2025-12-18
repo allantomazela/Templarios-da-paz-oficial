@@ -90,7 +90,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-2 overflow-hidden px-2">
           <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
           {!collapsed && (
-            <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-white">
+            <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">
               Templários
             </span>
           )}

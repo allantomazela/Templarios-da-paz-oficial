@@ -287,7 +287,7 @@ export default function Index() {
             ) : (
               <ShieldCheck className="h-6 w-6 text-primary" />
             )}
-            <span>Templários da Paz</span>
+            <span className="text-primary">Templários da Paz</span>
           </div>
 
           {/* Desktop Nav */}

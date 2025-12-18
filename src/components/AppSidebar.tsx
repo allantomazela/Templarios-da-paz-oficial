@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
+import useReportStore from '@/stores/useReportStore'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,12 +31,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuthStore()
+  const { permissions } = useReportStore()
   const navigate = useNavigate()
 
   const handleLogout = () => {
     logout()
     navigate('/')
   }
+
+  // Determine if user can see reports link based on store permissions
+  const reportPermission = permissions.find((p) => p.role === user?.role)
+  const canSeeReports =
+    reportPermission?.canViewReports || reportPermission?.canViewAnalytics
 
   const navItems = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
@@ -47,7 +54,10 @@ export function AppSidebar() {
       allowedRoles: ['Tesoureiro', 'Mestre', 'Administrador'],
     },
     { name: 'Chanceler', icon: ShieldCheck, path: '/dashboard/chancellor' },
-    { name: 'Relatórios', icon: FileBarChart, path: '/dashboard/reports' },
+    // Conditionally render reports based on dynamic permission store
+    ...(canSeeReports
+      ? [{ name: 'Relatórios', icon: FileBarChart, path: '/dashboard/reports' }]
+      : []),
     { name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' },
     { name: 'Biblioteca', icon: Library, path: '/dashboard/library' },
     {

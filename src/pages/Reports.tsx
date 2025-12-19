@@ -22,9 +22,12 @@ export default function Reports() {
   const { user } = useAuthStore()
   const { permissions } = useReportStore()
 
+  // Ensure role is valid, fallback to member
+  const role = user?.role || 'member'
+
   // Get permissions for current user role
-  const userPermission = permissions.find((p) => p.role === user?.role) || {
-    role: 'Unknown',
+  const userPermission = permissions.find((p) => p.role === role) || {
+    role: role,
     canViewReports: false,
     canViewAnalytics: false,
     canManageSchedules: false,
@@ -39,8 +42,8 @@ export default function Reports() {
           <Lock className="h-4 w-4" />
           <AlertTitle>Acesso Negado</AlertTitle>
           <AlertDescription>
-            Seu perfil de usuário ({user?.role}) não possui permissão para
-            acessar o módulo de relatórios. Contate o administrador do sistema.
+            Seu perfil de usuário ({role}) não possui permissão para acessar o
+            módulo de relatórios. Contate o administrador do sistema.
           </AlertDescription>
         </Alert>
       </div>

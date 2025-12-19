@@ -35,6 +35,8 @@ interface AuthState {
   ) => Promise<{ error: any }>
 }
 
+const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
@@ -46,23 +48,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Check for current session
       const {
         data: { session },
+        error: sessionError,
       } = await supabase.auth.getSession()
 
+      if (sessionError) throw sessionError
+
       if (session) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single()
 
+        // If profile fetch fails, we still want to log the user in if session exists,
+        // but with limited permissions unless it's the master admin.
         const userProfile = profile as Profile
+
+        // Master Admin Failsafe: Force admin role if email matches, regardless of DB state
+        let role = userProfile?.role || 'member'
+        let status = userProfile?.status || 'pending'
+
+        if (session.user.email === MASTER_ADMIN_EMAIL) {
+          role = 'admin'
+          status = 'approved'
+        }
 
         set({
           session,
           user: {
             ...session.user,
-            role: userProfile?.role || 'member',
-            profile: userProfile,
+            role,
+            profile: userProfile || {
+              id: session.user.id,
+              full_name:
+                session.user.user_metadata?.name || 'Usuário sem Perfil',
+              role: role as any,
+              status: status as any,
+            },
           },
           isAuthenticated: true,
           loading: false,
@@ -88,12 +110,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
           const userProfile = profile as Profile
 
+          // Master Admin Failsafe
+          let role = userProfile?.role || 'member'
+          let status = userProfile?.status || 'pending'
+
+          if (session.user.email === MASTER_ADMIN_EMAIL) {
+            role = 'admin'
+            status = 'approved'
+          }
+
           set({
             session,
             user: {
               ...session.user,
-              role: userProfile?.role || 'member',
-              profile: userProfile,
+              role,
+              profile: userProfile || {
+                id: session.user.id,
+                full_name:
+                  session.user.user_metadata?.name || 'Usuário sem Perfil',
+                role: role as any,
+                status: status as any,
+              },
             },
             isAuthenticated: true,
             loading: false,
@@ -137,26 +174,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq('id', data.session.user.id)
         .single()
 
-      if (profileError || !profile) {
-        await supabase.auth.signOut()
-        set({ loading: false })
-        return {
-          error: {
-            message: 'Perfil não encontrado.',
-            status: 404,
-          },
-        }
+      // Allow login even if profile is missing, but maybe restrict access later
+      // Master admin bypass
+      const isMasterAdmin = data.session.user.email === MASTER_ADMIN_EMAIL
+
+      if (profileError && !isMasterAdmin) {
+        // Only block regular users if profile is strictly required by business logic
+        // But better to allow login and show "Contact Admin" screen
+        console.warn('Profile fetch error:', profileError)
       }
 
       const userProfile = profile as Profile
+
+      let role = userProfile?.role || 'member'
+      let status = userProfile?.status || 'pending'
+
+      if (isMasterAdmin) {
+        role = 'admin'
+        status = 'approved'
+      }
 
       // State update
       set({
         session: data.session,
         user: {
           ...data.session.user,
-          role: userProfile?.role || 'member',
-          profile: userProfile,
+          role,
+          profile: userProfile || {
+            id: data.session.user.id,
+            full_name:
+              data.session.user.user_metadata?.name || 'Usuário sem Perfil',
+            role: role as any,
+            status: status as any,
+          },
         },
         isAuthenticated: true,
         loading: false,

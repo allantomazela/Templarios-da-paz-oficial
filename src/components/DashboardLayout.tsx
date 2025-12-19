@@ -1,24 +1,55 @@
-import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { Loader2 } from 'lucide-react'
+import { Loader2, LogOut } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 export default function DashboardLayout() {
-  const { isAuthenticated, user, loading } = useAuthStore()
+  const { isAuthenticated, user, loading, signOut } = useAuthStore()
   const isMobile = useIsMobile()
   const location = useLocation()
+  const navigate = useNavigate()
+  const [showTimeout, setShowTimeout] = useState(false)
+
+  // Timeout logic to prevent infinite loading
+  useEffect(() => {
+    let timeout: NodeJS.Timeout
+    if (loading) {
+      timeout = setTimeout(() => {
+        setShowTimeout(true)
+      }, 5000) // 5 seconds timeout
+    }
+    return () => clearTimeout(timeout)
+  }, [loading])
+
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login')
+  }
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen flex-col items-center justify-center bg-background gap-6">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground animate-pulse">
             Carregando sistema...
           </p>
         </div>
+
+        {showTimeout && (
+          <div className="flex flex-col items-center gap-2 animate-fade-in">
+            <p className="text-sm text-destructive">
+              O carregamento está demorando mais que o esperado.
+            </p>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" /> Sair e Tentar Novamente
+            </Button>
+          </div>
+        )}
       </div>
     )
   }
@@ -27,9 +58,13 @@ export default function DashboardLayout() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  // Master admin bypass check
+  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
+  const userStatus = user?.profile?.status || 'pending'
+
   // Strict Status Check - Approved users only, others go to Access Denied
-  // Master admin bypass check via profile status (ensure it's approved in DB)
-  if (user?.profile?.status !== 'approved') {
+  // Master admin bypasses this check
+  if (!isMasterAdmin && userStatus !== 'approved') {
     return <Navigate to="/access-denied" replace />
   }
 

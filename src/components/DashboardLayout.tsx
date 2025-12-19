@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
@@ -8,20 +8,27 @@ import { Loader2 } from 'lucide-react'
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading } = useAuthStore()
   const isMobile = useIsMobile()
+  const location = useLocation()
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Carregando sistema...
+          </p>
+        </div>
       </div>
     )
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Strict Status Check
+  // Strict Status Check - Approved users only, others go to Access Denied
+  // Master admin bypass check via profile status (ensure it's approved in DB)
   if (user?.profile?.status !== 'approved') {
     return <Navigate to="/access-denied" replace />
   }

@@ -42,39 +42,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
 
   initialize: async () => {
-    set({ loading: true })
+    try {
+      // Check for current session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-    // Get initial session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (session) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-
-      // Ensure status exists, default to pending if missing (should not happen with migration)
-      const userProfile = profile as Profile
-
-      set({
-        session,
-        user: {
-          ...session.user,
-          role: userProfile?.role || 'member',
-          profile: userProfile,
-        },
-        isAuthenticated: true,
-        loading: false,
-      })
-    } else {
-      set({ session: null, user: null, isAuthenticated: false, loading: false })
-    }
-
-    // Listen for changes
-    supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -102,7 +75,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           loading: false,
         })
       }
-    })
+
+      // Set up listener
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session) {
+          // Fetch profile again to ensure fresh data on state change (e.g. login)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          const userProfile = profile as Profile
+
+          set({
+            session,
+            user: {
+              ...session.user,
+              role: userProfile?.role || 'member',
+              profile: userProfile,
+            },
+            isAuthenticated: true,
+            loading: false,
+          })
+        } else {
+          set({
+            session: null,
+            user: null,
+            isAuthenticated: false,
+            loading: false,
+          })
+        }
+      })
+    } catch (error) {
+      console.error('Auth initialization error:', error)
+      set({ loading: false })
+    }
   },
 
   signIn: async (email) => {
@@ -111,12 +119,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signInWithPassword: async (email, password) => {
+    set({ loading: true })
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
+      set({ loading: false })
       return { error }
     }
 
@@ -129,6 +139,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (profileError || !profile) {
         await supabase.auth.signOut()
+        set({ loading: false })
         return {
           error: {
             message: 'Perfil não encontrado.',
@@ -150,12 +161,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         loading: false,
       })
+    } else {
+      set({ loading: false })
     }
 
     return { error: null }
   },
 
   signUp: async (email, password, name, degree) => {
+    set({ loading: true })
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -163,10 +177,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         data: {
           name,
           masonic_degree: degree,
-          role: 'member', // Default role
+          role: 'member', // Default role, trigger will handle defaults logic
         },
       },
     })
+    set({ loading: false })
     return { error }
   },
 

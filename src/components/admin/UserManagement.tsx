@@ -14,6 +14,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
@@ -32,6 +34,7 @@ import {
   CheckCircle,
   Ban,
   Loader2,
+  UserCog,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
 
@@ -69,7 +72,7 @@ export function UserManagement() {
       await updateUserStatus(user.id, newStatus)
       toast({
         title: 'Status Atualizado',
-        description: `O status do usuário foi alterado para ${newStatus}.`,
+        description: `O status de ${user.full_name} foi alterado para ${newStatus}.`,
       })
     } catch (error) {
       toast({
@@ -85,7 +88,7 @@ export function UserManagement() {
       await updateUserRole(user.id, newRole)
       toast({
         title: 'Permissão Atualizada',
-        description: `A função do usuário foi alterada para ${newRole}.`,
+        description: `A função de ${user.full_name} foi alterada para ${newRole}.`,
       })
     } catch (error) {
       toast({
@@ -101,7 +104,7 @@ export function UserManagement() {
       await updateUserDegree(user.id, newDegree)
       toast({
         title: 'Grau Atualizado',
-        description: `O grau do usuário foi alterado para ${newDegree}.`,
+        description: `O grau de ${user.full_name} foi alterado para ${newDegree}.`,
       })
     } catch (error) {
       toast({
@@ -242,10 +245,12 @@ export function UserManagement() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Gerenciar Acesso</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
                         {user.status === 'pending' && (
                           <DropdownMenuItem
                             onClick={() => handleStatusChange(user, 'approved')}
-                            className="text-green-600"
+                            className="text-green-600 focus:text-green-600 focus:bg-green-50"
                           >
                             <CheckCircle className="mr-2 h-4 w-4" /> Aprovar
                           </DropdownMenuItem>
@@ -260,7 +265,7 @@ export function UserManagement() {
                         {user.status !== 'blocked' && (
                           <DropdownMenuItem
                             onClick={() => handleStatusChange(user, 'blocked')}
-                            className="text-destructive"
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           >
                             <Ban className="mr-2 h-4 w-4" /> Bloquear
                           </DropdownMenuItem>

@@ -13,7 +13,7 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-full min-h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -23,6 +23,8 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   const userRole = user?.role || 'member'
 
   if (!allowedRoles.includes(userRole)) {
+    // If admin tries to access user stuff, usually okay, but here strict.
+    // Redirect to dashboard root if unauthorized
     return <Navigate to="/dashboard" replace />
   }
 

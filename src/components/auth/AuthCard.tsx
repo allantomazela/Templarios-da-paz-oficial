@@ -80,7 +80,7 @@ export function AuthCard() {
     defaultValues: {
       name: '',
       email: '',
-      degree: '', // Changed default to empty string to force selection
+      degree: '',
       password: '',
       confirmPassword: '',
       terms: false,
@@ -153,9 +153,9 @@ export function AuthCard() {
       toast({
         title: 'Cadastro Realizado',
         description:
-          'Sua conta foi criada e está pendente de aprovação. Verifique seu email.',
+          'Sua conta foi criada e está aguardando aprovação da secretaria. Você será notificado por email.',
       })
-      // Optionally switch to login tab or show a success message
+      registerForm.reset()
     }
   }
 

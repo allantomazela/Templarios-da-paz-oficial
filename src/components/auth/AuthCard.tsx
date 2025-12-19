@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -55,6 +56,7 @@ const registerSchema = z
 export function AuthCard() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
   const { signInWithPassword, signUp } = useAuthStore()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -75,23 +77,65 @@ export function AuthCard() {
     },
   })
 
+  // Map technical errors to user-friendly Portuguese messages
+  const getErrorMessage = (error: any) => {
+    const msg = (error?.message || error?.toString() || '').toLowerCase()
+
+    // Invalid Credentials
+    if (
+      msg.includes('invalid login credentials') ||
+      msg.includes('invalid_credentials')
+    ) {
+      return 'E-mail ou senha inválidos.'
+    }
+
+    // User Not Found (Supabase sometimes returns this or Invalid Credentials)
+    if (msg.includes('user not found') || msg === 'profile_not_found') {
+      return 'Usuário não encontrado.'
+    }
+
+    // Email Confirmation
+    if (msg.includes('email not confirmed')) {
+      return 'E-mail não confirmado. Verifique sua caixa de entrada.'
+    }
+
+    // Network or Generic 400
+    if (error?.status === 400 || msg.includes('400')) {
+      return 'Ocorreu um erro ao tentar entrar. Por favor, tente novamente mais tarde.'
+    }
+
+    // Fallback
+    return 'Ocorreu um erro ao tentar entrar. Por favor, tente novamente mais tarde.'
+  }
+
   async function onLogin(data: z.infer<typeof loginSchema>) {
     setIsLoading(true)
-    const { error } = await signInWithPassword(data.email, data.password)
+    setLoginError(null)
 
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro no Login',
-        description: error.message || 'Credenciais inválidas.',
-      })
+    try {
+      const { error } = await signInWithPassword(data.email, data.password)
+
+      if (error) {
+        const friendlyMessage = getErrorMessage(error)
+        setLoginError(friendlyMessage)
+
+        // Also show toast for persistence/visibility
+        toast({
+          variant: 'destructive',
+          title: 'Erro no Login',
+          description: friendlyMessage,
+        })
+      } else {
+        toast({
+          title: 'Bem-vindo!',
+          description: 'Login realizado com sucesso.',
+        })
+        navigate('/dashboard')
+      }
+    } catch (e) {
+      setLoginError('Ocorreu um erro inesperado.')
+    } finally {
       setIsLoading(false)
-    } else {
-      toast({
-        title: 'Bem-vindo!',
-        description: 'Login realizado com sucesso.',
-      })
-      navigate('/dashboard')
     }
   }
 
@@ -130,68 +174,82 @@ export function AuthCard() {
           </TabsList>
 
           <TabsContent value="login">
-            <Form {...loginForm}>
-              <form
-                onSubmit={loginForm.handleSubmit(onLogin)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="seu@email.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Senha</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end">
-                  <a href="#" className="text-sm text-primary hover:underline">
-                    Esqueceu a senha?
-                  </a>
-                </div>
-                <Button className="w-full" type="submit" disabled={isLoading}>
-                  {isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Entrar
-                </Button>
-              </form>
-            </Form>
+            <div className="space-y-4">
+              {loginError && (
+                <Alert variant="destructive" className="animate-fade-in">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Erro</AlertTitle>
+                  <AlertDescription>{loginError}</AlertDescription>
+                </Alert>
+              )}
+
+              <Form {...loginForm}>
+                <form
+                  onSubmit={loginForm.handleSubmit(onLogin)}
+                  className="space-y-4"
+                  onChange={() => setLoginError(null)} // Clear error on edit
+                >
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="seu@email.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end">
+                    <a
+                      href="#"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Esqueceu a senha?
+                    </a>
+                  </div>
+                  <Button className="w-full" type="submit" disabled={isLoading}>
+                    {isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {isLoading ? 'Entrando...' : 'Entrar'}
+                  </Button>
+                </form>
+              </Form>
+            </div>
           </TabsContent>
 
           <TabsContent value="register">

@@ -93,11 +93,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signInWithPassword: async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    return { error }
+
+    if (error) {
+      return { error }
+    }
+
+    // RBAC Validation: Verify if profile exists
+    if (data.session) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.session.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        // If profile doesn't exist, sign out immediately to prevent inconsistent state
+        await supabase.auth.signOut()
+        return {
+          error: {
+            message: 'profile_not_found',
+            status: 404,
+          },
+        }
+      }
+
+      // Update state immediately with verified profile
+      set({
+        session: data.session,
+        user: {
+          ...data.session.user,
+          role: profile?.role || 'member',
+          profile,
+        },
+        isAuthenticated: true,
+        loading: false,
+      })
+    }
+
+    return { error: null }
   },
 
   signUp: async (email, password, name) => {

@@ -75,7 +75,7 @@ const App = () => (
           <Route
             path="settings"
             element={
-              <RoleGuard allowedRoles={['admin', 'editor']}>
+              <RoleGuard allowedRoles={['admin']}>
                 <SiteSettings />
               </RoleGuard>
             }

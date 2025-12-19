@@ -97,7 +97,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   },
   venerables: [],
   sectionOrder: ['history', 'venerables', 'news', 'contact'],
-  primaryColor: '#007AFF', // Updated default color to match brand guidelines
+  primaryColor: '#007AFF',
 
   fetchSettings: async () => {
     set({ loading: true })

@@ -20,7 +20,6 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
-import useReportStore from '@/stores/useReportStore'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,7 +64,7 @@ export function AppSidebar() {
       name: 'Config. Site',
       icon: MonitorCog,
       path: '/dashboard/settings',
-      allowedRoles: ['admin', 'editor'],
+      allowedRoles: ['admin'],
     },
     {
       name: 'Mídia',

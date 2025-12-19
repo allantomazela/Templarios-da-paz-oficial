@@ -26,8 +26,8 @@ export default function SiteSettings() {
     fetchVenerables()
   }, [fetchSettings, fetchVenerables])
 
-  // Guard: Only Admin or Master can access
-  if (user?.role !== 'Administrador' && user?.role !== 'Mestre') {
+  // Guard: Only Admin can access
+  if (user?.role !== 'admin') {
     return <Navigate to="/dashboard" replace />
   }
 

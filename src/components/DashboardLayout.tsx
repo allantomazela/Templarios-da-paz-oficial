@@ -3,24 +3,25 @@ import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { Loader2, LogOut } from 'lucide-react'
+import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 export default function DashboardLayout() {
-  const { isAuthenticated, user, loading, signOut } = useAuthStore()
+  const { isAuthenticated, user, loading, signOut, initialize } = useAuthStore()
   const isMobile = useIsMobile()
   const location = useLocation()
   const navigate = useNavigate()
   const [showTimeout, setShowTimeout] = useState(false)
 
-  // Timeout logic to prevent infinite loading
+  // Resilient Timeout Logic: 3 seconds
   useEffect(() => {
     let timeout: NodeJS.Timeout
     if (loading) {
+      setShowTimeout(false)
       timeout = setTimeout(() => {
         setShowTimeout(true)
-      }, 5000) // 5 seconds timeout
+      }, 3000) // Reduced to 3s per requirement
     }
     return () => clearTimeout(timeout)
   }, [loading])
@@ -30,9 +31,14 @@ export default function DashboardLayout() {
     navigate('/login')
   }
 
+  const handleRetry = () => {
+    setShowTimeout(false)
+    window.location.reload() // Full reload to clear any extension/network hiccups
+  }
+
   if (loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-background gap-6">
+      <div className="flex h-screen flex-col items-center justify-center bg-background gap-6 p-4">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground animate-pulse">
@@ -41,13 +47,33 @@ export default function DashboardLayout() {
         </div>
 
         {showTimeout && (
-          <div className="flex flex-col items-center gap-2 animate-fade-in">
-            <p className="text-sm text-destructive">
-              O carregamento está demorando mais que o esperado.
+          <div className="flex flex-col items-center gap-4 animate-fade-in max-w-sm text-center bg-card p-6 rounded-lg border shadow-sm">
+            <div className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              <h3 className="font-semibold">Demora na resposta</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              A conexão está levando mais tempo que o normal. Você pode tentar
+              recarregar ou sair.
             </p>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" /> Sair e Tentar Novamente
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleRetry}
+                className="flex-1"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" /> Tentar Novamente
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex-1"
+              >
+                <LogOut className="mr-2 h-4 w-4" /> Sair
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -58,7 +84,7 @@ export default function DashboardLayout() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Master admin bypass check
+  // Master admin bypass check - Ensuring robust access
   const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
   const userStatus = user?.profile?.status || 'pending'
 

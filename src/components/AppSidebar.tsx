@@ -15,6 +15,7 @@ import {
   FileBarChart,
   Globe,
   MonitorCog,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -32,19 +33,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
-  const { user, logout } = useAuthStore()
-  const { permissions } = useReportStore()
+  const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await signOut()
     navigate('/')
   }
 
   // Determine if user can see reports link based on store permissions
-  const reportPermission = permissions.find((p) => p.role === user?.role)
-  const canSeeReports =
-    reportPermission?.canViewReports || reportPermission?.canViewAnalytics
+  // Note: user.role is now from profiles table (admin, editor, member)
+  const userRole = user?.role || 'member'
+  const canSeeReports = ['admin', 'editor'].includes(userRole)
 
   const navItems = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
@@ -53,10 +53,9 @@ export function AppSidebar() {
       name: 'Financeiro',
       icon: Banknote,
       path: '/dashboard/financial',
-      allowedRoles: ['Tesoureiro', 'Mestre', 'Administrador'],
+      allowedRoles: ['admin', 'editor'],
     },
     { name: 'Chanceler', icon: ShieldCheck, path: '/dashboard/chancellor' },
-    // Conditionally render reports based on dynamic permission store
     ...(canSeeReports
       ? [{ name: 'Relatórios', icon: FileBarChart, path: '/dashboard/reports' }]
       : []),
@@ -66,15 +65,20 @@ export function AppSidebar() {
       name: 'Config. Site',
       icon: MonitorCog,
       path: '/dashboard/settings',
-      allowedRoles: ['Administrador', 'Mestre'],
+      allowedRoles: ['admin', 'editor'],
+    },
+    {
+      name: 'Mídia',
+      icon: ImageIcon,
+      path: '/dashboard/admin/media',
+      allowedRoles: ['admin'],
     },
     {
       name: 'Admin',
       icon: Settings,
       path: '/dashboard/admin',
-      allowedRoles: ['Administrador', 'Mestre'],
+      allowedRoles: ['admin'],
     },
-    // Public Site Link
     { name: 'Ver Site', icon: Globe, path: '/' },
   ]
 
@@ -114,7 +118,7 @@ export function AppSidebar() {
         {navItems.map((item) => {
           if (
             item.allowedRoles &&
-            (!user || !item.allowedRoles.includes(user.role))
+            (!user || !item.allowedRoles.includes(user.role || 'member'))
           )
             return null
 
@@ -126,7 +130,7 @@ export function AppSidebar() {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group relative',
-                  isActive && item.path !== '/' // Don't style 'Ver Site' as active in dashboard
+                  isActive && item.path !== '/'
                     ? 'bg-primary text-primary-foreground shadow-md'
                     : 'hover:bg-sidebar-accent hover:text-white text-muted-foreground',
                   collapsed && 'justify-center px-0',
@@ -163,19 +167,22 @@ export function AppSidebar() {
             >
               <Avatar className="h-9 w-9 border border-sidebar-accent transition-transform group-hover:scale-105">
                 <AvatarImage
-                  src={`https://img.usecurling.com/ppl/thumbnail?gender=male&seed=${user?.id}`}
+                  src={
+                    user?.profile?.avatar_url ||
+                    `https://img.usecurling.com/ppl/thumbnail?gender=male&seed=${user?.id}`
+                  }
                 />
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {user?.name?.charAt(0) || 'I'}
+                  {user?.profile?.full_name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               {!collapsed && (
                 <div className="flex flex-col items-start text-left overflow-hidden">
                   <span className="text-sm font-medium text-white truncate w-32">
-                    {user?.name}
+                    {user?.profile?.full_name || user?.email}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate w-32">
-                    {user?.degree}
+                  <span className="text-xs text-muted-foreground truncate w-32 capitalize">
+                    {user?.role || 'Membro'}
                   </span>
                 </div>
               )}

@@ -10,7 +10,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -44,11 +43,9 @@ const registerSchema = z
       .string()
       .min(6, { message: 'A senha deve ter no mínimo 6 caracteres' }),
     confirmPassword: z.string(),
-    terms: z
-      .boolean()
-      .refine((val) => val === true, {
-        message: 'Você deve aceitar os termos',
-      }),
+    terms: z.boolean().refine((val) => val === true, {
+      message: 'Você deve aceitar os termos',
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'As senhas não coincidem',
@@ -58,7 +55,7 @@ const registerSchema = z
 export function AuthCard() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { login } = useAuthStore()
+  const { signInWithPassword, signUp } = useAuthStore()
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -80,37 +77,41 @@ export function AuthCard() {
 
   async function onLogin(data: z.infer<typeof loginSchema>) {
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    const { error } = await signInWithPassword(data.email, data.password)
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Login',
+        description: error.message || 'Credenciais inválidas.',
+      })
       setIsLoading(false)
-      // Mock login success
-      if (data.email) {
-        login({
-          id: '1',
-          name: 'João Silva',
-          email: data.email,
-          role: 'Mestre',
-          degree: 'Mestre',
-        })
-        toast({
-          title: 'Bem-vindo, Irmão!',
-          description: 'Login realizado com sucesso.',
-        })
-        navigate('/dashboard')
-      }
-    }, 1500)
+    } else {
+      toast({
+        title: 'Bem-vindo!',
+        description: 'Login realizado com sucesso.',
+      })
+      navigate('/dashboard')
+    }
   }
 
   async function onRegister(data: z.infer<typeof registerSchema>) {
     setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
+    const { error } = await signUp(data.email, data.password, data.name)
+
+    setIsLoading(false)
+    if (error) {
       toast({
-        title: 'Solicitação Enviada',
-        description: 'Seu cadastro foi enviado para aprovação da secretaria.',
+        variant: 'destructive',
+        title: 'Erro no Registro',
+        description: error.message,
       })
-      // Reset form or switch to login tab?
-    }, 1500)
+    } else {
+      toast({
+        title: 'Conta Criada',
+        description: 'Verifique seu email para confirmar o cadastro.',
+      })
+    }
   }
 
   return (

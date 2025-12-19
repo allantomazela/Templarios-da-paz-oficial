@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase/client'
 
 /**
- * Uploads a file to Supabase Storage and returns the public URL.
+ * Uploads a file to Supabase Storage via Edge Function for optimization.
+ * Fallbacks to direct upload if Edge Function fails or for non-image files.
  * @param file The file to upload
  * @param bucket The storage bucket name (default: 'site-assets')
  * @param folder The folder path within the bucket (default: 'uploads')
@@ -12,7 +13,36 @@ export async function uploadToStorage(
   bucket: string = 'site-assets',
   folder: string = 'uploads',
 ): Promise<string> {
-  // Generate a unique file name to avoid collisions
+  // Only optimize images
+  if (file.type.startsWith('image/')) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', bucket)
+      formData.append('folder', folder)
+
+      const { data, error } = await supabase.functions.invoke(
+        'optimize-image',
+        {
+          body: formData,
+        },
+      )
+
+      if (error) {
+        console.warn(
+          'Edge Function optimization failed, falling back to direct upload:',
+          error,
+        )
+        // Fallback to direct upload below
+      } else if (data?.publicUrl) {
+        return data.publicUrl
+      }
+    } catch (e) {
+      console.warn('Error invoking optimize-image:', e)
+    }
+  }
+
+  // Direct upload fallback
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
   const filePath = `${folder}/${fileName}`

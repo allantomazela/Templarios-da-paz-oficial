@@ -8,6 +8,7 @@ interface UserStoreState {
   fetchUsers: () => Promise<void>
   updateUserStatus: (id: string, status: Profile['status']) => Promise<void>
   updateUserRole: (id: string, role: Profile['role']) => Promise<void>
+  updateUserDegree: (id: string, degree: string) => Promise<void>
 }
 
 export const useUserStore = create<UserStoreState>((set) => ({
@@ -66,6 +67,26 @@ export const useUserStore = create<UserStoreState>((set) => ({
       }))
     } catch (error) {
       console.error('Error updating user role:', error)
+      throw error
+    }
+  },
+
+  updateUserDegree: async (id, degree) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ masonic_degree: degree })
+        .eq('id', id)
+
+      if (error) throw error
+
+      set((state) => ({
+        users: state.users.map((u) =>
+          u.id === id ? { ...u, masonic_degree: degree } : u,
+        ),
+      }))
+    } catch (error) {
+      console.error('Error updating user degree:', error)
       throw error
     }
   },

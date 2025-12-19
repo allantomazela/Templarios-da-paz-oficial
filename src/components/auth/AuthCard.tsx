@@ -46,7 +46,9 @@ const registerSchema = z
   .object({
     name: z.string().min(3, { message: 'Nome muito curto' }),
     email: z.string().email({ message: 'Email inválido' }),
-    degree: z.string({ required_error: 'Selecione seu grau' }).min(1),
+    degree: z
+      .string({ required_error: 'Selecione seu grau' })
+      .min(1, 'Selecione um grau'),
     password: z
       .string()
       .min(6, { message: 'A senha deve ter no mínimo 6 caracteres' }),
@@ -78,7 +80,7 @@ export function AuthCard() {
     defaultValues: {
       name: '',
       email: '',
-      degree: 'Aprendiz',
+      degree: '', // Changed default to empty string to force selection
       password: '',
       confirmPassword: '',
       terms: false,
@@ -288,7 +290,7 @@ export function AuthCard() {
                   name="degree"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Grau</FormLabel>
+                      <FormLabel>Grau Maçônico</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}

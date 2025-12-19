@@ -52,25 +52,34 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
+          masonic_degree: string | null
           role: Database['public']['Enums']['app_role'] | null
+          status: Database['public']['Enums']['user_status'] | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
+          masonic_degree?: string | null
           role?: Database['public']['Enums']['app_role'] | null
+          status?: Database['public']['Enums']['user_status'] | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
+          masonic_degree?: string | null
           role?: Database['public']['Enums']['app_role'] | null
+          status?: Database['public']['Enums']['user_status'] | null
           updated_at?: string
         }
         Relationships: []
@@ -171,6 +180,7 @@ export type Database = {
     }
     Enums: {
       app_role: 'admin' | 'editor' | 'member'
+      user_status: 'pending' | 'approved' | 'blocked'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -299,6 +309,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ['admin', 'editor', 'member'],
+      user_status: ['pending', 'approved', 'blocked'],
     },
   },
 } as const

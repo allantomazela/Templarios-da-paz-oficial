@@ -29,18 +29,21 @@ import {
   MoreHorizontal,
   Search,
   Shield,
-  ShieldAlert,
   CheckCircle,
   Ban,
   Loader2,
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { Profile } from '@/stores/useAuthStore'
 
 export function UserManagement() {
-  const { users, fetchUsers, updateUserStatus, updateUserRole, loading } =
-    useUserStore()
+  const {
+    users,
+    fetchUsers,
+    updateUserStatus,
+    updateUserRole,
+    updateUserDegree,
+    loading,
+  } = useUserStore()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -51,7 +54,7 @@ export function UserManagement() {
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.email &&
         user.email.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter
@@ -89,6 +92,22 @@ export function UserManagement() {
         variant: 'destructive',
         title: 'Erro',
         description: 'Não foi possível atualizar a permissão.',
+      })
+    }
+  }
+
+  const handleDegreeChange = async (user: Profile, newDegree: string) => {
+    try {
+      await updateUserDegree(user.id, newDegree)
+      toast({
+        title: 'Grau Atualizado',
+        description: `O grau do usuário foi alterado para ${newDegree}.`,
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar o grau.',
       })
     }
   }
@@ -182,7 +201,21 @@ export function UserManagement() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>{user.masonic_degree || '-'}</TableCell>
+                  <TableCell>
+                    <Select
+                      defaultValue={user.masonic_degree || 'Aprendiz'}
+                      onValueChange={(val) => handleDegreeChange(user, val)}
+                    >
+                      <SelectTrigger className="h-8 w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aprendiz">Aprendiz</SelectItem>
+                        <SelectItem value="Companheiro">Companheiro</SelectItem>
+                        <SelectItem value="Mestre">Mestre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
                   <TableCell>
                     <Select
                       defaultValue={user.role}

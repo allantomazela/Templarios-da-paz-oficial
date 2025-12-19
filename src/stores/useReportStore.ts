@@ -53,44 +53,24 @@ interface ReportState {
   updatePermission: (permission: ReportPermission) => void
 }
 
+// Roles aligned with database enum: 'admin', 'editor', 'member'
 const defaultPermissions: ReportPermission[] = [
   {
-    role: 'Administrador',
+    role: 'admin',
     canViewReports: true,
     canViewAnalytics: true,
     canManageSchedules: true,
     canConfigureAccess: true,
   },
   {
-    role: 'Venerável Mestre',
+    role: 'editor',
     canViewReports: true,
     canViewAnalytics: true,
     canManageSchedules: true,
     canConfigureAccess: false,
   },
   {
-    role: 'Secretário',
-    canViewReports: true,
-    canViewAnalytics: true,
-    canManageSchedules: true,
-    canConfigureAccess: false,
-  },
-  {
-    role: 'Chanceler',
-    canViewReports: true,
-    canViewAnalytics: true,
-    canManageSchedules: false,
-    canConfigureAccess: false,
-  },
-  {
-    role: 'Tesoureiro',
-    canViewReports: false,
-    canViewAnalytics: false,
-    canManageSchedules: false,
-    canConfigureAccess: false,
-  },
-  {
-    role: 'Irmão',
+    role: 'member',
     canViewReports: false,
     canViewAnalytics: false,
     canManageSchedules: false,

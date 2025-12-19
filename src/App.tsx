@@ -16,6 +16,7 @@ import Admin from '@/pages/Admin'
 import MediaManager from '@/pages/admin/MediaManager'
 import SiteSettings from '@/pages/SiteSettings'
 import NotFound from '@/pages/NotFound'
+import AccessDenied from '@/pages/AccessDenied'
 import { useEffect } from 'react'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import useAuthStore from '@/stores/useAuthStore'
@@ -56,6 +57,9 @@ const App = () => (
 
         {/* Authentication Route */}
         <Route path="/login" element={<Login />} />
+
+        {/* Access Denied Route */}
+        <Route path="/access-denied" element={<AccessDenied />} />
 
         {/* Protected Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>

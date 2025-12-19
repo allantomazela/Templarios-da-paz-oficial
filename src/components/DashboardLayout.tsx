@@ -3,13 +3,27 @@ import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { Loader2 } from 'lucide-react'
 
 export default function DashboardLayout() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user, loading } = useAuthStore()
   const isMobile = useIsMobile()
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  // Strict Status Check
+  if (user?.profile?.status !== 'approved') {
+    return <Navigate to="/access-denied" replace />
   }
 
   return (

@@ -2,10 +2,15 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
 
-interface Profile {
+export type UserStatus = 'pending' | 'approved' | 'blocked'
+
+export interface Profile {
   id: string
   full_name: string
+  email?: string
   role: 'admin' | 'editor' | 'member'
+  status: UserStatus
+  masonic_degree?: string
   avatar_url?: string
 }
 
@@ -26,6 +31,7 @@ interface AuthState {
     email: string,
     password: string,
     name: string,
+    degree: string,
   ) => Promise<{ error: any }>
 }
 
@@ -50,9 +56,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq('id', session.user.id)
         .single()
 
+      // Ensure status exists, default to pending if missing (should not happen with migration)
+      const userProfile = profile as Profile
+
       set({
         session,
-        user: { ...session.user, role: profile?.role || 'member', profile },
+        user: {
+          ...session.user,
+          role: userProfile?.role || 'member',
+          profile: userProfile,
+        },
         isAuthenticated: true,
         loading: false,
       })
@@ -69,9 +82,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .eq('id', session.user.id)
           .single()
 
+        const userProfile = profile as Profile
+
         set({
           session,
-          user: { ...session.user, role: profile?.role || 'member', profile },
+          user: {
+            ...session.user,
+            role: userProfile?.role || 'member',
+            profile: userProfile,
+          },
           isAuthenticated: true,
           loading: false,
         })
@@ -87,7 +106,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signIn: async (email) => {
-    // Magic link sign in example if needed, but we usually use password
     const { error } = await supabase.auth.signInWithOtp({ email })
     return { error }
   },
@@ -102,7 +120,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { error }
     }
 
-    // RBAC Validation: Verify if profile exists
     if (data.session) {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -111,23 +128,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single()
 
       if (profileError || !profile) {
-        // If profile doesn't exist, sign out immediately to prevent inconsistent state
         await supabase.auth.signOut()
         return {
           error: {
-            message: 'profile_not_found',
+            message: 'Perfil não encontrado.',
             status: 404,
           },
         }
       }
 
-      // Update state immediately with verified profile
+      const userProfile = profile as Profile
+
+      // State update
       set({
         session: data.session,
         user: {
           ...data.session.user,
-          role: profile?.role || 'member',
-          profile,
+          role: userProfile?.role || 'member',
+          profile: userProfile,
         },
         isAuthenticated: true,
         loading: false,
@@ -137,13 +155,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return { error: null }
   },
 
-  signUp: async (email, password, name) => {
+  signUp: async (email, password, name, degree) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           name,
+          masonic_degree: degree,
           role: 'member', // Default role
         },
       },

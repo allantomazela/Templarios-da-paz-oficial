@@ -1,0 +1,246 @@
+import { useEffect, useState } from 'react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import useUserStore from '@/stores/useUserStore'
+import {
+  MoreHorizontal,
+  Search,
+  Shield,
+  ShieldAlert,
+  CheckCircle,
+  Ban,
+  Loader2,
+} from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Profile } from '@/stores/useAuthStore'
+
+export function UserManagement() {
+  const { users, fetchUsers, updateUserStatus, updateUserRole, loading } =
+    useUserStore()
+  const { toast } = useToast()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email &&
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesStatus = statusFilter === 'all' || user.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
+
+  const handleStatusChange = async (
+    user: Profile,
+    newStatus: Profile['status'],
+  ) => {
+    try {
+      await updateUserStatus(user.id, newStatus)
+      toast({
+        title: 'Status Atualizado',
+        description: `O status do usuário foi alterado para ${newStatus}.`,
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status.',
+      })
+    }
+  }
+
+  const handleRoleChange = async (user: Profile, newRole: Profile['role']) => {
+    try {
+      await updateUserRole(user.id, newRole)
+      toast({
+        title: 'Permissão Atualizada',
+        description: `A função do usuário foi alterada para ${newRole}.`,
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar a permissão.',
+      })
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <Badge className="bg-green-600 hover:bg-green-700">Aprovado</Badge>
+        )
+      case 'pending':
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-500/20 text-yellow-700 border-yellow-200"
+          >
+            Pendente
+          </Badge>
+        )
+      case 'blocked':
+        return <Badge variant="destructive">Bloqueado</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  if (loading && users.length === 0) {
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="flex flex-1 gap-2">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar usuários..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="approved">Aprovado</SelectItem>
+              <SelectItem value="blocked">Bloqueado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome / Email</TableHead>
+              <TableHead>Grau</TableHead>
+              <TableHead>Função</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  Nenhum usuário encontrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.full_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {user.email || 'Email não disponível'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.masonic_degree || '-'}</TableCell>
+                  <TableCell>
+                    <Select
+                      defaultValue={user.role}
+                      onValueChange={(val) =>
+                        handleRoleChange(user, val as any)
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="member">Membro</SelectItem>
+                        <SelectItem value="editor">Editor</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(user.status)}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {user.status === 'pending' && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(user, 'approved')}
+                            className="text-green-600"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" /> Aprovar
+                          </DropdownMenuItem>
+                        )}
+                        {user.status === 'blocked' && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(user, 'approved')}
+                          >
+                            <Shield className="mr-2 h-4 w-4" /> Desbloquear
+                          </DropdownMenuItem>
+                        )}
+                        {user.status !== 'blocked' && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(user, 'blocked')}
+                            className="text-destructive"
+                          >
+                            <Ban className="mr-2 h-4 w-4" /> Bloquear
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}

@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
@@ -28,6 +27,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -40,6 +46,7 @@ const registerSchema = z
   .object({
     name: z.string().min(3, { message: 'Nome muito curto' }),
     email: z.string().email({ message: 'Email inválido' }),
+    degree: z.string({ required_error: 'Selecione seu grau' }).min(1),
     password: z
       .string()
       .min(6, { message: 'A senha deve ter no mínimo 6 caracteres' }),
@@ -71,40 +78,27 @@ export function AuthCard() {
     defaultValues: {
       name: '',
       email: '',
+      degree: 'Aprendiz',
       password: '',
       confirmPassword: '',
       terms: false,
     },
   })
 
-  // Map technical errors to user-friendly Portuguese messages
   const getErrorMessage = (error: any) => {
     const msg = (error?.message || error?.toString() || '').toLowerCase()
-
-    // Invalid Credentials
     if (
       msg.includes('invalid login credentials') ||
       msg.includes('invalid_credentials')
     ) {
       return 'E-mail ou senha inválidos.'
     }
-
-    // User Not Found (Supabase sometimes returns this or Invalid Credentials)
     if (msg.includes('user not found') || msg === 'profile_not_found') {
       return 'Usuário não encontrado.'
     }
-
-    // Email Confirmation
     if (msg.includes('email not confirmed')) {
       return 'E-mail não confirmado. Verifique sua caixa de entrada.'
     }
-
-    // Network or Generic 400
-    if (error?.status === 400 || msg.includes('400')) {
-      return 'Ocorreu um erro ao tentar entrar. Por favor, tente novamente mais tarde.'
-    }
-
-    // Fallback
     return 'Ocorreu um erro ao tentar entrar. Por favor, tente novamente mais tarde.'
   }
 
@@ -118,8 +112,6 @@ export function AuthCard() {
       if (error) {
         const friendlyMessage = getErrorMessage(error)
         setLoginError(friendlyMessage)
-
-        // Also show toast for persistence/visibility
         toast({
           variant: 'destructive',
           title: 'Erro no Login',
@@ -141,7 +133,12 @@ export function AuthCard() {
 
   async function onRegister(data: z.infer<typeof registerSchema>) {
     setIsLoading(true)
-    const { error } = await signUp(data.email, data.password, data.name)
+    const { error } = await signUp(
+      data.email,
+      data.password,
+      data.name,
+      data.degree,
+    )
 
     setIsLoading(false)
     if (error) {
@@ -152,9 +149,11 @@ export function AuthCard() {
       })
     } else {
       toast({
-        title: 'Conta Criada',
-        description: 'Verifique seu email para confirmar o cadastro.',
+        title: 'Cadastro Realizado',
+        description:
+          'Sua conta foi criada e está pendente de aprovação. Verifique seu email.',
       })
+      // Optionally switch to login tab or show a success message
     }
   }
 
@@ -187,7 +186,7 @@ export function AuthCard() {
                 <form
                   onSubmit={loginForm.handleSubmit(onLogin)}
                   className="space-y-4"
-                  onChange={() => setLoginError(null)} // Clear error on edit
+                  onChange={() => setLoginError(null)}
                 >
                   <FormField
                     control={loginForm.control}
@@ -286,6 +285,33 @@ export function AuthCard() {
                 />
                 <FormField
                   control={registerForm.control}
+                  name="degree"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grau</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o grau" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Aprendiz">Aprendiz</SelectItem>
+                          <SelectItem value="Companheiro">
+                            Companheiro
+                          </SelectItem>
+                          <SelectItem value="Mestre">Mestre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={registerForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
@@ -310,18 +336,6 @@ export function AuthCard() {
                     </FormItem>
                   )}
                 />
-
-                <div className="py-2">
-                  <Label>Grau</Label>
-                  <Input
-                    value="Aprendiz"
-                    disabled
-                    className="bg-muted text-muted-foreground"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    O grau será verificado pela secretaria.
-                  </p>
-                </div>
 
                 <FormField
                   control={registerForm.control}

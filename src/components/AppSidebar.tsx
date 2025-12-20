@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, signOut } = useAuthStore()
+  const { logoUrl } = useSiteSettingsStore()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -40,8 +42,6 @@ export function AppSidebar() {
     navigate('/')
   }
 
-  // Determine if user can see reports link based on store permissions
-  // Note: user.role is now from profiles table (admin, editor, member)
   const userRole = user?.role || 'member'
   const canSeeReports = ['admin', 'editor'].includes(userRole)
 
@@ -90,8 +90,16 @@ export function AppSidebar() {
     >
       {/* Header / Logo */}
       <div className="h-16 flex items-center justify-center border-b border-sidebar-border relative">
-        <div className="flex items-center gap-2 overflow-hidden px-2">
-          <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
+        <div className="flex items-center gap-2 overflow-hidden px-2 h-full py-2">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="h-full w-auto max-h-10 object-contain"
+            />
+          ) : (
+            <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
+          )}
           {!collapsed && (
             <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">
               Templários

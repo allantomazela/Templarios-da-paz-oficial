@@ -52,7 +52,6 @@ export function LogoSettings() {
       })
     } finally {
       setIsUploading(false)
-      // Reset input value to allow selecting same file again if needed
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -87,14 +86,14 @@ export function LogoSettings() {
       <CardContent className="space-y-4">
         <div className="flex flex-col md:flex-row gap-6 items-center">
           <div className="flex flex-col items-center gap-2">
-            <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/10 overflow-hidden relative group">
+            <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/10 overflow-hidden relative group p-2">
               {isUploading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               ) : url ? (
                 <img
                   src={url}
                   alt="Logo Preview"
-                  className="w-full h-full object-contain p-2"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     e.currentTarget.src = ''
                     e.currentTarget.style.display = 'none'

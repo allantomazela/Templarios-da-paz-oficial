@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,11 +21,14 @@ import {
   subMonths,
 } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useReactToPrint } from 'react-to-print'
+import { ReportHeader } from '@/components/reports/ReportHeader'
 
 export function CashFlowReport() {
   const { transactions } = useFinancialStore()
   const { toast } = useToast()
   const [period, setPeriod] = useState('current_month')
+  const printRef = useRef<HTMLDivElement>(null)
 
   const getDateRange = () => {
     const now = new Date()
@@ -78,16 +81,20 @@ export function CashFlowReport() {
       {} as Record<string, number>,
     )
 
-  const handleExport = (format: 'csv' | 'pdf') => {
-    toast({
-      title: 'Download Iniciado',
-      description: `Relatório de Fluxo de Caixa sendo gerado em ${format.toUpperCase()}...`,
-    })
-  }
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Fluxo_Caixa_${period}`,
+    onAfterPrint: () => {
+      toast({
+        title: 'Relatório Impresso',
+        description: 'Relatório de fluxo de caixa enviado para impressão.',
+      })
+    },
+  })
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 no-print">
         <h3 className="text-lg font-medium">Fluxo de Caixa Detalhado</h3>
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={setPeriod}>
@@ -100,24 +107,14 @@ export function CashFlowReport() {
               <SelectItem value="current_year">Ano Atual</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handleExport('csv')}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handleExport('pdf')}
-          >
+          <Button variant="outline" size="icon" onClick={() => handlePrint()}>
             <Printer className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Screen View */}
+      <div className="grid gap-4 md:grid-cols-3 no-print">
         <Card className="bg-green-50 border-green-200">
           <CardHeader className="py-4">
             <CardTitle className="text-sm font-medium text-green-800">
@@ -164,7 +161,7 @@ export function CashFlowReport() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 no-print">
         <div className="rounded-md border bg-card">
           <div className="p-4 font-medium border-b bg-muted/50">
             Receitas por Categoria
@@ -220,6 +217,90 @@ export function CashFlowReport() {
               )}
             </TableBody>
           </Table>
+        </div>
+      </div>
+
+      {/* Printable Area */}
+      <div
+        className="hidden print:block p-8 bg-white text-black"
+        ref={printRef}
+      >
+        <ReportHeader
+          title="Relatório de Fluxo de Caixa"
+          description={`Demonstrativo financeiro para o período selecionado (${period.replace('_', ' ')})`}
+        />
+
+        <div className="grid grid-cols-3 gap-8 mb-8 border-b pb-6">
+          <div className="text-center">
+            <p className="text-sm font-bold uppercase text-gray-500 mb-1">
+              Total Entradas
+            </p>
+            <p className="text-2xl font-bold text-green-700">
+              R$ {totalIncome.toFixed(2)}
+            </p>
+          </div>
+          <div className="text-center border-x">
+            <p className="text-sm font-bold uppercase text-gray-500 mb-1">
+              Total Saídas
+            </p>
+            <p className="text-2xl font-bold text-red-700">
+              R$ {totalExpense.toFixed(2)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-bold uppercase text-gray-500 mb-1">
+              Resultado
+            </p>
+            <p
+              className={`text-2xl font-bold ${netCashFlow >= 0 ? 'text-blue-700' : 'text-red-700'}`}
+            >
+              R$ {netCashFlow.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-8">
+          <div>
+            <h4 className="font-bold border-b pb-2 mb-2 text-lg">Receitas</h4>
+            <Table>
+              <TableBody>
+                {Object.entries(incomeByCategory).map(([cat, val]) => (
+                  <TableRow key={cat} className="border-b border-gray-200">
+                    <TableCell className="py-2 pl-0 font-medium text-black">
+                      {cat}
+                    </TableCell>
+                    <TableCell className="py-2 pr-0 text-right text-black">
+                      R$ {val.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div>
+            <h4 className="font-bold border-b pb-2 mb-2 text-lg">Despesas</h4>
+            <Table>
+              <TableBody>
+                {Object.entries(expenseByCategory).map(([cat, val]) => (
+                  <TableRow key={cat} className="border-b border-gray-200">
+                    <TableCell className="py-2 pl-0 font-medium text-black">
+                      {cat}
+                    </TableCell>
+                    <TableCell className="py-2 pr-0 text-right text-black">
+                      R$ {val.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <div className="mt-12 pt-8 border-t text-center text-sm text-gray-400">
+          <p>
+            Documento gerado eletronicamente -{' '}
+            {new Date().toLocaleDateString('pt-BR')}
+          </p>
         </div>
       </div>
     </div>

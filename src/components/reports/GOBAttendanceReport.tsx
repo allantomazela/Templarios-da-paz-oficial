@@ -23,12 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Printer, FileText, Download } from 'lucide-react'
+import { FileText, Download } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import useReportStore from '@/stores/useReportStore'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
+import { ReportHeader } from './ReportHeader'
 
 export function GOBAttendanceReport() {
   const { events, sessionRecords, attendanceRecords, brothers, locations } =
@@ -63,17 +64,14 @@ export function GOBAttendanceReport() {
   // Get attendance data for the selected event
   const eventAttendance = selectedEvent
     ? (() => {
-        // Find session record
         const record = sessionRecords.find(
           (r) => r.eventId === selectedEvent.id,
         )
 
-        // Map all active brothers
         return brothers
           .filter((b) => b.status === 'Ativo')
           .sort((a, b) => a.name.localeCompare(b.name))
           .map((brother) => {
-            // Find status if record exists
             let status = 'Pendente'
             if (record) {
               const att = attendanceRecords.find(
@@ -82,7 +80,7 @@ export function GOBAttendanceReport() {
                   ar.brotherId === brother.id,
               )
               if (att) status = att.status
-              else status = 'Ausente' // Default if record exists but no attendance entry
+              else status = 'Ausente'
             }
 
             return {
@@ -156,28 +154,19 @@ export function GOBAttendanceReport() {
       {selectedEvent ? (
         <div className="overflow-auto bg-gray-100 p-4 rounded-lg border shadow-inner">
           <div
-            className="border bg-white text-black shadow-lg mx-auto w-[210mm] min-h-[297mm] p-0"
+            className="border bg-white text-black shadow-lg mx-auto w-[210mm] min-h-[297mm] p-8"
             ref={componentRef}
             id="gob-report-container"
           >
-            {/* Header */}
-            <div className="p-8 border-b-2 border-black/10 text-center space-y-2">
-              <h1 className="text-xl font-bold uppercase tracking-widest text-black">
-                Grande Oriente do Brasil
-              </h1>
-              <h2 className="text-lg font-semibold text-black">
-                ARLS Templários da Paz - Nº 1234
-              </h2>
-              <p className="text-sm text-gray-600">Oriente de Botucatu - SP</p>
-              <div className="pt-4">
-                <h3 className="text-2xl font-bold text-black border-2 border-black inline-block px-6 py-1 rounded-sm">
-                  LISTA DE PRESENÇA
-                </h3>
-              </div>
-            </div>
+            {/* Standardized Header */}
+            <ReportHeader
+              title="LISTA DE PRESENÇA"
+              subtitle="Grande Oriente do Brasil"
+              description={`Relatório oficial da sessão de ${format(new Date(selectedEvent.date), 'dd/MM/yyyy')}`}
+            />
 
             {/* Event Details */}
-            <div className="p-6 bg-gray-50 border-b border-gray-200 print:bg-transparent">
+            <div className="p-6 bg-gray-50 border border-gray-200 rounded-md mb-6 print:bg-transparent print:border-none print:p-0 print:mb-4">
               <div className="grid grid-cols-2 gap-y-4 gap-x-8">
                 <div>
                   <span className="text-xs font-bold text-gray-500 uppercase block">
@@ -221,7 +210,7 @@ export function GOBAttendanceReport() {
             </div>
 
             {/* Attendance Table */}
-            <div className="p-6">
+            <div>
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-2 border-black">
@@ -286,16 +275,16 @@ export function GOBAttendanceReport() {
             </div>
 
             {/* Footer Signatures */}
-            <div className="p-8 mt-4 grid grid-cols-2 gap-16">
-              <div className="text-center pt-8 border-t border-black text-black">
+            <div className="mt-16 grid grid-cols-2 gap-16 page-break-inside-avoid">
+              <div className="text-center pt-4 border-t border-black text-black">
                 <p className="font-bold">Venerável Mestre</p>
               </div>
-              <div className="text-center pt-8 border-t border-black text-black">
+              <div className="text-center pt-4 border-t border-black text-black">
                 <p className="font-bold">Secretário / Chanceler</p>
               </div>
             </div>
 
-            <div className="pb-4 text-center text-[10px] text-gray-400">
+            <div className="mt-8 pt-4 border-t text-center text-[10px] text-gray-400">
               Gerado eletronicamente em {format(new Date(), 'dd/MM/yyyy HH:mm')}{' '}
               • Sistema Templários da Paz
             </div>

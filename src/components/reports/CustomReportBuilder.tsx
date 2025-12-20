@@ -8,16 +8,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import useChancellorStore from '@/stores/useChancellorStore'
 import useReportStore, { ReportTemplate } from '@/stores/useReportStore'
-import { Download, Save, Printer, FileText } from 'lucide-react'
+import { Download, Save } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -40,6 +34,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useReactToPrint } from 'react-to-print'
 import { format } from 'date-fns'
+import { ReportHeader } from './ReportHeader'
 
 export function CustomReportBuilder() {
   const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
@@ -47,7 +42,6 @@ export function CustomReportBuilder() {
   const { toast } = useToast()
   const reportRef = useRef<HTMLDivElement>(null)
 
-  // State for Custom Report Builder
   const [showColumns, setShowColumns] = useState({
     name: true,
     degree: true,
@@ -61,7 +55,6 @@ export function CustomReportBuilder() {
   const [newTemplateName, setNewTemplateName] = useState('')
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
 
-  // React to Print logic
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
     documentTitle: `Relatorio_Presenca_${format(new Date(), 'yyyy-MM-dd')}`,
@@ -83,7 +76,6 @@ export function CustomReportBuilder() {
     },
   })
 
-  // Calculate Attendance per Brother
   const brotherStats = brothers
     .filter((b) => degreeFilter === 'all' || b.degree === degreeFilter)
     .map((brother) => {
@@ -313,23 +305,10 @@ export function CustomReportBuilder() {
         className="border rounded-md bg-white text-black p-8"
         ref={reportRef}
       >
-        <div className="mb-6 flex items-center justify-between border-b pb-4">
-          <div className="flex items-center gap-4">
-            <FileText className="h-10 w-10 text-gray-800" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Relatório de Frequência
-              </h1>
-              <p className="text-sm text-gray-500">
-                ARLS Templários da Paz - Nº 1234
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium">Data de Emissão</p>
-            <p className="text-lg">{format(new Date(), 'dd/MM/yyyy')}</p>
-          </div>
-        </div>
+        <ReportHeader
+          title="Relatório de Frequência"
+          description="Estatísticas de presença dos irmãos da loja"
+        />
 
         <Table>
           <TableHeader>

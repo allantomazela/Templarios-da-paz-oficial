@@ -39,8 +39,6 @@ export default function Index() {
     fetchVenerables()
   }, [fetchSettings, fetchVenerables])
 
-  // Note: Theme application is handled globally in App.tsx
-
   const handleMemberAccess = () => {
     if (isAuthenticated) {
       navigate('/dashboard')
@@ -269,7 +267,7 @@ export default function Index() {
     venerables: <VenerablesSection key="venerables" />,
     news: <NewsSection key="news" />,
     contact: <ContactSection key="contact" />,
-    masters: <VenerablesSection key="masters" />, // Fallback for legacy key
+    masters: <VenerablesSection key="masters" />,
   }
 
   return (
@@ -277,17 +275,21 @@ export default function Index() {
       {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Logo"
-                className="h-10 w-auto object-contain"
-              />
-            ) : (
-              <ShieldCheck className="h-6 w-6 text-primary" />
-            )}
-            <span className="text-primary">Templários da Paz</span>
+          <div className="flex items-center gap-2 font-bold text-xl h-full py-2">
+            <div className="h-full aspect-square relative flex items-center justify-center">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-full w-auto max-h-12 object-contain"
+                />
+              ) : (
+                <ShieldCheck className="h-8 w-8 text-primary" />
+              )}
+            </div>
+            <span className="text-primary hidden sm:inline-block">
+              Templários da Paz
+            </span>
           </div>
 
           {/* Desktop Nav */}
@@ -406,15 +408,15 @@ export default function Index() {
         </div>
 
         <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-6 animate-fade-in-up">
-          <div className="p-3 bg-primary/10 rounded-full mb-4">
+          <div className="p-4 bg-background/80 backdrop-blur-sm rounded-full mb-4 shadow-lg border border-primary/20 w-32 h-32 flex items-center justify-center">
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo"
-                className="h-16 w-auto object-contain"
+                className="w-full h-full object-contain p-1"
               />
             ) : (
-              <ShieldCheck className="h-12 w-12 text-primary" />
+              <ShieldCheck className="h-16 w-16 text-primary" />
             )}
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl">
@@ -423,7 +425,7 @@ export default function Index() {
           </h1>
           <p className="text-xl text-muted-foreground max-w-[700px] md:text-2xl">
             Trabalhando pelo aperfeiçoamento moral, intelectual e social da
-            humanidade em Botucatu-SP.
+            humanidade em {contact.city || 'Botucatu-SP'}.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <Button size="lg" onClick={() => scrollToSection('about')}>
@@ -449,15 +451,17 @@ export default function Index() {
       <footer className="py-8 bg-muted text-muted-foreground border-t">
         <div className="container px-4 md:px-6 text-center">
           <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Logo"
-                className="h-8 w-auto object-contain"
-              />
-            ) : (
-              <ShieldCheck className="h-5 w-5" />
-            )}
+            <div className="h-8 w-8 relative flex items-center justify-center">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <ShieldCheck className="h-6 w-6" />
+              )}
+            </div>
             <span>Templários da Paz</span>
           </div>
           <p className="text-sm mb-4">

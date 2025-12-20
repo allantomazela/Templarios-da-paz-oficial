@@ -34,9 +34,17 @@ import {
   CheckCircle,
   Ban,
   Loader2,
+  Mail,
   UserCog,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
 
 export function UserManagement() {
   const {
@@ -50,6 +58,7 @@ export function UserManagement() {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('all')
 
   useEffect(() => {
     fetchUsers()
@@ -57,11 +66,12 @@ export function UserManagement() {
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.email &&
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      (user.full_name?.toLowerCase() || '').includes(
+        searchTerm.toLowerCase(),
+      ) || (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
+    return matchesSearch && matchesStatus && matchesRole
   })
 
   const handleStatusChange = async (
@@ -125,7 +135,7 @@ export function UserManagement() {
         return (
           <Badge
             variant="secondary"
-            className="bg-yellow-500/20 text-yellow-700 border-yellow-200"
+            className="bg-amber-500/20 text-amber-700 border-amber-200"
           >
             Pendente
           </Badge>
@@ -134,6 +144,21 @@ export function UserManagement() {
         return <Badge variant="destructive">Bloqueado</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <Badge variant="default" className="bg-primary/80">
+            Admin
+          </Badge>
+        )
+      case 'editor':
+        return <Badge variant="secondary">Editor</Badge>
+      default:
+        return <span className="text-sm text-muted-foreground">Membro</span>
     }
   }
 
@@ -147,26 +172,37 @@ export function UserManagement() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex flex-1 gap-2">
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar usuários..."
+              placeholder="Buscar por nome ou email..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por Status" />
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Todos Status</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="approved">Aprovado</SelectItem>
               <SelectItem value="blocked">Bloqueado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="Função" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Funções</SelectItem>
+              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="editor">Editor</SelectItem>
+              <SelectItem value="member">Membro</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -176,7 +212,7 @@ export function UserManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome / Email</TableHead>
+              <TableHead>Usuário</TableHead>
               <TableHead>Grau</TableHead>
               <TableHead>Função</TableHead>
               <TableHead>Status</TableHead>
@@ -190,7 +226,7 @@ export function UserManagement() {
                   colSpan={5}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  Nenhum usuário encontrado.
+                  Nenhum usuário encontrado com os filtros atuais.
                 </TableCell>
               </TableRow>
             ) : (
@@ -199,9 +235,10 @@ export function UserManagement() {
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{user.full_name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3" />
                         {user.email || 'Email não disponível'}
-                      </span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -220,21 +257,23 @@ export function UserManagement() {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Select
-                      defaultValue={user.role}
-                      onValueChange={(val) =>
-                        handleRoleChange(user, val as any)
-                      }
-                    >
-                      <SelectTrigger className="h-8 w-[110px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="member">Membro</SelectItem>
-                        <SelectItem value="editor">Editor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        defaultValue={user.role}
+                        onValueChange={(val) =>
+                          handleRoleChange(user, val as any)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[130px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="member">Membro</SelectItem>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell className="text-right">
@@ -245,7 +284,7 @@ export function UserManagement() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Gerenciar Acesso</DropdownMenuLabel>
+                        <DropdownMenuLabel>Acesso</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         {user.status === 'pending' && (
                           <DropdownMenuItem
@@ -253,6 +292,7 @@ export function UserManagement() {
                             className="text-green-600 focus:text-green-600 focus:bg-green-50"
                           >
                             <CheckCircle className="mr-2 h-4 w-4" /> Aprovar
+                            Cadastro
                           </DropdownMenuItem>
                         )}
                         {user.status === 'blocked' && (
@@ -267,7 +307,7 @@ export function UserManagement() {
                             onClick={() => handleStatusChange(user, 'blocked')}
                             className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           >
-                            <Ban className="mr-2 h-4 w-4" /> Bloquear
+                            <Ban className="mr-2 h-4 w-4" /> Bloquear Acesso
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

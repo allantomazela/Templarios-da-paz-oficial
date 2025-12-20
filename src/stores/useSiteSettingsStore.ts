@@ -31,6 +31,8 @@ export interface SiteSettingsState {
   venerables: Venerable[]
   sectionOrder: string[]
   primaryColor: string
+  secondaryColor: string
+  fontFamily: string
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
@@ -38,7 +40,13 @@ export interface SiteSettingsState {
   updateValues: (data: Partial<SiteSettingsState['values']>) => Promise<void>
   updateContact: (data: Partial<SiteSettingsState['contact']>) => Promise<void>
   updateLayout: (order: string[]) => Promise<void>
-  updateTheme: (color: string) => Promise<void>
+  updateTheme: (
+    data: Partial<{
+      primaryColor: string
+      secondaryColor: string
+      fontFamily: string
+    }>,
+  ) => Promise<void>
 
   fetchVenerables: () => Promise<void>
   addVenerable: (venerable: Omit<Venerable, 'id'>) => Promise<void>
@@ -73,6 +81,8 @@ const mapSettingsFromDB = (data: any) => ({
     'contact',
   ],
   primaryColor: data.primary_color || '#007AFF',
+  secondaryColor: data.secondary_color || '#1e293b',
+  fontFamily: data.font_family || 'Inter',
 })
 
 export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
@@ -98,6 +108,8 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   venerables: [],
   sectionOrder: ['history', 'venerables', 'news', 'contact'],
   primaryColor: '#007AFF',
+  secondaryColor: '#1e293b',
+  fontFamily: 'Inter',
 
   fetchSettings: async () => {
     set({ loading: true })
@@ -110,7 +122,6 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       if (error) {
         if (error.code !== 'PGRST116') {
-          // Ignore no rows error (handled by defaults)
           throw error
         }
       }
@@ -228,15 +239,20 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     }
   },
 
-  updateTheme: async (color) => {
+  updateTheme: async (data) => {
     try {
+      const updates: any = {}
+      if (data.primaryColor) updates.primary_color = data.primaryColor
+      if (data.secondaryColor) updates.secondary_color = data.secondaryColor
+      if (data.fontFamily) updates.font_family = data.fontFamily
+
       const { error } = await supabase
         .from('site_settings')
-        .update({ primary_color: color })
+        .update(updates)
         .eq('id', 1)
 
       if (error) throw error
-      set({ primaryColor: color })
+      set((state) => ({ ...state, ...data }))
     } catch (error) {
       console.error('Error updating theme:', error)
       throw error

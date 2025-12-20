@@ -5,18 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { mockBrothers } from '@/lib/data'
-import { Newspaper, Users } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Newspaper, Users, Shield } from 'lucide-react'
 import { NewsManager } from '@/components/admin/NewsManager'
 import { UserManagement } from '@/components/admin/UserManagement'
 
@@ -27,7 +17,9 @@ export default function Admin() {
         <h2 className="text-3xl font-bold tracking-tight">
           Painel Administrativo
         </h2>
-        <p className="text-muted-foreground">Gestão de usuários e conteúdo.</p>
+        <p className="text-muted-foreground">
+          Gestão centralizada de usuários, permissões e conteúdo do portal.
+        </p>
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
@@ -43,9 +35,13 @@ export default function Admin() {
         <TabsContent value="users" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Controle de Acesso</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Controle de Acesso e Perfis
+              </CardTitle>
               <CardDescription>
-                Gerencie permissões, aprovações e bloqueios de usuários.
+                Gerencie cadastros, aprove novos membros, defina graus maçônicos
+                e atribua funções administrativas (Admin, Editor).
               </CardDescription>
             </CardHeader>
             <CardContent>

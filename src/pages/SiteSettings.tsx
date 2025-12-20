@@ -46,20 +46,20 @@ export default function SiteSettings() {
           Configurações do Site
         </h2>
         <p className="text-muted-foreground">
-          Gerencie o conteúdo público, layout e aparência do portal da loja.
+          Gerencie o conteúdo público, layout e aparência visual da plataforma.
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
+      <Tabs defaultValue="theme" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="theme">
+            <Palette className="mr-2 h-4 w-4" /> Tema & Visual
+          </TabsTrigger>
           <TabsTrigger value="general">
-            <LayoutTemplate className="mr-2 h-4 w-4" /> Geral & Logo
+            <LayoutTemplate className="mr-2 h-4 w-4" /> Logo
           </TabsTrigger>
           <TabsTrigger value="layout">
             <Grid className="mr-2 h-4 w-4" /> Layout Homepage
-          </TabsTrigger>
-          <TabsTrigger value="theme">
-            <Palette className="mr-2 h-4 w-4" /> Tema & Cores
           </TabsTrigger>
           <TabsTrigger value="content">
             <FileText className="mr-2 h-4 w-4" /> Conteúdo Institucional
@@ -69,6 +69,10 @@ export default function SiteSettings() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="theme">
+          <ThemeSettings />
+        </TabsContent>
+
         <TabsContent value="general">
           <div className="grid gap-6">
             <LogoSettings />
@@ -77,10 +81,6 @@ export default function SiteSettings() {
 
         <TabsContent value="layout">
           <LayoutSettings />
-        </TabsContent>
-
-        <TabsContent value="theme">
-          <ThemeSettings />
         </TabsContent>
 
         <TabsContent value="content">

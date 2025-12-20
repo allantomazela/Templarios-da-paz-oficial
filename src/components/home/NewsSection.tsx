@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Newspaper } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { AddToCalendar } from '@/components/news/AddToCalendar'
 
 export function NewsSection() {
   const { news, fetchPublicNews } = useNewsStore()
@@ -40,7 +41,7 @@ export function NewsSection() {
           {news.map((item) => (
             <Card
               key={item.id}
-              className="flex flex-col h-full hover:shadow-lg transition-shadow overflow-hidden"
+              className="flex flex-col h-full hover:shadow-lg transition-shadow overflow-hidden group"
             >
               {item.imageUrl && (
                 <div className="aspect-video w-full overflow-hidden">
@@ -65,7 +66,7 @@ export function NewsSection() {
                     </div>
                   )}
                 </div>
-                <CardTitle className="text-xl line-clamp-2">
+                <CardTitle className="text-xl line-clamp-2 group-hover:text-primary transition-colors">
                   {item.title}
                 </CardTitle>
               </CardHeader>
@@ -74,11 +75,24 @@ export function NewsSection() {
                   {item.content}
                 </p>
               </CardContent>
-              <CardFooter className="text-xs text-muted-foreground border-t pt-4">
-                Publicado em{' '}
-                {format(new Date(item.createdAt), "dd 'de' MMMM", {
-                  locale: ptBR,
-                })}
+              <CardFooter className="border-t pt-4 flex justify-between items-center bg-muted/5">
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(item.createdAt), "dd 'de' MMM", {
+                    locale: ptBR,
+                  })}
+                </span>
+                {item.eventDate && (
+                  <AddToCalendar
+                    event={{
+                      title: item.title,
+                      description: item.content,
+                      date: item.eventDate,
+                      location: 'Loja Templários da Paz', // Default fallback location
+                    }}
+                    variant="ghost"
+                    size="sm"
+                  />
+                )}
               </CardFooter>
             </Card>
           ))}

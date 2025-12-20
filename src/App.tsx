@@ -25,9 +25,11 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { hexToHSL } from '@/lib/utils'
 import { RoleGuard } from '@/components/RoleGuard'
+import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
 
 function ThemeApplicator() {
-  const { primaryColor, fetchSettings } = useSiteSettingsStore()
+  const { primaryColor, secondaryColor, fontFamily, fetchSettings } =
+    useSiteSettingsStore()
   const { initialize } = useAuthStore()
 
   useEffect(() => {
@@ -40,7 +42,39 @@ function ThemeApplicator() {
       const hsl = hexToHSL(primaryColor)
       document.documentElement.style.setProperty('--primary', hsl)
     }
-  }, [primaryColor])
+    if (secondaryColor) {
+      const hsl = hexToHSL(secondaryColor)
+      document.documentElement.style.setProperty('--secondary', hsl)
+    }
+  }, [primaryColor, secondaryColor])
+
+  useEffect(() => {
+    if (fontFamily) {
+      // Find font configuration
+      const fontConfig = FONT_OPTIONS.find((f) => f.value === fontFamily)
+      if (fontConfig) {
+        // Apply font family to body
+        document.body.style.fontFamily = fontConfig.family
+
+        // Inject Google Font link if needed
+        const fontName = fontFamily.replace(/ /g, '+')
+        const linkId = 'dynamic-font-link'
+        let link = document.getElementById(linkId) as HTMLLinkElement
+
+        if (!link) {
+          link = document.createElement('link')
+          link.id = linkId
+          link.rel = 'stylesheet'
+          document.head.appendChild(link)
+        }
+
+        // Avoid reloading Inter as it is default
+        if (fontFamily !== 'Inter') {
+          link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;600;700&display=swap`
+        }
+      }
+    }
+  }, [fontFamily])
 
   return null
 }

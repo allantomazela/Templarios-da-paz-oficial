@@ -6,8 +6,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Newspaper, Users, Shield } from 'lucide-react'
-import { NewsManager } from '@/components/admin/NewsManager'
+import { Users, Shield } from 'lucide-react'
 import { UserManagement } from '@/components/admin/UserManagement'
 
 export default function Admin() {
@@ -15,20 +14,17 @@ export default function Admin() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">
-          Painel Administrativo
+          Gestão de Usuários
         </h2>
         <p className="text-muted-foreground">
-          Gestão centralizada de usuários, permissões e conteúdo do portal.
+          Controle centralizado de perfis, permissões e acesso ao sistema.
         </p>
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
         <TabsList>
           <TabsTrigger value="users">
-            <Users className="mr-2 h-4 w-4" /> Gestão de Usuários
-          </TabsTrigger>
-          <TabsTrigger value="news">
-            <Newspaper className="mr-2 h-4 w-4" /> Notícias e Eventos
+            <Users className="mr-2 h-4 w-4" /> Gestão de Perfis
           </TabsTrigger>
         </TabsList>
 
@@ -37,7 +33,7 @@ export default function Admin() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Controle de Acesso e Perfis
+                Controle de Acesso
               </CardTitle>
               <CardDescription>
                 Gerencie cadastros, aprove novos membros, defina graus maçônicos
@@ -48,10 +44,6 @@ export default function Admin() {
               <UserManagement />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="news">
-          <NewsManager />
         </TabsContent>
       </Tabs>
     </div>

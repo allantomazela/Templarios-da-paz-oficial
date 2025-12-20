@@ -13,7 +13,6 @@ import Chancellor from '@/pages/Chancellor'
 import Reports from '@/pages/Reports'
 import Agenda from '@/pages/Agenda'
 import Library from '@/pages/Library'
-import Minutes from '@/pages/Minutes'
 import MinutesDetail from '@/pages/MinutesDetail'
 import Admin from '@/pages/Admin'
 import MediaManager from '@/pages/admin/MediaManager'
@@ -96,8 +95,7 @@ const App = () => (
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="secretariat" element={<Secretariat />} />
-          <Route path="minutes" element={<Minutes />} />
-          <Route path="minutes/:id" element={<MinutesDetail />} />
+          <Route path="secretariat/minutes/:id" element={<MinutesDetail />} />
           <Route path="financial" element={<Financial />} />
           <Route path="chancellor" element={<Chancellor />} />
           <Route path="reports" element={<Reports />} />

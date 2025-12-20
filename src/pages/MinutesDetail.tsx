@@ -60,10 +60,10 @@ export default function MinutesDetail() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <Button
         variant="ghost"
-        onClick={() => navigate('/dashboard/minutes')}
+        onClick={() => navigate('/dashboard/secretariat')}
         className="mb-4"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Lista
+        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Secretaria
       </Button>
 
       <Card>

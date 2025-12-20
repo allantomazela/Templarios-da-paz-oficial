@@ -143,7 +143,9 @@ export function MinutesList() {
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          navigate(`/dashboard/minutes/${minute.id}`)
+                          navigate(
+                            `/dashboard/secretariat/minutes/${minute.id}`,
+                          )
                         }
                       >
                         <Eye className="mr-2 h-4 w-4" /> Visualizar

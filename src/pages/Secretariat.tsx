@@ -3,6 +3,7 @@ import { BrothersList } from '@/components/secretariat/BrothersList'
 import { NoticesList } from '@/components/secretariat/NoticesList'
 import { MessagesList } from '@/components/secretariat/MessagesList'
 import { DocumentsList } from '@/components/secretariat/DocumentsList'
+import { MinutesList } from '@/components/minutes/MinutesList'
 import {
   Card,
   CardContent,
@@ -17,7 +18,7 @@ export default function Secretariat() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Secretaria</h2>
         <p className="text-muted-foreground">
-          Gestão de irmãos e comunicações da loja.
+          Gestão de irmãos, comunicações e documentação oficial da loja.
         </p>
       </div>
 
@@ -26,6 +27,7 @@ export default function Secretariat() {
           <TabsTrigger value="brothers">Irmãos</TabsTrigger>
           <TabsTrigger value="communications">Comunicações</TabsTrigger>
           <TabsTrigger value="docs">Documentos</TabsTrigger>
+          <TabsTrigger value="minutes">Atas e Balaústres</TabsTrigger>
         </TabsList>
 
         <TabsContent value="brothers">
@@ -83,6 +85,10 @@ export default function Secretariat() {
               <DocumentsList />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="minutes">
+          <MinutesList />
         </TabsContent>
       </Tabs>
     </div>

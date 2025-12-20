@@ -15,8 +15,7 @@ import {
   FileBarChart,
   Globe,
   MonitorCog,
-  Image as ImageIcon,
-  PenTool,
+  Newspaper,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -49,7 +48,6 @@ export function AppSidebar() {
   const navItems = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
     { name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' },
-    { name: 'Atas', icon: PenTool, path: '/dashboard/minutes' },
     {
       name: 'Financeiro',
       icon: Banknote,
@@ -63,21 +61,21 @@ export function AppSidebar() {
     { name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' },
     { name: 'Biblioteca', icon: Library, path: '/dashboard/library' },
     {
-      name: 'Config. Site',
-      icon: MonitorCog,
-      path: '/dashboard/settings',
-      allowedRoles: ['admin'],
-    },
-    {
-      name: 'Mídia',
-      icon: ImageIcon,
+      name: 'Mídia e Notícias',
+      icon: Newspaper,
       path: '/dashboard/admin/media',
       allowedRoles: ['admin'],
     },
     {
-      name: 'Admin',
+      name: 'Admin. Usuários',
       icon: Settings,
       path: '/dashboard/admin',
+      allowedRoles: ['admin'],
+    },
+    {
+      name: 'Config. Site',
+      icon: MonitorCog,
+      path: '/dashboard/settings',
       allowedRoles: ['admin'],
     },
     { name: 'Ver Site', icon: Globe, path: '/' },

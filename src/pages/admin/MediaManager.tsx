@@ -1,4 +1,4 @@
-import { MediaGallery } from '@/components/admin/MediaGallery'
+import { NewsManager } from '@/components/admin/NewsManager'
 import {
   Card,
   CardHeader,
@@ -11,25 +11,15 @@ export default function MediaManager() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">
-          Gerenciador de Mídia
-        </h2>
+        <h2 className="text-3xl font-bold tracking-tight">Mídia e Notícias</h2>
         <p className="text-muted-foreground">
-          Gerencie todos os arquivos e imagens do site.
+          Gerencie notícias, eventos e comunicados públicos do site.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Galeria de Arquivos</CardTitle>
-          <CardDescription>
-            Arquivos armazenados no bucket 'site-assets'.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MediaGallery />
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <NewsManager />
+      </div>
     </div>
   )
 }

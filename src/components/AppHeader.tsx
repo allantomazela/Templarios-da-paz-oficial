@@ -24,11 +24,14 @@ export function AppHeader() {
 
   const getPageTitle = () => {
     const path = location.pathname
+    if (path.includes('/dashboard/secretariat/minutes'))
+      return 'Atas e Balaústres'
     if (path.includes('/dashboard/secretariat')) return 'Secretaria'
     if (path.includes('/dashboard/financial')) return 'Financeiro'
     if (path.includes('/dashboard/chancellor')) return 'Chanceler'
     if (path.includes('/dashboard/agenda')) return 'Agenda'
     if (path.includes('/dashboard/library')) return 'Biblioteca Virtual'
+    if (path.includes('/dashboard/admin/media')) return 'Mídia e Notícias'
     if (path.includes('/dashboard/admin')) return 'Gestão de Usuários'
     if (path.includes('/dashboard/settings')) return 'Configurações do Site'
     if (path.includes('/dashboard/reports')) return 'Central de Relatórios'

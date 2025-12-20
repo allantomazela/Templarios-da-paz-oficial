@@ -16,6 +16,7 @@ import {
   Globe,
   MonitorCog,
   Image as ImageIcon,
+  PenTool,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,7 @@ export function AppSidebar() {
   const navItems = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
     { name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' },
+    { name: 'Atas', icon: PenTool, path: '/dashboard/minutes' },
     {
       name: 'Financeiro',
       icon: Banknote,
@@ -88,7 +90,6 @@ export function AppSidebar() {
         collapsed ? 'w-[70px]' : 'w-[250px]',
       )}
     >
-      {/* Header / Logo */}
       <div className="h-16 flex items-center justify-center border-b border-sidebar-border relative">
         <div className="flex items-center gap-2 overflow-hidden px-2 h-full py-2">
           {logoUrl ? (
@@ -120,7 +121,6 @@ export function AppSidebar() {
         </Button>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto no-scrollbar">
         {navItems.map((item) => {
           if (
@@ -162,7 +162,6 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* User Profile Footer */}
       <div className="p-4 border-t border-sidebar-border">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

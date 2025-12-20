@@ -6,6 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { NotificationBanner } from '@/components/NotificationBanner'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, signOut, initialize } = useAuthStore()
@@ -21,7 +22,7 @@ export default function DashboardLayout() {
       setShowTimeout(false)
       timeout = setTimeout(() => {
         setShowTimeout(true)
-      }, 3000) // Reduced to 3s per requirement
+      }, 3000)
     }
     return () => clearTimeout(timeout)
   }, [loading])
@@ -33,7 +34,7 @@ export default function DashboardLayout() {
 
   const handleRetry = () => {
     setShowTimeout(false)
-    window.location.reload() // Full reload to clear any extension/network hiccups
+    window.location.reload()
   }
 
   if (loading) {
@@ -84,12 +85,9 @@ export default function DashboardLayout() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Master admin bypass check - Ensuring robust access
   const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
   const userStatus = user?.profile?.status || 'pending'
 
-  // Strict Status Check - Approved users only, others go to Access Denied
-  // Master admin bypasses this check
   if (!isMasterAdmin && userStatus !== 'approved') {
     return <Navigate to="/access-denied" replace />
   }
@@ -114,6 +112,8 @@ export default function DashboardLayout() {
           </footer>
         </main>
       </div>
+
+      <NotificationBanner />
     </div>
   )
 }

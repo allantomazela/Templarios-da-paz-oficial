@@ -70,7 +70,8 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         .from('news_events')
         .select('*')
         .eq('is_published', true)
-        .order('created_at', { ascending: false })
+        .order('event_date', { ascending: false, nullsFirst: false }) // Prefer event date
+        .order('created_at', { ascending: false }) // Fallback to created_at
         .limit(6)
 
       if (error) throw error

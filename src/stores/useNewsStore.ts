@@ -54,10 +54,11 @@ export const useNewsStore = create<NewsState>((set, get) => ({
       if (error) throw error
 
       if (data) {
-        set({ news: data.map(mapRowToNews), loading: false })
+        set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
       console.error('Error fetching news:', error)
+    } finally {
       set({ loading: false })
     }
   },
@@ -75,10 +76,11 @@ export const useNewsStore = create<NewsState>((set, get) => ({
       if (error) throw error
 
       if (data) {
-        set({ news: data.map(mapRowToNews), loading: false })
+        set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
       console.error('Error fetching public news:', error)
+    } finally {
       set({ loading: false })
     }
   },

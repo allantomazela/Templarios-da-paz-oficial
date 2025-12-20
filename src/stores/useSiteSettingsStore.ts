@@ -108,13 +108,19 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         .eq('id', 1)
         .single()
 
-      if (error) throw error
+      if (error) {
+        if (error.code !== 'PGRST116') {
+          // Ignore no rows error (handled by defaults)
+          throw error
+        }
+      }
 
       if (data) {
-        set({ ...mapSettingsFromDB(data), loading: false })
+        set({ ...mapSettingsFromDB(data) })
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
+    } finally {
       set({ loading: false })
     }
   },

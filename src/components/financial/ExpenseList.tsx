@@ -10,12 +10,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Calendar,
+  Folder,
+  Wallet,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 export function ExpenseList() {
   const {
@@ -90,7 +99,8 @@ export function ExpenseList() {
         </Button>
       </div>
 
-      <div className="rounded-md border bg-card">
+      {/* Desktop Table */}
+      <div className="hidden md:block rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -152,6 +162,61 @@ export function ExpenseList() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {filteredExpenses.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground border rounded-md">
+            Nenhuma despesa encontrada.
+          </div>
+        ) : (
+          filteredExpenses.map((expense) => (
+            <Card key={expense.id}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <h4 className="font-medium">{expense.description}</h4>
+                    <span className="text-lg font-bold text-destructive">
+                      R$ {expense.amount.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(expense)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => handleDelete(expense.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(expense.date), 'dd/MM/yyyy')}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Folder className="h-3 w-3" />
+                    {expense.category}
+                  </div>
+                  <div className="flex items-center gap-1 col-span-2">
+                    <Wallet className="h-3 w-3" />
+                    {getAccountName(expense.accountId)}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       <TransactionDialog

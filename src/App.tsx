@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import DashboardLayout from '@/components/DashboardLayout'
 import Index from '@/pages/Index'
 import Login from '@/pages/Login'
+import ResetPassword from '@/pages/ResetPassword'
 import Dashboard from '@/pages/Dashboard'
 import Secretariat from '@/pages/Secretariat'
 import Financial from '@/pages/Financial'
@@ -55,8 +56,9 @@ const App = () => (
         {/* Public Landing Page */}
         <Route path="/" element={<Index />} />
 
-        {/* Authentication Route */}
+        {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Access Denied Route */}
         <Route path="/access-denied" element={<AccessDenied />} />

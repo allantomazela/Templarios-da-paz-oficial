@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -62,11 +62,16 @@ const registerSchema = z
     path: ['confirmPassword'],
   })
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: 'Email inválido' }),
+})
+
 export function AuthCard() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
-  const { signInWithPassword, signUp } = useAuthStore()
+  const [view, setView] = useState<'default' | 'forgot'>('default') // 'default' | 'forgot'
+  const { signInWithPassword, signUp, sendPasswordResetEmail } = useAuthStore()
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -85,6 +90,11 @@ export function AuthCard() {
       confirmPassword: '',
       terms: false,
     },
+  })
+
+  const forgotForm = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
   })
 
   const getErrorMessage = (error: any) => {
@@ -157,6 +167,77 @@ export function AuthCard() {
       })
       registerForm.reset()
     }
+  }
+
+  async function onForgotPassword(data: z.infer<typeof forgotPasswordSchema>) {
+    setIsLoading(true)
+    const { error } = await sendPasswordResetEmail(data.email)
+    setIsLoading(false)
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: error.message,
+      })
+    } else {
+      toast({
+        title: 'Email Enviado',
+        description:
+          'Se o email estiver cadastrado, você receberá um link para redefinir sua senha.',
+      })
+      setView('default')
+      forgotForm.reset()
+    }
+  }
+
+  if (view === 'forgot') {
+    return (
+      <Card className="w-full max-w-md mx-auto shadow-2xl bg-card border-border/50 animate-fade-in-up">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-xl font-bold tracking-tight">
+            Recuperar Senha
+          </CardTitle>
+          <CardDescription>
+            Digite seu email para receber o link de redefinição
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...forgotForm}>
+            <form
+              onSubmit={forgotForm.handleSubmit(onForgotPassword)}
+              className="space-y-4"
+            >
+              <FormField
+                control={forgotForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="seu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enviar Link
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setView('default')}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para o Login
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -235,12 +316,13 @@ export function AuthCard() {
                     )}
                   />
                   <div className="flex justify-end">
-                    <a
-                      href="#"
+                    <button
+                      type="button"
                       className="text-sm text-primary hover:underline"
+                      onClick={() => setView('forgot')}
                     >
                       Esqueceu a senha?
-                    </a>
+                    </button>
                   </div>
                   <Button className="w-full" type="submit" disabled={isLoading}>
                     {isLoading && (

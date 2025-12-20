@@ -33,6 +33,8 @@ interface AuthState {
     name: string,
     degree: string,
   ) => Promise<{ error: any }>
+  sendPasswordResetEmail: (email: string) => Promise<{ error: any }>
+  updatePassword: (password: string) => Promise<{ error: any }>
 }
 
 const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
@@ -60,7 +62,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         let fetchError: any = null
 
         try {
-          // Create a timeout promise
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(
               () => reject(new Error('Profile fetch timeout')),
@@ -68,7 +69,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             ),
           )
 
-          // Actual fetch promise
           const fetchPromise = supabase
             .from('profiles')
             .select('*')
@@ -79,7 +79,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               return data
             })
 
-          // Race between fetch and timeout
           userProfile = (await Promise.race([
             fetchPromise,
             timeoutPromise,
@@ -89,19 +88,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           console.warn('Auth initialization warning:', error)
         }
 
-        // 3. Construct User Object with Fail-safes
         const isMasterAdmin = session.user.email === MASTER_ADMIN_EMAIL
         let role = userProfile?.role || 'member'
         let status = userProfile?.status || 'pending'
 
-        // Force Admin permissions for master email regardless of DB state or timeout
         if (isMasterAdmin) {
           role = 'admin'
           status = 'approved'
         }
 
-        // If we have a session but profile failed (and not master),
-        // we essentially treat them as a minimal user to allow UI to render (RoleGuard will handle access)
         const constructedProfile = userProfile || {
           id: session.user.id,
           full_name: session.user.user_metadata?.name || 'Usuário',
@@ -129,7 +124,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         })
       }
 
-      // 4. Set up Auth Listener
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
           set({
@@ -141,10 +135,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return
         }
 
-        // For other events (SIGNED_IN, TOKEN_REFRESHED), ensure user state is updated
         if (session) {
-          // We don't block with timeout here to ensure responsiveness,
-          // but we still attempt to get fresh profile data
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -203,14 +194,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     if (data.session) {
-      // Immediate partial update to improve perceived speed
       const isMasterAdmin = data.session.user.email === MASTER_ADMIN_EMAIL
 
       set({
         session: data.session,
         user: {
           ...data.session.user,
-          role: isMasterAdmin ? 'admin' : 'member', // Optimistic role
+          role: isMasterAdmin ? 'admin' : 'member',
           profile: {
             id: data.session.user.id,
             full_name: data.session.user.user_metadata?.name || 'Usuário',
@@ -219,10 +209,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           },
         },
         isAuthenticated: true,
-        loading: true, // Keep loading until profile fetch
+        loading: true,
       })
 
-      // Fetch full profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -280,6 +269,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     const { error } = await supabase.auth.signOut()
     set({ user: null, session: null, isAuthenticated: false })
+    return { error }
+  },
+
+  sendPasswordResetEmail: async (email: string) => {
+    set({ loading: true })
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
+    })
+    set({ loading: false })
+    return { error }
+  },
+
+  updatePassword: async (password: string) => {
+    set({ loading: true })
+    const { error } = await supabase.auth.updateUser({ password })
+    set({ loading: false })
     return { error }
   },
 }))

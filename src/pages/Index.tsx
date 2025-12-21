@@ -308,12 +308,12 @@ export default function Index() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl h-full py-2">
-            <div className="h-full aspect-square relative flex items-center justify-center rounded-full overflow-hidden bg-background/50 border border-border/20">
+            <div className="h-full aspect-square relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/20 p-1.5 shadow-sm">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo"
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               ) : (
                 <ShieldCheck className="h-2/3 w-2/3 text-primary" />
@@ -442,12 +442,12 @@ export default function Index() {
         </div>
 
         <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-6 animate-fade-in-up">
-          <div className="p-1 bg-background/80 backdrop-blur-sm rounded-full mb-4 shadow-lg border border-primary/20 w-32 h-32 flex items-center justify-center overflow-hidden">
+          <div className="bg-background/90 backdrop-blur-sm rounded-full mb-6 shadow-xl border border-primary/20 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center overflow-hidden p-4">
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo"
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-contain"
               />
             ) : (
               <ShieldCheck className="h-16 w-16 text-primary" />
@@ -485,15 +485,15 @@ export default function Index() {
       <footer className="py-8 bg-muted text-muted-foreground border-t">
         <div className="container px-4 md:px-6 text-center">
           <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
-            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/10">
+            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/10 p-1 shadow-sm">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo"
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               ) : (
-                <ShieldCheck className="h-6 w-6" />
+                <ShieldCheck className="h-5 w-5 text-primary" />
               )}
             </div>
             <span>Templários da Paz</span>

@@ -24,7 +24,7 @@ export function NewsSection() {
   if (news.length === 0) return null
 
   return (
-    <section id="news" className="py-16 md:py-24 bg-muted/10">
+    <section id="news" className="py-16 md:py-24 bg-muted/10 scroll-mt-20">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-12">
           <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">

@@ -59,6 +59,10 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+
+  html {
+    @apply scroll-smooth;
+  }
 }
 
 @layer utilities {

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   ShieldCheck,
@@ -32,12 +32,27 @@ export default function Index() {
     fetchVenerables,
   } = useSiteSettingsStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     fetchSettings()
     fetchVenerables()
   }, [fetchSettings, fetchVenerables])
+
+  // Handle hash scrolling on mount or hash change
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '')
+      // Small timeout to allow DOM layout to settle, especially with images
+      setTimeout(() => {
+        const element = document.getElementById(id)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
+    }
+  }, [location.hash, history, values, venerables])
 
   const handleMemberAccess = () => {
     if (isAuthenticated) {
@@ -47,18 +62,20 @@ export default function Index() {
     }
   }
 
-  const scrollToSection = (id: string) => {
+  const handleNavClick = (id: string) => {
+    setIsMobileMenuOpen(false)
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
-      setIsMobileMenuOpen(false)
+      // Update URL hash without causing a page reload/jump
+      window.history.pushState(null, '', `#${id}`)
     }
   }
 
   // --- Sections Components ---
 
   const HistorySection = () => (
-    <section id="about" className="py-16 md:py-24 bg-muted/30">
+    <section id="history" className="py-16 md:py-24 bg-muted/30 scroll-mt-20">
       <div className="container px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
@@ -88,7 +105,7 @@ export default function Index() {
   )
 
   const ValuesSection = () => (
-    <section id="values" className="py-16 md:py-24">
+    <section id="pillars" className="py-16 md:py-24 scroll-mt-20">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
@@ -129,7 +146,7 @@ export default function Index() {
   )
 
   const VenerablesSection = () => (
-    <section id="masters" className="py-16 md:py-24 bg-muted/20">
+    <section id="masters" className="py-16 md:py-24 bg-muted/20 scroll-mt-20">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-16">
           <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
@@ -180,7 +197,7 @@ export default function Index() {
   const ContactSection = () => (
     <section
       id="contact"
-      className="py-16 md:py-24 bg-primary text-primary-foreground"
+      className="py-16 md:py-24 bg-primary text-primary-foreground scroll-mt-20"
     >
       <div className="container px-4 md:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -295,33 +312,33 @@ export default function Index() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
             <button
-              onClick={() => scrollToSection('home')}
+              onClick={() => handleNavClick('home')}
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Início
             </button>
             <button
-              onClick={() => scrollToSection('about')}
+              onClick={() => handleNavClick('history')}
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Quem Somos
             </button>
             <button
-              onClick={() => scrollToSection('values')}
+              onClick={() => handleNavClick('pillars')}
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Pilares
             </button>
             {sectionOrder.includes('news') && (
               <button
-                onClick={() => scrollToSection('news')}
+                onClick={() => handleNavClick('news')}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               >
                 Notícias
               </button>
             )}
             <button
-              onClick={() => scrollToSection('contact')}
+              onClick={() => handleNavClick('contact')}
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Contato
@@ -356,31 +373,33 @@ export default function Index() {
         >
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
             <button
-              onClick={() => scrollToSection('home')}
+              onClick={() => handleNavClick('home')}
               className="text-left text-sm font-medium py-2 border-b border-border/50"
             >
               Início
             </button>
             <button
-              onClick={() => scrollToSection('about')}
+              onClick={() => handleNavClick('history')}
               className="text-left text-sm font-medium py-2 border-b border-border/50"
             >
               Quem Somos
             </button>
             <button
-              onClick={() => scrollToSection('values')}
+              onClick={() => handleNavClick('pillars')}
               className="text-left text-sm font-medium py-2 border-b border-border/50"
             >
               Missão e Valores
             </button>
+            {sectionOrder.includes('news') && (
+              <button
+                onClick={() => handleNavClick('news')}
+                className="text-left text-sm font-medium py-2 border-b border-border/50"
+              >
+                Notícias
+              </button>
+            )}
             <button
-              onClick={() => scrollToSection('news')}
-              className="text-left text-sm font-medium py-2 border-b border-border/50"
-            >
-              Notícias
-            </button>
-            <button
-              onClick={() => scrollToSection('contact')}
+              onClick={() => handleNavClick('contact')}
               className="text-left text-sm font-medium py-2 border-b border-border/50"
             >
               Contato
@@ -396,7 +415,7 @@ export default function Index() {
       {/* Hero Section */}
       <section
         id="home"
-        className="relative w-full py-20 md:py-32 lg:py-48 flex items-center justify-center overflow-hidden"
+        className="relative w-full py-20 md:py-32 lg:py-48 flex items-center justify-center overflow-hidden scroll-mt-20"
       >
         <div className="absolute inset-0 z-0">
           <img
@@ -428,7 +447,7 @@ export default function Index() {
             humanidade em {contact.city || 'Botucatu-SP'}.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button size="lg" onClick={() => scrollToSection('about')}>
+            <Button size="lg" onClick={() => handleNavClick('history')}>
               Conheça Nossa História
             </Button>
             <Button

@@ -64,7 +64,7 @@ export function AppSidebar() {
       name: 'Mídia e Notícias',
       icon: Newspaper,
       path: '/dashboard/admin/media',
-      allowedRoles: ['admin'],
+      allowedRoles: ['admin', 'editor'],
     },
     {
       name: 'Admin. Usuários',
@@ -76,7 +76,7 @@ export function AppSidebar() {
       name: 'Config. Site',
       icon: MonitorCog,
       path: '/dashboard/settings',
-      allowedRoles: ['admin'],
+      allowedRoles: ['admin', 'editor'],
     },
     { name: 'Ver Site', icon: Globe, path: '/' },
   ]
@@ -94,7 +94,10 @@ export function AppSidebar() {
             <img
               src={logoUrl}
               alt="Logo"
-              className="h-full w-auto max-h-10 object-contain"
+              className={cn(
+                'h-10 w-10 rounded-full object-cover aspect-square shadow-sm',
+                collapsed ? 'h-8 w-8' : 'h-10 w-10',
+              )}
             />
           ) : (
             <ShieldCheck className="w-8 h-8 text-primary shrink-0" />

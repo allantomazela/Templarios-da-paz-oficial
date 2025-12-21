@@ -1,7 +1,8 @@
+import { useEffect } from 'react'
 import { Bell, Search, Menu, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { AppSidebar } from './AppSidebar'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -11,16 +12,28 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import useChancellorStore from '@/stores/useChancellorStore'
+import useAdminNotificationStore from '@/stores/useAdminNotificationStore'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 export function AppHeader() {
   const location = useLocation()
   const isMobile = useIsMobile()
-  const { notifications, markNotificationAsRead } = useChancellorStore()
+  const {
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useAdminNotificationStore()
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  useEffect(() => {
+    fetchNotifications()
+    // Poll for new notifications every minute
+    const interval = setInterval(fetchNotifications, 60000)
+    return () => clearInterval(interval)
+  }, [fetchNotifications])
 
   const getPageTitle = () => {
     const path = location.pathname
@@ -89,9 +102,20 @@ export function AppHeader() {
           <PopoverContent className="w-80 p-0" align="end">
             <div className="p-4 font-semibold border-b flex justify-between items-center">
               <span>Notificações</span>
-              <span className="text-xs text-muted-foreground font-normal">
-                {unreadCount} novas
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-normal">
+                  {unreadCount} novas
+                </span>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => markAllAsRead()}
+                  >
+                    Ler todas
+                  </Button>
+                )}
+              </div>
             </div>
             <ScrollArea className="max-h-[300px]">
               {notifications.length === 0 ? (
@@ -102,31 +126,36 @@ export function AppHeader() {
                 notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 border-b last:border-0 hover:bg-muted/50 transition-colors relative group ${notification.read ? 'opacity-60' : ''}`}
+                    className={`p-4 border-b last:border-0 hover:bg-muted/50 transition-colors relative group ${notification.is_read ? 'opacity-60 bg-muted/20' : 'bg-background'}`}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium">
+                    <div className="flex justify-between items-start gap-2">
+                      <Link
+                        to={notification.link || '#'}
+                        className="flex-1 block"
+                        onClick={() =>
+                          !notification.is_read && markAsRead(notification.id)
+                        }
+                      >
+                        <p className="text-sm font-medium leading-none mb-1">
                           {notification.title}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground line-clamp-2">
                           {notification.message}
                         </p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
+                        <p className="text-[10px] text-muted-foreground mt-2">
                           {format(
-                            new Date(notification.date),
-                            'dd/MM/yyyy HH:mm',
+                            new Date(notification.created_at),
+                            "dd 'de' MMM, HH:mm",
+                            { locale: ptBR },
                           )}
                         </p>
-                      </div>
-                      {!notification.read && (
+                      </Link>
+                      {!notification.is_read && (
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() =>
-                            markNotificationAsRead(notification.id)
-                          }
+                          className="h-6 w-6 shrink-0 text-primary"
+                          onClick={() => markAsRead(notification.id)}
                           title="Marcar como lida"
                         >
                           <Check className="h-3 w-3" />

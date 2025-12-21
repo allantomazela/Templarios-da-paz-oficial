@@ -42,7 +42,7 @@ export function LogoSettings() {
       setUrl(publicUrl)
       toast({
         title: 'Upload Concluído',
-        description: 'A imagem foi carregada com sucesso.',
+        description: 'A imagem foi carregada e otimizada com sucesso.',
       })
     } catch (error) {
       toast({
@@ -80,20 +80,21 @@ export function LogoSettings() {
       <CardHeader>
         <CardTitle>Configuração de Logo</CardTitle>
         <CardDescription>
-          Defina o logo que será exibido no cabeçalho e rodapé do site público.
+          Defina o logo que será exibido no cabeçalho e rodapé. Ele será exibido
+          em formato circular.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col md:flex-row gap-6 items-center">
           <div className="flex flex-col items-center gap-2">
-            <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/10 overflow-hidden relative group p-2">
+            <div className="w-32 h-32 border-2 border-dashed rounded-full flex items-center justify-center bg-muted/10 overflow-hidden relative group p-1">
               {isUploading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               ) : url ? (
                 <img
                   src={url}
                   alt="Logo Preview"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover rounded-full aspect-square"
                   onError={(e) => {
                     e.currentTarget.src = ''
                     e.currentTarget.style.display = 'none'
@@ -104,7 +105,7 @@ export function LogoSettings() {
               )}
             </div>
             <span className="text-xs text-muted-foreground">
-              Pré-visualização
+              Pré-visualização (Circular)
             </span>
           </div>
 
@@ -145,8 +146,8 @@ export function LogoSettings() {
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Recomendamos uma imagem PNG com fundo transparente (aprox.
-                512x512px).
+                Recomendamos uma imagem quadrada (aprox. 512x512px). O sistema
+                irá otimizá-la automaticamente.
               </p>
             </div>
             <Button onClick={handleSave} disabled={isSaving || isUploading}>

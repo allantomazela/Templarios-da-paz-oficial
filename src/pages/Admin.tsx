@@ -6,8 +6,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Shield } from 'lucide-react'
+import { Users, Shield, History } from 'lucide-react'
 import { UserManagement } from '@/components/admin/UserManagement'
+import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 
 export default function Admin() {
   return (
@@ -26,6 +27,9 @@ export default function Admin() {
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" /> Gestão de Perfis
           </TabsTrigger>
+          <TabsTrigger value="audit">
+            <History className="mr-2 h-4 w-4" /> Histórico (Logs)
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -42,6 +46,24 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <UserManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5 text-primary" />
+                Auditoria do Sistema
+              </CardTitle>
+              <CardDescription>
+                Registro completo de todas as alterações críticas realizadas no
+                painel administrativo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AuditLogViewer />
             </CardContent>
           </Card>
         </TabsContent>

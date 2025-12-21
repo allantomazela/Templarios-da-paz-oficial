@@ -441,38 +441,52 @@ export default function Index() {
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
         </div>
 
-        <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-6 animate-fade-in-up">
-          <div className="bg-background/90 backdrop-blur-sm rounded-full mb-6 shadow-xl border border-primary/20 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center overflow-hidden p-4">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Logo"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <ShieldCheck className="h-16 w-16 text-primary" />
-            )}
+        <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-8 animate-fade-in-up">
+          {/* Enhanced Logo Container */}
+          <div className="relative mb-8 group animate-float">
+            {/* Ambient glow effect using primary/secondary colors */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary/50 via-primary/30 to-secondary/50 blur-xl opacity-60 group-hover:opacity-100 transition duration-700"></div>
+
+            {/* Main Container with Ring/Frame Effect */}
+            <div className="relative bg-background/90 backdrop-blur-md rounded-full shadow-2xl border-[6px] border-double border-primary/30 w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 flex items-center justify-center overflow-hidden p-8 transition-all duration-500 hover:scale-[1.02] hover:border-primary/50">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Brasão da ARLS Templários da Paz"
+                  className="w-full h-full object-contain drop-shadow-lg transform transition-transform duration-700 group-hover:rotate-1"
+                />
+              ) : (
+                <ShieldCheck className="h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 text-primary/80" />
+              )}
+            </div>
           </div>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl">
+
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl relative z-20">
             Augusta e Respeitável Loja Simbólica
-            <span className="text-primary block mt-2">Templários da Paz</span>
+            <span className="text-primary block mt-4 drop-shadow-md text-shadow-sm">
+              Templários da Paz
+            </span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-[700px] md:text-2xl">
+          <p className="text-xl text-muted-foreground max-w-[700px] md:text-2xl mt-4">
             Trabalhando pelo aperfeiçoamento moral, intelectual e social da
             humanidade em {contact.city || 'Botucatu-SP'}.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button size="lg" onClick={() => handleNavClick('quem-somos')}>
+            <Button
+              size="lg"
+              onClick={() => handleNavClick('quem-somos')}
+              className="text-lg px-8 py-6 h-auto"
+            >
               Conheça Nossa História
             </Button>
             <Button
               variant="outline"
               size="lg"
               onClick={handleMemberAccess}
-              className="group"
+              className="group text-lg px-8 py-6 h-auto"
             >
               Área Restrita
-              <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         </div>

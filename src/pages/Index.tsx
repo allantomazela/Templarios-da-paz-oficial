@@ -442,21 +442,21 @@ export default function Index() {
         </div>
 
         <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-8 animate-fade-in-up">
-          {/* Enhanced Logo Container */}
-          <div className="relative mb-8 group animate-float">
-            {/* Ambient glow effect using primary/secondary colors */}
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary/50 via-primary/30 to-secondary/50 blur-xl opacity-60 group-hover:opacity-100 transition duration-700"></div>
+          {/* Enhanced Logo Container - Optimized for Elegance and Proportion */}
+          <div className="relative mb-6 group animate-float">
+            {/* Soft Ambient Glow */}
+            <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary/30 via-primary/10 to-secondary/30 blur-2xl opacity-40 group-hover:opacity-70 transition duration-1000"></div>
 
-            {/* Main Container with Ring/Frame Effect */}
-            <div className="relative bg-background/90 backdrop-blur-md rounded-full shadow-2xl border-[6px] border-double border-primary/30 w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 flex items-center justify-center overflow-hidden p-8 transition-all duration-500 hover:scale-[1.02] hover:border-primary/50">
+            {/* Main Container */}
+            <div className="relative bg-background/95 backdrop-blur-xl rounded-full shadow-2xl border-4 border-double border-primary/20 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden p-5 sm:p-6 transition-all duration-500 hover:scale-105 hover:border-primary/40 hover:shadow-primary/10">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Brasão da ARLS Templários da Paz"
-                  className="w-full h-full object-contain drop-shadow-lg transform transition-transform duration-700 group-hover:rotate-1"
+                  className="w-full h-full object-contain drop-shadow-md transform transition-transform duration-700 group-hover:rotate-3"
                 />
               ) : (
-                <ShieldCheck className="h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 text-primary/80" />
+                <ShieldCheck className="h-16 w-16 md:h-24 md:w-24 text-primary/80" />
               )}
             </div>
           </div>

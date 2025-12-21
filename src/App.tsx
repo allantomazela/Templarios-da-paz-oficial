@@ -26,6 +26,7 @@ import { hexToHSL } from '@/lib/utils'
 import { RoleGuard } from '@/components/RoleGuard'
 import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
 import { SeoManager } from '@/components/SeoManager'
+import { RedirectHandler } from '@/components/RedirectHandler'
 
 function ThemeApplicator() {
   const { primaryColor, secondaryColor, fontFamily, fetchSettings } =
@@ -86,6 +87,7 @@ const App = () => (
     <TooltipProvider>
       <ThemeApplicator />
       <SeoManager />
+      <RedirectHandler />
       <Toaster />
       <Sonner />
       <Routes>

@@ -26,10 +26,16 @@ export default function SiteSettings() {
     fetchVenerables()
   }, [fetchSettings, fetchVenerables])
 
-  // Guard: Only Admin can access
-  if (user?.role !== 'admin') {
+  // Guard: Admin or Editor can access, but generally settings are sensitive.
+  // The User Story asks for "Editing capabilities for these sections [Quem Somos, Pilares, Notícias]
+  // must be restricted to users with the admin or editor role."
+  // Since 'Notícias' is in MediaManager, this page covers 'Quem Somos' and 'Pilares'.
+  // So Editor access should be allowed here for Content tabs.
+  if (user?.role !== 'admin' && user?.role !== 'editor') {
     return <Navigate to="/dashboard" replace />
   }
+
+  const isAdmin = user?.role === 'admin'
 
   if (loading) {
     return (
@@ -50,17 +56,23 @@ export default function SiteSettings() {
         </p>
       </div>
 
-      <Tabs defaultValue="theme" className="space-y-4">
+      <Tabs defaultValue="content" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="theme">
-            <Palette className="mr-2 h-4 w-4" /> Tema & Visual
-          </TabsTrigger>
-          <TabsTrigger value="general">
-            <LayoutTemplate className="mr-2 h-4 w-4" /> Logo
-          </TabsTrigger>
-          <TabsTrigger value="layout">
-            <Grid className="mr-2 h-4 w-4" /> Layout Homepage
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="theme">
+              <Palette className="mr-2 h-4 w-4" /> Tema & Visual
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="general">
+              <LayoutTemplate className="mr-2 h-4 w-4" /> Logo
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="layout">
+              <Grid className="mr-2 h-4 w-4" /> Layout Homepage
+            </TabsTrigger>
+          )}
           <TabsTrigger value="content">
             <FileText className="mr-2 h-4 w-4" /> Conteúdo Institucional
           </TabsTrigger>
@@ -69,19 +81,21 @@ export default function SiteSettings() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="theme">
-          <ThemeSettings />
-        </TabsContent>
-
-        <TabsContent value="general">
-          <div className="grid gap-6">
-            <LogoSettings />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="layout">
-          <LayoutSettings />
-        </TabsContent>
+        {isAdmin && (
+          <>
+            <TabsContent value="theme">
+              <ThemeSettings />
+            </TabsContent>
+            <TabsContent value="general">
+              <div className="grid gap-6">
+                <LogoSettings />
+              </div>
+            </TabsContent>
+            <TabsContent value="layout">
+              <LayoutSettings />
+            </TabsContent>
+          </>
+        )}
 
         <TabsContent value="content">
           <InstitutionalSettings />

@@ -18,6 +18,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -34,6 +41,7 @@ const newsSchema = z.object({
   imageUrl: z.string().optional(),
   eventDate: z.string().optional(),
   isPublished: z.boolean().default(true),
+  category: z.enum(['news', 'social']),
 })
 
 type NewsFormValues = z.infer<typeof newsSchema>
@@ -64,6 +72,7 @@ export function NewsDialog({
       imageUrl: '',
       eventDate: '',
       isPublished: true,
+      category: 'news',
     },
   })
 
@@ -77,6 +86,7 @@ export function NewsDialog({
           ? newsToEdit.eventDate.split('T')[0]
           : '',
         isPublished: newsToEdit.isPublished,
+        category: newsToEdit.category || 'news',
       })
       setPreviewImage(newsToEdit.imageUrl || null)
     } else {
@@ -86,6 +96,7 @@ export function NewsDialog({
         imageUrl: '',
         eventDate: '',
         isPublished: true,
+        category: 'news',
       })
       setPreviewImage(null)
     }
@@ -132,11 +143,11 @@ export function NewsDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Notícia'}
+            {newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Publicação'}
           </DialogTitle>
           <DialogDescription>
             {newsToEdit
-              ? 'Atualize as informações da notícia ou evento abaixo.'
+              ? 'Atualize as informações da publicação abaixo.'
               : 'Preencha os campos para publicar uma nova notícia ou evento no site.'}
           </DialogDescription>
         </DialogHeader>
@@ -159,6 +170,47 @@ export function NewsDialog({
               )}
             />
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="news">Notícia</SelectItem>
+                        <SelectItem value="social">Evento Social</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="eventDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data do Evento (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="content"
@@ -177,7 +229,7 @@ export function NewsDialog({
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <FormLabel>Imagem de Destaque</FormLabel>
                 <div className="flex flex-col gap-3">
@@ -218,47 +270,28 @@ export function NewsDialog({
                     </Button>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  A imagem será otimizada automaticamente antes do envio.
-                </p>
               </div>
 
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="eventDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data do Evento (Opcional)</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isPublished"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Publicar Imediatamente</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Se desmarcado, ficará como rascunho.
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="isPublished"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Publicar Imediatamente</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Se desmarcado, ficará como rascunho.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
             </div>
 
             <DialogFooter>

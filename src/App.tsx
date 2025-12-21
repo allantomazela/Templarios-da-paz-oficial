@@ -105,7 +105,7 @@ const App = () => (
           <Route
             path="settings"
             element={
-              <RoleGuard allowedRoles={['admin']}>
+              <RoleGuard allowedRoles={['admin', 'editor']}>
                 <SiteSettings />
               </RoleGuard>
             }
@@ -121,7 +121,7 @@ const App = () => (
           <Route
             path="admin/media"
             element={
-              <RoleGuard allowedRoles={['admin']}>
+              <RoleGuard allowedRoles={['admin', 'editor']}>
                 <MediaManager />
               </RoleGuard>
             }

@@ -8,10 +8,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, Newspaper } from 'lucide-react'
+import { CalendarDays, Newspaper, PartyPopper } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AddToCalendar } from '@/components/news/AddToCalendar'
+import { cn } from '@/lib/utils'
 
 export function NewsSection() {
   const { news, fetchPublicNews } = useNewsStore()
@@ -54,8 +55,23 @@ export function NewsSection() {
               )}
               <CardHeader>
                 <div className="flex justify-between items-start gap-2 mb-2">
-                  <Badge variant="secondary" className="mb-2">
-                    {item.eventDate ? 'Evento' : 'Notícia'}
+                  <Badge
+                    variant={
+                      item.category === 'social' ? 'secondary' : 'default'
+                    }
+                    className={cn(
+                      'mb-2',
+                      item.category === 'social'
+                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+                    )}
+                  >
+                    {item.category === 'social' ? (
+                      <PartyPopper className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Newspaper className="w-3 h-3 mr-1" />
+                    )}
+                    {item.category === 'social' ? 'Evento Social' : 'Notícia'}
                   </Badge>
                   {item.eventDate && (
                     <div className="flex items-center text-xs text-muted-foreground">

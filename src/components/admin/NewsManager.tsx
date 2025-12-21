@@ -39,28 +39,28 @@ export function NewsManager() {
     try {
       if (selectedNews) {
         await updateNews(selectedNews.id, data)
-        toast({ title: 'Sucesso', description: 'Notícia atualizada.' })
+        toast({ title: 'Sucesso', description: 'Publicação atualizada.' })
       } else {
         await addNews(data)
-        toast({ title: 'Sucesso', description: 'Notícia criada.' })
+        toast({ title: 'Sucesso', description: 'Publicação criada.' })
       }
       setIsDialogOpen(false)
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Falha ao salvar a notícia.',
+        description: 'Falha ao salvar a publicação.',
       })
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta notícia?')) {
+    if (confirm('Tem certeza que deseja excluir esta publicação?')) {
       try {
         await deleteNews(id)
         toast({
           title: 'Removida',
-          description: 'Notícia excluída com sucesso.',
+          description: 'Publicação excluída com sucesso.',
         })
       } catch (error) {
         toast({
@@ -96,7 +96,8 @@ export function NewsManager() {
         <div>
           <CardTitle>Gerenciamento de Notícias e Eventos</CardTitle>
           <CardDescription>
-            Publique conteúdo para a página inicial.
+            Publique conteúdo para a página inicial, classificando como Notícia
+            ou Evento Social.
           </CardDescription>
         </div>
         <Button onClick={openNew}>
@@ -108,9 +109,9 @@ export function NewsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Título</TableHead>
+              <TableHead>Categoria</TableHead>
               <TableHead>Data Evento</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Última Atualização</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -121,7 +122,7 @@ export function NewsManager() {
                   colSpan={5}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  Nenhuma notícia publicada.
+                  Nenhuma publicação encontrada.
                 </TableCell>
               </TableRow>
             ) : (
@@ -142,6 +143,18 @@ export function NewsManager() {
                     </div>
                   </TableCell>
                   <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        item.category === 'social'
+                          ? 'border-purple-500 text-purple-600 bg-purple-50'
+                          : 'border-blue-500 text-blue-600 bg-blue-50'
+                      }
+                    >
+                      {item.category === 'social' ? 'Evento Social' : 'Notícia'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     {item.eventDate ? (
                       <div className="flex items-center gap-1 text-xs">
                         <CalendarDays className="h-3 w-3" />
@@ -155,11 +168,6 @@ export function NewsManager() {
                     <Badge variant={item.isPublished ? 'default' : 'secondary'}>
                       {item.isPublished ? 'Publicado' : 'Rascunho'}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {format(new Date(item.updatedAt), 'dd/MM/yy HH:mm', {
-                      locale: ptBR,
-                    })}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button

@@ -8,6 +8,7 @@ export interface NewsEvent {
   imageUrl?: string
   eventDate?: string
   isPublished: boolean
+  category: 'news' | 'social'
   createdAt: string
   updatedAt: string
 }
@@ -35,6 +36,7 @@ const mapRowToNews = (row: any): NewsEvent => ({
   imageUrl: row.image_url,
   eventDate: row.event_date,
   isPublished: row.is_published,
+  category: row.category || 'news',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 })
@@ -96,6 +98,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
           image_url: news.imageUrl,
           event_date: news.eventDate,
           is_published: news.isPublished,
+          category: news.category,
         })
         .select()
         .single()
@@ -122,6 +125,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
       if (news.eventDate !== undefined) updates.event_date = news.eventDate
       if (news.isPublished !== undefined)
         updates.is_published = news.isPublished
+      if (news.category !== undefined) updates.category = news.category
       updates.updated_at = new Date().toISOString()
 
       const { data, error } = await supabase

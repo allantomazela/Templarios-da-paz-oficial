@@ -25,6 +25,7 @@ import useAuthStore from '@/stores/useAuthStore'
 import { hexToHSL } from '@/lib/utils'
 import { RoleGuard } from '@/components/RoleGuard'
 import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
+import { SeoManager } from '@/components/SeoManager'
 
 function ThemeApplicator() {
   const { primaryColor, secondaryColor, fontFamily, fetchSettings } =
@@ -84,6 +85,7 @@ const App = () => (
   >
     <TooltipProvider>
       <ThemeApplicator />
+      <SeoManager />
       <Toaster />
       <Sonner />
       <Routes>

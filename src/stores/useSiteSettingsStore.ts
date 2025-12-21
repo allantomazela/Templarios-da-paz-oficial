@@ -11,6 +11,9 @@ export interface Venerable {
 export interface SiteSettingsState {
   loading: boolean
   logoUrl: string
+  faviconUrl: string
+  siteTitle: string
+  metaDescription: string
   history: {
     title: string
     text: string
@@ -36,6 +39,8 @@ export interface SiteSettingsState {
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
+  updateFavicon: (url: string) => Promise<void>
+  updateSeo: (data: { title: string; description: string }) => Promise<void>
   updateHistory: (data: Partial<SiteSettingsState['history']>) => Promise<void>
   updateValues: (data: Partial<SiteSettingsState['values']>) => Promise<void>
   updateContact: (data: Partial<SiteSettingsState['contact']>) => Promise<void>
@@ -78,6 +83,10 @@ const mapSettingsFromDB = (data: any) => {
 
   return {
     logoUrl: data.logo_url || '',
+    faviconUrl: data.favicon_url || '',
+    siteTitle: data.site_title || 'Templários da Paz',
+    metaDescription:
+      data.meta_description || 'Loja Maçônica Templários da Paz - Botucatu/SP',
     history: {
       title: data.history_title || '',
       text: data.history_text || '',
@@ -105,6 +114,9 @@ const mapSettingsFromDB = (data: any) => {
 export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   loading: false,
   logoUrl: '',
+  faviconUrl: '',
+  siteTitle: 'Templários da Paz',
+  metaDescription: 'Loja Maçônica Templários da Paz - Botucatu/SP',
   history: {
     title: '',
     text: '',
@@ -164,6 +176,39 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       set({ logoUrl: url })
     } catch (error) {
       console.error('Error updating logo:', error)
+      throw error
+    }
+  },
+
+  updateFavicon: async (url) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ favicon_url: url })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ faviconUrl: url })
+    } catch (error) {
+      console.error('Error updating favicon:', error)
+      throw error
+    }
+  },
+
+  updateSeo: async (data) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({
+          site_title: data.title,
+          meta_description: data.description,
+        })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ siteTitle: data.title, metaDescription: data.description })
+    } catch (error) {
+      console.error('Error updating SEO:', error)
       throw error
     }
   },

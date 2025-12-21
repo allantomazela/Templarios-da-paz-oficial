@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoSettings } from '@/components/settings/LogoSettings'
+import { SeoSettings } from '@/components/settings/SeoSettings'
 import { InstitutionalSettings } from '@/components/settings/InstitutionalSettings'
 import { VenerablesManager } from '@/components/settings/VenerablesManager'
 import { LayoutSettings } from '@/components/settings/LayoutSettings'
@@ -56,20 +57,20 @@ export default function SiteSettings() {
           Configurações do Site
         </h2>
         <p className="text-muted-foreground">
-          Gerencie o conteúdo público, layout e aparência visual da plataforma.
+          Gerencie o conteúdo público, identidade visual e SEO da plataforma.
         </p>
       </div>
 
-      <Tabs defaultValue="content" className="space-y-4">
+      <Tabs defaultValue="general" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
           {isAdmin && (
-            <TabsTrigger value="theme">
-              <Palette className="mr-2 h-4 w-4" /> Tema & Visual
+            <TabsTrigger value="general">
+              <LayoutTemplate className="mr-2 h-4 w-4" /> Identidade & SEO
             </TabsTrigger>
           )}
           {isAdmin && (
-            <TabsTrigger value="general">
-              <LayoutTemplate className="mr-2 h-4 w-4" /> Logo
+            <TabsTrigger value="theme">
+              <Palette className="mr-2 h-4 w-4" /> Tema & Visual
             </TabsTrigger>
           )}
           {isAdmin && (
@@ -92,13 +93,14 @@ export default function SiteSettings() {
 
         {isAdmin && (
           <>
-            <TabsContent value="theme">
-              <ThemeSettings />
-            </TabsContent>
             <TabsContent value="general">
               <div className="grid gap-6">
                 <LogoSettings />
+                <SeoSettings />
               </div>
+            </TabsContent>
+            <TabsContent value="theme">
+              <ThemeSettings />
             </TabsContent>
             <TabsContent value="layout">
               <LayoutSettings />

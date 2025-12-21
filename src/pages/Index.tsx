@@ -52,7 +52,7 @@ export default function Index() {
         }
       }, 100)
     }
-  }, [location.hash, history, values, venerables])
+  }, [location.hash, history, values, venerables, sectionOrder])
 
   const handleMemberAccess = () => {
     if (isAuthenticated) {
@@ -125,7 +125,10 @@ export default function Index() {
               <Scale className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Liberdade</h3>
-            <p className="text-muted-foreground">{values.liberty}</p>
+            <p className="text-muted-foreground">
+              {values.liberty ||
+                'A liberdade de pensamento e expressão é fundamental para o progresso humano e para a construção de uma sociedade mais justa.'}
+            </p>
           </div>
 
           <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
@@ -133,7 +136,10 @@ export default function Index() {
               <ShieldCheck className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Igualdade</h3>
-            <p className="text-muted-foreground">{values.equality}</p>
+            <p className="text-muted-foreground">
+              {values.equality ||
+                'Todos os seres humanos nascem livres e iguais em dignidade e direitos, devendo agir uns para com os outros com espírito de fraternidade.'}
+            </p>
           </div>
 
           <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
@@ -141,7 +147,10 @@ export default function Index() {
               <Heart className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Fraternidade</h3>
-            <p className="text-muted-foreground">{values.fraternity}</p>
+            <p className="text-muted-foreground">
+              {values.fraternity ||
+                'A prática da tolerância, da solidariedade e do amor ao próximo une a humanidade em uma só família universal.'}
+            </p>
           </div>
         </div>
       </div>
@@ -394,7 +403,7 @@ export default function Index() {
               onClick={() => handleNavClick('pilares')}
               className="text-left text-sm font-medium py-2 border-b border-border/50"
             >
-              Missão e Valores
+              Pilares
             </button>
             {sectionOrder.includes('news') && (
               <button

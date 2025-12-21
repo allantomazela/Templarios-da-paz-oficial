@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 
 const SECTION_LABELS: Record<string, string> = {
   history: 'História e Sobre',
-  values: 'Missão e Valores',
+  values: 'Pilares (Missão e Valores)',
   venerables: 'Galeria de Veneráveis',
   news: 'Notícias e Eventos',
   contact: 'Contato',
@@ -30,6 +30,16 @@ export function LayoutSettings() {
       // Ensure 'news' is in the list if missing (migration compat)
       let current = [...sectionOrder]
       if (!current.includes('news')) current.push('news')
+
+      // Ensure 'values' is in the list
+      if (!current.includes('values')) {
+        const historyIdx = current.indexOf('history')
+        if (historyIdx !== -1) {
+          current.splice(historyIdx + 1, 0, 'values')
+        } else {
+          current.unshift('values')
+        }
+      }
 
       // Filter out 'masters' if 'venerables' is used, or normalize
       if (current.includes('masters') && !current.includes('venerables')) {

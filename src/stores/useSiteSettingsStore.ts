@@ -55,35 +55,52 @@ export interface SiteSettingsState {
 }
 
 // Map database columns to store structure
-const mapSettingsFromDB = (data: any) => ({
-  logoUrl: data.logo_url || '',
-  history: {
-    title: data.history_title || '',
-    text: data.history_text || '',
-    imageUrl: data.history_image_url || '',
-  },
-  values: {
-    liberty: data.values_liberty || '',
-    equality: data.values_equality || '',
-    fraternity: data.values_fraternity || '',
-  },
-  contact: {
-    address: data.contact_address || '',
-    city: data.contact_city || '',
-    zip: data.contact_zip || '',
-    email: data.contact_email || '',
-    secondaryEmail: data.contact_secondary_email || '',
-  },
-  sectionOrder: data.section_order || [
-    'history',
-    'venerables',
-    'news',
-    'contact',
-  ],
-  primaryColor: data.primary_color || '#007AFF',
-  secondaryColor: data.secondary_color || '#1e293b',
-  fontFamily: data.font_family || 'Inter',
-})
+const mapSettingsFromDB = (data: any) => {
+  let order = data.section_order
+
+  // Default order if null
+  if (!order) {
+    order = ['history', 'values', 'venerables', 'news', 'contact']
+  }
+
+  // Ensure 'values' (Pilares) is present in the order
+  if (Array.isArray(order) && !order.includes('values')) {
+    // Insert 'values' after 'history' if present, otherwise at the beginning
+    const historyIndex = order.indexOf('history')
+    if (historyIndex !== -1) {
+      const newOrder = [...order]
+      newOrder.splice(historyIndex + 1, 0, 'values')
+      order = newOrder
+    } else {
+      order = ['values', ...order]
+    }
+  }
+
+  return {
+    logoUrl: data.logo_url || '',
+    history: {
+      title: data.history_title || '',
+      text: data.history_text || '',
+      imageUrl: data.history_image_url || '',
+    },
+    values: {
+      liberty: data.values_liberty || '',
+      equality: data.values_equality || '',
+      fraternity: data.values_fraternity || '',
+    },
+    contact: {
+      address: data.contact_address || '',
+      city: data.contact_city || '',
+      zip: data.contact_zip || '',
+      email: data.contact_email || '',
+      secondaryEmail: data.contact_secondary_email || '',
+    },
+    sectionOrder: order,
+    primaryColor: data.primary_color || '#007AFF',
+    secondaryColor: data.secondary_color || '#1e293b',
+    fontFamily: data.font_family || 'Inter',
+  }
+}
 
 export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   loading: false,
@@ -106,7 +123,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     secondaryEmail: '',
   },
   venerables: [],
-  sectionOrder: ['history', 'venerables', 'news', 'contact'],
+  sectionOrder: ['history', 'values', 'venerables', 'news', 'contact'],
   primaryColor: '#007AFF',
   secondaryColor: '#1e293b',
   fontFamily: 'Inter',

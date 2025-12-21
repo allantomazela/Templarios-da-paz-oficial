@@ -308,15 +308,15 @@ export default function Index() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl h-full py-2">
-            <div className="h-full aspect-square relative flex items-center justify-center">
+            <div className="h-full aspect-square relative flex items-center justify-center rounded-full overflow-hidden bg-background/50 border border-border/20">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo"
-                  className="h-full w-auto max-h-12 object-contain"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <ShieldCheck className="h-8 w-8 text-primary" />
+                <ShieldCheck className="h-2/3 w-2/3 text-primary" />
               )}
             </div>
             <span className="text-primary hidden sm:inline-block">
@@ -442,12 +442,12 @@ export default function Index() {
         </div>
 
         <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-6 animate-fade-in-up">
-          <div className="p-4 bg-background/80 backdrop-blur-sm rounded-full mb-4 shadow-lg border border-primary/20 w-32 h-32 flex items-center justify-center">
+          <div className="p-1 bg-background/80 backdrop-blur-sm rounded-full mb-4 shadow-lg border border-primary/20 w-32 h-32 flex items-center justify-center overflow-hidden">
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo"
-                className="w-full h-full object-contain p-1"
+                className="w-full h-full object-cover rounded-full"
               />
             ) : (
               <ShieldCheck className="h-16 w-16 text-primary" />
@@ -485,12 +485,12 @@ export default function Index() {
       <footer className="py-8 bg-muted text-muted-foreground border-t">
         <div className="container px-4 md:px-6 text-center">
           <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
-            <div className="h-8 w-8 relative flex items-center justify-center">
+            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/10">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo"
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <ShieldCheck className="h-6 w-6" />

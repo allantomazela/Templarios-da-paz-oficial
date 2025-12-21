@@ -95,7 +95,7 @@ export function AppSidebar() {
               src={logoUrl}
               alt="Logo"
               className={cn(
-                'h-10 w-10 rounded-full object-cover aspect-square shadow-sm',
+                'rounded-full object-cover aspect-square shadow-sm bg-background',
                 collapsed ? 'h-8 w-8' : 'h-10 w-10',
               )}
             />

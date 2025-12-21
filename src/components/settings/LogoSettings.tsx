@@ -87,7 +87,7 @@ export function LogoSettings() {
       <CardContent className="space-y-4">
         <div className="flex flex-col md:flex-row gap-6 items-center">
           <div className="flex flex-col items-center gap-2">
-            <div className="w-32 h-32 border-2 border-dashed rounded-full flex items-center justify-center bg-muted/10 overflow-hidden relative group p-1">
+            <div className="w-32 h-32 border-2 border-dashed rounded-full flex items-center justify-center bg-muted/10 overflow-hidden relative group p-1 ring-2 ring-offset-2 ring-primary/10">
               {isUploading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               ) : url ? (

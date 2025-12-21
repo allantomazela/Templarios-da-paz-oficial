@@ -62,14 +62,6 @@ export function AuditLogViewer() {
     return `ID Entidade: ${log.entity_id}`
   }
 
-  if (loading && logs.length === 0) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
   return (
     <div className="rounded-md border bg-card">
       <div className="p-4 border-b flex items-center gap-2">
@@ -77,59 +69,65 @@ export function AuditLogViewer() {
         <h3 className="font-semibold">Registro de Atividades</h3>
       </div>
       <ScrollArea className="h-[500px]">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data/Hora</TableHead>
-              <TableHead>Usuário</TableHead>
-              <TableHead>Ação</TableHead>
-              <TableHead>Entidade</TableHead>
-              <TableHead>Detalhes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logs.length === 0 ? (
+        {loading && logs.length === 0 ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center py-8 text-muted-foreground"
-                >
-                  Nenhum registro de auditoria encontrado.
-                </TableCell>
+                <TableHead>Data/Hora</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Ação</TableHead>
+                <TableHead>Entidade</TableHead>
+                <TableHead>Detalhes</TableHead>
               </TableRow>
-            ) : (
-              logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm', {
-                      locale: ptBR,
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {log.profiles?.full_name || 'Sistema'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {log.profiles?.email}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getActionBadge(log.action)}</TableCell>
-                  <TableCell className="capitalize text-sm">
-                    {log.entity_type.replace('_', ' ')}
-                  </TableCell>
+            </TableHeader>
+            <TableBody>
+              {logs.length === 0 ? (
+                <TableRow>
                   <TableCell
-                    className="text-sm text-muted-foreground truncate max-w-[300px]"
-                    title={JSON.stringify(log.details, null, 2)}
+                    colSpan={5}
+                    className="text-center py-8 text-muted-foreground"
                   >
-                    {formatDetails(log)}
+                    Nenhum registro de auditoria encontrado.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm', {
+                        locale: ptBR,
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {log.profiles?.full_name || 'Sistema'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {log.profiles?.email}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getActionBadge(log.action)}</TableCell>
+                    <TableCell className="capitalize text-sm">
+                      {log.entity_type.replace('_', ' ')}
+                    </TableCell>
+                    <TableCell
+                      className="text-sm text-muted-foreground truncate max-w-[300px]"
+                      title={JSON.stringify(log.details, null, 2)}
+                    >
+                      {formatDetails(log)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </ScrollArea>
     </div>
   )

@@ -5,6 +5,7 @@ import { InstitutionalSettings } from '@/components/settings/InstitutionalSettin
 import { VenerablesManager } from '@/components/settings/VenerablesManager'
 import { LayoutSettings } from '@/components/settings/LayoutSettings'
 import { ThemeSettings } from '@/components/settings/ThemeSettings'
+import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import {
   LayoutTemplate,
   Users,
@@ -12,10 +13,18 @@ import {
   Loader2,
   Palette,
   Grid,
+  History,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { Navigate } from 'react-router-dom'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export default function SiteSettings() {
   const { user } = useAuthStore()
@@ -26,11 +35,6 @@ export default function SiteSettings() {
     fetchVenerables()
   }, [fetchSettings, fetchVenerables])
 
-  // Guard: Admin or Editor can access, but generally settings are sensitive.
-  // The User Story asks for "Editing capabilities for these sections [Quem Somos, Pilares, Notícias]
-  // must be restricted to users with the admin or editor role."
-  // Since 'Notícias' is in MediaManager, this page covers 'Quem Somos' and 'Pilares'.
-  // So Editor access should be allowed here for Content tabs.
   if (user?.role !== 'admin' && user?.role !== 'editor') {
     return <Navigate to="/dashboard" replace />
   }
@@ -79,6 +83,11 @@ export default function SiteSettings() {
           <TabsTrigger value="gallery">
             <Users className="mr-2 h-4 w-4" /> Galeria de Veneráveis
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="history">
+              <History className="mr-2 h-4 w-4" /> Histórico
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {isAdmin && (
@@ -93,6 +102,20 @@ export default function SiteSettings() {
             </TabsContent>
             <TabsContent value="layout">
               <LayoutSettings />
+            </TabsContent>
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Histórico de Alterações</CardTitle>
+                  <CardDescription>
+                    Registro de auditoria de alterações no sistema e
+                    configurações.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AuditLogViewer />
+                </CardContent>
+              </Card>
             </TabsContent>
           </>
         )}

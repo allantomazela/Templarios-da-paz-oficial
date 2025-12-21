@@ -448,12 +448,12 @@ export default function Index() {
             <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary/30 via-primary/10 to-secondary/30 blur-2xl opacity-40 group-hover:opacity-70 transition duration-1000"></div>
 
             {/* Main Container */}
-            <div className="relative bg-background/95 backdrop-blur-xl rounded-full shadow-2xl border-4 border-double border-primary/20 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden p-5 sm:p-6 transition-all duration-500 hover:scale-105 hover:border-primary/40 hover:shadow-primary/10">
+            <div className="relative bg-background/95 backdrop-blur-xl rounded-full shadow-2xl border-4 border-double border-primary/20 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden p-2 transition-all duration-500 hover:scale-105 hover:border-primary/40 hover:shadow-primary/10">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Brasão da ARLS Templários da Paz"
-                  className="w-full h-full object-contain drop-shadow-md transform transition-transform duration-700 group-hover:rotate-3"
+                  className="w-full h-full object-cover drop-shadow-md transform transition-transform duration-700 group-hover:scale-110"
                 />
               ) : (
                 <ShieldCheck className="h-16 w-16 md:h-24 md:w-24 text-primary/80" />

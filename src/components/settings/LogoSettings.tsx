@@ -50,25 +50,34 @@ export function LogoSettings() {
 
     setIsUploadingLogo(true)
     try {
+      // Compress locally to speed up transfer
       const optimizedFile = await compressImage(file, 512) // Optimize for logo size
+
+      // Attempt robust upload with fallback
       const publicUrl = await uploadToStorage(
         optimizedFile,
         'site-assets',
         'logos',
       )
+
       setLUrl(publicUrl)
       toast({
         title: 'Upload Concluído',
         description: 'A imagem do logo foi carregada com sucesso.',
       })
     } catch (error) {
+      console.error(error)
       toast({
         variant: 'destructive',
         title: 'Erro no Upload',
-        description: 'Não foi possível carregar a imagem do logo.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar a imagem do logo.',
       })
     } finally {
       setIsUploadingLogo(false)
+      // Reset input to allow selecting the same file again if retry is needed
       if (logoInputRef.current) logoInputRef.current.value = ''
     }
   }
@@ -81,26 +90,33 @@ export function LogoSettings() {
 
     setIsUploadingFavicon(true)
     try {
-      // Favicons should be small, usually 32x32 or 64x64, but we upload original or resized small
+      // Favicons should be small, usually 32x32 or 64x64
       const optimizedFile = await compressImage(file, 64)
+
       const publicUrl = await uploadToStorage(
         optimizedFile,
         'site-assets',
         'favicons',
       )
+
       setFUrl(publicUrl)
       toast({
         title: 'Upload Concluído',
         description: 'O favicon foi carregado com sucesso.',
       })
     } catch (error) {
+      console.error(error)
       toast({
         variant: 'destructive',
         title: 'Erro no Upload',
-        description: 'Não foi possível carregar o favicon.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar o favicon.',
       })
     } finally {
       setIsUploadingFavicon(false)
+      // Reset input to allow selecting the same file again
       if (faviconInputRef.current) faviconInputRef.current.value = ''
     }
   }

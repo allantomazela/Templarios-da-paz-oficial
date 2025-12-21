@@ -21,7 +21,7 @@ export function SeoManager() {
       metaDesc.setAttribute('content', metaDescription)
     }
 
-    // Update Favicon
+    // Update Favicon with Cache Busting if URL exists
     if (faviconUrl) {
       let link: HTMLLinkElement | null =
         document.querySelector("link[rel~='icon']")
@@ -30,14 +30,13 @@ export function SeoManager() {
         link.rel = 'icon'
         document.head.appendChild(link)
       }
-      link.href = faviconUrl
+      // Appending timestamp to force browser to refresh the icon
+      link.href = `${faviconUrl}?t=${Date.now()}`
     }
 
     // Update Open Graph Tags
     updateMetaTag('og:title', siteTitle)
     updateMetaTag('og:description', metaDescription)
-    // Update og:image if logo is available (optional, requires passing logoUrl to this component or store)
-    // For now we focus on title and desc as per user story requirements for SEO settings
   }, [siteTitle, metaDescription, faviconUrl])
 
   return null

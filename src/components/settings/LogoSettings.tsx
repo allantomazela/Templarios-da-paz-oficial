@@ -90,8 +90,9 @@ export function LogoSettings() {
 
     setIsUploadingFavicon(true)
     try {
-      // Favicons should be small, usually 32x32 or 64x64
-      const optimizedFile = await compressImage(file, 64)
+      // Favicons should be high quality, recommended 256x256 or 512x512 for best results
+      // Browsers will scale down automatically, but higher resolution ensures better quality
+      const optimizedFile = await compressImage(file, 256, 0.95)
 
       const publicUrl = await uploadToStorage(
         optimizedFile,

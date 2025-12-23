@@ -308,12 +308,17 @@ export default function Index() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl h-full py-2">
-            <div className="h-full aspect-square relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/20 p-1.5 shadow-sm">
+            <div className="h-full aspect-square relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/20 p-0 shadow-sm">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo"
                   className="h-full w-full object-contain"
+                  style={{
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
+                  loading="eager"
+                  decoding="async"
                 />
               ) : (
                 <ShieldCheck className="h-2/3 w-2/3 text-primary" />
@@ -448,12 +453,17 @@ export default function Index() {
             <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary/30 via-primary/10 to-secondary/30 blur-2xl opacity-40 group-hover:opacity-70 transition duration-1000"></div>
 
             {/* Main Container */}
-            <div className="relative bg-background/95 backdrop-blur-xl rounded-full shadow-2xl border-4 border-double border-primary/20 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden p-2 transition-all duration-500 hover:scale-105 hover:border-primary/40 hover:shadow-primary/10">
+            <div className="relative bg-background/95 backdrop-blur-xl rounded-full shadow-2xl border-4 border-double border-primary/20 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden p-0 transition-all duration-500 hover:scale-105 hover:border-primary/40 hover:shadow-primary/10">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Brasão da ARLS Templários da Paz"
-                  className="w-full h-full object-cover drop-shadow-md transform transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-contain drop-shadow-md transform transition-transform duration-700 group-hover:scale-110"
+                  style={{
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
+                  loading="eager"
+                  decoding="async"
                 />
               ) : (
                 <ShieldCheck className="h-16 w-16 md:h-24 md:w-24 text-primary/80" />
@@ -499,12 +509,17 @@ export default function Index() {
       <footer className="py-8 bg-muted text-muted-foreground border-t">
         <div className="container px-4 md:px-6 text-center">
           <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
-            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/10 p-1 shadow-sm">
+            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/10 p-0 shadow-sm">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo"
                   className="h-full w-full object-contain"
+                  style={{
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
+                  loading="eager"
+                  decoding="async"
                 />
               ) : (
                 <ShieldCheck className="h-5 w-5 text-primary" />

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoSettings } from '@/components/settings/LogoSettings'
 import { SeoSettings } from '@/components/settings/SeoSettings'
@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { Navigate } from 'react-router-dom'
 import {
   Card,
   CardContent,
@@ -26,18 +25,35 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export default function SiteSettings() {
   const { user } = useAuthStore()
   const { fetchSettings, fetchVenerables, loading } = useSiteSettingsStore()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchSettings()
-    fetchVenerables()
-  }, [fetchSettings, fetchVenerables])
+    // Fetch data only once on mount
+    const loadData = async () => {
+      try {
+        setError(null)
+        await Promise.all([fetchSettings(), fetchVenerables()])
+      } catch (err) {
+        console.error('Error loading site settings:', err)
+        setError('Erro ao carregar configurações. Tente novamente.')
+      }
+    }
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty dependency array to run only once
 
-  if (user?.role !== 'admin' && user?.role !== 'editor') {
-    return <Navigate to="/dashboard" replace />
+  // RoleGuard already handles permission check, but keep this as fallback
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   const isAdmin = user?.role === 'admin'
@@ -46,6 +62,17 @@ export default function SiteSettings() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <p className="text-destructive">{error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Recarregar Página
+        </Button>
       </div>
     )
   }
@@ -61,7 +88,7 @@ export default function SiteSettings() {
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
+      <Tabs defaultValue={isAdmin ? "general" : "content"} className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
           {isAdmin && (
             <TabsTrigger value="general">

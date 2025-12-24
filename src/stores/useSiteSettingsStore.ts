@@ -36,6 +36,17 @@ export interface SiteSettingsState {
   primaryColor: string
   secondaryColor: string
   fontFamily: string
+  typography: {
+    letterSpacing: string
+    lineHeight: string
+    fontWeightBase: string
+    fontWeightBold: string
+    fontSizeBase: string
+    textColor: string
+    textColorMuted: string
+    textTransform: string
+    textDecoration: string
+  }
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
@@ -51,6 +62,9 @@ export interface SiteSettingsState {
       secondaryColor: string
       fontFamily: string
     }>,
+  ) => Promise<void>
+  updateTypography: (
+    data: Partial<SiteSettingsState['typography']>,
   ) => Promise<void>
 
   fetchVenerables: () => Promise<void>
@@ -108,6 +122,17 @@ const mapSettingsFromDB = (data: any) => {
     primaryColor: data.primary_color || '#007AFF',
     secondaryColor: data.secondary_color || '#1e293b',
     fontFamily: data.font_family || 'Inter',
+    typography: {
+      letterSpacing: data.typography_letter_spacing || '0.01em',
+      lineHeight: data.typography_line_height || '1.75',
+      fontWeightBase: data.typography_font_weight_base || '400',
+      fontWeightBold: data.typography_font_weight_bold || '700',
+      fontSizeBase: data.typography_font_size_base || '16px',
+      textColor: data.typography_text_color || '#ffffff',
+      textColorMuted: data.typography_text_color_muted || '#94a3b8',
+      textTransform: data.typography_text_transform || 'none',
+      textDecoration: data.typography_text_decoration || 'none',
+    },
   }
 }
 
@@ -115,7 +140,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   loading: false,
   logoUrl: '',
   faviconUrl: '',
-  siteTitle: 'Templários da Paz',
+  siteTitle: '',
   metaDescription: 'Loja Maçônica Templários da Paz - Botucatu/SP',
   history: {
     title: '',
@@ -139,8 +164,31 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   primaryColor: '#007AFF',
   secondaryColor: '#1e293b',
   fontFamily: 'Inter',
+  typography: {
+    letterSpacing: '0.01em',
+    lineHeight: '1.75',
+    fontWeightBase: '400',
+    fontWeightBold: '700',
+    fontSizeBase: '16px',
+    textColor: '#ffffff',
+    textColorMuted: '#94a3b8',
+    textTransform: 'none',
+    textDecoration: 'none',
+  },
 
-  fetchSettings: async () => {
+  fetchSettings: async (force = false) => {
+    const state = get()
+    // Se já temos dados carregados e não é forçado, não precisa buscar novamente
+    // Verificamos se temos pelo menos um dado carregado (logo, favicon, ou siteTitle preenchido)
+    if (
+      !force &&
+      (state.logoUrl ||
+        state.faviconUrl ||
+        (state.siteTitle && state.siteTitle !== ''))
+    ) {
+      return
+    }
+
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -156,11 +204,12 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       }
 
       if (data) {
-        set({ ...mapSettingsFromDB(data) })
+        set({ ...mapSettingsFromDB(data), loading: false })
+      } else {
+        set({ loading: false })
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
-    } finally {
       set({ loading: false })
     }
   },
@@ -321,7 +370,51 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     }
   },
 
-  fetchVenerables: async () => {
+  updateTypography: async (data) => {
+    try {
+      const updates: any = {}
+      if (data.letterSpacing !== undefined)
+        updates.typography_letter_spacing = data.letterSpacing
+      if (data.lineHeight !== undefined)
+        updates.typography_line_height = data.lineHeight
+      if (data.fontWeightBase !== undefined)
+        updates.typography_font_weight_base = data.fontWeightBase
+      if (data.fontWeightBold !== undefined)
+        updates.typography_font_weight_bold = data.fontWeightBold
+      if (data.fontSizeBase !== undefined)
+        updates.typography_font_size_base = data.fontSizeBase
+      if (data.textColor !== undefined)
+        updates.typography_text_color = data.textColor
+      if (data.textColorMuted !== undefined)
+        updates.typography_text_color_muted = data.textColorMuted
+      if (data.textTransform !== undefined)
+        updates.typography_text_transform = data.textTransform
+      if (data.textDecoration !== undefined)
+        updates.typography_text_decoration = data.textDecoration
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+
+      set((state) => ({
+        typography: { ...state.typography, ...data },
+      }))
+    } catch (error) {
+      console.error('Error updating typography:', error)
+      throw error
+    }
+  },
+
+  fetchVenerables: async (force = false) => {
+    const state = get()
+    // Se já temos veneráveis carregados e não é forçado, não precisa buscar novamente
+    if (!force && state.venerables.length > 0) {
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('venerables')

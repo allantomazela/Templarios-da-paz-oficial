@@ -88,7 +88,7 @@ export default function Index() {
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
               {history.title}
             </h2>
-            <div className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">
+            <div className="text-lg text-muted-foreground leading-relaxed">
               {history.text}
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function Index() {
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
             Nossos Pilares
           </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
+          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
             Os princípios que guiam nossas ações e fortalecem nossa união.
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function Index() {
               <Scale className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Liberdade</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground leading-relaxed">
               {values.liberty ||
                 'A liberdade de pensamento e expressão é fundamental para o progresso humano e para a construção de uma sociedade mais justa.'}
             </p>
@@ -136,7 +136,7 @@ export default function Index() {
               <ShieldCheck className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Igualdade</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground leading-relaxed">
               {values.equality ||
                 'Todos os seres humanos nascem livres e iguais em dignidade e direitos, devendo agir uns para com os outros com espírito de fraternidade.'}
             </p>
@@ -147,7 +147,7 @@ export default function Index() {
               <Heart className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold mb-3">Fraternidade</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground leading-relaxed">
               {values.fraternity ||
                 'A prática da tolerância, da solidariedade e do amor ao próximo une a humanidade em uma só família universal.'}
             </p>
@@ -170,7 +170,7 @@ export default function Index() {
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
             Galeria dos Veneráveis
           </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
+          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
             Homenagem aos irmãos que lideraram nossa oficina com sabedoria e
             dedicação ao longo dos anos.
           </p>
@@ -220,7 +220,7 @@ export default function Index() {
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-6">
               Entre em Contato
             </h2>
-            <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px]">
+            <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px] leading-relaxed">
               Interessado em saber mais sobre nossa ordem ou nossa loja? Estamos
               à disposição para esclarecer suas dúvidas.
             </p>
@@ -230,9 +230,9 @@ export default function Index() {
                 <MapPin className="h-6 w-6 mt-1 opacity-80" />
                 <div>
                   <h4 className="font-semibold text-lg">Endereço</h4>
-                  <p className="opacity-80">{contact.address}</p>
-                  <p className="opacity-80">{contact.city}</p>
-                  <p className="opacity-80">{contact.zip}</p>
+                  <p className="opacity-80 leading-relaxed">{contact.address}</p>
+                  <p className="opacity-80 leading-relaxed">{contact.city}</p>
+                  <p className="opacity-80 leading-relaxed">{contact.zip}</p>
                 </div>
               </div>
 
@@ -240,9 +240,9 @@ export default function Index() {
                 <Mail className="h-6 w-6 mt-1 opacity-80" />
                 <div>
                   <h4 className="font-semibold text-lg">Email</h4>
-                  <p className="opacity-80">{contact.email}</p>
+                  <p className="opacity-80 leading-relaxed">{contact.email}</p>
                   {contact.secondaryEmail && (
-                    <p className="opacity-80">{contact.secondaryEmail}</p>
+                    <p className="opacity-80 leading-relaxed">{contact.secondaryEmail}</p>
                   )}
                 </div>
               </div>
@@ -349,6 +349,14 @@ export default function Index() {
             >
               Pilares
             </button>
+            {sectionOrder.includes('venerables') && (
+              <button
+                onClick={() => handleNavClick('veneraveis')}
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                Galeria dos Veneráveis
+              </button>
+            )}
             {sectionOrder.includes('news') && (
               <button
                 onClick={() => handleNavClick('noticias')}
@@ -410,6 +418,14 @@ export default function Index() {
             >
               Pilares
             </button>
+            {sectionOrder.includes('venerables') && (
+              <button
+                onClick={() => handleNavClick('veneraveis')}
+                className="text-left text-sm font-medium py-2 border-b border-border/50"
+              >
+                Galeria dos Veneráveis
+              </button>
+            )}
             {sectionOrder.includes('news') && (
               <button
                 onClick={() => handleNavClick('noticias')}
@@ -471,13 +487,13 @@ export default function Index() {
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl relative z-20">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-normal max-w-4xl relative z-20 leading-relaxed">
             Augusta e Respeitável Loja Simbólica
             <span className="text-primary block mt-4 drop-shadow-md text-shadow-sm">
               Templários da Paz
             </span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-[700px] md:text-2xl mt-4">
+          <p className="text-xl text-muted-foreground max-w-[700px] md:text-2xl mt-4 leading-relaxed">
             Trabalhando pelo aperfeiçoamento moral, intelectual e social da
             humanidade em {contact.city || 'Botucatu-SP'}.
           </p>

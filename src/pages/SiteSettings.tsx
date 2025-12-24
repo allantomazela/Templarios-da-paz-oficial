@@ -6,6 +6,7 @@ import { InstitutionalSettings } from '@/components/settings/InstitutionalSettin
 import { VenerablesManager } from '@/components/settings/VenerablesManager'
 import { LayoutSettings } from '@/components/settings/LayoutSettings'
 import { ThemeSettings } from '@/components/settings/ThemeSettings'
+import { TypographySettings } from '@/components/settings/TypographySettings'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import {
   LayoutTemplate,
@@ -15,6 +16,7 @@ import {
   Palette,
   Grid,
   History,
+  Type,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -29,18 +31,36 @@ import { Button } from '@/components/ui/button'
 
 export default function SiteSettings() {
   const { user } = useAuthStore()
-  const { fetchSettings, fetchVenerables, loading } = useSiteSettingsStore()
+  const {
+    fetchSettings,
+    fetchVenerables,
+    loading,
+    logoUrl,
+    faviconUrl,
+    siteTitle,
+    venerables,
+  } = useSiteSettingsStore()
   const [error, setError] = useState<string | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   useEffect(() => {
-    // Fetch data only once on mount
+    // Fetch data only if not already loaded
     const loadData = async () => {
       try {
         setError(null)
-        await Promise.all([fetchSettings(), fetchVenerables()])
+        // Verificar se já temos dados carregados
+        const hasData =
+          logoUrl || faviconUrl || (siteTitle && siteTitle !== '')
+        const hasVenerables = venerables.length > 0
+
+        if (!hasData || !hasVenerables) {
+          await Promise.all([fetchSettings(), fetchVenerables()])
+        }
+        setIsInitialLoad(false)
       } catch (err) {
         console.error('Error loading site settings:', err)
         setError('Erro ao carregar configurações. Tente novamente.')
+        setIsInitialLoad(false)
       }
     }
     loadData()
@@ -58,10 +78,14 @@ export default function SiteSettings() {
 
   const isAdmin = user?.role === 'admin'
 
-  if (loading) {
+  // Mostrar loading apenas no primeiro carregamento
+  if (isInitialLoad && loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">
+          Carregando configurações...
+        </p>
       </div>
     )
   }
@@ -78,7 +102,7 @@ export default function SiteSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">
           Configurações do Site
@@ -88,7 +112,10 @@ export default function SiteSettings() {
         </p>
       </div>
 
-      <Tabs defaultValue={isAdmin ? "general" : "content"} className="space-y-4">
+      <Tabs
+        defaultValue={isAdmin ? 'general' : 'content'}
+        className="space-y-4"
+      >
         <TabsList className="flex flex-wrap h-auto">
           {isAdmin && (
             <TabsTrigger value="general">
@@ -98,6 +125,11 @@ export default function SiteSettings() {
           {isAdmin && (
             <TabsTrigger value="theme">
               <Palette className="mr-2 h-4 w-4" /> Tema & Visual
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="typography">
+              <Type className="mr-2 h-4 w-4" /> Tipografia Avançada
             </TabsTrigger>
           )}
           {isAdmin && (
@@ -128,6 +160,9 @@ export default function SiteSettings() {
             </TabsContent>
             <TabsContent value="theme">
               <ThemeSettings />
+            </TabsContent>
+            <TabsContent value="typography">
+              <TypographySettings />
             </TabsContent>
             <TabsContent value="layout">
               <LayoutSettings />

@@ -17,6 +17,11 @@ export async function compressImage(
       return
     }
 
+    // Add timeout for image loading
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Timeout ao processar imagem. Tente com uma imagem menor.'))
+    }, 15000) // 15 seconds timeout
+
     const img = new Image()
     const reader = new FileReader()
 
@@ -25,10 +30,17 @@ export async function compressImage(
     }
 
     reader.onerror = (e) => {
-      reject(e)
+      clearTimeout(timeoutId)
+      reject(new Error('Erro ao ler arquivo de imagem'))
+    }
+
+    img.onerror = () => {
+      clearTimeout(timeoutId)
+      reject(new Error('Erro ao carregar imagem. Verifique se o arquivo é uma imagem válida.'))
     }
 
     img.onload = () => {
+      clearTimeout(timeoutId)
       // Calculate new dimensions
       let width = img.width
       let height = img.height
@@ -52,11 +64,16 @@ export async function compressImage(
       // Draw image
       ctx.drawImage(img, 0, 0, width, height)
 
-      // Convert to blob
+      // Convert to blob with timeout
+      const blobTimeout = setTimeout(() => {
+        reject(new Error('Timeout ao converter imagem'))
+      }, 5000)
+
       canvas.toBlob(
         (blob) => {
+          clearTimeout(blobTimeout)
           if (!blob) {
-            reject(new Error('Image compression failed'))
+            reject(new Error('Falha na compressão da imagem'))
             return
           }
           const optimizedFile = new File([blob], file.name, {

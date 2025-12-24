@@ -30,6 +30,7 @@ export function LogoSettings() {
   const [isSavingFavicon, setIsSavingFavicon] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [isUploadingFavicon, setIsUploadingFavicon] = useState(false)
+  const [faviconError, setFaviconError] = useState(false)
 
   const logoInputRef = useRef<HTMLInputElement>(null)
   const faviconInputRef = useRef<HTMLInputElement>(null)
@@ -42,6 +43,7 @@ export function LogoSettings() {
 
   useEffect(() => {
     setFUrl(faviconUrl)
+    setFaviconError(false) // Reset error when URL changes
   }, [faviconUrl])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,31 +91,47 @@ export function LogoSettings() {
     if (!file) return
 
     setIsUploadingFavicon(true)
+    
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setIsUploadingFavicon(false)
+      toast({
+        variant: 'destructive',
+        title: 'Timeout no Upload',
+        description: 'O upload está demorando muito. Tente novamente com uma imagem menor.',
+      })
+      if (faviconInputRef.current) faviconInputRef.current.value = ''
+    }, 30000) // 30 seconds timeout
+
     try {
       // Favicons should be high quality, recommended 256x256 or 512x512 for best results
       // Browsers will scale down automatically, but higher resolution ensures better quality
-      const optimizedFile = await compressImage(file, 256, 0.95)
+      console.log('Comprimindo imagem do favicon...')
+      const optimizedFile = await compressImage(file, 256, 0.9)
 
+      console.log('Fazendo upload do favicon...')
       const publicUrl = await uploadToStorage(
         optimizedFile,
         'site-assets',
         'favicons',
       )
 
+      clearTimeout(timeoutId)
       setFUrl(publicUrl)
       toast({
         title: 'Upload Concluído',
         description: 'O favicon foi carregado com sucesso.',
       })
     } catch (error) {
-      console.error(error)
+      clearTimeout(timeoutId)
+      console.error('Erro no upload do favicon:', error)
       toast({
         variant: 'destructive',
         title: 'Erro no Upload',
         description:
           error instanceof Error
             ? error.message
-            : 'Não foi possível carregar o favicon.',
+            : 'Não foi possível carregar o favicon. Verifique sua conexão e tente novamente.',
       })
     } finally {
       setIsUploadingFavicon(false)
@@ -261,11 +279,19 @@ export function LogoSettings() {
               <div className="w-16 h-16 border rounded-md flex items-center justify-center bg-muted/10 overflow-hidden relative">
                 {isUploadingFavicon ? (
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                ) : fUrl ? (
+                ) : fUrl && !faviconError ? (
                   <img
                     src={fUrl}
                     alt="Favicon"
-                    className="w-8 h-8 object-contain"
+                    className="w-full h-full object-contain p-1"
+                    onError={() => {
+                      console.error('Erro ao carregar favicon:', fUrl)
+                      setFaviconError(true)
+                    }}
+                    onLoad={() => {
+                      console.log('Favicon carregado com sucesso:', fUrl)
+                      setFaviconError(false)
+                    }}
                   />
                 ) : (
                   <Hexagon className="w-8 h-8 text-muted-foreground/50" />

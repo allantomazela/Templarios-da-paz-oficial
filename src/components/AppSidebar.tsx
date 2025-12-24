@@ -71,6 +71,7 @@ export function AppSidebar() {
       icon: Settings,
       path: '/dashboard/admin',
       allowedRoles: ['admin'],
+      end: true,
     },
     {
       name: 'Config. Site',
@@ -134,7 +135,7 @@ export function AppSidebar() {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.end}
+              end={item.end !== undefined ? item.end : item.path === '/dashboard/admin'}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group relative',

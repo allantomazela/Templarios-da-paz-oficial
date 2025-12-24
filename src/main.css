@@ -167,3 +167,35 @@
     margin: 1cm;
   }
 }
+
+/* Melhor espaçamento de texto global - Usando variáveis CSS customizáveis */
+p {
+  letter-spacing: var(--typography-letter-spacing, 0.01em);
+  line-height: var(--typography-line-height, 1.75);
+  color: var(--typography-text-color, #ffffff);
+  font-size: var(--typography-font-size-base, 16px);
+  font-weight: var(--typography-font-weight-base, 400);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: var(--typography-letter-spacing, -0.02em);
+  line-height: 1.2;
+  font-weight: var(--typography-font-weight-bold, 700);
+  color: var(--typography-text-color, #ffffff);
+}
+
+/* Espaçamento melhorado para textos longos */
+.text-content {
+  line-height: var(--typography-line-height, 1.8);
+  letter-spacing: var(--typography-letter-spacing, 0.015em);
+}
+
+/* Aplicar cor muted customizada */
+.text-muted-foreground {
+  color: var(--typography-text-color-muted, #94a3b8) !important;
+}

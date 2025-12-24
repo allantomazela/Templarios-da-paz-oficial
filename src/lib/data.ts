@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
 // Types
+export interface Child {
+  name: string
+  dob: string
+}
+
 export interface Brother {
   id: string
   name: string
@@ -21,6 +26,35 @@ export interface Brother {
   attendanceRate: number
   dob?: string
   cpf?: string
+  photoUrl?: string
+  
+  // Additional masonic information
+  masonicRegistrationNumber?: string
+  obedience?: string
+  originLodge?: string
+  originLodgeNumber?: string
+  currentLodgeNumber?: string
+  affiliationDate?: string
+  regularStatus?: string
+  notes?: string
+  
+  // Spouse information
+  spouseName?: string
+  spouseDob?: string
+  
+  // Children information
+  children?: Child[]
+  
+  // Complete address
+  addressStreet?: string
+  addressNumber?: string
+  addressComplement?: string
+  addressNeighborhood?: string
+  addressCity?: string
+  addressState?: string
+  addressZipcode?: string
+  
+  // Legacy address field (for backward compatibility)
   address?: string
 }
 

@@ -21,19 +21,21 @@ export async function uploadToStorage(
       formData.append('bucket', bucket)
       formData.append('folder', folder)
 
-      // Create a promise that rejects after 10 seconds to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
+      // Create a promise that rejects after 8 seconds to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
           () => reject(new Error('Edge Function request timed out')),
-          10000,
+          8000,
         )
       })
 
       // Race the invoke call against the timeout
+      const invokePromise = supabase.functions.invoke('optimize-image', {
+        body: formData,
+      })
+
       const response = (await Promise.race([
-        supabase.functions.invoke('optimize-image', {
-          body: formData,
-        }),
+        invokePromise,
         timeoutPromise,
       ])) as any
 

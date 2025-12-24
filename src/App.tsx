@@ -27,10 +27,16 @@ import { RoleGuard } from '@/components/RoleGuard'
 import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
 import { SeoManager } from '@/components/SeoManager'
 import { RedirectHandler } from '@/components/RedirectHandler'
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 
 function ThemeApplicator() {
-  const { primaryColor, secondaryColor, fontFamily, fetchSettings } =
-    useSiteSettingsStore()
+  const {
+    primaryColor,
+    secondaryColor,
+    fontFamily,
+    typography,
+    fetchSettings,
+  } = useSiteSettingsStore()
   const { initialize } = useAuthStore()
 
   useEffect(() => {
@@ -77,6 +83,38 @@ function ThemeApplicator() {
     }
   }, [fontFamily])
 
+  useEffect(() => {
+    // Aplicar estilos de tipografia globalmente
+    const root = document.documentElement
+    root.style.setProperty(
+      '--typography-letter-spacing',
+      typography.letterSpacing,
+    )
+    root.style.setProperty('--typography-line-height', typography.lineHeight)
+    root.style.setProperty(
+      '--typography-font-weight-base',
+      typography.fontWeightBase,
+    )
+    root.style.setProperty(
+      '--typography-font-weight-bold',
+      typography.fontWeightBold,
+    )
+    root.style.setProperty('--typography-font-size-base', typography.fontSizeBase)
+    root.style.setProperty('--typography-text-color', typography.textColor)
+    root.style.setProperty(
+      '--typography-text-color-muted',
+      typography.textColorMuted,
+    )
+    root.style.setProperty(
+      '--typography-text-transform',
+      typography.textTransform,
+    )
+    root.style.setProperty(
+      '--typography-text-decoration',
+      typography.textDecoration,
+    )
+  }, [typography])
+
   return null
 }
 
@@ -88,6 +126,7 @@ const App = () => (
       <ThemeApplicator />
       <SeoManager />
       <RedirectHandler />
+      <PWAInstallPrompt />
       <Toaster />
       <Sonner />
       <Routes>

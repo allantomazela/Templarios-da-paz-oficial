@@ -30,10 +30,8 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { NewsEvent } from '@/stores/useNewsStore'
-import { compressImage } from '@/lib/image-utils'
-import { uploadToStorage } from '@/lib/upload-utils'
 import { Loader2, Upload } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useImageUpload } from '@/hooks/use-image-upload'
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -60,9 +58,16 @@ export function NewsDialog({
   onSave,
 }: NewsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const { toast } = useToast()
+
+  const imageUpload = useImageUpload({
+    bucket: 'site-assets',
+    folder: 'news',
+    maxSize: 1280,
+    quality: 0.85,
+    successMessage: 'Imagem da notícia carregada com sucesso.',
+    errorMessage: 'Falha ao fazer upload da imagem.',
+  })
 
   const form = useForm<NewsFormValues>({
     resolver: zodResolver(newsSchema),
@@ -77,6 +82,8 @@ export function NewsDialog({
   })
 
   useEffect(() => {
+    if (!open) return
+
     if (newsToEdit) {
       form.reset({
         title: newsToEdit.title,
@@ -89,6 +96,9 @@ export function NewsDialog({
         category: newsToEdit.category || 'news',
       })
       setPreviewImage(newsToEdit.imageUrl || null)
+      if (newsToEdit.imageUrl) {
+        imageUpload.reset()
+      }
     } else {
       form.reset({
         title: '',
@@ -99,36 +109,19 @@ export function NewsDialog({
         category: 'news',
       })
       setPreviewImage(null)
+      imageUpload.reset()
     }
-  }, [newsToEdit, form, open])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newsToEdit, open])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setIsUploading(true)
-    try {
-      const optimizedFile = await compressImage(file, 1280) // HD width
-      const publicUrl = await uploadToStorage(
-        optimizedFile,
-        'site-assets',
-        'news',
-      )
-
-      form.setValue('imageUrl', publicUrl, { shouldDirty: true })
-      setPreviewImage(publicUrl)
-      toast({
-        title: 'Upload Concluído',
-        description: 'Imagem da notícia carregada.',
-      })
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao fazer upload da imagem.',
-      })
-    } finally {
-      setIsUploading(false)
+    const url = await imageUpload.handleUpload(file)
+    if (url) {
+      form.setValue('imageUrl', url, { shouldDirty: true })
+      setPreviewImage(url)
     }
   }
 
@@ -234,7 +227,7 @@ export function NewsDialog({
                 <FormLabel>Imagem de Destaque</FormLabel>
                 <div className="flex flex-col gap-3">
                   <div className="relative aspect-video w-full border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden group">
-                    {isUploading ? (
+                    {imageUpload.isUploading ? (
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     ) : previewImage ? (
                       <img
@@ -250,13 +243,14 @@ export function NewsDialog({
                     )}
                     <Input
                       type="file"
+                      ref={imageUpload.inputRef}
                       className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      disabled={isUploading}
+                      disabled={imageUpload.isUploading}
                     />
                   </div>
-                  {previewImage && !isUploading && (
+                  {previewImage && !imageUpload.isUploading && (
                     <Button
                       type="button"
                       variant="outline"
@@ -264,6 +258,7 @@ export function NewsDialog({
                       onClick={() => {
                         setPreviewImage(null)
                         form.setValue('imageUrl', '')
+                        imageUpload.reset()
                       }}
                     >
                       Remover Imagem
@@ -299,11 +294,11 @@ export function NewsDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting || isUploading}
+                disabled={isSubmitting || imageUpload.isUploading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || isUploading}>
+              <Button type="submit" disabled={isSubmitting || imageUpload.isUploading}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}

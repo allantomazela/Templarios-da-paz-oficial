@@ -19,12 +19,13 @@ import {
   Folder,
   Wallet,
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function ExpenseList() {
   const {
@@ -36,11 +37,10 @@ export function ExpenseList() {
   } = useFinancialStore()
   const expenses = transactions.filter((t) => t.type === 'Despesa')
   const [searchTerm, setSearchTerm] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
     null,
   )
-  const { toast } = useToast()
 
   const filteredExpenses = expenses.filter(
     (expense) =>
@@ -48,33 +48,55 @@ export function ExpenseList() {
       expense.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleSave = (data: any) => {
-    if (selectedExpense) {
-      updateTransaction({ ...selectedExpense, ...data })
-      toast({ title: 'Sucesso', description: 'Despesa atualizada.' })
-    } else {
-      addTransaction({
-        id: crypto.randomUUID(),
-        ...data,
-      })
-      toast({ title: 'Sucesso', description: 'Despesa registrada.' })
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedExpense) {
+        updateTransaction({ ...selectedExpense, ...data })
+        return 'Despesa atualizada com sucesso.'
+      } else {
+        addTransaction({
+          id: crypto.randomUUID(),
+          ...data,
+        })
+        return 'Despesa registrada com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a despesa.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteTransaction(id)
+      return 'Despesa removida.'
+    },
+    {
+      successMessage: 'Despesa removida com sucesso!',
+      errorMessage: 'Falha ao remover a despesa.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    deleteTransaction(id)
-    toast({ title: 'Removido', description: 'Despesa removida.' })
+    deleteOperation.execute(id)
   }
 
   const openNew = () => {
     setSelectedExpense(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (expense: Transaction) => {
     setSelectedExpense(expense)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const getAccountName = (id?: string) => {
@@ -220,8 +242,8 @@ export function ExpenseList() {
       </div>
 
       <TransactionDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         transactionToEdit={selectedExpense}
         onSave={handleSave}
         defaultType="Despesa"

@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './main.css'
+import { logDebug, logWarning } from '@/lib/logger'
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -9,7 +10,7 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker
             .register('/sw.js', { scope: '/' })
             .then((registration) => {
-                console.log('Service Worker registered:', registration.scope)
+                logDebug('Service Worker registered', registration.scope)
 
                 // Check for updates periodically
                 setInterval(() => {
@@ -17,7 +18,7 @@ if ('serviceWorker' in navigator) {
                 }, 60000) // Check every minute
             })
             .catch((error) => {
-                console.warn('Service Worker registration failed:', error)
+                logWarning('Service Worker registration failed', error)
                 // Don't throw - PWA is optional
             })
     })

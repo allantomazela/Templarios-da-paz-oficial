@@ -12,7 +12,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
 import {
   Users,
@@ -128,39 +128,48 @@ export function ChancellorOverview() {
     justificado: { label: 'Justificado', color: 'hsl(var(--chart-2))' },
   }
 
+  // Chart config para gráfico de pizza
+  const pieChartConfig = {
+    Aprendiz: { label: 'Aprendiz', color: 'hsl(var(--chart-1))' },
+    Companheiro: { label: 'Companheiro', color: 'hsl(var(--chart-2))' },
+    Mestre: { label: 'Mestre', color: 'hsl(var(--chart-3))' },
+  }
+
   return (
     <div className="space-y-6">
       {/* Presence Notifications Widget */}
       {alertBrothers.length > 0 && (
-        <Card className="border-l-4 border-l-amber-500 bg-amber-50/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-amber-700">
+        <Card className="border-l-4 border-l-amber-500 bg-amber-500/10 dark:bg-amber-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold">
               <AlertTriangle className="h-5 w-5" /> Alerta de Frequência
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base text-amber-900/90 dark:text-amber-200/90 font-medium mt-1">
               Irmãos com ausências injustificadas consecutivas nas últimas{' '}
               {last3Sessions.length} sessões.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {alertBrothers.map((brother) => (
                 <div
                   key={brother.id}
-                  className="flex items-center justify-between p-2 bg-background rounded border"
+                  className="flex items-center justify-between p-4 bg-background dark:bg-background/95 rounded-lg border-2 border-amber-300 dark:border-amber-700/60 shadow-md"
                 >
-                  <span className="font-medium text-sm">{brother.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {brother.absenceCount} ausências
+                  <span className="font-bold text-base text-foreground">
+                    {brother.name}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-amber-800 dark:text-amber-300 bg-amber-200 dark:bg-amber-800/50 px-3 py-1.5 rounded-md border border-amber-400 dark:border-amber-600">
+                      {brother.absenceCount} ausência{brother.absenceCount !== 1 ? 's' : ''}
                     </span>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs"
+                      className="h-8 px-3 text-sm font-semibold border-2 border-amber-500 dark:border-amber-600 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-800/50 hover:text-amber-900 dark:hover:text-amber-100 hover:border-amber-600 dark:hover:border-amber-500 transition-colors"
                       onClick={() => markAlertAsReviewed(brother.id)}
                     >
-                      <Check className="mr-1 h-3 w-3" /> Revisar
+                      <Check className="mr-1.5 h-4 w-4" /> Revisar
                     </Button>
                   </div>
                 </div>
@@ -225,27 +234,46 @@ export function ChancellorOverview() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <BarChart accessibilityLayer data={attendanceHistory}>
-                <CartesianGrid vertical={false} />
+              <BarChart 
+                accessibilityLayer 
+                data={attendanceHistory}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  vertical={false}
+                  className="stroke-muted"
+                />
                 <XAxis
                   dataKey="date"
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
+                  className="text-xs fill-muted-foreground"
+                  tick={{ fill: 'currentColor' }}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartTooltip 
+                  content={<ChartTooltipContent 
+                    indicator="line"
+                    className="bg-popover border border-border shadow-lg"
+                  />} 
+                />
+                <ChartLegend 
+                  content={<ChartLegendContent 
+                    className="mt-4"
+                  />} 
+                />
                 <Bar
                   dataKey="presente"
-                  stackId="a"
-                  fill="var(--color-presente)"
-                  radius={[0, 0, 4, 4]}
+                  fill="hsl(var(--chart-1))"
+                  radius={[4, 4, 0, 0]}
+                  name="Presente"
                 />
                 <Bar
                   dataKey="justificado"
-                  stackId="a"
-                  fill="var(--color-justificado)"
+                  fill="hsl(var(--chart-2))"
                   radius={[4, 4, 0, 0]}
+                  name="Justificado"
                 />
               </BarChart>
             </ChartContainer>
@@ -258,20 +286,37 @@ export function ChancellorOverview() {
             <CardDescription>Quadro atual de obreiros.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[300px] w-full mx-auto">
+            <ChartContainer config={pieChartConfig} className="h-[300px] w-full mx-auto">
               <PieChart>
-                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <ChartTooltip 
+                  content={<ChartTooltipContent 
+                    hideLabel={false}
+                    className="bg-popover border border-border shadow-lg"
+                  />} 
+                />
                 <Pie
                   data={degreeData}
                   dataKey="value"
                   nameKey="name"
+                  cx="50%"
+                  cy="50%"
                   innerRadius={60}
                   outerRadius={100}
                   paddingAngle={2}
-                />
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                >
+                  {degreeData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.fill || `hsl(var(--chart-${(index % 3) + 1}))`}
+                    />
+                  ))}
+                </Pie>
                 <ChartLegend
-                  content={<ChartLegendContent />}
-                  className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+                  content={<ChartLegendContent 
+                    className="mt-4 flex-wrap gap-2 [&>*]:basis-1/3 [&>*]:justify-center"
+                  />}
                 />
               </PieChart>
             </ChartContainer>

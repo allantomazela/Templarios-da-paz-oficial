@@ -12,10 +12,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { ContributionDialog } from './ContributionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function ContributionsList() {
   const {
@@ -25,10 +26,9 @@ export function ContributionsList() {
     deleteContribution,
   } = useFinancialStore()
   const [searchTerm, setSearchTerm] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedContribution, setSelectedContribution] =
     useState<Contribution | null>(null)
-  const { toast } = useToast()
 
   const getBrotherName = (id: string) =>
     mockBrothers.find((b) => b.id === id)?.name || 'Desconhecido'
@@ -38,34 +38,56 @@ export function ContributionsList() {
     return brotherName.includes(searchTerm.toLowerCase())
   })
 
-  const handleSave = (data: any) => {
-    if (selectedContribution) {
-      updateContribution({ ...selectedContribution, ...data })
-      toast({ title: 'Sucesso', description: 'Contribuição atualizada.' })
-    } else {
-      const newContribution: Contribution = {
-        id: crypto.randomUUID(),
-        ...data,
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedContribution) {
+        updateContribution({ ...selectedContribution, ...data })
+        return 'Contribuição atualizada com sucesso.'
+      } else {
+        const newContribution: Contribution = {
+          id: crypto.randomUUID(),
+          ...data,
+        }
+        addContribution(newContribution)
+        return 'Contribuição registrada com sucesso.'
       }
-      addContribution(newContribution)
-      toast({ title: 'Sucesso', description: 'Contribuição registrada.' })
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a contribuição.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteContribution(id)
+      return 'Contribuição removida.'
+    },
+    {
+      successMessage: 'Contribuição removida com sucesso!',
+      errorMessage: 'Falha ao remover a contribuição.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    deleteContribution(id)
-    toast({ title: 'Removido', description: 'Contribuição removida.' })
+    deleteOperation.execute(id)
   }
 
   const openNew = () => {
     setSelectedContribution(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (contribution: Contribution) => {
     setSelectedContribution(contribution)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -164,8 +186,8 @@ export function ContributionsList() {
       </div>
 
       <ContributionDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         contributionToEdit={selectedContribution}
         onSave={handleSave}
       />

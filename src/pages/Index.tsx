@@ -2,22 +2,21 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   ShieldCheck,
-  History,
-  Scale,
-  Heart,
-  MapPin,
-  Mail,
   ChevronRight,
   Menu,
   X,
   Lock,
-  Award,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useState, useEffect, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { NewsSection } from '@/components/home/NewsSection'
+import { HistorySection } from '@/components/home/HistorySection'
+import { ValuesSection } from '@/components/home/ValuesSection'
+import { VenerablesSection } from '@/components/home/VenerablesSection'
+import { ContactSection } from '@/components/home/ContactSection'
+import { CustomSection } from '@/components/home/CustomSection'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
@@ -28,6 +27,7 @@ export default function Index() {
     contact,
     venerables,
     sectionOrder,
+    customSections,
     fetchSettings,
     fetchVenerables,
   } = useSiteSettingsStore()
@@ -72,234 +72,37 @@ export default function Index() {
     }
   }
 
-  // --- Sections Components ---
-
-  const HistorySection = () => (
-    <section
-      id="quem-somos"
-      className="py-16 md:py-24 bg-muted/30 scroll-mt-20"
-    >
-      <div className="container px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-              <History className="mr-2 h-4 w-4" /> Nossa História
-            </div>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-              {history.title}
-            </h2>
-            <div className="text-lg text-muted-foreground leading-relaxed">
-              {history.text}
-            </div>
-          </div>
-          <div className="relative aspect-video md:aspect-square overflow-hidden rounded-xl shadow-xl">
-            <img
-              src={
-                history.imageUrl ||
-                'https://img.usecurling.com/p/800/800?q=old%20books%20library'
-              }
-              alt="História da Loja"
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-
-  const ValuesSection = () => (
-    <section id="pilares" className="py-16 md:py-24 scroll-mt-20">
-      <div className="container px-4 md:px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
-            Nossos Pilares
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
-            Os princípios que guiam nossas ações e fortalecem nossa união.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-            <div className="h-14 w-14 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-6">
-              <Scale className="h-7 w-7" />
-            </div>
-            <h3 className="text-xl font-bold mb-3">Liberdade</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {values.liberty ||
-                'A liberdade de pensamento e expressão é fundamental para o progresso humano e para a construção de uma sociedade mais justa.'}
-            </p>
-          </div>
-
-          <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-            <div className="h-14 w-14 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6">
-              <ShieldCheck className="h-7 w-7" />
-            </div>
-            <h3 className="text-xl font-bold mb-3">Igualdade</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {values.equality ||
-                'Todos os seres humanos nascem livres e iguais em dignidade e direitos, devendo agir uns para com os outros com espírito de fraternidade.'}
-            </p>
-          </div>
-
-          <div className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-all hover:-translate-y-1">
-            <div className="h-14 w-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-6">
-              <Heart className="h-7 w-7" />
-            </div>
-            <h3 className="text-xl font-bold mb-3">Fraternidade</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {values.fraternity ||
-                'A prática da tolerância, da solidariedade e do amor ao próximo une a humanidade em uma só família universal.'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-
-  const VenerablesSection = () => (
-    <section
-      id="veneraveis"
-      className="py-16 md:py-24 bg-muted/20 scroll-mt-20"
-    >
-      <div className="container px-4 md:px-6">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
-            <Award className="mr-2 h-4 w-4" /> Nossa Liderança
-          </div>
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
-            Galeria dos Veneráveis
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
-            Homenagem aos irmãos que lideraram nossa oficina com sabedoria e
-            dedicação ao longo dos anos.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {venerables.map((master) => (
-            <div
-              key={master.id}
-              className="group relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="aspect-[3/4] overflow-hidden bg-muted relative">
-                <img
-                  src={
-                    master.imageUrl ||
-                    `https://img.usecurling.com/ppl/medium?gender=male&seed=${master.id}`
-                  }
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  alt={`Venerável Mestre ${master.name}`}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-              <div className="p-5 text-center relative">
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-background flex items-center justify-center border-4 border-background shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                  <Award className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="font-bold text-lg mb-1">{master.name}</h3>
-                <p className="text-sm font-medium text-primary bg-primary/5 inline-block px-3 py-1 rounded-full">
-                  {master.period}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-
-  const ContactSection = () => (
-    <section
-      id="contact"
-      className="py-16 md:py-24 bg-primary text-primary-foreground scroll-mt-20"
-    >
-      <div className="container px-4 md:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-6">
-              Entre em Contato
-            </h2>
-            <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px] leading-relaxed">
-              Interessado em saber mais sobre nossa ordem ou nossa loja? Estamos
-              à disposição para esclarecer suas dúvidas.
-            </p>
-
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <MapPin className="h-6 w-6 mt-1 opacity-80" />
-                <div>
-                  <h4 className="font-semibold text-lg">Endereço</h4>
-                  <p className="opacity-80 leading-relaxed">{contact.address}</p>
-                  <p className="opacity-80 leading-relaxed">{contact.city}</p>
-                  <p className="opacity-80 leading-relaxed">{contact.zip}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <Mail className="h-6 w-6 mt-1 opacity-80" />
-                <div>
-                  <h4 className="font-semibold text-lg">Email</h4>
-                  <p className="opacity-80 leading-relaxed">{contact.email}</p>
-                  {contact.secondaryEmail && (
-                    <p className="opacity-80 leading-relaxed">{contact.secondaryEmail}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-background text-foreground rounded-xl p-6 shadow-2xl">
-            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Nome Completo
-                </label>
-                <input
-                  id="name"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Seu nome"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="seu@email.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="message" className="text-sm font-medium">
-                  Mensagem
-                </label>
-                <textarea
-                  id="message"
-                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Como podemos ajudar?"
-                />
-              </div>
-              <Button type="button" className="w-full">
-                Enviar Mensagem
-              </Button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-
   // Map section keys to components
   const sectionComponents: Record<string, ReactNode> = {
-    history: <HistorySection key="history" />,
-    values: <ValuesSection key="values" />,
-    venerables: <VenerablesSection key="venerables" />,
+    history: (
+      <HistorySection
+        key="history"
+        title={history.title}
+        text={history.text}
+        imageUrl={history.imageUrl}
+      />
+    ),
+    values: (
+      <ValuesSection
+        key="values"
+        liberty={values.liberty}
+        equality={values.equality}
+        fraternity={values.fraternity}
+      />
+    ),
+    venerables: <VenerablesSection key="venerables" venerables={venerables} />,
     news: <NewsSection key="news" />,
-    contact: <ContactSection key="contact" />,
-    masters: <VenerablesSection key="masters" />,
+    contact: (
+      <ContactSection
+        key="contact"
+        address={contact.address}
+        city={contact.city}
+        zip={contact.zip}
+        email={contact.email}
+        secondaryEmail={contact.secondaryEmail}
+      />
+    ),
+    masters: <VenerablesSection key="masters" venerables={venerables} />,
   }
 
   return (
@@ -519,7 +322,57 @@ export default function Index() {
       </section>
 
       {/* Dynamic Sections */}
-      {sectionOrder.map((sectionKey) => sectionComponents[sectionKey])}
+      {(() => {
+        // Combinar seções padrão e customizadas, ordenadas
+        const allSections: Array<{
+          type: 'standard' | 'custom'
+          key: string
+          order: number
+          component?: ReactNode
+          customSection?: (typeof customSections)[0]
+        }> = []
+
+        // Adicionar seções padrão com ordem baseada no índice
+        sectionOrder.forEach((key, index) => {
+          const component = sectionComponents[key]
+          if (component) {
+            allSections.push({
+              type: 'standard',
+              key,
+              order: index,
+              component,
+            })
+          }
+        })
+
+        // Adicionar seções customizadas visíveis
+        customSections
+          .filter((cs) => cs.visible)
+          .forEach((cs) => {
+            allSections.push({
+              type: 'custom',
+              key: `custom-${cs.id}`,
+              order: cs.order,
+              customSection: cs,
+            })
+          })
+
+        // Ordenar por ordem (seções padrão têm ordem 0, 1, 2... e customizadas podem ter qualquer ordem)
+        allSections.sort((a, b) => a.order - b.order)
+
+        // Renderizar
+        return allSections.map((section) => {
+          if (section.type === 'custom' && section.customSection) {
+            return (
+              <CustomSection key={section.key} section={section.customSection} />
+            )
+          }
+          if (section.type === 'standard' && section.component) {
+            return <div key={section.key}>{section.component}</div>
+          }
+          return null
+        })
+      })()}
 
       {/* Footer */}
       <footer className="py-8 bg-muted text-muted-foreground border-t">

@@ -13,45 +13,67 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Event } from '@/lib/data'
 import { EventDialog } from './EventDialog'
-import { useToast } from '@/hooks/use-toast'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function EventsManager() {
   const { events, addEvent, updateEvent, deleteEvent } = useChancellorStore()
   const [searchTerm, setSearchTerm] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-  const { toast } = useToast()
 
   const filteredEvents = events.filter((event) =>
     event.title.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleSave = (data: any) => {
-    if (selectedEvent) {
-      updateEvent({ ...selectedEvent, ...data })
-      toast({ title: 'Sucesso', description: 'Evento atualizado.' })
-    } else {
-      addEvent({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Evento criado.' })
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedEvent) {
+        updateEvent({ ...selectedEvent, ...data })
+        return 'Evento atualizado com sucesso.'
+      } else {
+        addEvent({ id: crypto.randomUUID(), ...data })
+        return 'Evento criado com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o evento.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteEvent(id)
+      return 'Evento removido.'
+    },
+    {
+      successMessage: 'Evento removido com sucesso!',
+      errorMessage: 'Falha ao remover o evento.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    deleteEvent(id)
-    toast({ title: 'Removido', description: 'Evento removido.' })
+    deleteOperation.execute(id)
   }
 
   const openNew = () => {
     setSelectedEvent(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (event: Event) => {
     setSelectedEvent(event)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -94,7 +116,7 @@ export function EventsManager() {
               filteredEvents.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>
-                    {format(new Date(event.date), 'dd/MM/yyyy')}
+                    {format(parseISO(event.date), 'dd/MM/yyyy')}
                   </TableCell>
                   <TableCell>{event.time}</TableCell>
                   <TableCell className="font-medium">{event.title}</TableCell>
@@ -127,8 +149,8 @@ export function EventsManager() {
       </div>
 
       <EventDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         eventToEdit={selectedEvent}
         onSave={handleSave}
       />

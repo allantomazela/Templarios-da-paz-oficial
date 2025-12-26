@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-export function ChancellorReports() {
+export const ChancellorReports = memo(function ChancellorReports() {
   const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
   const { toast } = useToast()
 
@@ -51,31 +51,33 @@ export function ChancellorReports() {
   }
 
   // Calculate Attendance per Brother
-  const brotherStats = brothers
-    .filter((b) => degreeFilter === 'all' || b.degree === degreeFilter)
-    .map((brother) => {
-      const totalSessions = sessionRecords.filter(
-        (s) => s.status === 'Finalizada',
-      ).length
+  const brotherStats = useMemo(() => {
+    return brothers
+      .filter((b) => degreeFilter === 'all' || b.degree === degreeFilter)
+      .map((brother) => {
+        const totalSessions = sessionRecords.filter(
+          (s) => s.status === 'Finalizada',
+        ).length
 
-      if (totalSessions === 0) {
-        return { ...brother, presences: 0, percentage: 0 }
-      }
+        if (totalSessions === 0) {
+          return { ...brother, presences: 0, percentage: 0 }
+        }
 
-      const presences = attendanceRecords.filter(
-        (ar) =>
-          ar.brotherId === brother.id &&
-          (ar.status === 'Presente' || ar.status === 'Justificado'),
-      ).length
+        const presences = attendanceRecords.filter(
+          (ar) =>
+            ar.brotherId === brother.id &&
+            (ar.status === 'Presente' || ar.status === 'Justificado'),
+        ).length
 
-      const percentage = Math.round((presences / totalSessions) * 100)
+        const percentage = Math.round((presences / totalSessions) * 100)
 
-      return {
-        ...brother,
-        presences,
-        percentage,
-      }
-    })
+        return {
+          ...brother,
+          presences,
+          percentage,
+        }
+      })
+  }, [brothers, degreeFilter, sessionRecords, attendanceRecords])
 
   return (
     <div className="space-y-6">
@@ -273,4 +275,4 @@ export function ChancellorReports() {
       </Card>
     </div>
   )
-}
+})

@@ -19,12 +19,13 @@ import {
   Folder,
   Wallet,
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function IncomeList() {
   const {
@@ -36,9 +37,8 @@ export function IncomeList() {
   } = useFinancialStore()
   const incomes = transactions.filter((t) => t.type === 'Receita')
   const [searchTerm, setSearchTerm] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
-  const { toast } = useToast()
 
   const filteredIncomes = incomes.filter(
     (income) =>
@@ -46,33 +46,55 @@ export function IncomeList() {
       income.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleSave = (data: any) => {
-    if (selectedIncome) {
-      updateTransaction({ ...selectedIncome, ...data })
-      toast({ title: 'Sucesso', description: 'Receita atualizada.' })
-    } else {
-      addTransaction({
-        id: crypto.randomUUID(),
-        ...data,
-      })
-      toast({ title: 'Sucesso', description: 'Receita registrada.' })
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedIncome) {
+        updateTransaction({ ...selectedIncome, ...data })
+        return 'Receita atualizada com sucesso.'
+      } else {
+        addTransaction({
+          id: crypto.randomUUID(),
+          ...data,
+        })
+        return 'Receita registrada com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a receita.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteTransaction(id)
+      return 'Receita removida.'
+    },
+    {
+      successMessage: 'Receita removida com sucesso!',
+      errorMessage: 'Falha ao remover a receita.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    deleteTransaction(id)
-    toast({ title: 'Removido', description: 'Receita removida.' })
+    deleteOperation.execute(id)
   }
 
   const openNew = () => {
     setSelectedIncome(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (income: Transaction) => {
     setSelectedIncome(income)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const getAccountName = (id?: string) => {
@@ -218,8 +240,8 @@ export function IncomeList() {
       </div>
 
       <TransactionDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         transactionToEdit={selectedIncome}
         onSave={handleSave}
         defaultType="Receita"

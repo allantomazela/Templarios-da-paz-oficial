@@ -24,48 +24,70 @@ import {
   Pencil,
 } from 'lucide-react'
 import { DocumentDialog } from './DocumentDialog'
-import { useToast } from '@/hooks/use-toast'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
 
 export function DocumentsList() {
   const [documents, setDocuments] = useState<LodgeDocument[]>(mockDocuments)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedDoc, setSelectedDoc] = useState<LodgeDocument | null>(null)
-  const { toast } = useToast()
 
-  const handleSave = (data: any) => {
-    if (selectedDoc) {
-      setDocuments(
-        documents.map((d) => (d.id === selectedDoc.id ? { ...d, ...data } : d)),
-      )
-      toast({ title: 'Sucesso', description: 'Metadados atualizados.' })
-    } else {
-      const newDoc: LodgeDocument = {
-        id: String(documents.length + 1),
-        uploadDate: format(new Date(), 'yyyy-MM-dd'),
-        type: 'PDF', // Mocked type
-        url: '#',
-        ...data,
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedDoc) {
+        setDocuments(
+          documents.map((d) => (d.id === selectedDoc.id ? { ...d, ...data } : d)),
+        )
+        return 'Metadados atualizados com sucesso.'
+      } else {
+        const newDoc: LodgeDocument = {
+          id: String(documents.length + 1),
+          uploadDate: format(new Date(), 'yyyy-MM-dd'),
+          type: 'PDF',
+          url: '#',
+          ...data,
+        }
+        setDocuments([newDoc, ...documents])
+        return 'Documento enviado com sucesso.'
       }
-      setDocuments([newDoc, ...documents])
-      toast({ title: 'Sucesso', description: 'Documento enviado.' })
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o documento.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      setDocuments(documents.filter((d) => d.id !== id))
+      return 'Documento excluído.'
+    },
+    {
+      successMessage: 'Documento removido com sucesso!',
+      errorMessage: 'Falha ao remover o documento.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    setDocuments(documents.filter((d) => d.id !== id))
-    toast({ title: 'Removido', description: 'Documento excluído.' })
+    deleteOperation.execute(id)
   }
 
   const openEdit = (doc: LodgeDocument) => {
     setSelectedDoc(doc)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openNew = () => {
     setSelectedDoc(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -142,8 +164,8 @@ export function DocumentsList() {
       </div>
 
       <DocumentDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         documentToEdit={selectedDoc}
         onSave={handleSave}
       />

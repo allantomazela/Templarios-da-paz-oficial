@@ -1,3 +1,5 @@
+import { logError } from '@/lib/logger'
+
 /**
  * Utility functions for CEP (Brazilian postal code) lookup
  */
@@ -41,7 +43,7 @@ export async function fetchCEPData(cep: string): Promise<CEPData | null> {
 
     return data
   } catch (error) {
-    console.error('Error fetching CEP:', error)
+    logError('Error fetching CEP', error)
     return null
   }
 }

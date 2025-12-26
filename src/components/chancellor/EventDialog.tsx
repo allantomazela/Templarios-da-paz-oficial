@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -98,6 +99,11 @@ export function EventDialog({
           <DialogTitle>
             {eventToEdit ? 'Editar Evento' : 'Novo Evento'}
           </DialogTitle>
+          <DialogDescription>
+            {eventToEdit
+              ? 'Atualize as informações do evento.'
+              : 'Crie um novo evento ou sessão para a agenda da loja.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">

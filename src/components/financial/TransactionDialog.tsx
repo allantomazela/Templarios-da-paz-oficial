@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
@@ -102,6 +103,11 @@ export function TransactionDialog({
             {transactionToEdit ? 'Editar' : 'Nova'}{' '}
             {defaultType === 'Receita' ? 'Receita' : 'Despesa'}
           </DialogTitle>
+          <DialogDescription>
+            {transactionToEdit
+              ? 'Atualize as informações da transação.'
+              : `Registre uma nova ${defaultType === 'Receita' ? 'receita' : 'despesa'}.`}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">

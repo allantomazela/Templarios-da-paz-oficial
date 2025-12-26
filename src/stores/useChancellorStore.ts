@@ -15,6 +15,7 @@ import {
   mockLocations,
   mockNotifications,
 } from '@/lib/data'
+import { devLog } from '@/lib/logger'
 
 interface ChancellorState {
   sessionRecords: SessionRecord[]
@@ -108,7 +109,14 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
       ),
     })),
 
-  addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
+  addEvent: (event) => {
+    devLog(`useChancellorStore: Adicionando evento - ID: ${event.id}, Título: ${event.title}, Data: ${event.date}`)
+    set((state) => {
+      const newEvents = [...state.events, event]
+      devLog(`useChancellorStore: Total de eventos após adicionar: ${newEvents.length}`)
+      return { events: newEvents }
+    })
+  },
   updateEvent: (event) =>
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),

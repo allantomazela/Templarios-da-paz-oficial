@@ -23,9 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# Evaluation screenshots
-screenshot.png
-.eslintcache
-
 # Environment variables
-.env*
+.env
+.env.local
+.env*.local
+
+# Test coverage
+coverage
+.nyc_output
+
+# Vitest
+.vitest

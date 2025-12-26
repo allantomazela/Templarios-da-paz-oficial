@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 
 export interface MediaFile {
@@ -56,7 +57,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         set({ files: files as MediaFile[] })
       }
     } catch (error) {
-      console.error('Error fetching files:', error)
+      logError('Error fetching files:', error)
     } finally {
       set({ loading: false })
     }
@@ -74,7 +75,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         files: state.files.filter((f) => f.name !== fileName),
       }))
     } catch (error) {
-      console.error('Error deleting file:', error)
+      logError('Error deleting file:', error)
       throw error
     }
   },

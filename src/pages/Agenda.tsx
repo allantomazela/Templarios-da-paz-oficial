@@ -60,6 +60,7 @@ import {
 } from '@/components/agenda/EventDetailsSheet'
 import { LocationManagerDialog } from '@/components/agenda/LocationManagerDialog'
 import { useToast } from '@/hooks/use-toast'
+import { logError, devLog } from '@/lib/logger'
 import { Event } from '@/lib/data'
 import { cn } from '@/lib/utils'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -194,12 +195,21 @@ export default function Agenda() {
     try {
       if (eventToEdit) {
         updateEvent({ ...eventToEdit, ...data })
+        devLog('Agenda: Evento atualizado:', { ...eventToEdit, ...data })
         toast({
           title: 'Evento Atualizado',
           description: 'As alterações foram salvas com sucesso.',
         })
       } else {
-        addEvent({ id: crypto.randomUUID(), ...data })
+        const newEvent = { id: crypto.randomUUID(), ...data }
+        addEvent(newEvent)
+        devLog('Agenda: Novo evento criado:', newEvent)
+        // Verificar se foi salvo corretamente
+        setTimeout(() => {
+          const currentEvents = useChancellorStore.getState().events
+          devLog(`Agenda: Total de eventos após adicionar: ${currentEvents.length}`)
+          devLog('Agenda: Último evento no store:', currentEvents[currentEvents.length - 1])
+        }, 100)
         toast({
           title: 'Evento Criado',
           description: 'Novo evento adicionado à agenda.',
@@ -207,7 +217,7 @@ export default function Agenda() {
       }
       setIsEventDialogOpen(false)
     } catch (error) {
-      console.error(error)
+      logError('Error saving event', error)
       toast({
         variant: 'destructive',
         title: 'Erro',

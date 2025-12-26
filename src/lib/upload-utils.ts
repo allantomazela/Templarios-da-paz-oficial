@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import { logWarning, logError } from '@/lib/logger'
 
 /**
  * Uploads a file to Supabase Storage via Edge Function for optimization.
@@ -42,8 +43,8 @@ export async function uploadToStorage(
       const { data, error } = response
 
       if (error) {
-        console.warn(
-          'Edge Function optimization failed, falling back to direct upload:',
+        logWarning(
+          'Edge Function optimization failed, falling back to direct upload',
           error,
         )
         // Throwing here will trigger the catch block which handles the fallback
@@ -54,10 +55,7 @@ export async function uploadToStorage(
         return data.publicUrl
       }
     } catch (e) {
-      console.warn(
-        'Error invoking optimize-image (or timeout), using fallback:',
-        e,
-      )
+      logWarning('Error invoking optimize-image (or timeout), using fallback', e)
       // Continue to fallback implementation below
     }
   }
@@ -80,7 +78,7 @@ export async function uploadToStorage(
     })
 
   if (uploadError) {
-    console.error('Direct upload error:', uploadError)
+    logError('Direct upload error', uploadError)
     throw new Error('Falha no upload da imagem. Por favor, tente novamente.')
   }
 

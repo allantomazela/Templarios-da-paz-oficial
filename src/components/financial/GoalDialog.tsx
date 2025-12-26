@@ -6,6 +6,7 @@ import { FinancialGoal } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -57,7 +58,7 @@ export function GoalDialog({
     defaultValues: {
       name: '',
       targetAmount: 0,
-      linkedCategory: '',
+      linkedCategory: undefined,
       deadline: '',
     },
   })
@@ -67,14 +68,14 @@ export function GoalDialog({
       form.reset({
         name: goalToEdit.name,
         targetAmount: goalToEdit.targetAmount,
-        linkedCategory: goalToEdit.linkedCategory || '',
+        linkedCategory: goalToEdit.linkedCategory || undefined,
         deadline: goalToEdit.deadline,
       })
     } else {
       form.reset({
         name: '',
         targetAmount: 0,
-        linkedCategory: '',
+        linkedCategory: undefined,
         deadline: '',
       })
     }
@@ -90,6 +91,11 @@ export function GoalDialog({
           <DialogTitle>
             {goalToEdit ? 'Editar Meta Financeira' : 'Nova Meta Financeira'}
           </DialogTitle>
+          <DialogDescription>
+            {goalToEdit
+              ? 'Atualize as informações da meta financeira.'
+              : 'Crie uma nova meta financeira para acompanhar seus objetivos.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
@@ -141,17 +147,15 @@ export function GoalDialog({
                 <FormItem>
                   <FormLabel>Categoria Vinculada (Fonte de Recursos)</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
+                    onValueChange={(value) => field.onChange(value || undefined)}
+                    value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione (Opcional)" />
+                        <SelectValue placeholder="Nenhuma (Manual)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma (Manual)</SelectItem>
                       {revenueCategories.map((c) => (
                         <SelectItem key={c.id} value={c.name}>
                           {c.name}

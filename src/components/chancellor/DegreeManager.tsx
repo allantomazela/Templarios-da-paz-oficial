@@ -27,15 +27,15 @@ import { Label } from '@/components/ui/label'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { format } from 'date-fns'
 import { Pencil, Search } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { Brother } from '@/lib/data'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function DegreeManager() {
   const { brothers, updateBrotherDegree } = useChancellorStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [editingBrother, setEditingBrother] = useState<Brother | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const { toast } = useToast()
+  const dialog = useDialog()
 
   // Form State
   const [formData, setFormData] = useState({
@@ -57,22 +57,32 @@ export function DegreeManager() {
       elevationDate: brother.elevationDate || '',
       exaltationDate: brother.exaltationDate || '',
     })
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
-  const handleSave = () => {
-    if (editingBrother) {
-      updateBrotherDegree(editingBrother.id, {
-        degree: formData.degree as any,
-        initiationDate: formData.initiationDate,
-        elevationDate: formData.elevationDate,
-        exaltationDate: formData.exaltationDate,
-      })
-      toast({
-        title: 'Dados Atualizados',
-        description: `Registro do Ir. ${editingBrother.name} atualizado.`,
-      })
-      setIsDialogOpen(false)
+  const saveOperation = useAsyncOperation(
+    async () => {
+      if (editingBrother) {
+        updateBrotherDegree(editingBrother.id, {
+          degree: formData.degree as any,
+          initiationDate: formData.initiationDate,
+          elevationDate: formData.elevationDate,
+          exaltationDate: formData.exaltationDate,
+        })
+        return `Registro do Ir. ${editingBrother.name} atualizado com sucesso.`
+      }
+      return null
+    },
+    {
+      successMessage: 'Dados atualizados com sucesso!',
+      errorMessage: 'Falha ao atualizar os dados.',
+    },
+  )
+
+  const handleSave = async () => {
+    const result = await saveOperation.execute()
+    if (result) {
+      dialog.closeDialog()
     }
   }
 
@@ -132,7 +142,7 @@ export function DegreeManager() {
         </Table>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Atualizar Grau e Datas</DialogTitle>
@@ -191,7 +201,7 @@ export function DegreeManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => dialog.closeDialog()}>
               Cancelar
             </Button>
             <Button onClick={handleSave}>Salvar Alterações</Button>

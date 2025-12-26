@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import useRedirectsStore from '@/stores/useRedirectsStore'
+import { logDebug } from '@/lib/logger'
 
 export function RedirectHandler() {
   const location = useLocation()
@@ -27,7 +28,7 @@ export function RedirectHandler() {
     )
 
     if (match) {
-      console.log(`Redirecting from ${currentPath} to ${match.target_path}`)
+      logDebug(`Redirecting from ${currentPath} to ${match.target_path}`)
       navigate(match.target_path, { replace: true })
     }
   }, [location.pathname, redirects, navigate])

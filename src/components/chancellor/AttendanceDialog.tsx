@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -19,13 +20,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Event,
   SessionRecord,
   Attendance,
@@ -33,10 +27,8 @@ import {
   Brother,
 } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
-import useFinancialStore from '@/stores/useFinancialStore'
-import { format } from 'date-fns'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
+import { format, parseISO } from 'date-fns'
+import { Check, X, FileText } from 'lucide-react'
 
 interface AttendanceDialogProps {
   open: boolean
@@ -59,9 +51,7 @@ export function AttendanceDialog({
     bulkAddAttendance,
     attendanceRecords,
   } = useChancellorStore()
-  const { addTransaction, accounts } = useFinancialStore()
 
-  const [charityValue, setCharityValue] = useState<number>(0)
   const [observations, setObservations] = useState<string>('')
   const [attendances, setAttendances] = useState<
     {
@@ -75,7 +65,6 @@ export function AttendanceDialog({
     if (open) {
       // Initialize state
       if (existingSessionRecord) {
-        setCharityValue(existingSessionRecord.charityCollection)
         setObservations(existingSessionRecord.observations)
 
         // Load existing attendances
@@ -93,12 +82,11 @@ export function AttendanceDialog({
           }),
         )
       } else {
-        setCharityValue(0)
         setObservations('')
         setAttendances(
           mockBrothers.map((b) => ({
             brotherId: b.id,
-            status: 'Ausente', // Default to absent or present? Usually Absent until checked.
+            status: 'Ausente', // Default to absent until checked
             justification: '',
           })),
         )
@@ -134,7 +122,7 @@ export function AttendanceDialog({
       id: recordId,
       eventId: event.id,
       date: event.date,
-      charityCollection: charityValue,
+      charityCollection: 0, // Mantido para compatibilidade, mas não será mais editado aqui
       observations: observations,
       status: 'Finalizada',
     }
@@ -155,25 +143,6 @@ export function AttendanceDialog({
     }))
     bulkAddAttendance(newAttendances)
 
-    // Financial Integration
-    // Only if creating new or if value changed (simplification: always add if value > 0 and not tracked - logic for update is complex in mock without ID tracking)
-    // For this user story: "automatically create... once saved"
-    if (charityValue > 0 && !existingSessionRecord) {
-      // Find a default account (e.g., 'Caixa da Tesouraria' or first one)
-      const accountId =
-        accounts.find((a) => a.type === 'Caixa')?.id || accounts[0]?.id
-
-      addTransaction({
-        id: crypto.randomUUID(),
-        date: event.date,
-        description: `Tronco de Beneficência - Sessão ${format(new Date(event.date), 'dd/MM')}`,
-        category: 'Tronco de Beneficência',
-        type: 'Receita',
-        amount: charityValue,
-        accountId: accountId,
-      })
-    }
-
     onSave()
     onOpenChange(false)
   }
@@ -185,29 +154,21 @@ export function AttendanceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Registro de Presença e Tronco</DialogTitle>
+          <DialogTitle>Registro de Presença</DialogTitle>
+          <DialogDescription>
+            Registre a presença dos irmãos neste evento. O tronco de beneficência
+            deve ser registrado no módulo Financeiro.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4">
             <div>
               <Label>Evento</Label>
               <div className="text-sm font-medium">{event?.title}</div>
               <div className="text-xs text-muted-foreground">
-                {event?.date ? format(new Date(event.date), 'dd/MM/yyyy') : ''}
+                {event?.date ? format(parseISO(event.date), 'dd/MM/yyyy') : ''}
               </div>
-            </div>
-            <div>
-              <Label>Tronco de Beneficência (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={charityValue}
-                onChange={(e) =>
-                  setCharityValue(parseFloat(e.target.value) || 0)
-                }
-              />
             </div>
             <div className="flex flex-col justify-center items-center bg-secondary/20 rounded-md">
               <span className="text-xs text-muted-foreground">
@@ -244,23 +205,46 @@ export function AttendanceDialog({
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={att.status}
-                            onValueChange={(val: any) =>
-                              handleStatusChange(att.brotherId, val)
-                            }
-                          >
-                            <SelectTrigger className="w-[130px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Presente">Presente</SelectItem>
-                              <SelectItem value="Ausente">Ausente</SelectItem>
-                              <SelectItem value="Justificado">
-                                Justificado
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex gap-1 flex-wrap">
+                            <Button
+                              type="button"
+                              variant={att.status === 'Presente' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() =>
+                                handleStatusChange(att.brotherId, 'Presente')
+                              }
+                              className="flex-1 min-w-[80px]"
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Presente
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={att.status === 'Ausente' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() =>
+                                handleStatusChange(att.brotherId, 'Ausente')
+                              }
+                              className="flex-1 min-w-[80px]"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Ausente
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={
+                                att.status === 'Justificado' ? 'default' : 'outline'
+                              }
+                              size="sm"
+                              onClick={() =>
+                                handleStatusChange(att.brotherId, 'Justificado')
+                              }
+                              className="flex-1 min-w-[100px]"
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              Justificado
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Input

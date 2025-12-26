@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
+import { logError } from '@/lib/logger'
 
 export interface NewsEvent {
   id: string
@@ -59,7 +60,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
-      console.error('Error fetching news:', error)
+      logError('Error fetching news:', error)
     } finally {
       set({ loading: false })
     }
@@ -82,7 +83,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
-      console.error('Error fetching public news:', error)
+      logError('Error fetching public news:', error)
     } finally {
       set({ loading: false })
     }
@@ -111,7 +112,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         }))
       }
     } catch (error) {
-      console.error('Error adding news:', error)
+      logError('Error adding news:', error)
       throw error
     }
   },
@@ -143,7 +144,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         }))
       }
     } catch (error) {
-      console.error('Error updating news:', error)
+      logError('Error updating news:', error)
       throw error
     }
   },
@@ -158,7 +159,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         news: state.news.filter((n) => n.id !== id),
       }))
     } catch (error) {
-      console.error('Error deleting news:', error)
+      logError('Error deleting news:', error)
       throw error
     }
   },

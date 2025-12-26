@@ -9,6 +9,7 @@ import { BudgetsAndGoals } from '@/components/financial/BudgetsAndGoals'
 import { ReminderSettings } from '@/components/financial/ReminderSettings'
 import { BankAccounts } from '@/components/financial/BankAccounts'
 import { CashFlowReport } from '@/components/financial/CashFlowReport'
+import { CharityCollection } from '@/components/financial/CharityCollection'
 
 export default function Financial() {
   return (
@@ -28,6 +29,7 @@ export default function Financial() {
             <TabsTrigger value="cash-flow">Fluxo de Caixa</TabsTrigger>
             <TabsTrigger value="income">Receitas</TabsTrigger>
             <TabsTrigger value="expenses">Despesas</TabsTrigger>
+            <TabsTrigger value="charity">Tronco de Beneficência</TabsTrigger>
             <TabsTrigger value="contributions">Contribuições</TabsTrigger>
             <TabsTrigger value="budgets">Metas e Orçamentos</TabsTrigger>
             <TabsTrigger value="reports">Outros Relatórios</TabsTrigger>
@@ -54,6 +56,10 @@ export default function Financial() {
 
         <TabsContent value="expenses">
           <ExpenseList />
+        </TabsContent>
+
+        <TabsContent value="charity">
+          <CharityCollection />
         </TabsContent>
 
         <TabsContent value="contributions">

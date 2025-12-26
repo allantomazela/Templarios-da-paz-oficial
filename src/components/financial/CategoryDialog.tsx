@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
@@ -99,6 +100,11 @@ export function CategoryDialog({
           <DialogTitle>
             {categoryToEdit ? 'Editar Categoria' : 'Nova Categoria'}
           </DialogTitle>
+          <DialogDescription>
+            {categoryToEdit
+              ? 'Atualize as informações da categoria.'
+              : 'Crie uma nova categoria para organizar receitas e despesas.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form

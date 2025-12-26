@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
@@ -109,6 +110,11 @@ export function ContributionDialog({
           <DialogTitle>
             {contributionToEdit ? 'Editar' : 'Nova'} Contribuição
           </DialogTitle>
+          <DialogDescription>
+            {contributionToEdit
+              ? 'Atualize as informações da contribuição.'
+              : 'Registre uma nova contribuição de um irmão.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">

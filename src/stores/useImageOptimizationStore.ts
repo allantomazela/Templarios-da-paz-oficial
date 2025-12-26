@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 import { uploadToStorage } from '@/lib/upload-utils'
 
@@ -136,7 +137,7 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
 
         set({ tasks: foundTasks })
       } catch (error) {
-        console.error('Scan failed:', error)
+        logError('Scan failed:', error)
       } finally {
         set({ scanning: false })
       }
@@ -199,7 +200,7 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
             ),
           }))
         } catch (error: any) {
-          console.error(`Error processing ${task.id}:`, error)
+          logError(`Error processing ${task.id}:`, error)
           set((state) => ({
             tasks: state.tasks.map((t) =>
               t.id === task.id

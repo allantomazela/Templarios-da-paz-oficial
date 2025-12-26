@@ -4,51 +4,73 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { NoticeDialog } from './NoticeDialog'
-import { useToast } from '@/hooks/use-toast'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
 
 export function NoticesList() {
   const [notices, setNotices] = useState<Announcement[]>(mockAnnouncements)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedNotice, setSelectedNotice] = useState<Announcement | null>(
     null,
   )
-  const { toast } = useToast()
 
-  const handleSave = (data: any) => {
-    if (selectedNotice) {
-      setNotices(
-        notices.map((n) =>
-          n.id === selectedNotice.id ? { ...n, ...data } : n,
-        ),
-      )
-      toast({ title: 'Sucesso', description: 'Aviso atualizado.' })
-    } else {
-      const newNotice: Announcement = {
-        id: String(notices.length + 1),
-        date: format(new Date(), 'yyyy-MM-dd'),
-        author: 'Você', // Mocked user
-        ...data,
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedNotice) {
+        setNotices(
+          notices.map((n) =>
+            n.id === selectedNotice.id ? { ...n, ...data } : n,
+          ),
+        )
+        return 'Aviso atualizado com sucesso.'
+      } else {
+        const newNotice: Announcement = {
+          id: String(notices.length + 1),
+          date: format(new Date(), 'yyyy-MM-dd'),
+          author: 'Você',
+          ...data,
+        }
+        setNotices([newNotice, ...notices])
+        return 'Aviso publicado com sucesso.'
       }
-      setNotices([newNotice, ...notices])
-      toast({ title: 'Sucesso', description: 'Aviso publicado.' })
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o aviso.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      setNotices(notices.filter((n) => n.id !== id))
+      return 'O aviso foi removido.'
+    },
+    {
+      successMessage: 'Aviso removido com sucesso!',
+      errorMessage: 'Falha ao remover o aviso.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    setNotices(notices.filter((n) => n.id !== id))
-    toast({ title: 'Removido', description: 'O aviso foi removido.' })
+    deleteOperation.execute(id)
   }
 
   const openEdit = (notice: Announcement) => {
     setSelectedNotice(notice)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openNew = () => {
     setSelectedNotice(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -101,8 +123,8 @@ export function NoticesList() {
       </div>
 
       <NoticeDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         noticeToEdit={selectedNotice}
         onSave={handleSave}
       />

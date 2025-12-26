@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Mail, Reply, Send } from 'lucide-react'
 import { MessageDialog } from './MessageDialog'
-import { useToast } from '@/hooks/use-toast'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
 import {
   Accordion,
@@ -14,38 +15,66 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { supabase } from '@/lib/supabase/client'
 
 export function MessagesList() {
   const [messages, setMessages] = useState<Message[]>(mockMessages)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [replyTo, setReplyTo] = useState<string | undefined>(undefined)
-  const { toast } = useToast()
 
-  const handleSend = (data: any) => {
-    const newMessage: Message = {
-      id: String(messages.length + 1),
-      date: format(new Date(), 'yyyy-MM-dd'),
-      sender: 'Você',
-      senderId: 'me',
-      recipients: [data.recipient],
-      read: true,
-      type: 'sent',
-      ...data,
+  const sendOperation = useAsyncOperation(
+    async (data: any) => {
+      const newMessage: Message = {
+        id: String(messages.length + 1),
+        date: format(new Date(), 'yyyy-MM-dd'),
+        sender: 'Você',
+        senderId: 'me',
+        recipients: [data.recipient],
+        read: true,
+        type: 'sent',
+        ...data,
+      }
+      setMessages([newMessage, ...messages])
+      return 'Mensagem enviada com sucesso.'
+    },
+    {
+      successMessage: 'Mensagem enviada com sucesso!',
+      errorMessage: 'Falha ao enviar a mensagem.',
+    },
+  )
+
+  const handleSend = async (data: any) => {
+    const result = await sendOperation.execute(data)
+    if (result) {
+      // Criar notificação no banco
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Buscar IDs dos destinatários
+        const recipients = data.recipients // Array de IDs ou emails
+        
+        for (const recipientId of recipients) {
+          await supabase.from('notifications').insert({
+            profile_id: recipientId,
+            title: 'Nova Mensagem Interna',
+            message: `Você recebeu uma mensagem: ${data.subject}`,
+            link: '/dashboard/secretariat?tab=messages',
+          })
+        }
+      }
+      
+      dialog.closeDialog()
+      setReplyTo(undefined)
     }
-    setMessages([newMessage, ...messages])
-    toast({ title: 'Enviada', description: 'Mensagem enviada com sucesso.' })
-    setIsDialogOpen(false)
-    setReplyTo(undefined)
   }
 
   const openNew = () => {
     setReplyTo(undefined)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const handleReply = (sender: string) => {
-    setReplyTo(sender) // Simplification for mock
-    setIsDialogOpen(true)
+    setReplyTo(sender)
+    dialog.openDialog()
   }
 
   const receivedMessages = messages.filter((m) => m.type === 'received')
@@ -136,8 +165,8 @@ export function MessagesList() {
       </Tabs>
 
       <MessageDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         onSend={handleSend}
         defaultRecipient={replyTo}
       />

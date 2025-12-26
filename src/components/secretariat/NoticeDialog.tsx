@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -62,6 +63,11 @@ export function NoticeDialog({
           <DialogTitle>
             {noticeToEdit ? 'Editar Aviso' : 'Criar Novo Aviso'}
           </DialogTitle>
+          <DialogDescription>
+            {noticeToEdit
+              ? 'Atualize as informações do aviso.'
+              : 'Crie um novo aviso para o mural da loja.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">

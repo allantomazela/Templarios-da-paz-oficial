@@ -33,11 +33,13 @@ export function ReportAccessControl() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
-        <ShieldAlert className="h-5 w-5 mt-0.5 shrink-0" />
+      <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+        <ShieldAlert className="h-5 w-5 mt-0.5 shrink-0 text-amber-700 dark:text-amber-400" />
         <div>
-          <h4 className="font-semibold text-sm">Zona de Segurança</h4>
-          <p className="text-sm">
+          <h4 className="font-semibold text-sm text-amber-900 dark:text-amber-100">
+            Zona de Segurança
+          </h4>
+          <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
             Alterações aqui afetam imediatamente quem pode visualizar dados
             sensíveis da loja. Certifique-se de conceder acesso apenas a quem
             realmente necessita.

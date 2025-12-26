@@ -13,45 +13,67 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Solid, mockBrothers } from '@/lib/data'
 import { SolidDialog } from './SolidDialog'
-import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function SolidsManager() {
   const { solids, addSolid, updateSolid, deleteSolid } = useChancellorStore()
   const [searchTerm, setSearchTerm] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedSolid, setSelectedSolid] = useState<Solid | null>(null)
-  const { toast } = useToast()
 
   const filteredSolids = solids.filter((solid) =>
     solid.description.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleSave = (data: any) => {
-    if (selectedSolid) {
-      updateSolid({ ...selectedSolid, ...data })
-      toast({ title: 'Sucesso', description: 'Sólido atualizado.' })
-    } else {
-      addSolid({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Sólido registrado.' })
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedSolid) {
+        updateSolid({ ...selectedSolid, ...data })
+        return 'Sólido atualizado com sucesso.'
+      } else {
+        addSolid({ id: crypto.randomUUID(), ...data })
+        return 'Sólido registrado com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o sólido.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteSolid(id)
+      return 'Sólido removido.'
+    },
+    {
+      successMessage: 'Sólido removido com sucesso!',
+      errorMessage: 'Falha ao remover o sólido.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDelete = (id: string) => {
-    deleteSolid(id)
-    toast({ title: 'Removido', description: 'Sólido removido.' })
+    deleteOperation.execute(id)
   }
 
   const openNew = () => {
     setSelectedSolid(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (solid: Solid) => {
     setSelectedSolid(solid)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const getBrotherName = (id?: string) => {
@@ -157,8 +179,8 @@ export function SolidsManager() {
       </div>
 
       <SolidDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         solidToEdit={selectedSolid}
         onSave={handleSave}
       />

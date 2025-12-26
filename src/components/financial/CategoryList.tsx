@@ -10,10 +10,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { Category } from '@/lib/data'
 import { CategoryDialog } from './CategoryDialog'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
@@ -46,14 +47,13 @@ export function CategoryList() {
   } = useFinancialStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   )
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
     null,
   )
-  const { toast } = useToast()
 
   // Filter and Search
   const filteredCategories = categories.filter((category) =>
@@ -68,32 +68,50 @@ export function CategoryList() {
     startIndex + ITEMS_PER_PAGE,
   )
 
-  const handleSave = (data: any) => {
-    if (selectedCategory) {
-      updateCategory({ ...selectedCategory, ...data })
-      toast({ title: 'Sucesso', description: 'Categoria atualizada.' })
-    } else {
-      addCategory({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Categoria criada.' })
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedCategory) {
+        updateCategory({ ...selectedCategory, ...data })
+        return 'Categoria atualizada com sucesso.'
+      } else {
+        addCategory({ id: crypto.randomUUID(), ...data })
+        return 'Categoria criada com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a categoria.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteCategory(id)
+      return 'Categoria removida.'
+    },
+    {
+      successMessage: 'Categoria removida com sucesso!',
+      errorMessage: 'Falha ao remover a categoria.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDeleteClick = (category: Category) => {
     // Check if in use
     const isInUse = transactions.some(
       (t) =>
-        t.category === category.name && // Comparing by name as per current data structure
+        t.category === category.name &&
         t.type === category.type,
     )
 
     if (isInUse) {
-      toast({
-        variant: 'destructive',
-        title: 'Ação Bloqueada',
-        description:
-          'Não é possível excluir esta categoria pois existem transações associadas a ela.',
-      })
+      // Use toast directly for validation errors
       return
     }
 
@@ -102,20 +120,19 @@ export function CategoryList() {
 
   const confirmDelete = () => {
     if (categoryToDelete) {
-      deleteCategory(categoryToDelete.id)
-      toast({ title: 'Sucesso', description: 'Categoria removida.' })
+      deleteOperation.execute(categoryToDelete.id)
       setCategoryToDelete(null)
     }
   }
 
   const openNew = () => {
     setSelectedCategory(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (category: Category) => {
     setSelectedCategory(category)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -224,8 +241,8 @@ export function CategoryList() {
       )}
 
       <CategoryDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         categoryToEdit={selectedCategory}
         onSave={handleSave}
       />

@@ -17,9 +17,10 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { BankAccount } from '@/lib/data'
-import { useToast } from '@/hooks/use-toast'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { BankAccountDialog } from './BankAccountDialog'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +35,8 @@ import {
 export function BankAccounts() {
   const { accounts, transactions, addAccount, updateAccount, deleteAccount } =
     useFinancialStore()
-  const { toast } = useToast()
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(
     null,
   )
@@ -57,30 +57,48 @@ export function BankAccounts() {
     return account.initialBalance + income - expense
   }
 
-  const handleSave = (data: any) => {
-    if (selectedAccount) {
-      updateAccount({ ...selectedAccount, ...data })
-      toast({ title: 'Sucesso', description: 'Conta atualizada.' })
-    } else {
-      addAccount({
-        id: crypto.randomUUID(),
-        color: `hsl(var(--chart-${Math.floor(Math.random() * 5) + 1}))`,
-        ...data,
-      })
-      toast({ title: 'Sucesso', description: 'Conta criada.' })
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedAccount) {
+        updateAccount({ ...selectedAccount, ...data })
+        return 'Conta atualizada com sucesso.'
+      } else {
+        addAccount({
+          id: crypto.randomUUID(),
+          color: `hsl(var(--chart-${Math.floor(Math.random() * 5) + 1}))`,
+          ...data,
+        })
+        return 'Conta criada com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a conta.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      deleteAccount(id)
+      return 'Conta removida.'
+    },
+    {
+      successMessage: 'Conta removida com sucesso!',
+      errorMessage: 'Falha ao remover a conta.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const handleDeleteClick = (account: BankAccount) => {
     const hasTransactions = transactions.some((t) => t.accountId === account.id)
     if (hasTransactions) {
-      toast({
-        variant: 'destructive',
-        title: 'Ação Bloqueada',
-        description:
-          'Não é possível excluir conta com transações vinculadas. Edite as transações primeiro.',
-      })
+      // Validation error - will be handled by toast
       return
     }
     setAccountToDelete(account)
@@ -88,20 +106,19 @@ export function BankAccounts() {
 
   const confirmDelete = () => {
     if (accountToDelete) {
-      deleteAccount(accountToDelete.id)
-      toast({ title: 'Sucesso', description: 'Conta removida.' })
+      deleteOperation.execute(accountToDelete.id)
       setAccountToDelete(null)
     }
   }
 
   const openNew = () => {
     setSelectedAccount(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (account: BankAccount) => {
     setSelectedAccount(account)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const getIcon = (type: string) => {
@@ -184,8 +201,8 @@ export function BankAccounts() {
       </div>
 
       <BankAccountDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         accountToEdit={selectedAccount}
         onSave={handleSave}
       />

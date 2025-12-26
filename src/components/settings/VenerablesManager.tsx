@@ -19,64 +19,64 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import useSiteSettingsStore, { Venerable } from '@/stores/useSiteSettingsStore'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { VenerableDialog } from './VenerableDialog'
-import { useToast } from '@/hooks/use-toast'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function VenerablesManager() {
   const { venerables, addVenerable, updateVenerable, deleteVenerable } =
     useSiteSettingsStore()
-  const { toast } = useToast()
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedVenerable, setSelectedVenerable] = useState<Venerable | null>(
     null,
   )
 
-  const handleSave = async (data: any) => {
-    try {
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
       if (selectedVenerable) {
         await updateVenerable({ ...selectedVenerable, ...data })
-        toast({ title: 'Sucesso', description: 'Registro atualizado.' })
+        return 'Registro atualizado com sucesso.'
       } else {
         await addVenerable(data)
-        toast({
-          title: 'Sucesso',
-          description: 'Venerável adicionado à galeria.',
-        })
+        return 'Venerável adicionado à galeria com sucesso.'
       }
-      setIsDialogOpen(false)
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao salvar o registro.',
-      })
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o registro.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      await deleteVenerable(id)
+      return 'Venerável removido da galeria.'
+    },
+    {
+      successMessage: 'Registro removido com sucesso!',
+      errorMessage: 'Falha ao remover o registro.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
   }
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteVenerable(id)
-      toast({
-        title: 'Removido',
-        description: 'Venerável removido da galeria.',
-      })
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao remover o registro.',
-      })
-    }
+    await deleteOperation.execute(id)
   }
 
   const openNew = () => {
     setSelectedVenerable(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (venerable: Venerable) => {
     setSelectedVenerable(venerable)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -154,8 +154,8 @@ export function VenerablesManager() {
       </CardContent>
 
       <VenerableDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         venerableToEdit={selectedVenerable}
         onSave={handleSave}
       />

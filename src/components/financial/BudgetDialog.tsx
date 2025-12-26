@@ -6,6 +6,7 @@ import { Budget } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -58,7 +59,7 @@ export function BudgetDialog({
     defaultValues: {
       name: '',
       type: 'Despesa',
-      category: '',
+      category: undefined,
       amount: 0,
       period: 'Mensal',
     },
@@ -69,7 +70,7 @@ export function BudgetDialog({
       form.reset({
         name: budgetToEdit.name,
         type: budgetToEdit.type,
-        category: budgetToEdit.category || '',
+        category: budgetToEdit.category || undefined,
         amount: budgetToEdit.amount,
         period: budgetToEdit.period,
       })
@@ -77,7 +78,7 @@ export function BudgetDialog({
       form.reset({
         name: '',
         type: 'Despesa',
-        category: '',
+        category: undefined,
         amount: 0,
         period: 'Mensal',
       })
@@ -94,6 +95,11 @@ export function BudgetDialog({
           <DialogTitle>
             {budgetToEdit ? 'Editar Orçamento' : 'Novo Orçamento'}
           </DialogTitle>
+          <DialogDescription>
+            {budgetToEdit
+              ? 'Atualize as informações do orçamento.'
+              : 'Crie um novo orçamento para planejamento financeiro.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
@@ -143,9 +149,8 @@ export function BudgetDialog({
                   <FormItem>
                     <FormLabel>Categoria (Opcional)</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
+                      onValueChange={(value) => field.onChange(value || undefined)}
+                      value={field.value || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -153,7 +158,6 @@ export function BudgetDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
                         {availableCategories.map((c) => (
                           <SelectItem key={c.id} value={c.name}>
                             {c.name}

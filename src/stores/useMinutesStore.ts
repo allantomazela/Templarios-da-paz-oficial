@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
+import { logError } from '@/lib/logger'
 
 export interface Minute {
   id: string
@@ -50,7 +51,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
       if (error) throw error
       set({ minutes: data as Minute[] })
     } catch (error) {
-      console.error('Error fetching minutes:', error)
+      logError('Error fetching minutes:', error)
     } finally {
       set({ loading: false })
     }
@@ -84,7 +85,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
 
       set({ currentMinute: fullMinute })
     } catch (error) {
-      console.error('Error fetching minute details:', error)
+      logError('Error fetching minute details:', error)
     } finally {
       set({ loading: false })
     }
@@ -104,7 +105,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
         minutes: [data as Minute, ...state.minutes],
       }))
     } catch (error) {
-      console.error('Error creating minute:', error)
+      logError('Error creating minute:', error)
       throw error
     }
   },
@@ -128,7 +129,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
             : state.currentMinute,
       }))
     } catch (error) {
-      console.error('Error updating minute:', error)
+      logError('Error updating minute:', error)
       throw error
     }
   },
@@ -144,7 +145,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
           state.currentMinute?.id === id ? null : state.currentMinute,
       }))
     } catch (error) {
-      console.error('Error deleting minute:', error)
+      logError('Error deleting minute:', error)
       throw error
     }
   },
@@ -177,7 +178,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
         }
       })
     } catch (error) {
-      console.error('Error signing minute:', error)
+      logError('Error signing minute:', error)
       throw error
     }
   },

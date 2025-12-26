@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -23,9 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Venerable } from '@/stores/useSiteSettingsStore'
 import { Loader2, Upload, Trash2 } from 'lucide-react'
-import { compressImage } from '@/lib/image-utils'
-import { uploadToStorage } from '@/lib/upload-utils'
-import { useToast } from '@/hooks/use-toast'
+import { useImageUpload } from '@/hooks/use-image-upload'
 
 const venerableSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
@@ -49,9 +47,15 @@ export function VenerableDialog({
   onSave,
 }: VenerableDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const { toast } = useToast()
+
+  const imageUpload = useImageUpload({
+    bucket: 'site-assets',
+    folder: 'venerables',
+    maxSize: 400,
+    quality: 0.8,
+    successMessage: 'Foto do venerável carregada com sucesso.',
+    errorMessage: 'Falha ao carregar a imagem. Tente novamente.',
+  })
 
   const form = useForm<VenerableFormValues>({
     resolver: zodResolver(venerableSchema),
@@ -69,41 +73,26 @@ export function VenerableDialog({
         period: venerableToEdit.period,
         imageUrl: venerableToEdit.imageUrl || '',
       })
+      if (venerableToEdit.imageUrl) {
+        imageUpload.reset()
+      }
     } else {
       form.reset({
         name: '',
         period: '',
         imageUrl: '',
       })
+      imageUpload.reset()
     }
-  }, [venerableToEdit, form, open])
+  }, [venerableToEdit, form, open, imageUpload])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setIsUploading(true)
-    try {
-      const optimizedFile = await compressImage(file, 400) // Avatar size
-      const publicUrl = await uploadToStorage(
-        optimizedFile,
-        'site-assets',
-        'venerables',
-      )
-      form.setValue('imageUrl', publicUrl, { shouldDirty: true })
-      toast({
-        title: 'Upload Concluído',
-        description: 'Foto do venerável carregada.',
-      })
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao carregar a imagem.',
-      })
-    } finally {
-      setIsUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+    const url = await imageUpload.handleUpload(file)
+    if (url) {
+      form.setValue('imageUrl', url, { shouldDirty: true })
     }
   }
 
@@ -137,7 +126,11 @@ export function VenerableDialog({
               <Avatar className="h-20 w-20 border-2">
                 <AvatarImage src={imageUrl} alt="Preview" />
                 <AvatarFallback>
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  {imageUpload.isUploading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  ) : (
+                    'VM'
+                  )}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
@@ -145,10 +138,10 @@ export function VenerableDialog({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
+                  onClick={() => imageUpload.inputRef.current?.click()}
+                  disabled={imageUpload.isUploading}
                 >
-                  {isUploading ? (
+                  {imageUpload.isUploading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <Upload className="mr-2 h-4 w-4" />
@@ -157,7 +150,7 @@ export function VenerableDialog({
                 </Button>
                 <input
                   type="file"
-                  ref={fileInputRef}
+                  ref={imageUpload.inputRef}
                   className="hidden"
                   accept="image/*"
                   onChange={handleFileSelect}
@@ -168,7 +161,10 @@ export function VenerableDialog({
                     variant="ghost"
                     size="sm"
                     className="text-destructive hover:text-destructive text-xs"
-                    onClick={() => form.setValue('imageUrl', '')}
+                    onClick={() => {
+                      form.setValue('imageUrl', '')
+                      imageUpload.reset()
+                    }}
                   >
                     <Trash2 className="mr-2 h-3 w-3" /> Remover
                   </Button>
@@ -222,11 +218,11 @@ export function VenerableDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting || isUploading}
+                disabled={isSubmitting || imageUpload.isUploading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || isUploading}>
+              <Button type="submit" disabled={isSubmitting || imageUpload.isUploading}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}

@@ -20,8 +20,9 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Pencil, Trash2, ArrowRight } from 'lucide-react'
 import useRedirectsStore, { Redirect } from '@/stores/useRedirectsStore'
-import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function RedirectsManager() {
   const {
@@ -32,9 +33,8 @@ export function RedirectsManager() {
     deleteRedirect,
     loading,
   } = useRedirectsStore()
-  const { toast } = useToast()
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedRedirect, setSelectedRedirect] = useState<Redirect | null>(
     null,
   )
@@ -48,10 +48,53 @@ export function RedirectsManager() {
     fetchRedirects()
   }, [fetchRedirects])
 
+  const saveOperation = useAsyncOperation(
+    async () => {
+      if (!formData.source_path || !formData.target_path) {
+        throw new Error('Origem e destino são obrigatórios.')
+      }
+
+      // Ensure source starts with /
+      let source = formData.source_path
+      if (!source.startsWith('/')) source = '/' + source
+
+      if (selectedRedirect) {
+        await updateRedirect(selectedRedirect.id, {
+          source_path: source,
+          target_path: formData.target_path,
+          is_permanent: formData.is_permanent,
+        })
+        return 'Redirecionamento atualizado com sucesso.'
+      } else {
+        await addRedirect({
+          source_path: source,
+          target_path: formData.target_path,
+          is_permanent: formData.is_permanent,
+        })
+        return 'Redirecionamento criado com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar redirecionamento. Verifique se a origem já existe.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      await deleteRedirect(id)
+      return 'Redirecionamento excluído com sucesso.'
+    },
+    {
+      successMessage: 'Redirecionamento removido com sucesso!',
+      errorMessage: 'Falha ao excluir redirecionamento.',
+    },
+  )
+
   const openNew = () => {
     setSelectedRedirect(null)
     setFormData({ source_path: '', target_path: '', is_permanent: true })
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (redirect: Redirect) => {
@@ -61,65 +104,19 @@ export function RedirectsManager() {
       target_path: redirect.target_path,
       is_permanent: redirect.is_permanent,
     })
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const handleSave = async () => {
-    if (!formData.source_path || !formData.target_path) {
-      toast({
-        title: 'Erro',
-        description: 'Origem e destino são obrigatórios.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    // Ensure source starts with /
-    let source = formData.source_path
-    if (!source.startsWith('/')) source = '/' + source
-
-    try {
-      if (selectedRedirect) {
-        await updateRedirect(selectedRedirect.id, {
-          source_path: source,
-          target_path: formData.target_path,
-          is_permanent: formData.is_permanent,
-        })
-        toast({ title: 'Sucesso', description: 'Redirecionamento atualizado.' })
-      } else {
-        await addRedirect({
-          source_path: source,
-          target_path: formData.target_path,
-          is_permanent: formData.is_permanent,
-        })
-        toast({ title: 'Sucesso', description: 'Redirecionamento criado.' })
-      }
-      setIsDialogOpen(false)
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description:
-          'Falha ao salvar redirecionamento. Verifique se a origem já existe.',
-      })
+    const result = await saveOperation.execute()
+    if (result) {
+      dialog.closeDialog()
     }
   }
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este redirecionamento?')) {
-      try {
-        await deleteRedirect(id)
-        toast({
-          title: 'Removido',
-          description: 'Redirecionamento excluído com sucesso.',
-        })
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro',
-          description: 'Falha ao excluir.',
-        })
-      }
+      await deleteOperation.execute(id)
     }
   }
 
@@ -207,7 +204,7 @@ export function RedirectsManager() {
         </Table>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -252,7 +249,7 @@ export function RedirectsManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => dialog.closeDialog()}>
               Cancelar
             </Button>
             <Button onClick={handleSave}>Salvar</Button>

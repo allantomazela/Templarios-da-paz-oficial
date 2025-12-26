@@ -31,8 +31,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Event } from '@/lib/data'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarExportButtons } from './CalendarExportButtons'
-import { EventCheckIn } from './EventCheckIn'
 import { EventNotifications } from './EventNotifications'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 interface EventDetailsSheetProps {
   open: boolean
@@ -277,7 +279,40 @@ export function EventDetailsSheet({
             value="checkin"
             className="flex-1 overflow-hidden p-6 mt-0"
           >
-            <EventCheckIn event={event} />
+            <div className="flex flex-col items-center justify-center h-full space-y-6">
+              <div className="bg-primary/10 p-6 rounded-full">
+                <CalendarCheck className="h-12 w-12 text-primary" />
+              </div>
+              <div className="text-center space-y-2 max-w-md">
+                <h3 className="text-xl font-semibold">
+                  Registro de Presença
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  O registro de presença deve ser realizado no módulo{' '}
+                  <strong>Chanceler</strong>.
+                </p>
+              </div>
+              <Alert className="max-w-md border-primary/20 bg-primary/5">
+                <CalendarCheck className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-sm font-semibold">
+                  Como registrar presença?
+                </AlertTitle>
+                <AlertDescription className="text-sm mt-2 space-y-2">
+                  <p>
+                    Para registrar a presença dos irmãos neste evento, acesse o
+                    módulo <strong>Chanceler</strong> e utilize a seção{' '}
+                    <strong>Controle de Presença</strong>.
+                  </p>
+                  <Link
+                    to="/dashboard/chancellor"
+                    className="inline-flex items-center gap-2 text-primary hover:underline font-medium mt-3"
+                  >
+                    Ir para o módulo Chanceler
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            </div>
           </TabsContent>
 
           <TabsContent

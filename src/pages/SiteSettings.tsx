@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import { logError } from '@/lib/logger'
 import {
   Card,
   CardContent,
@@ -58,7 +59,7 @@ export default function SiteSettings() {
         }
         setIsInitialLoad(false)
       } catch (err) {
-        console.error('Error loading site settings:', err)
+        logError('Error loading site settings', err)
         setError('Erro ao carregar configurações. Tente novamente.')
         setIsInitialLoad(false)
       }

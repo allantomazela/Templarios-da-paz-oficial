@@ -1,33 +1,46 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { Loader2 } from 'lucide-react'
 import DashboardLayout from '@/components/DashboardLayout'
-import Index from '@/pages/Index'
-import Login from '@/pages/Login'
-import ResetPassword from '@/pages/ResetPassword'
-import Dashboard from '@/pages/Dashboard'
-import Secretariat from '@/pages/Secretariat'
-import Financial from '@/pages/Financial'
-import Chancellor from '@/pages/Chancellor'
-import Reports from '@/pages/Reports'
-import Agenda from '@/pages/Agenda'
-import Library from '@/pages/Library'
-import MinutesDetail from '@/pages/MinutesDetail'
-import Admin from '@/pages/Admin'
-import MediaManager from '@/pages/admin/MediaManager'
-import SiteSettings from '@/pages/SiteSettings'
-import NotFound from '@/pages/NotFound'
-import AccessDenied from '@/pages/AccessDenied'
-import { useEffect } from 'react'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import useAuthStore from '@/stores/useAuthStore'
+import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { hexToHSL } from '@/lib/utils'
 import { RoleGuard } from '@/components/RoleGuard'
 import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
 import { SeoManager } from '@/components/SeoManager'
 import { RedirectHandler } from '@/components/RedirectHandler'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
+
+// Lazy load pages for better performance
+const Index = lazy(() => import('@/pages/Index'))
+const Login = lazy(() => import('@/pages/Login'))
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const Secretariat = lazy(() => import('@/pages/Secretariat'))
+const Financial = lazy(() => import('@/pages/Financial'))
+const Chancellor = lazy(() => import('@/pages/Chancellor'))
+const Reports = lazy(() => import('@/pages/Reports'))
+const Agenda = lazy(() => import('@/pages/Agenda'))
+const Library = lazy(() => import('@/pages/Library'))
+const MinutesDetail = lazy(() => import('@/pages/MinutesDetail'))
+const Admin = lazy(() => import('@/pages/Admin'))
+const MediaManager = lazy(() => import('@/pages/admin/MediaManager'))
+const SiteSettings = lazy(() => import('@/pages/SiteSettings'))
+const Profile = lazy(() => import('@/pages/Profile'))
+const UserSettings = lazy(() => import('@/pages/UserSettings'))
+const NotFound = lazy(() => import('@/pages/NotFound'))
+const AccessDenied = lazy(() => import('@/pages/AccessDenied'))
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+)
 
 function ThemeApplicator() {
   const {
@@ -38,11 +51,15 @@ function ThemeApplicator() {
     fetchSettings,
   } = useSiteSettingsStore()
   const { initialize } = useAuthStore()
+  const { fetchPositions } = useLodgePositionsStore()
 
   useEffect(() => {
     fetchSettings()
-    initialize()
-  }, [fetchSettings, initialize])
+    initialize().then(() => {
+      // Carregar cargos após autenticação
+      fetchPositions()
+    })
+  }, [fetchSettings, initialize, fetchPositions])
 
   useEffect(() => {
     if (primaryColor) {
@@ -129,50 +146,103 @@ const App = () => (
       <PWAInstallPrompt />
       <Toaster />
       <Sonner />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/access-denied" element={<AccessDenied />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/access-denied" element={<AccessDenied />} />
 
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="secretariat" element={<Secretariat />} />
-          <Route path="secretariat/minutes/:id" element={<MinutesDetail />} />
-          <Route path="financial" element={<Financial />} />
-          <Route path="chancellor" element={<Chancellor />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="agenda" element={<Agenda />} />
-          <Route path="library" element={<Library />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route
+              path="secretariat"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="secretariat">
+                  <Secretariat />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="secretariat/minutes/:id"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="secretariat">
+                  <MinutesDetail />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="financial"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="financial">
+                  <Financial />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="chancellor"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="chancellor">
+                  <Chancellor />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor', 'member']} requiredModule="reports">
+                  <Reports />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="agenda"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="agenda">
+                  <Agenda />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="library"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="library">
+                  <Library />
+                </RoleGuard>
+              }
+            />
 
-          <Route
-            path="settings"
-            element={
-              <RoleGuard allowedRoles={['admin', 'editor']}>
-                <SiteSettings />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="admin"
-            element={
-              <RoleGuard allowedRoles={['admin']}>
-                <Admin />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="admin/media"
-            element={
-              <RoleGuard allowedRoles={['admin', 'editor']}>
-                <MediaManager />
-              </RoleGuard>
-            }
-          />
-        </Route>
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings/user" element={<UserSettings />} />
+            <Route
+              path="settings"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']}>
+                  <SiteSettings />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin"
+              element={
+                <RoleGuard allowedRoles={['admin']}>
+                  <Admin />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin/media"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor']}>
+                  <MediaManager />
+                </RoleGuard>
+              }
+            />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </TooltipProvider>
   </BrowserRouter>
 )

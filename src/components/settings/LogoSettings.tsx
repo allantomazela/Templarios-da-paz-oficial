@@ -68,7 +68,7 @@ export function LogoSettings() {
         description: 'A imagem do logo foi carregada com sucesso.',
       })
     } catch (error) {
-      console.error(error)
+      logError('Error uploading logo', error)
       toast({
         variant: 'destructive',
         title: 'Erro no Upload',
@@ -106,10 +106,10 @@ export function LogoSettings() {
     try {
       // Favicons should be high quality, recommended 256x256 or 512x512 for best results
       // Browsers will scale down automatically, but higher resolution ensures better quality
-      console.log('Comprimindo imagem do favicon...')
+      logDebug('Comprimindo imagem do favicon...')
       const optimizedFile = await compressImage(file, 256, 0.9)
 
-      console.log('Fazendo upload do favicon...')
+      logDebug('Fazendo upload do favicon...')
       const publicUrl = await uploadToStorage(
         optimizedFile,
         'site-assets',
@@ -124,7 +124,7 @@ export function LogoSettings() {
       })
     } catch (error) {
       clearTimeout(timeoutId)
-      console.error('Erro no upload do favicon:', error)
+      logError('Erro no upload do favicon', error)
       toast({
         variant: 'destructive',
         title: 'Erro no Upload',
@@ -285,11 +285,11 @@ export function LogoSettings() {
                     alt="Favicon"
                     className="w-full h-full object-contain p-1"
                     onError={() => {
-                      console.error('Erro ao carregar favicon:', fUrl)
+                      logError('Erro ao carregar favicon', { url: fUrl })
                       setFaviconError(true)
                     }}
                     onLoad={() => {
-                      console.log('Favicon carregado com sucesso:', fUrl)
+                      logDebug('Favicon carregado com sucesso', { url: fUrl })
                       setFaviconError(false)
                     }}
                   />

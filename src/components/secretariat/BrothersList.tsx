@@ -21,7 +21,8 @@ import { Brother, mockBrothers } from '@/lib/data'
 import { MoreHorizontal, Search, Plus, Eye, Pencil, Power } from 'lucide-react'
 import { BrotherDialog } from './BrotherDialog'
 import { BrotherDetails } from './BrotherDetails'
-import { useToast } from '@/hooks/use-toast'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import {
   Select,
   SelectContent,
@@ -36,10 +37,9 @@ export function BrothersList() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [degreeFilter, setDegreeFilter] = useState('all')
   const [brothers, setBrothers] = useState<Brother[]>(mockBrothers)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const dialog = useDialog()
+  const detailsDialog = useDialog()
   const [selectedBrother, setSelectedBrother] = useState<Brother | null>(null)
-  const { toast } = useToast()
 
   const filteredBrothers = brothers.filter((brother) => {
     const matchesSearch =
@@ -52,54 +52,73 @@ export function BrothersList() {
     return matchesSearch && matchesStatus && matchesDegree
   })
 
-  const handleSave = (data: any) => {
-    if (selectedBrother) {
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedBrother) {
+        setBrothers(
+          brothers.map((b) =>
+            b.id === selectedBrother.id ? { ...b, ...data } : b,
+          ),
+        )
+        return 'Irmão atualizado com sucesso.'
+      } else {
+        const newBrother: Brother = {
+          id: String(brothers.length + 1),
+          role: 'Irmão',
+          status: 'Ativo',
+          attendanceRate: 0,
+          ...data,
+        }
+        setBrothers([...brothers, newBrother])
+        return 'Irmão adicionado com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o registro.',
+    },
+  )
+
+  const toggleStatusOperation = useAsyncOperation(
+    async (brother: Brother) => {
+      const newStatus = brother.status === 'Ativo' ? 'Inativo' : 'Ativo'
       setBrothers(
         brothers.map((b) =>
-          b.id === selectedBrother.id ? { ...b, ...data } : b,
+          b.id === brother.id ? { ...b, status: newStatus } : b,
         ),
       )
-      toast({ title: 'Sucesso', description: 'Irmão atualizado com sucesso.' })
-    } else {
-      const newBrother: Brother = {
-        id: String(brothers.length + 1),
-        role: 'Irmão',
-        status: 'Ativo',
-        attendanceRate: 0,
-        ...data,
-      }
-      setBrothers([...brothers, newBrother])
-      toast({ title: 'Sucesso', description: 'Irmão adicionado com sucesso.' })
+      return `Status de ${brother.name} alterado para ${newStatus}.`
+    },
+    {
+      successMessage: 'Status alterado com sucesso!',
+      errorMessage: 'Falha ao alterar o status.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
-    setIsDialogOpen(false)
   }
 
   const toggleStatus = (brother: Brother) => {
-    const newStatus = brother.status === 'Ativo' ? 'Inativo' : 'Ativo'
-    setBrothers(
-      brothers.map((b) =>
-        b.id === brother.id ? { ...b, status: newStatus } : b,
-      ),
-    )
-    toast({
-      title: 'Status Alterado',
-      description: `Status de ${brother.name} alterado para ${newStatus}.`,
-    })
+    toggleStatusOperation.execute(brother)
   }
 
   const openEdit = (brother: Brother) => {
     setSelectedBrother(brother)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openNew = () => {
     setSelectedBrother(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openDetails = (brother: Brother) => {
     setSelectedBrother(brother)
-    setIsDetailsOpen(true)
+    detailsDialog.openDialog()
   }
 
   return (
@@ -278,15 +297,15 @@ export function BrothersList() {
       </div>
 
       <BrotherDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         brotherToEdit={selectedBrother}
         onSave={handleSave}
       />
 
       <BrotherDetails
-        open={isDetailsOpen}
-        onOpenChange={setIsDetailsOpen}
+        open={detailsDialog.open}
+        onOpenChange={detailsDialog.onOpenChange}
         brother={selectedBrother}
       />
     </div>

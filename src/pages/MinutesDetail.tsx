@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 import useMinutesStore from '@/stores/useMinutesStore'
 import useAuthStore from '@/stores/useAuthStore'
-import { ArrowLeft, PenTool, CheckCircle2, Calendar } from 'lucide-react'
+import { ArrowLeft, PenTool, CheckCircle2, Calendar, Download, Share2, FileText, Printer } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
@@ -56,6 +56,53 @@ export default function MinutesDetail() {
     }
   }
 
+  const handleExportPDF = () => {
+    // Implementar exportação para PDF usando jsPDF ou similar
+    window.print() // Solução temporária - usar window.print()
+  }
+
+  const handleExportWord = () => {
+    const content = `
+ATA DE REUNIÃO
+${currentMinute.title}
+Data: ${format(new Date(currentMinute.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+
+${currentMinute.content}
+
+Assinaturas:
+${currentMinute.signatures?.map(s => `- ${s.profile_name}`).join('\n') || 'Nenhuma assinatura'}
+  `
+    
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ata-${currentMinute.title.replace(/\s+/g, '-')}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: currentMinute.title,
+          text: currentMinute.content.substring(0, 200) + '...',
+          url: window.location.href,
+        })
+      } catch (err) {
+        // Usuário cancelou ou erro
+      }
+    } else {
+      // Fallback: copiar para clipboard
+      navigator.clipboard.writeText(window.location.href)
+      toast({
+        title: 'Link copiado',
+        description: 'Link da ata copiado para a área de transferência.',
+      })
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <Button
@@ -83,8 +130,25 @@ export default function MinutesDetail() {
             </span>
           </div>
         </CardHeader>
+        
+        {/* Adicionar barra de ações */}
+        <div className="flex items-center justify-end gap-2 p-4 border-b bg-muted/5">
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share2 className="h-4 w-4 mr-2" />
+            Compartilhar
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportWord}>
+            <FileText className="h-4 w-4 mr-2" />
+            Exportar TXT
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir/PDF
+          </Button>
+        </div>
+
         <CardContent className="p-8">
-          <div className="prose max-w-none whitespace-pre-wrap font-serif leading-relaxed text-justify">
+          <div className="prose max-w-none whitespace-pre-wrap font-serif leading-relaxed text-justify text-base bg-white p-6 rounded-lg border shadow-sm">
             {currentMinute.content}
           </div>
         </CardContent>

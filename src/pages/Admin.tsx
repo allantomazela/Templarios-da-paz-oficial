@@ -6,11 +6,12 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Shield, History, ArrowRightLeft, Gauge } from 'lucide-react'
+import { Users, Shield, History, ArrowRightLeft, Gauge, Crown } from 'lucide-react'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import { RedirectsManager } from '@/components/admin/RedirectsManager'
 import { ImageOptimizer } from '@/components/admin/ImageOptimizer'
+import { LodgePositionsManager } from '@/components/admin/LodgePositionsManager'
 
 export default function Admin() {
   return (
@@ -29,6 +30,9 @@ export default function Admin() {
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" /> Gestão de Perfis
+          </TabsTrigger>
+          <TabsTrigger value="positions">
+            <Crown className="mr-2 h-4 w-4" /> Cargos Maçônicos
           </TabsTrigger>
           <TabsTrigger value="redirects">
             <ArrowRightLeft className="mr-2 h-4 w-4" /> Redirecionamentos
@@ -55,6 +59,25 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <UserManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="positions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                Gestão de Cargos Maçônicos
+              </CardTitle>
+              <CardDescription>
+                Atribua e gerencie os cargos da diretoria da loja (Venerável
+                Mestre, Secretário, Chanceler, Tesoureiro, Orador). Cada cargo
+                possui permissões específicas de acesso aos módulos do sistema.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LodgePositionsManager />
             </CardContent>
           </Card>
         </TabsContent>

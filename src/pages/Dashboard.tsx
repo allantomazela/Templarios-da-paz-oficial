@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import useAuthStore from '@/stores/useAuthStore'
+import useChancellorStore from '@/stores/useChancellorStore'
 import {
   Card,
   CardContent,
@@ -6,7 +8,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import { mockEvents, mockAnnouncements, mockLibrary } from '@/lib/data'
+import { mockAnnouncements, mockLibrary } from '@/lib/data'
 import {
   CalendarDays,
   BookOpen,
@@ -14,19 +16,51 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, parseISO, isAfter, startOfToday, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
+  const { events } = useChancellorStore()
+
+  // Filtrar e ordenar próximos eventos (futuros ou do dia atual)
+  const upcomingEvents = useMemo(() => {
+    const today = startOfToday()
+
+    return events
+      .filter((event) => {
+        try {
+          const eventDate = parseISO(event.date)
+          return (
+            isAfter(eventDate, today) ||
+            isSameDay(eventDate, today)
+          )
+        } catch {
+          return false
+        }
+      })
+      .sort((a, b) => {
+        try {
+          const dateA = parseISO(a.date)
+          const dateB = parseISO(b.date)
+          return dateA.getTime() - dateB.getTime()
+        } catch {
+          return 0
+        }
+      })
+      .slice(0, 3) // Limitar a 3 eventos
+  }, [events])
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h2 className="text-3xl font-bold tracking-tight">Painel Principal</h2>
-        <p className="text-muted-foreground">Bem-vindo, Ir. {user?.name}!</p>
+        <p className="text-muted-foreground">
+          Bem-vindo, Ir.{' '}
+          {user?.profile?.full_name || user?.email || 'Irmão'}!
+        </p>
       </div>
 
       {/* Widgets Grid */}
@@ -40,38 +74,65 @@ export default function Dashboard() {
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 mt-2">
-              {mockEvents.slice(0, 3).map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-start gap-3 pb-3 border-b border-border/50 last:border-0 last:pb-0"
+            {upcomingEvents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <CalendarDays className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum evento agendado
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Adicione eventos na Agenda para visualizá-los aqui
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
                 >
-                  <div className="flex flex-col items-center justify-center bg-secondary w-12 h-12 rounded-md shrink-0">
-                    <span className="text-xs font-bold uppercase">
-                      {format(new Date(event.date), 'MMM', { locale: ptBR })}
-                    </span>
-                    <span className="text-lg font-bold">
-                      {format(new Date(event.date), 'dd')}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {event.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {event.time} • {event.location}
-                    </p>
-                  </div>
+                  <Link to="/dashboard/agenda">Ir para Agenda</Link>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 mt-2">
+                  {upcomingEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-start gap-3 pb-3 border-b border-border/50 last:border-0 last:pb-0"
+                    >
+                      <div className="flex flex-col items-center justify-center bg-secondary w-12 h-12 rounded-md shrink-0">
+                        <span className="text-xs font-bold uppercase">
+                          {format(parseISO(event.date), 'MMM', { locale: ptBR })}
+                        </span>
+                        <span className="text-lg font-bold">
+                          {format(parseISO(event.date), 'dd')}
+                        </span>
+                      </div>
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-none">
+                          {event.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {event.time} • {event.location}
+                        </p>
+                        {event.type && (
+                          <span className="inline-block text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded mt-1">
+                            {event.type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <Button
-              asChild
-              variant="link"
-              className="w-full mt-2 h-auto p-0 text-primary"
-            >
-              <Link to="/dashboard/agenda">Ver Agenda Completa</Link>
-            </Button>
+                <Button
+                  asChild
+                  variant="link"
+                  className="w-full mt-2 h-auto p-0 text-primary"
+                >
+                  <Link to="/dashboard/agenda">Ver Agenda Completa</Link>
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -74,6 +75,11 @@ export function DocumentDialog({
           <DialogTitle>
             {documentToEdit ? 'Editar Documento' : 'Upload de Documento'}
           </DialogTitle>
+          <DialogDescription>
+            {documentToEdit
+              ? 'Atualize as informações do documento.'
+              : 'Faça upload de um novo documento para a biblioteca da loja.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">

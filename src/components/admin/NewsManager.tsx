@@ -19,67 +19,70 @@ import {
 import useNewsStore, { NewsEvent } from '@/stores/useNewsStore'
 import { Plus, Pencil, Trash2, CalendarDays, Loader2 } from 'lucide-react'
 import { NewsDialog } from './NewsDialog'
-import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function NewsManager() {
   const { news, fetchNews, addNews, updateNews, deleteNews, loading } =
     useNewsStore()
-  const { toast } = useToast()
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedNews, setSelectedNews] = useState<NewsEvent | null>(null)
 
   useEffect(() => {
     fetchNews()
   }, [fetchNews])
 
-  const handleSave = async (data: any) => {
-    try {
+  const saveOperation = useAsyncOperation(
+    async (data: any) => {
       if (selectedNews) {
         await updateNews(selectedNews.id, data)
-        toast({ title: 'Sucesso', description: 'Publicação atualizada.' })
+        return 'Publicação atualizada com sucesso.'
       } else {
         await addNews(data)
-        toast({ title: 'Sucesso', description: 'Publicação criada.' })
+        return 'Publicação criada com sucesso.'
       }
-      setIsDialogOpen(false)
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao salvar a publicação.',
-      })
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a publicação.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      await deleteNews(id)
+      return 'Publicação excluída com sucesso.'
+    },
+    {
+      successMessage: 'Publicação removida com sucesso!',
+      errorMessage: 'Falha ao excluir a publicação.',
+    },
+  )
+
+  const handleSave = async (data: any) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
   }
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta publicação?')) {
-      try {
-        await deleteNews(id)
-        toast({
-          title: 'Removida',
-          description: 'Publicação excluída com sucesso.',
-        })
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro',
-          description: 'Falha ao excluir.',
-        })
-      }
+      await deleteOperation.execute(id)
     }
   }
 
   const openNew = () => {
     setSelectedNews(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (item: NewsEvent) => {
     setSelectedNews(item)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   if (loading && news.length === 0) {
@@ -194,8 +197,8 @@ export function NewsManager() {
       </CardContent>
 
       <NewsDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         newsToEdit={selectedNews}
         onSave={handleSave}
       />

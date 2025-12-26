@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 
 export interface AppNotification {
@@ -48,7 +49,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
           set({ notifications: data, unreadCount: unread })
         }
       } catch (error) {
-        console.error('Error fetching notifications:', error)
+        logError('Error fetching notifications:', error)
       } finally {
         set({ loading: false })
       }
@@ -71,7 +72,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
           return { notifications: updated, unreadCount: unread }
         })
       } catch (error) {
-        console.error('Error marking notification as read:', error)
+        logError('Error marking notification as read:', error)
       }
     },
 
@@ -98,7 +99,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
           unreadCount: 0,
         }))
       } catch (error) {
-        console.error('Error marking all as read:', error)
+        logError('Error marking all as read:', error)
       }
     },
   }),

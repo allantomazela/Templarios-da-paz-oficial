@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
+import { logError } from '@/lib/logger'
 
 interface UserStoreState {
   users: Profile[]
@@ -29,7 +30,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         set({ users: data as Profile[] })
       }
     } catch (error) {
-      console.error('Error fetching users:', error)
+      logError('Error fetching users', error)
     } finally {
       set({ loading: false })
     }
@@ -48,7 +49,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         users: state.users.map((u) => (u.id === id ? { ...u, status } : u)),
       }))
     } catch (error) {
-      console.error('Error updating user status:', error)
+      logError('Error updating user status:', error)
       throw error
     }
   },
@@ -66,7 +67,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         users: state.users.map((u) => (u.id === id ? { ...u, role } : u)),
       }))
     } catch (error) {
-      console.error('Error updating user role:', error)
+      logError('Error updating user role:', error)
       throw error
     }
   },
@@ -86,7 +87,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         ),
       }))
     } catch (error) {
-      console.error('Error updating user degree:', error)
+      logError('Error updating user degree:', error)
       throw error
     }
   },

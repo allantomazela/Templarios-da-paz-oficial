@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logWarning, logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 
 interface NotificationState {
@@ -28,7 +29,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   requestPermission: async (profileId: string) => {
     if (!('Notification' in window)) {
-      console.warn('Notifications not supported')
+      logWarning('Notifications not supported')
       return
     }
 
@@ -72,7 +73,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             }
           }
         } catch (e) {
-          console.warn(
+          logWarning(
             'Push subscription failed, mocking for storage compliance',
             e,
           )
@@ -92,7 +93,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         set({ isSubscribed: true })
       }
     } catch (error) {
-      console.error('Error requesting notification permission:', error)
+      logError('Error requesting notification permission', error)
     } finally {
       set({ loading: false })
     }

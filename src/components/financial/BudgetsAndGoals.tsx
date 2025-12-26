@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import { BudgetDialog } from './BudgetDialog'
 import { GoalDialog } from './GoalDialog'
 import { format } from 'date-fns'
 
-export function BudgetsAndGoals() {
+export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
   const {
     budgets,
     goals,
@@ -36,41 +36,47 @@ export function BudgetsAndGoals() {
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<FinancialGoal | null>(null)
 
-  // Calculate Budget Progress
-  const calculateBudgetProgress = (budget: Budget) => {
-    let currentAmount = 0
-    // Simple filter: Type and Category. Period is ignored for mock simplicity but usually filters by date.
-    const relevantTransactions = transactions.filter(
-      (t) =>
-        t.type === budget.type &&
-        (!budget.category || t.category === budget.category),
-    )
-    currentAmount = relevantTransactions.reduce(
-      (acc, curr) => acc + curr.amount,
-      0,
-    )
-    return {
-      current: currentAmount,
-      percentage: Math.min((currentAmount / budget.amount) * 100, 100),
-    }
-  }
+  // Calculate Budget Progress - Memoized function
+  const calculateBudgetProgress = useMemo(
+    () => (budget: Budget) => {
+      let currentAmount = 0
+      // Simple filter: Type and Category. Period is ignored for mock simplicity but usually filters by date.
+      const relevantTransactions = transactions.filter(
+        (t) =>
+          t.type === budget.type &&
+          (!budget.category || t.category === budget.category),
+      )
+      currentAmount = relevantTransactions.reduce(
+        (acc, curr) => acc + curr.amount,
+        0,
+      )
+      return {
+        current: currentAmount,
+        percentage: Math.min((currentAmount / budget.amount) * 100, 100),
+      }
+    },
+    [transactions],
+  )
 
-  // Calculate Goal Progress
-  const calculateGoalProgress = (goal: FinancialGoal) => {
-    let currentAmount = 0
-    if (goal.linkedCategory) {
-      // Sum all revenue in this category
-      currentAmount = transactions
-        .filter(
-          (t) => t.category === goal.linkedCategory && t.type === 'Receita',
-        )
-        .reduce((acc, curr) => acc + curr.amount, 0)
-    }
-    return {
-      current: currentAmount,
-      percentage: Math.min((currentAmount / goal.targetAmount) * 100, 100),
-    }
-  }
+  // Calculate Goal Progress - Memoized function
+  const calculateGoalProgress = useMemo(
+    () => (goal: FinancialGoal) => {
+      let currentAmount = 0
+      if (goal.linkedCategory) {
+        // Sum all revenue in this category
+        currentAmount = transactions
+          .filter(
+            (t) => t.category === goal.linkedCategory && t.type === 'Receita',
+          )
+          .reduce((acc, curr) => acc + curr.amount, 0)
+      }
+      return {
+        current: currentAmount,
+        percentage: Math.min((currentAmount / goal.targetAmount) * 100, 100),
+      }
+    },
+    [transactions],
+  )
 
   // Handlers for Budgets
   const handleSaveBudget = (data: any) => {
@@ -287,4 +293,4 @@ export function BudgetsAndGoals() {
       />
     </div>
   )
-}
+})

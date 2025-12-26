@@ -11,12 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import useMinutesStore, { Minute } from '@/stores/useMinutesStore'
 import { Plus, Pencil, Trash2, FileText, Eye } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
 import { MinutesDialog } from './MinutesDialog'
 import useAuthStore from '@/stores/useAuthStore'
+import { useDialog } from '@/hooks/use-dialog'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function MinutesList() {
   const {
@@ -28,10 +29,9 @@ export function MinutesList() {
     loading,
   } = useMinutesStore()
   const { user } = useAuthStore()
-  const { toast } = useToast()
   const navigate = useNavigate()
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const dialog = useDialog()
   const [selectedMinute, setSelectedMinute] = useState<Minute | null>(null)
 
   useEffect(() => {
@@ -40,58 +40,68 @@ export function MinutesList() {
 
   const canEdit = user?.role === 'admin' || user?.role === 'editor'
 
-  const handleCreate = async (data: any) => {
-    try {
+  const createOperation = useAsyncOperation(
+    async (data: any) => {
       await createMinute(data)
-      toast({ title: 'Sucesso', description: 'Ata criada com sucesso.' })
-      setIsDialogOpen(false)
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao criar ata.',
-      })
+      return 'Ata criada com sucesso.'
+    },
+    {
+      successMessage: 'Ata criada com sucesso!',
+      errorMessage: 'Falha ao criar ata.',
+    },
+  )
+
+  const updateOperation = useAsyncOperation(
+    async (data: any) => {
+      if (!selectedMinute) return null
+      await updateMinute(selectedMinute.id, data)
+      return 'Ata atualizada com sucesso.'
+    },
+    {
+      successMessage: 'Ata atualizada com sucesso!',
+      errorMessage: 'Falha ao atualizar ata.',
+    },
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (id: string) => {
+      await deleteMinute(id)
+      return 'Ata removida com sucesso.'
+    },
+    {
+      successMessage: 'Ata removida com sucesso!',
+      errorMessage: 'Falha ao remover ata.',
+    },
+  )
+
+  const handleCreate = async (data: any) => {
+    const result = await createOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
   }
 
   const handleUpdate = async (data: any) => {
-    if (!selectedMinute) return
-    try {
-      await updateMinute(selectedMinute.id, data)
-      toast({ title: 'Sucesso', description: 'Ata atualizada com sucesso.' })
-      setIsDialogOpen(false)
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao atualizar ata.',
-      })
+    const result = await updateOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
     }
   }
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta ata?')) {
-      try {
-        await deleteMinute(id)
-        toast({ title: 'Removida', description: 'Ata removida com sucesso.' })
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro',
-          description: 'Falha ao remover ata.',
-        })
-      }
+      await deleteOperation.execute(id)
     }
   }
 
   const openNew = () => {
     setSelectedMinute(null)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   const openEdit = (minute: Minute) => {
     setSelectedMinute(minute)
-    setIsDialogOpen(true)
+    dialog.openDialog()
   }
 
   return (
@@ -179,8 +189,8 @@ export function MinutesList() {
       </Card>
 
       <MinutesDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={dialog.open}
+        onOpenChange={dialog.onOpenChange}
         minuteToEdit={selectedMinute}
         onSave={selectedMinute ? handleUpdate : handleCreate}
       />

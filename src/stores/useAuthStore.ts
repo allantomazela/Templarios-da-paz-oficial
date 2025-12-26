@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
+import { logWarning, logError } from '@/lib/logger'
 
 export type UserStatus = 'pending' | 'approved' | 'blocked'
 
@@ -46,6 +47,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   isAuthenticated: false,
 
+  /**
+   * Inicializa o estado de autenticação verificando a sessão atual
+   * e configurando os listeners de mudança de estado de autenticação.
+   * 
+   * @throws {Error} Se houver erro crítico na inicialização
+   */
   initialize: async () => {
     try {
       // 1. Check for current session
@@ -85,7 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           ])) as Profile
         } catch (error) {
           fetchError = error
-          console.warn('Auth initialization warning:', error)
+          logWarning('Auth initialization warning: Profile fetch failed', error)
         }
 
         const isMasterAdmin = session.user.email === MASTER_ADMIN_EMAIL
@@ -171,16 +178,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       })
     } catch (error) {
-      console.error('Auth initialization critical error:', error)
+      logError('Auth initialization critical error', error)
       set({ loading: false })
     }
   },
 
+  /**
+   * Realiza login usando OTP (One-Time Password) via email
+   * 
+   * @param email - Email do usuário
+   * @returns Promise com objeto contendo error (se houver)
+   */
   signIn: async (email) => {
     const { error } = await supabase.auth.signInWithOtp({ email })
     return { error }
   },
 
+  /**
+   * Realiza login usando email e senha
+   * 
+   * @param email - Email do usuário
+   * @param password - Senha do usuário
+   * @returns Promise com objeto contendo error (se houver)
+   */
   signInWithPassword: async (email, password) => {
     set({ loading: true })
     const { data, error } = await supabase.auth.signInWithPassword({

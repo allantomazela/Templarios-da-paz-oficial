@@ -30,9 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2, Upload, X, Plus, Search } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
-import { compressImage } from '@/lib/image-utils'
-import { uploadToStorage } from '@/lib/upload-utils'
+import { useImageUpload } from '@/hooks/use-image-upload'
 import {
   formatCPF,
   formatPhone,
@@ -45,6 +43,7 @@ import {
   validateCEP,
 } from '@/lib/format-utils'
 import { fetchCEPData } from '@/lib/cep-utils'
+import { useToast } from '@/hooks/use-toast'
 
 // Schema for a single child
 const childSchema = z.object({
@@ -125,10 +124,18 @@ export function BrotherDialog({
   brotherToEdit,
   onSave,
 }: BrotherDialogProps) {
-  const { toast } = useToast()
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isLoadingCEP, setIsLoadingCEP] = useState(false)
+  const { toast } = useToast()
+
+  const imageUpload = useImageUpload({
+    bucket: 'site-assets',
+    folder: 'brothers-photos',
+    maxSize: 800,
+    quality: 0.85,
+    successMessage: 'Foto enviada com sucesso.',
+    errorMessage: 'Não foi possível enviar a foto. Tente novamente.',
+  })
 
   const form = useForm<BrotherFormValues>({
     resolver: zodResolver(brotherSchema),
@@ -171,6 +178,8 @@ export function BrotherDialog({
   })
 
   useEffect(() => {
+    if (!open) return
+
     if (brotherToEdit) {
       const children: Child[] = brotherToEdit.children || []
       
@@ -208,6 +217,10 @@ export function BrotherDialog({
       
       if (brotherToEdit.photoUrl) {
         setPhotoPreview(brotherToEdit.photoUrl)
+        imageUpload.reset()
+      } else {
+        setPhotoPreview(null)
+        imageUpload.reset()
       }
     } else {
       form.reset({
@@ -242,59 +255,26 @@ export function BrotherDialog({
         address: '',
       })
       setPhotoPreview(null)
+      imageUpload.reset()
     }
-  }, [brotherToEdit, form, open])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brotherToEdit?.id, open])
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Por favor, selecione uma imagem válida.',
-      })
-      return
-    }
-
-    setIsUploadingPhoto(true)
-    try {
-      // Compress image
-      const compressedFile = await compressImage(file, 800, 0.85)
-      
-      // Upload to storage
-      const photoUrl = await uploadToStorage(
-        compressedFile,
-        'site-assets',
-        'brothers-photos'
-      )
-
-      form.setValue('photoUrl', photoUrl)
-      setPhotoPreview(photoUrl)
-
-      toast({
-        title: 'Sucesso',
-        description: 'Foto enviada com sucesso.',
-      })
-    } catch (error) {
-      console.error('Error uploading photo:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível enviar a foto. Tente novamente.',
-      })
-    } finally {
-      setIsUploadingPhoto(false)
+    const url = await imageUpload.handleUpload(file)
+    if (url) {
+      form.setValue('photoUrl', url)
+      setPhotoPreview(url)
     }
   }
 
   const handleRemovePhoto = () => {
     form.setValue('photoUrl', '')
     setPhotoPreview(null)
+    imageUpload.reset()
   }
 
   const handleCEPBlur = async () => {
@@ -412,11 +392,12 @@ export function BrotherDialog({
                   <Input
                     type="file"
                     accept="image/*"
+                    ref={imageUpload.inputRef}
                     onChange={handlePhotoUpload}
-                    disabled={isUploadingPhoto}
+                    disabled={imageUpload.isUploading}
                     className="cursor-pointer"
                   />
-                  {isUploadingPhoto && (
+                  {imageUpload.isUploading && (
                     <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Enviando foto...

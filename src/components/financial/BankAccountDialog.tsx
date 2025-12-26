@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
@@ -83,6 +84,11 @@ export function BankAccountDialog({
           <DialogTitle>
             {accountToEdit ? 'Editar Conta' : 'Nova Conta Bancária'}
           </DialogTitle>
+          <DialogDescription>
+            {accountToEdit
+              ? 'Atualize as informações da conta bancária.'
+              : 'Adicione uma nova conta bancária ou caixa físico ao sistema.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">

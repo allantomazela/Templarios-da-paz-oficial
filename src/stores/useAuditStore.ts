@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 
 export interface AuditLog {
@@ -48,7 +49,7 @@ export const useAuditStore = create<AuditState>((set) => ({
         set({ logs: data as unknown as AuditLog[] })
       }
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
+      logError('Error fetching audit logs:', error)
     } finally {
       set({ loading: false })
     }

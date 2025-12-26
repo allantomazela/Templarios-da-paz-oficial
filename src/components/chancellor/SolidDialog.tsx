@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -98,6 +99,11 @@ export function SolidDialog({
           <DialogTitle>
             {solidToEdit ? 'Editar Sólido' : 'Registrar Sólido'}
           </DialogTitle>
+          <DialogDescription>
+            {solidToEdit
+              ? 'Atualize as informações do sólido de beneficência.'
+              : 'Registre um novo sólido de beneficência para a loja.'}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form

@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, signOut } = useAuthStore()
   const { logoUrl } = useSiteSettingsStore()
+  const { hasPermission, getUserPermissions } = useLodgePositionsStore()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -43,42 +45,76 @@ export function AppSidebar() {
   }
 
   const userRole = user?.role || 'member'
-  const canSeeReports = ['admin', 'editor'].includes(userRole)
+  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
+  
+  // Verificar permissões baseadas em cargo
+  const userPermissions = user?.id ? getUserPermissions(user.id) : []
+  const hasFullAccess = isMasterAdmin || userPermissions.includes('*')
+  
+  const canAccessModule = (module: string) => {
+    if (isMasterAdmin || hasFullAccess) return true
+    if (!user?.id) return false
+    return hasPermission(user.id, module)
+  }
+
+  const canSeeReports = 
+    ['admin', 'editor'].includes(userRole) || 
+    canAccessModule('reports')
 
   const navItems = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
-    { name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' },
-    {
-      name: 'Financeiro',
-      icon: Banknote,
-      path: '/dashboard/financial',
-      allowedRoles: ['admin', 'editor'],
-    },
-    { name: 'Chanceler', icon: ShieldCheck, path: '/dashboard/chancellor' },
+    ...(canAccessModule('secretariat') || isMasterAdmin
+      ? [{ name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' }]
+      : []),
+    ...(canAccessModule('financial') || isMasterAdmin
+      ? [
+          {
+            name: 'Financeiro',
+            icon: Banknote,
+            path: '/dashboard/financial',
+          },
+        ]
+      : []),
+    ...(canAccessModule('chancellor') || isMasterAdmin
+      ? [{ name: 'Chanceler', icon: ShieldCheck, path: '/dashboard/chancellor' }]
+      : []),
     ...(canSeeReports
       ? [{ name: 'Relatórios', icon: FileBarChart, path: '/dashboard/reports' }]
       : []),
-    { name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' },
-    { name: 'Biblioteca', icon: Library, path: '/dashboard/library' },
-    {
-      name: 'Mídia e Notícias',
-      icon: Newspaper,
-      path: '/dashboard/admin/media',
-      allowedRoles: ['admin', 'editor'],
-    },
-    {
-      name: 'Admin. Usuários',
-      icon: Settings,
-      path: '/dashboard/admin',
-      allowedRoles: ['admin'],
-      end: true,
-    },
-    {
-      name: 'Config. Site',
-      icon: MonitorCog,
-      path: '/dashboard/settings',
-      allowedRoles: ['admin', 'editor'],
-    },
+    ...(canAccessModule('agenda') || isMasterAdmin
+      ? [{ name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' }]
+      : []),
+    ...(canAccessModule('library') || isMasterAdmin
+      ? [{ name: 'Biblioteca', icon: Library, path: '/dashboard/library' }]
+      : []),
+    ...(['admin', 'editor'].includes(userRole) || isMasterAdmin
+      ? [
+          {
+            name: 'Mídia e Notícias',
+            icon: Newspaper,
+            path: '/dashboard/admin/media',
+          },
+        ]
+      : []),
+    ...(isMasterAdmin || userRole === 'admin'
+      ? [
+          {
+            name: 'Admin. Usuários',
+            icon: Settings,
+            path: '/dashboard/admin',
+            end: true,
+          },
+        ]
+      : []),
+    ...(['admin', 'editor'].includes(userRole) || isMasterAdmin
+      ? [
+          {
+            name: 'Config. Site',
+            icon: MonitorCog,
+            path: '/dashboard/settings',
+          },
+        ]
+      : []),
     { name: 'Ver Site', icon: Globe, path: '/' },
   ]
 
@@ -199,11 +235,11 @@ export function AppSidebar() {
           <DropdownMenuContent align="end" className="w-56" side="right">
             <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/dashboard/profile')}>
               <UserCircle className="mr-2 h-4 w-4" />
               <span>Meu Perfil</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/dashboard/settings/user')}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
             </DropdownMenuItem>

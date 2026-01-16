@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/select'
 
 const messageSchema = z.object({
-  recipient: z.string().min(1, 'Destinatário é obrigatório'),
+  recipientId: z.string().min(1, 'Destinatário é obrigatório'),
   subject: z.string().min(1, 'Assunto é obrigatório'),
   content: z.string().min(1, 'Conteúdo é obrigatório'),
 })
@@ -40,6 +41,7 @@ interface MessageDialogProps {
   onOpenChange: (open: boolean) => void
   onSend: (data: MessageFormValues) => void
   defaultRecipient?: string
+  recipients: Array<{ id: string; name: string }>
 }
 
 export function MessageDialog({
@@ -47,20 +49,22 @@ export function MessageDialog({
   onOpenChange,
   onSend,
   defaultRecipient,
+  recipients,
 }: MessageDialogProps) {
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(messageSchema),
     defaultValues: {
-      recipient: defaultRecipient || '',
+      recipientId: defaultRecipient || '',
       subject: '',
       content: '',
     },
   })
 
-  // Update default recipient if prop changes
-  if (defaultRecipient && form.getValues('recipient') !== defaultRecipient) {
-    form.setValue('recipient', defaultRecipient)
-  }
+  useEffect(() => {
+    if (defaultRecipient) {
+      form.setValue('recipientId', defaultRecipient)
+    }
+  }, [defaultRecipient, form])
 
   const handleSubmit = (data: MessageFormValues) => {
     onSend(data)
@@ -80,7 +84,7 @@ export function MessageDialog({
           >
             <FormField
               control={form.control}
-              name="recipient"
+              name="recipientId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Para</FormLabel>
@@ -94,12 +98,11 @@ export function MessageDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Todos">Todos os Irmãos</SelectItem>
-                      <SelectItem value="Mestres">Apenas Mestres</SelectItem>
-                      <SelectItem value="Secretaria">Secretaria</SelectItem>
-                      <SelectItem value="Venerável">
-                        Venerável Mestre
-                      </SelectItem>
+                      {recipients.map((recipient) => (
+                        <SelectItem key={recipient.id} value={recipient.id}>
+                          {recipient.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

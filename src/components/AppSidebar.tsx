@@ -61,6 +61,21 @@ export function AppSidebar() {
     ['admin', 'editor'].includes(userRole) || 
     canAccessModule('reports')
 
+  // Membros podem ver Agenda, Biblioteca e Mídia
+  const canSeeAgenda = 
+    ['admin', 'editor', 'member'].includes(userRole) || 
+    canAccessModule('agenda') ||
+    isMasterAdmin
+
+  const canSeeLibrary = 
+    ['admin', 'editor', 'member'].includes(userRole) || 
+    canAccessModule('library') ||
+    isMasterAdmin
+
+  const canSeeMedia = 
+    ['admin', 'editor', 'member'].includes(userRole) || 
+    isMasterAdmin
+
   const navItems = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
     ...(canAccessModule('secretariat') || isMasterAdmin
@@ -81,13 +96,13 @@ export function AppSidebar() {
     ...(canSeeReports
       ? [{ name: 'Relatórios', icon: FileBarChart, path: '/dashboard/reports' }]
       : []),
-    ...(canAccessModule('agenda') || isMasterAdmin
+    ...(canSeeAgenda
       ? [{ name: 'Agenda', icon: Calendar, path: '/dashboard/agenda' }]
       : []),
-    ...(canAccessModule('library') || isMasterAdmin
+    ...(canSeeLibrary
       ? [{ name: 'Biblioteca', icon: Library, path: '/dashboard/library' }]
       : []),
-    ...(['admin', 'editor'].includes(userRole) || isMasterAdmin
+    ...(canSeeMedia
       ? [
           {
             name: 'Mídia e Notícias',

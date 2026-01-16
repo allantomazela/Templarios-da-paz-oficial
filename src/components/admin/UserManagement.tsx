@@ -84,11 +84,18 @@ export function UserManagement() {
         title: 'Status Atualizado',
         description: `O status de ${user.full_name} foi alterado para ${newStatus}.`,
       })
-    } catch (error) {
+      // Recarregar lista de usuários para garantir sincronização
+      fetchUsers()
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Não foi possível atualizar o status.'
+      const errorDetails = error?.details || error?.hint || ''
+      
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Não foi possível atualizar o status.',
+        title: 'Erro ao Atualizar Status',
+        description: errorDetails 
+          ? `${errorMessage} (${errorDetails})`
+          : errorMessage,
       })
     }
   }

@@ -62,9 +62,17 @@ export function RoleGuard({
 
   // Verificar acesso baseado em cargo (se requiredModule for especificado)
   if (requiredModule && user?.id) {
-    const hasModuleAccess = hasPermission(user.id, requiredModule)
-    if (!hasModuleAccess && !isMasterAdmin) {
-      return <Navigate to="/access-denied" replace />
+    // Se o usuário é member e member está em allowedRoles, permitir acesso
+    // (membros não precisam de cargo para acessar módulos básicos como agenda, library, media)
+    if (userRole === 'member' && allowedRoles.includes('member')) {
+      // Permitir acesso para membros sem verificar cargo
+      // Isso permite que membros acessem Agenda, Biblioteca e Mídia
+    } else {
+      // Para admin/editor, verificar cargo
+      const hasModuleAccess = hasPermission(user.id, requiredModule)
+      if (!hasModuleAccess && !isMasterAdmin) {
+        return <Navigate to="/access-denied" replace />
+      }
     }
   }
 

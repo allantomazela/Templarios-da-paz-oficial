@@ -198,7 +198,7 @@ const App = () => (
             <Route
               path="agenda"
               element={
-                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="agenda">
+                <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
                   <Agenda />
                 </RoleGuard>
               }
@@ -206,7 +206,7 @@ const App = () => (
             <Route
               path="library"
               element={
-                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="library">
+                <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
                   <Library />
                 </RoleGuard>
               }
@@ -233,7 +233,7 @@ const App = () => (
             <Route
               path="admin/media"
               element={
-                <RoleGuard allowedRoles={['admin', 'editor']}>
+                <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
                   <MediaManager />
                 </RoleGuard>
               }

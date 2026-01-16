@@ -5,6 +5,18 @@
 
 ---
 
+## ✅ Atualização de Status (15/01/2026)
+
+Com base nas credenciais fornecidas e no relatório `VERIFICACAO_INTEGRIDADE_COMPLETA.md`, o projeto ativo é:
+
+- **Project ID:** `hxncevpbwcearzxrstzj`
+- **URL:** `https://hxncevpbwcearzxrstzj.supabase.co`
+- **Status esperado:** tabelas principais presentes, migrações aplicadas e bucket `site-assets` configurado
+
+Observação: este documento permanece como histórico da verificação anterior.
+
+---
+
 ## 🔍 Resumo Executivo
 
 **Status Geral:** ⚠️ **ATENÇÃO NECESSÁRIA**

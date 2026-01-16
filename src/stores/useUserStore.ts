@@ -38,16 +38,32 @@ export const useUserStore = create<UserStoreState>((set) => ({
 
   updateUserStatus: async (id, status) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ status })
         .eq('id', id)
+        .select()
 
-      if (error) throw error
+      if (error) {
+        logError('Error updating user status:', error)
+        // Log detalhes do erro para debug
+        console.error('Status update error details:', {
+          id,
+          status,
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorDetails: error.details,
+          errorHint: error.hint,
+        })
+        throw error
+      }
 
-      set((state) => ({
-        users: state.users.map((u) => (u.id === id ? { ...u, status } : u)),
-      }))
+      // Atualizar estado apenas se a atualização foi bem-sucedida
+      if (data && data.length > 0) {
+        set((state) => ({
+          users: state.users.map((u) => (u.id === id ? { ...u, status } : u)),
+        }))
+      }
     } catch (error) {
       logError('Error updating user status:', error)
       throw error

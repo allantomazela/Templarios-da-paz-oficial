@@ -17,6 +17,7 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import useNewsStore, { NewsEvent } from '@/stores/useNewsStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { Plus, Pencil, Trash2, CalendarDays, Loader2 } from 'lucide-react'
 import { NewsDialog } from './NewsDialog'
 import { format } from 'date-fns'
@@ -27,6 +28,9 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 export function NewsManager() {
   const { news, fetchNews, addNews, updateNews, deleteNews, loading } =
     useNewsStore()
+  const { user } = useAuthStore()
+  const userRole = user?.role || 'member'
+  const canEdit = ['admin', 'editor'].includes(userRole)
 
   const dialog = useDialog()
   const [selectedNews, setSelectedNews] = useState<NewsEvent | null>(null)
@@ -103,9 +107,11 @@ export function NewsManager() {
             ou Evento Social.
           </CardDescription>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Publicação
-        </Button>
+        {canEdit && (
+          <Button onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" /> Nova Publicação
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
@@ -173,21 +179,27 @@ export function NewsManager() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(item)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canEdit ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Somente visualização</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

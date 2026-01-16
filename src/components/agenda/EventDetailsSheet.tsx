@@ -27,6 +27,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import useChancellorStore from '@/stores/useChancellorStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Event } from '@/lib/data'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -52,6 +53,10 @@ export function EventDetailsSheet({
   onDelete,
 }: EventDetailsSheetProps) {
   const { locations } = useChancellorStore()
+  const { user } = useAuthStore()
+  const userRole = user?.role || 'member'
+  const canEdit = ['admin', 'editor'].includes(userRole)
+  
   if (!event) return null
 
   const isMilestone =
@@ -255,22 +260,26 @@ export function EventDetailsSheet({
                 )}
               </div>
             </ScrollArea>
-            {!isMilestone && (
+            {!isMilestone && canEdit && (onEdit || onDelete) && (
               <SheetFooter className="p-6 border-t mt-auto flex flex-col sm:flex-row gap-3 sm:gap-2">
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  onClick={() => onEdit?.(event)}
-                >
-                  <Edit className="mr-2 h-4 w-4" /> Editar
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="w-full sm:w-auto"
-                  onClick={() => onDelete?.(event.id)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                </Button>
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => onEdit?.(event)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" /> Editar
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                    onClick={() => onDelete?.(event.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                  </Button>
+                )}
               </SheetFooter>
             )}
           </TabsContent>

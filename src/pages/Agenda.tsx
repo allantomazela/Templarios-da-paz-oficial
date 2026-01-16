@@ -30,6 +30,7 @@ import {
   CalendarDays,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import useAuthStore from '@/stores/useAuthStore'
 import {
   Card,
   CardContent,
@@ -68,6 +69,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 export default function Agenda() {
   const { events, brothers, addEvent, updateEvent, deleteEvent } =
     useChancellorStore()
+  const { user } = useAuthStore()
+  const userRole = user?.role || 'member'
+  const canEdit = ['admin', 'editor'].includes(userRole)
   const { toast } = useToast()
 
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -413,9 +417,11 @@ export default function Agenda() {
             <MapPin className="h-4 w-4" />
           </Button>
 
-          <Button onClick={handleCreateEvent}>
-            <Plus className="mr-2 h-4 w-4" /> Novo
-          </Button>
+          {canEdit && (
+            <Button onClick={handleCreateEvent}>
+              <Plus className="mr-2 h-4 w-4" /> Novo
+            </Button>
+          )}
         </div>
       </div>
 
@@ -515,15 +521,17 @@ export default function Agenda() {
                 )}
               </div>
             </ScrollArea>
-            <div className="p-3 border-t bg-muted/5">
-              <Button
-                variant="outline"
-                className="w-full text-xs h-8"
-                onClick={handleCreateEvent}
-              >
-                <Plus className="mr-2 h-3 w-3" /> Adicionar Evento no Dia
-              </Button>
-            </div>
+            {canEdit && (
+              <div className="p-3 border-t bg-muted/5">
+                <Button
+                  variant="outline"
+                  className="w-full text-xs h-8"
+                  onClick={handleCreateEvent}
+                >
+                  <Plus className="mr-2 h-3 w-3" /> Adicionar Evento no Dia
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -576,13 +584,15 @@ export default function Agenda() {
                     <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
                       <CalendarIcon className="h-16 w-16 mb-4 opacity-20" />
                       <p>Nenhum evento agendado para este dia.</p>
-                      <Button
-                        variant="link"
-                        onClick={handleCreateEvent}
-                        className="mt-2"
-                      >
-                        Adicionar Evento
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="link"
+                          onClick={handleCreateEvent}
+                          className="mt-2"
+                        >
+                          Adicionar Evento
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">

@@ -82,30 +82,23 @@ Todas as migrações estão preparadas no diretório `supabase/migrations/`:
 ## ⚠️ O Que Precisa Ser Feito
 
 ### 1. **Configuração do Ambiente**
-- ❌ **Arquivo .env não existe** - Precisa ser criado com:
+- ✅ **Arquivos de ambiente criados**:
+  - `.env-dev`
+  - `.env-homolog`
+  - `.env-prod`
+- Variáveis configuradas:
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 ### 2. **Banco de Dados Supabase**
-- ⚠️ **Projeto Supabase não identificado** - Nenhum dos projetos existentes tem as tabelas necessárias:
-  - `site_settings`
-  - `venerables`
-  - `news_events`
-  - `profiles` (com estrutura correta)
-  - `minutes`
-  - `minutes_signatures`
-  - `push_subscriptions`
-  - `notifications`
-  - `audit_logs`
-  - `redirects`
-
-**Opções:**
-1. Criar um novo projeto Supabase específico para este sistema
-2. Aplicar todas as migrações em um projeto existente (se apropriado)
+- ✅ **Projeto Supabase identificado e em uso**
+  - **Project ID:** `hxncevpbwcearzxrstzj`
+  - **URL:** `https://hxncevpbwcearzxrstzj.supabase.co`
+  - **Status esperado:** migrações aplicadas e tabelas principais presentes
 
 ### 3. **Storage Buckets**
-- ❌ Bucket `site-assets` precisa ser criado e configurado
-- ❌ Políticas de storage precisam ser aplicadas
+- ✅ Bucket `site-assets` criado e configurado
+- ✅ Políticas de storage aplicadas
 
 ### 4. **Dependências**
 - ✅ Dependências instaladas com `npm install --legacy-peer-deps`
@@ -137,16 +130,14 @@ O sistema espera as seguintes tabelas principais:
 
 ## 📝 Próximos Passos Recomendados
 
-### Passo 1: Criar/Configurar Projeto Supabase
-1. Criar um novo projeto Supabase ou usar um existente apropriado
-2. Aplicar todas as 19 migrações na ordem correta
-3. Verificar se todas as tabelas foram criadas corretamente
-4. Configurar o bucket de storage `site-assets`
+### Passo 1: Validar Projeto Supabase
+1. Confirmar acesso ao projeto `hxncevpbwcearzxrstzj`
+2. Validar tabelas e RLS no dashboard
+3. Verificar bucket `site-assets`
 
-### Passo 2: Configurar Variáveis de Ambiente
-1. Criar arquivo `.env` na raiz do projeto
-2. Adicionar `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`
-3. Verificar se as variáveis estão sendo carregadas corretamente
+### Passo 2: Validar Variáveis de Ambiente
+1. Garantir que `.env-dev/.env-homolog/.env-prod` estão corretos
+2. Verificar se as variáveis estão sendo carregadas corretamente
 
 ### Passo 3: Testar Aplicação
 1. Executar `npm start` ou `npm run dev`
@@ -154,11 +145,12 @@ O sistema espera as seguintes tabelas principais:
 3. Testar autenticação
 4. Verificar conexão com o banco de dados
 
-### Passo 4: Verificar Integridade
+### Passo 4: Verificar Integridade e Segurança
 1. Verificar se todas as funcionalidades estão funcionando
 2. Testar CRUD em todas as principais entidades
 3. Verificar permissões e RLS
 4. Testar upload de imagens
+5. Ajustar políticas RLS faltantes (se houver)
 
 ## 🔐 Configurações de Segurança
 
@@ -213,5 +205,5 @@ npm run preview    # Visualizar build de produção
 
 3. **Variáveis de Ambiente**: O sistema usa `VITE_` prefix para variáveis de ambiente (padrão Vite).
 
-4. **Banco de Dados**: Todas as migrações estão prontas, mas precisam ser aplicadas em um projeto Supabase apropriado.
+4. **Banco de Dados**: Migrações estão disponíveis e o projeto Supabase está identificado.
 

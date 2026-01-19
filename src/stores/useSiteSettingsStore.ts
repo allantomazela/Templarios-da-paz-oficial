@@ -43,6 +43,8 @@ export interface SiteSettingsState {
     zip: string
     email: string
     secondaryEmail: string
+    phone?: string
+    messageEmail?: string
   }
   venerables: Venerable[]
   sectionOrder: string[]
@@ -137,6 +139,8 @@ const mapSettingsFromDB = (data: any) => {
       zip: data.contact_zip || '',
       email: data.contact_email || '',
       secondaryEmail: data.contact_secondary_email || '',
+      phone: data.contact_phone || '',
+      messageEmail: data.contact_message_email || '',
     },
     sectionOrder: order,
     customSections: Array.isArray(data.custom_sections)
@@ -191,6 +195,8 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     zip: '',
     email: '',
     secondaryEmail: '',
+    phone: '',
+    messageEmail: '',
   },
   venerables: [],
   sectionOrder: ['history', 'values', 'venerables', 'news', 'contact'],
@@ -352,6 +358,9 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (data.email !== undefined) updates.contact_email = data.email
       if (data.secondaryEmail !== undefined)
         updates.contact_secondary_email = data.secondaryEmail
+      if (data.phone !== undefined) updates.contact_phone = data.phone
+      if (data.messageEmail !== undefined)
+        updates.contact_message_email = data.messageEmail
 
       const { error } = await supabase
         .from('site_settings')

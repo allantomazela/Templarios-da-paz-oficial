@@ -38,7 +38,9 @@ const institutionalSchema = z.object({
   city: z.string().min(1, 'Cidade obrigatória'),
   zip: z.string().min(1, 'CEP obrigatório'),
   email: z.string().email('Email inválido'),
-  secondaryEmail: z.string().optional(),
+  secondaryEmail: z.string().email('Email inválido').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  messageEmail: z.string().email('Email inválido').optional().or(z.literal('')),
 })
 
 export function InstitutionalSettings() {
@@ -68,6 +70,8 @@ export function InstitutionalSettings() {
       zip: contact.zip,
       email: contact.email,
       secondaryEmail: contact.secondaryEmail,
+      phone: contact.phone || '',
+      messageEmail: contact.messageEmail || '',
     },
   })
 
@@ -85,6 +89,8 @@ export function InstitutionalSettings() {
       zip: contact.zip,
       email: contact.email,
       secondaryEmail: contact.secondaryEmail,
+      phone: contact.phone || '',
+      messageEmail: contact.messageEmail || '',
     })
   }, [history, values, contact, form])
 
@@ -135,6 +141,8 @@ export function InstitutionalSettings() {
         zip: data.zip,
         email: data.email,
         secondaryEmail: data.secondaryEmail || '',
+        phone: data.phone || '',
+        messageEmail: data.messageEmail || '',
       })
 
       toast({
@@ -394,6 +402,45 @@ export function InstitutionalSettings() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone de Contato</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="(14) 99999-9999"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-sm text-muted-foreground">
+                        Telefone exibido na seção de contato do site.
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="messageEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email para Receber Mensagens do Site</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="mensagens@..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-sm text-muted-foreground">
+                        Este email receberá as mensagens enviadas pelo formulário de contato do site.
+                      </p>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
           </TabsContent>

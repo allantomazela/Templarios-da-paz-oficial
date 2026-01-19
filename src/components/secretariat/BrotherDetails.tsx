@@ -9,9 +9,10 @@ import { Brother } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import useFinancialStore from '@/stores/useFinancialStore'
 import { AlertTriangle, CheckCircle } from 'lucide-react'
 import { formatCPF, formatPhone, formatCEP, formatDateBR } from '@/lib/format-utils'
+import { supabase } from '@/lib/supabase/client'
+import { useState, useEffect } from 'react'
 
 interface BrotherDetailsProps {
   open: boolean
@@ -24,7 +25,15 @@ export function BrotherDetails({
   onOpenChange,
   brother,
 }: BrotherDetailsProps) {
-  const { contributions } = useFinancialStore()
+  const [contributions, setContributions] = useState<Array<{
+    id: string
+    month: number
+    year: number
+    amount: number
+    status: string
+  }>>([])
+  const [loadingContributions, setLoadingContributions] = useState(false)
+  const supabaseAny = supabase as any
 
   if (!brother) return null
 
@@ -37,9 +46,51 @@ export function BrotherDetails({
     }
   }
 
-  const brotherContributions = contributions.filter(
-    (c) => c.brotherId === brother.id && c.status !== 'Pago',
-  )
+  // Buscar contribuições do banco de dados
+  useEffect(() => {
+    if (!brother?.id || !open) return
+
+    const loadContributions = async () => {
+      setLoadingContributions(true)
+      try {
+        // Buscar contribuições pendentes do irmão
+        // Nota: A tabela contributions usa brother_id que referencia profiles.id
+        // Mas o brother.id pode ser da tabela brothers, então precisamos verificar
+        const { data: contributionsData, error } = await supabaseAny
+          .from('contributions')
+          .select('*')
+          .eq('brother_id', brother.id)
+          .neq('status', 'Pago')
+          .order('year', { ascending: false })
+          .order('month', { ascending: false })
+
+        if (error && error.code !== '404' && error.code !== 'PGRST116') {
+          console.error('Erro ao carregar contribuições:', error)
+          setContributions([])
+        } else if (contributionsData) {
+          const mapped = contributionsData.map((c: any) => ({
+            id: c.id,
+            month: c.month,
+            year: c.year,
+            amount: parseFloat(c.amount),
+            status: c.status,
+          }))
+          setContributions(mapped)
+        } else {
+          setContributions([])
+        }
+      } catch (error) {
+        console.error('Erro ao carregar contribuições:', error)
+        setContributions([])
+      } finally {
+        setLoadingContributions(false)
+      }
+    }
+
+    loadContributions()
+  }, [brother?.id, open])
+
+  const brotherContributions = contributions
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

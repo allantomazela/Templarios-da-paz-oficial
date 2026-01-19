@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -20,9 +20,17 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
-import { Loader2 } from 'lucide-react'
+import { Loader2, FileText } from 'lucide-react'
+import { RichTextEditor } from './RichTextEditor'
+import { minuteTemplates } from '@/lib/minute-templates'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const minuteSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -45,6 +53,8 @@ export function MinutesDialog({
   minuteToEdit,
   onSave,
 }: MinutesDialogProps) {
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  
   const form = useForm<MinuteFormValues>({
     resolver: zodResolver(minuteSchema),
     defaultValues: {
@@ -63,14 +73,29 @@ export function MinutesDialog({
           : '',
         content: minuteToEdit.content,
       })
+      setSelectedTemplate('')
     } else {
       form.reset({
         title: '',
         date: format(new Date(), 'yyyy-MM-dd'),
         content: '',
       })
+      setSelectedTemplate('')
     }
   }, [minuteToEdit, form, open])
+
+  const handleTemplateSelect = (templateId: string) => {
+    if (templateId === '') return
+
+    const template = minuteTemplates.find((t) => t.id === templateId)
+    if (template) {
+      // Limpar espaços em branco do template e aplicar
+      const cleanedContent = template.content.trim()
+      form.setValue('content', cleanedContent, { shouldDirty: true })
+      // Resetar o select após aplicar
+      setTimeout(() => setSelectedTemplate(''), 100)
+    }
+  }
 
   const handleSubmit = async (data: MinuteFormValues) => {
     await onSave(data)
@@ -79,7 +104,7 @@ export function MinutesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{minuteToEdit ? 'Editar Ata' : 'Nova Ata'}</DialogTitle>
         </DialogHeader>
@@ -117,6 +142,29 @@ export function MinutesDialog({
                 </FormItem>
               )}
             />
+
+            {/* Template Selector - only for new minutes */}
+            {!minuteToEdit && (
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <Select
+                  value={selectedTemplate}
+                  onValueChange={handleTemplateSelect}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Usar template de ata (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {minuteTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name} - {template.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="content"
@@ -124,10 +172,10 @@ export function MinutesDialog({
                 <FormItem>
                   <FormLabel>Texto da Ata</FormLabel>
                   <FormControl>
-                    <Textarea
+                    <RichTextEditor
+                      content={field.value}
+                      onChange={field.onChange}
                       placeholder="Redija o conteúdo da ata aqui..."
-                      className="min-h-[300px] font-serif"
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />

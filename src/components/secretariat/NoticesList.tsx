@@ -13,6 +13,7 @@ export function NoticesList() {
   const [notices, setNotices] = useState<Announcement[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState<string>('Você')
+  const [userRole, setUserRole] = useState<string>('member')
   const dialog = useDialog()
   const [selectedNotice, setSelectedNotice] = useState<Announcement | null>(
     null,
@@ -32,18 +33,24 @@ export function NoticesList() {
 
       setCurrentUserId(user.id)
 
-      const { data: profile, error: profileError } = await supabaseAny
+      const { data: profileData, error: profileError } = await supabaseAny
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, role')
         .eq('id', user.id)
-        .single()
+        .limit(1)
 
       if (profileError) {
         throw new Error('Não foi possível carregar o perfil do usuário.')
       }
 
+      const profile = profileData?.[0]
       setCurrentUserName(profile?.full_name || 'Você')
+      setUserRole(profile?.role || 'member')
 
+      // Se for membro comum, filtrar apenas avisos públicos
+      const isAdminOrEditor = ['admin', 'editor'].includes(profile?.role || 'member')
+      
+      // Buscar todos os avisos (filtrar no cliente para evitar problemas com sintaxe PostgREST)
       const { data: rows, error } = await supabaseAny
         .from('announcements')
         .select('*')
@@ -53,12 +60,23 @@ export function NoticesList() {
         throw new Error('Não foi possível carregar os avisos.')
       }
 
-      const mappedNotices = (rows || []).map((row: any) => ({
+      // Filtrar no cliente: membros comuns veem apenas avisos públicos
+      const filteredRows = (rows || []).filter((row: any) => {
+        // Se for admin/editor, mostrar todos
+        if (isAdminOrEditor) return true
+        // Se a coluna não existir ainda, considerar todos como públicos
+        if (row.is_private === undefined || row.is_private === null) return true
+        // Filtrar apenas avisos públicos (is_private = false)
+        return row.is_private === false
+      })
+
+      const mappedNotices = filteredRows.map((row: any) => ({
         id: row.id,
         title: row.title,
         content: row.content,
         author: row.author_name,
         date: format(new Date(row.created_at), 'yyyy-MM-dd'),
+        isPrivate: row.is_private || false,
       }))
 
       setNotices(mappedNotices)
@@ -73,15 +91,25 @@ export function NoticesList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedNotice) {
-        const { data: updatedRow, error } = await supabaseAny
+        const { data: updatedRows, error } = await supabaseAny
           .from('announcements')
           .update({
             title: data.title,
             content: data.content,
+            is_private: data.isPrivate || false,
           })
           .eq('id', selectedNotice.id)
           .select('*')
-          .single()
+          .limit(1)
+
+        if (error) {
+          throw new Error('Falha ao atualizar o aviso.')
+        }
+
+        const updatedRow = updatedRows?.[0]
+        if (!updatedRow) {
+          throw new Error('Aviso não encontrado após atualização.')
+        }
 
         if (error) {
           throw new Error('Falha ao atualizar o aviso.')
@@ -106,16 +134,26 @@ export function NoticesList() {
           throw new Error('Usuário não autenticado.')
         }
 
-        const { data: createdRow, error } = await supabaseAny
+        const { data: createdRows, error } = await supabaseAny
           .from('announcements')
           .insert({
             title: data.title,
             content: data.content,
             author_id: currentUserId,
             author_name: currentUserName,
+            is_private: data.isPrivate || false,
           })
           .select('*')
-          .single()
+          .limit(1)
+
+        if (error) {
+          throw new Error('Falha ao publicar o aviso.')
+        }
+
+        const createdRow = createdRows?.[0]
+        if (!createdRow) {
+          throw new Error('Aviso não foi criado corretamente.')
+        }
 
         if (error) {
           throw new Error('Falha ao publicar o aviso.')
@@ -193,13 +231,17 @@ export function NoticesList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const canEdit = ['admin', 'editor'].includes(userRole)
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={openNew} disabled={loadNoticesLoading}>
-          <Plus className="mr-2 h-4 w-4" /> Criar Novo Aviso
-        </Button>
-      </div>
+      {canEdit && (
+        <div className="flex justify-end">
+          <Button onClick={openNew} disabled={loadNoticesLoading}>
+            <Plus className="mr-2 h-4 w-4" /> Criar Novo Aviso
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4">
         {loadNoticesLoading ? (
@@ -220,23 +262,25 @@ export function NoticesList() {
                     Publicado em {notice.date} por {notice.author}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEdit(notice)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(notice.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {canEdit && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(notice)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(notice.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <p className="text-sm whitespace-pre-wrap">{notice.content}</p>

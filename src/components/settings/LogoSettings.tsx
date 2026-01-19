@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { compressImage } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
+import { logDebug, logError } from '@/lib/logger'
 
 export function LogoSettings() {
   const { logoUrl, faviconUrl, updateLogo, updateFavicon } =

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { LodgeDocument, mockDocuments } from '@/lib/data'
+import { useState, useEffect, useRef } from 'react'
+import { LodgeDocument } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -27,27 +27,134 @@ import { DocumentDialog } from './DocumentDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
+import { supabase } from '@/lib/supabase/client'
 
 export function DocumentsList() {
-  const [documents, setDocuments] = useState<LodgeDocument[]>(mockDocuments)
+  const [documents, setDocuments] = useState<LodgeDocument[]>([])
   const dialog = useDialog()
   const [selectedDoc, setSelectedDoc] = useState<LodgeDocument | null>(null)
+  const supabaseAny = supabase as any
+  const hasLoadedRef = useRef(false)
+
+  // Função para mapear dados do banco para o tipo LodgeDocument
+  const mapDocumentFromDB = (row: any): LodgeDocument => {
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description || '',
+      category: row.category,
+      uploadDate: row.upload_date || format(new Date(row.created_at), 'yyyy-MM-dd'),
+      type: row.file_type || 'PDF',
+      url: row.file_url,
+    }
+  }
+
+  const loadDocuments = useAsyncOperation(
+    async () => {
+      const { data: rows, error } = await supabaseAny
+        .from('lodge_documents')
+        .select('*')
+        .order('upload_date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        // Se a tabela não existir ainda, apenas logar e continuar
+        if (error.code === '404' || error.code === 'PGRST116') {
+          console.warn('Tabela lodge_documents não encontrada. A migração precisa ser aplicada.')
+          setDocuments([])
+          return null
+        }
+        console.error('Erro ao carregar documentos:', error)
+        throw new Error('Não foi possível carregar os documentos.')
+      }
+
+      const mappedDocuments = (rows || []).map(mapDocumentFromDB)
+      setDocuments(mappedDocuments)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar documentos.',
+      showErrorToast: false, // Não mostrar toast se a tabela não existir
+    },
+  )
+
+  const { execute: loadDocumentsExecute, loading: loadDocumentsLoading } = loadDocuments
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      loadDocumentsExecute()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
       if (selectedDoc) {
+        // Atualizar metadados
+        const { data: updatedRows, error } = await supabaseAny
+          .from('lodge_documents')
+          .update({
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', selectedDoc.id)
+          .select('*')
+          .limit(1)
+
+        if (error) {
+          console.error('Erro ao atualizar documento:', error)
+          throw new Error('Falha ao atualizar os metadados do documento.')
+        }
+
+        const updatedRow = updatedRows?.[0]
+        if (!updatedRow) {
+          throw new Error('Documento não encontrado após atualização.')
+        }
+
+        const updatedDoc = mapDocumentFromDB(updatedRow)
         setDocuments(
-          documents.map((d) => (d.id === selectedDoc.id ? { ...d, ...data } : d)),
+          documents.map((d) => (d.id === selectedDoc.id ? updatedDoc : d)),
         )
         return 'Metadados atualizados com sucesso.'
       } else {
-        const newDoc: LodgeDocument = {
-          id: String(documents.length + 1),
-          uploadDate: format(new Date(), 'yyyy-MM-dd'),
-          type: 'PDF',
-          url: '#',
-          ...data,
+        // Criar novo documento (o upload do arquivo é feito no DocumentDialog)
+        if (!data.fileUrl) {
+          throw new Error('Arquivo não foi enviado. Por favor, faça o upload do arquivo.')
         }
+
+        const { data: createdRows, error } = await supabaseAny
+          .from('lodge_documents')
+          .insert({
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            file_url: data.fileUrl,
+            file_name: data.fileName,
+            file_size: data.fileSize,
+            file_type: data.fileType,
+            upload_date: format(new Date(), 'yyyy-MM-dd'),
+            uploaded_by: user?.id || null,
+          })
+          .select('*')
+          .limit(1)
+
+        if (error) {
+          console.error('Erro ao criar documento:', error)
+          throw new Error('Falha ao salvar o documento.')
+        }
+
+        const createdRow = createdRows?.[0]
+        if (!createdRow) {
+          throw new Error('Documento não foi criado corretamente.')
+        }
+
+        const newDoc = mapDocumentFromDB(createdRow)
         setDocuments([newDoc, ...documents])
         return 'Documento enviado com sucesso.'
       }
@@ -60,6 +167,29 @@ export function DocumentsList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
+      // Buscar o documento para obter a URL do arquivo
+      const doc = documents.find((d) => d.id === id)
+      
+      const { error } = await supabaseAny
+        .from('lodge_documents')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Erro ao deletar documento:', error)
+        throw new Error('Falha ao remover o documento.')
+      }
+
+      // Tentar deletar o arquivo do storage (opcional, não crítico se falhar)
+      if (doc?.url) {
+        try {
+          const filePath = doc.url.split('/').slice(-2).join('/') // Extrair path do storage
+          await supabase.storage.from('site-assets').remove([filePath])
+        } catch (storageError) {
+          console.warn('Erro ao deletar arquivo do storage (não crítico):', storageError)
+        }
+      }
+
       setDocuments(documents.filter((d) => d.id !== id))
       return 'Documento excluído.'
     },
@@ -73,6 +203,8 @@ export function DocumentsList() {
     const result = await saveOperation.execute(data)
     if (result) {
       dialog.closeDialog()
+      // Recarregar lista após salvar
+      loadDocumentsExecute()
     }
   }
 
@@ -109,7 +241,13 @@ export function DocumentsList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {documents.length === 0 ? (
+            {loadDocumentsLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  Carregando documentos...
+                </TableCell>
+              </TableRow>
+            ) : documents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8">
                   Nenhum documento encontrado.
@@ -141,7 +279,13 @@ export function DocumentsList() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (doc.url) {
+                              window.open(doc.url, '_blank')
+                            }
+                          }}
+                        >
                           <Download className="mr-2 h-4 w-4" /> Baixar
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEdit(doc)}>

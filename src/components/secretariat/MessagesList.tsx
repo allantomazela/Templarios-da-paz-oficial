@@ -42,29 +42,48 @@ export function MessagesList() {
 
       setCurrentUserId(user.id)
 
-      const { data: profile, error: profileError } = await supabaseAny
+      const { data: profileData, error: profileError } = await supabaseAny
         .from('profiles')
         .select('id, full_name')
         .eq('id', user.id)
-        .single()
+        .limit(1)
 
       if (profileError) {
         throw new Error('Não foi possível carregar o perfil do usuário.')
       }
 
+      const profile = profileData?.[0]
       setCurrentUserName(profile?.full_name || 'Você')
 
-      const { data: rows, error } = await supabaseAny
-        .from('internal_messages')
-        .select('*')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
+      // Buscar mensagens enviadas e recebidas separadamente (mais confiável que .or())
+      const [sentResult, receivedResult] = await Promise.all([
+        supabaseAny
+          .from('internal_messages')
+          .select('*')
+          .eq('sender_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabaseAny
+          .from('internal_messages')
+          .select('*')
+          .eq('recipient_id', user.id)
+          .order('created_at', { ascending: false }),
+      ])
 
-      if (error) {
+      if (sentResult.error || receivedResult.error) {
+        console.error('Erro ao carregar mensagens:', sentResult.error || receivedResult.error)
         throw new Error('Não foi possível carregar as mensagens.')
       }
 
-      const mappedMessages = (rows || []).map((row: any) => ({
+      // Combinar e ordenar mensagens
+      const allRows = [
+        ...(sentResult.data || []),
+        ...(receivedResult.data || []),
+      ].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+
+      const mappedMessages = allRows.map((row: any) => ({
         id: row.id,
         subject: row.subject,
         content: row.content,
@@ -190,8 +209,9 @@ export function MessagesList() {
     dialog.openDialog()
   }
 
-  const handleReply = (senderId: string) => {
-    setReplyTo(senderId)
+  const handleReply = (message: Message) => {
+    // Usar senderId da mensagem, não o nome
+    setReplyTo(message.senderId)
     dialog.openDialog()
   }
 
@@ -286,7 +306,7 @@ export function MessagesList() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleReply(msg.sender)}
+                        onClick={() => handleReply(msg)}
                       >
                         <Reply className="mr-2 h-4 w-4" /> Responder
                       </Button>

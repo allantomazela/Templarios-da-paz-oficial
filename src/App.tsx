@@ -19,6 +19,8 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 const Index = lazy(() => import('@/pages/Index'))
 const Login = lazy(() => import('@/pages/Login'))
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
+const Privacy = lazy(() => import('@/pages/Privacy'))
+const TermsOfUse = lazy(() => import('@/pages/TermsOfUse'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Secretariat = lazy(() => import('@/pages/Secretariat'))
 const Financial = lazy(() => import('@/pages/Financial'))
@@ -32,6 +34,9 @@ const MediaManager = lazy(() => import('@/pages/admin/MediaManager'))
 const SiteSettings = lazy(() => import('@/pages/SiteSettings'))
 const Profile = lazy(() => import('@/pages/Profile'))
 const UserSettings = lazy(() => import('@/pages/UserSettings'))
+const MyMessages = lazy(() => import('@/pages/MyMessages'))
+const MyPayments = lazy(() => import('@/pages/MyPayments'))
+const Notices = lazy(() => import('@/pages/Notices'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const AccessDenied = lazy(() => import('@/pages/AccessDenied'))
 
@@ -152,6 +157,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/access-denied" element={<AccessDenied />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<TermsOfUse />} />
 
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
@@ -213,6 +220,9 @@ const App = () => (
             />
 
             <Route path="profile" element={<Profile />} />
+            <Route path="messages" element={<MyMessages />} />
+            <Route path="payments" element={<MyPayments />} />
+            <Route path="notices" element={<Notices />} />
             <Route path="settings/user" element={<UserSettings />} />
             <Route
               path="settings"

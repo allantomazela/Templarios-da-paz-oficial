@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BrothersList } from '@/components/secretariat/BrothersList'
 import { NoticesList } from '@/components/secretariat/NoticesList'
 import { MessagesList } from '@/components/secretariat/MessagesList'
+import { ContactMessagesList } from '@/components/secretariat/ContactMessagesList'
 import { DocumentsList } from '@/components/secretariat/DocumentsList'
 import { MinutesList } from '@/components/minutes/MinutesList'
 import {
@@ -40,6 +41,7 @@ export default function Secretariat() {
               <TabsList>
                 <TabsTrigger value="notices">Mural de Avisos</TabsTrigger>
                 <TabsTrigger value="messages">Mensagens Internas</TabsTrigger>
+                <TabsTrigger value="contact">Mensagens do Site</TabsTrigger>
               </TabsList>
             </div>
 
@@ -67,6 +69,20 @@ export default function Secretariat() {
                 </CardHeader>
                 <CardContent>
                   <MessagesList />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contact">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mensagens do Site</CardTitle>
+                  <CardDescription>
+                    Mensagens enviadas através do formulário de contato do site.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ContactMessagesList />
                 </CardContent>
               </Card>
             </TabsContent>

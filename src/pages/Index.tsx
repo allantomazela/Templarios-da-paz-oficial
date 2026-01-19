@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   ShieldCheck,
@@ -100,6 +100,8 @@ export default function Index() {
         zip={contact.zip}
         email={contact.email}
         secondaryEmail={contact.secondaryEmail}
+        phone={contact.phone}
+        messageEmail={contact.messageEmail}
       />
     ),
     masters: <VenerablesSection key="masters" venerables={venerables} />,
@@ -400,17 +402,21 @@ export default function Index() {
             © {new Date().getFullYear()} ARLS Templários da Paz. Todos os
             direitos reservados.
           </p>
-          <div className="flex justify-center gap-6 text-sm">
-            <a href="#" className="hover:text-primary transition-colors">
+          <div className="flex justify-center gap-6 text-sm mb-4">
+            <Link to="/privacy" className="hover:text-primary transition-colors">
               Privacidade
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
+            </Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">
               Termos de Uso
-            </a>
-            <a href="/login" className="hover:text-primary transition-colors">
+            </Link>
+            <Link to="/login" className="hover:text-primary transition-colors">
               Área Restrita
-            </a>
+            </Link>
           </div>
+          <p className="text-xs text-muted-foreground/70 mt-4">
+            Desenvolvido por{' '}
+            <span className="font-medium text-foreground">Allan Tomazela de Camargo</span>
+          </p>
         </div>
       </footer>
     </div>

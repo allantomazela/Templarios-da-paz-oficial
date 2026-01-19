@@ -22,10 +22,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 
 const noticeSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
   content: z.string().min(10, 'Conteúdo deve ter no mínimo 10 caracteres'),
+  isPrivate: z.boolean().default(false),
 })
 
 type NoticeFormValues = z.infer<typeof noticeSchema>
@@ -45,14 +47,18 @@ export function NoticeDialog({
 }: NoticeDialogProps) {
   const form = useForm<NoticeFormValues>({
     resolver: zodResolver(noticeSchema),
-    defaultValues: { title: '', content: '' },
+    defaultValues: { title: '', content: '', isPrivate: false },
   })
 
   useEffect(() => {
     if (noticeToEdit) {
-      form.reset({ title: noticeToEdit.title, content: noticeToEdit.content })
+      form.reset({ 
+        title: noticeToEdit.title, 
+        content: noticeToEdit.content,
+        isPrivate: (noticeToEdit as any).isPrivate || false,
+      })
     } else {
-      form.reset({ title: '', content: '' })
+      form.reset({ title: '', content: '', isPrivate: false })
     }
   }, [noticeToEdit, form, open])
 
@@ -98,6 +104,26 @@ export function NoticeDialog({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isPrivate"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Aviso Privado</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Apenas administradores e editores poderão ver este aviso
+                    </p>
+                  </div>
                 </FormItem>
               )}
             />

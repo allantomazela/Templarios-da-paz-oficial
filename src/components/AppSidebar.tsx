@@ -16,6 +16,9 @@ import {
   Globe,
   MonitorCog,
   Newspaper,
+  Mail,
+  Wallet,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -102,6 +105,9 @@ export function AppSidebar() {
     ...(canSeeLibrary
       ? [{ name: 'Biblioteca', icon: Library, path: '/dashboard/library' }]
       : []),
+    { name: 'Avisos', icon: Megaphone, path: '/dashboard/notices' },
+    { name: 'Minhas Mensagens', icon: Mail, path: '/dashboard/messages' },
+    { name: 'Meus Pagamentos', icon: Wallet, path: '/dashboard/payments' },
     ...(canSeeMedia
       ? [
           {

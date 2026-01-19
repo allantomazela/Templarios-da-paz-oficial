@@ -165,7 +165,7 @@ export default function Dashboard() {
               variant="link"
               className="w-full mt-2 h-auto p-0 text-primary"
             >
-              <Link to="/dashboard/secretariat">Ver Todos os Avisos</Link>
+              <Link to="/dashboard/notices">Ver Todos os Avisos</Link>
             </Button>
           </CardContent>
         </Card>

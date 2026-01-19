@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -26,25 +26,154 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import useFinancialStore from '@/stores/useFinancialStore'
 import { useToast } from '@/hooks/use-toast'
-import { mockBrothers, ReminderLog } from '@/lib/data'
+import { ReminderLog, ReminderSettings, Contribution } from '@/lib/data'
 import { format } from 'date-fns'
-import { Bell, History, CheckCircle } from 'lucide-react'
+import { Bell, History, CheckCircle, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
+
+interface ReminderLogFromDB {
+  id: string
+  brother_id: string
+  contribution_id: string
+  sent_date: string
+  method: 'Email' | 'WhatsApp'
+  created_at: string
+  profiles?: {
+    id: string
+    full_name: string | null
+  }
+}
+
+interface ContributionFromDB {
+  id: string
+  brother_id: string
+  month: number
+  year: number
+  amount: number
+  status: 'Pago' | 'Pendente' | 'Atrasado'
+  payment_date: string | null
+}
 
 export function ReminderSettings() {
-  const {
-    reminderSettings,
-    reminderLogs,
-    updateReminderSettings,
-    contributions,
-    addReminderLog,
-  } = useFinancialStore()
+  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>({
+    enabled: false,
+    frequency: 'before',
+    days: 3,
+  })
+  const [reminderLogs, setReminderLogs] = useState<ReminderLog[]>([])
+  const [contributions, setContributions] = useState<Contribution[]>([])
+  const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const [isSimulating, setIsSimulating] = useState(false)
+  const supabaseAny = supabase as any
+
+  // Load data from Supabase
+  const loadData = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      try {
+        // Load reminder logs with profiles
+        const { data: logsData, error: logsError } = await supabaseAny
+          .from('reminder_logs')
+          .select(
+            `
+            *,
+            profiles!reminder_logs_brother_id_fkey (
+              id,
+              full_name
+            )
+          `,
+          )
+          .order('sent_date', { ascending: false })
+
+        if (logsError) throw logsError
+
+        const mappedLogs: ReminderLog[] = (logsData || []).map(
+          (l: ReminderLogFromDB) => ({
+            id: l.id,
+            brotherId: l.brother_id,
+            contributionId: l.contribution_id,
+            sentDate: l.sent_date,
+            method: l.method,
+          }),
+        )
+
+        // Create brother names map
+        const namesMap: Record<string, string> = {}
+        ;(logsData || []).forEach((l: ReminderLogFromDB) => {
+          if (l.profiles?.full_name) {
+            namesMap[l.brother_id] = l.profiles.full_name
+          }
+        })
+
+        // Load contributions
+        const { data: contributionsData, error: contributionsError } =
+          await supabaseAny
+            .from('contributions')
+            .select('*')
+            .order('year', { ascending: false })
+            .order('month', { ascending: false })
+
+        if (contributionsError) throw contributionsError
+
+        const MONTHS = [
+          'Janeiro',
+          'Fevereiro',
+          'Março',
+          'Abril',
+          'Maio',
+          'Junho',
+          'Julho',
+          'Agosto',
+          'Setembro',
+          'Outubro',
+          'Novembro',
+          'Dezembro',
+        ]
+
+        const mappedContributions: Contribution[] = (contributionsData || []).map(
+          (c: ContributionFromDB) => ({
+            id: c.id,
+            brotherId: c.brother_id,
+            month: MONTHS[c.month - 1] || `${c.month}`,
+            year: c.year,
+            amount: parseFloat(c.amount.toString()),
+            status: c.status,
+            paymentDate: c.payment_date || undefined,
+          }),
+        )
+
+        setReminderLogs(mappedLogs)
+        setContributions(mappedContributions)
+        setBrotherNames(namesMap)
+      } catch (error) {
+        console.error('Error loading reminder data:', error)
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar dados.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar dados.',
+    },
+  )
+
+  useEffect(() => {
+    loadData.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleToggle = (checked: boolean) => {
-    updateReminderSettings({ ...reminderSettings, enabled: checked })
+    setReminderSettings({ ...reminderSettings, enabled: checked })
     toast({
       title: checked ? 'Lembretes Ativados' : 'Lembretes Desativados',
       description: checked
@@ -54,59 +183,79 @@ export function ReminderSettings() {
   }
 
   const handleFrequencyChange = (val: string) => {
-    updateReminderSettings({
+    setReminderSettings({
       ...reminderSettings,
-      frequency: val as any,
+      frequency: val as 'before' | 'on_due' | 'after',
     })
   }
 
   const handleDaysChange = (val: string) => {
-    updateReminderSettings({
+    setReminderSettings({
       ...reminderSettings,
       days: parseInt(val) || 0,
     })
   }
 
-  const simulateReminders = () => {
-    setIsSimulating(true)
-    // Find pending contributions
-    const pending = contributions.filter(
-      (c) => c.status === 'Pendente' || c.status === 'Atrasado',
-    )
+  const simulateReminders = useAsyncOperation(
+    async () => {
+      setIsSimulating(true)
+      // Find pending contributions
+      const pending = contributions.filter(
+        (c) => c.status === 'Pendente' || c.status === 'Atrasado',
+      )
 
-    setTimeout(() => {
       let count = 0
-      pending.forEach((p) => {
-        // Simple logic: Send if not sent today (mock)
+      const today = format(new Date(), 'yyyy-MM-dd')
+
+      for (const p of pending) {
+        // Check if already sent today
         const alreadySent = reminderLogs.some(
-          (l) =>
-            l.contributionId === p.id &&
-            l.sentDate === format(new Date(), 'yyyy-MM-dd'),
+          (l) => l.contributionId === p.id && l.sentDate === today,
         )
 
         if (!alreadySent) {
-          const log: ReminderLog = {
-            id: crypto.randomUUID(),
-            brotherId: p.brotherId,
-            contributionId: p.id,
-            sentDate: format(new Date(), 'yyyy-MM-dd'),
-            method: 'Email', // Default
+          // Create reminder log in Supabase
+          const { error } = await supabaseAny.from('reminder_logs').insert({
+            brother_id: p.brotherId,
+            contribution_id: p.id,
+            sent_date: today,
+            method: 'Email',
+          })
+
+          if (!error) {
+            count++
           }
-          addReminderLog(log)
-          count++
         }
-      })
+      }
 
       setIsSimulating(false)
-      toast({
-        title: 'Verificação Concluída',
-        description: `${count} novos lembretes foram enviados.`,
-      })
-    }, 1500)
+      await loadData.execute() // Reload data
+      return `${count} novos lembretes foram enviados.`
+    },
+    {
+      successMessage: 'Verificação concluída!',
+      errorMessage: 'Falha ao enviar lembretes.',
+    },
+  )
+
+  const handleSimulate = () => {
+    simulateReminders.execute()
   }
 
-  const getBrotherName = (id: string) =>
-    mockBrothers.find((b) => b.id === id)?.name || 'Desconhecido'
+  const getBrotherName = (id: string) => {
+    return brotherNames[id] || 'Desconhecido'
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando configurações de lembretes...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -172,11 +321,18 @@ export function ReminderSettings() {
 
           <div className="pt-4 flex justify-end">
             <Button
-              onClick={simulateReminders}
-              disabled={isSimulating || !reminderSettings.enabled}
+              onClick={handleSimulate}
+              disabled={isSimulating || !reminderSettings.enabled || simulateReminders.loading}
               variant="secondary"
             >
-              {isSimulating ? 'Verificando...' : 'Executar Verificação Agora'}
+              {isSimulating || simulateReminders.loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verificando...
+                </>
+              ) : (
+                'Executar Verificação Agora'
+              )}
             </Button>
           </div>
         </CardContent>

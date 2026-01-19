@@ -14,6 +14,7 @@ import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
 import { SeoManager } from '@/components/SeoManager'
 import { RedirectHandler } from '@/components/RedirectHandler'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 // Lazy load pages for better performance
 const Index = lazy(() => import('@/pages/Index'))
@@ -151,8 +152,9 @@ const App = () => (
       <PWAInstallPrompt />
       <Toaster />
       <Sonner />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -253,6 +255,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
     </TooltipProvider>
   </BrowserRouter>
 )

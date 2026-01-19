@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Transaction } from '@/lib/data'
+import { Transaction, Category, BankAccount } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { format } from 'date-fns'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
 
 const transactionSchema = z.object({
   description: z.string().min(3, 'Descrição é obrigatória'),
@@ -50,6 +51,18 @@ interface TransactionDialogProps {
   defaultType: 'Receita' | 'Despesa'
 }
 
+interface CategoryFromDB {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+}
+
+interface AccountFromDB {
+  id: string
+  name: string
+  type: string
+}
+
 export function TransactionDialog({
   open,
   onOpenChange,
@@ -57,7 +70,12 @@ export function TransactionDialog({
   onSave,
   defaultType,
 }: TransactionDialogProps) {
-  const { categories, accounts } = useFinancialStore()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingAccounts, setLoadingAccounts] = useState(true)
+  const supabaseAny = supabase as any
+
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -69,6 +87,53 @@ export function TransactionDialog({
       accountId: '',
     },
   })
+
+  // Load categories and accounts from Supabase
+  useEffect(() => {
+    if (open) {
+      const loadData = async () => {
+        setLoadingCategories(true)
+        setLoadingAccounts(true)
+
+        // Load categories
+        const { data: categoriesData, error: categoriesError } =
+          await supabaseAny.from('financial_categories').select('*').order('name')
+
+        if (!categoriesError && categoriesData) {
+          const mappedCategories: Category[] = categoriesData.map(
+            (c: CategoryFromDB) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+            }),
+          )
+          setCategories(mappedCategories)
+        }
+        setLoadingCategories(false)
+
+        // Load accounts
+        const { data: accountsData, error: accountsError } = await supabaseAny
+          .from('bank_accounts')
+          .select('*')
+          .order('name')
+
+        if (!accountsError && accountsData) {
+          const mappedAccounts: BankAccount[] = accountsData.map(
+            (a: AccountFromDB) => ({
+              id: a.id,
+              name: a.name,
+              type: a.type as 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento',
+              initialBalance: 0,
+            }),
+          )
+          setAccounts(mappedAccounts)
+        }
+        setLoadingAccounts(false)
+      }
+
+      loadData()
+    }
+  }, [open, supabaseAny])
 
   useEffect(() => {
     if (transactionToEdit) {
@@ -163,18 +228,35 @@ export function TransactionDialog({
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
+                    disabled={loadingAccounts}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a conta..." />
+                        <SelectValue
+                          placeholder={
+                            loadingAccounts
+                              ? 'Carregando...'
+                              : 'Selecione a conta...'
+                          }
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {acc.name}
-                        </SelectItem>
-                      ))}
+                      {loadingAccounts ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      ) : accounts.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Nenhuma conta cadastrada
+                        </div>
+                      ) : (
+                        accounts.map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -192,18 +274,35 @@ export function TransactionDialog({
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
+                    disabled={loadingCategories}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
+                        <SelectValue
+                          placeholder={
+                            loadingCategories
+                              ? 'Carregando...'
+                              : 'Selecione...'
+                          }
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {availableCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.name}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
+                      {loadingCategories ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      ) : availableCategories.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Nenhuma categoria cadastrada para {currentType}
+                        </div>
+                      ) : (
+                        availableCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

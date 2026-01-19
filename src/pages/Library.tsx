@@ -10,10 +10,26 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { mockLibrary } from '@/lib/data'
-import { Search, FileText, Download, Lock, AlertCircle } from 'lucide-react'
+import { LibraryItem } from '@/lib/data'
+import { Search, FileText, Download, Lock, AlertCircle, Loader2 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
+
+interface LibraryItemFromDB {
+  id: string
+  title: string
+  type: 'PDF' | 'Imagem' | 'Video' | 'Texto'
+  degree: 'Aprendiz' | 'Companheiro' | 'Mestre'
+  file_url: string
+  file_name: string | null
+  file_size: number | null
+  added_at: string
+  uploaded_by: string | null
+  created_at: string
+  updated_at: string
+}
 
 type MasonicDegree = 'Aprendiz' | 'Companheiro' | 'Mestre'
 
@@ -74,8 +90,51 @@ function getAccessibleDegrees(
 export default function LibraryPage() {
   const { user } = useAuthStore()
   const [searchTerm, setSearchTerm] = useState('')
+  const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabaseAny = supabase as any
 
   const userDegree = user?.profile?.masonic_degree as MasonicDegree | undefined
+
+  // Load library items from Supabase
+  const loadLibraryItems = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      try {
+        const { data, error } = await supabaseAny
+          .from('library_items')
+          .select('*')
+          .order('added_at', { ascending: false })
+
+        if (error) throw error
+
+        const mapped: LibraryItem[] = (data || []).map((item: LibraryItemFromDB) => ({
+          id: item.id,
+          title: item.title,
+          type: item.type,
+          degree: item.degree,
+          addedAt: item.added_at,
+          fileUrl: item.file_url || null,
+        }))
+
+        setLibraryItems(mapped)
+      } catch (error) {
+        console.error('Error loading library items:', error)
+      } finally {
+        setLoading(false)
+      }
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar materiais da biblioteca.',
+    },
+  )
+
+  useEffect(() => {
+    loadLibraryItems.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Obter graus acessíveis
   const accessibleDegrees = useMemo(
@@ -85,11 +144,11 @@ export default function LibraryPage() {
 
   // Filtrar biblioteca rigorosamente
   const filteredLibrary = useMemo(() => {
-    return mockLibrary.filter((item) => {
+    return libraryItems.filter((item) => {
       // Verificar se o usuário pode acessar este material
       return canAccessDegree(userDegree, item.degree as MasonicDegree)
     })
-  }, [userDegree])
+  }, [libraryItems, userDegree])
 
   // Filtrar por termo de busca
   const searchFilteredLibrary = useMemo(() => {
@@ -181,7 +240,14 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      {hasNoDegree ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Carregando materiais da biblioteca...</span>
+          </div>
+        </div>
+      ) : hasNoDegree ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Lock className="h-16 w-16 text-muted-foreground opacity-50 mb-4" />
           <p className="text-lg font-semibold text-muted-foreground">
@@ -256,7 +322,20 @@ export default function LibraryPage() {
                             </CardDescription>
                           </CardContent>
                           <CardFooter>
-                            <Button variant="outline" className="w-full">
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                // Use fileUrl already stored in state
+                                const fullItem = libraryItems.find((i) => i.id === item.id)
+                                if (fullItem?.fileUrl) {
+                                  // Open file URL in new tab or download
+                                  window.open(fullItem.fileUrl, '_blank')
+                                } else {
+                                  console.error('File URL not available for this item')
+                                }
+                              }}
+                            >
                               <Download className="mr-2 h-4 w-4" /> Baixar
                             </Button>
                           </CardFooter>

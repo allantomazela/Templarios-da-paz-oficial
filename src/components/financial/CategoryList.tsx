@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Table,
   TableBody,
@@ -9,13 +9,14 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { Plus, Search, Pencil, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import { Category } from '@/lib/data'
 import { CategoryDialog } from './CategoryDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { Badge } from '@/components/ui/badge'
+import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,14 +38,17 @@ import {
 
 const ITEMS_PER_PAGE = 5
 
+interface CategoryFromDB {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+  created_at: string
+  updated_at: string
+}
+
 export function CategoryList() {
-  const {
-    categories,
-    transactions,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-  } = useFinancialStore()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const dialog = useDialog()
@@ -54,6 +58,42 @@ export function CategoryList() {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
     null,
   )
+  const { toast } = useToast()
+  const supabaseAny = supabase as any
+
+  // Load categories from Supabase
+  const loadCategories = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      const { data, error } = await supabaseAny
+        .from('financial_categories')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (error) {
+        throw new Error('Falha ao carregar categorias.')
+      }
+
+      const mapped: Category[] = (data || []).map((c: CategoryFromDB) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+      }))
+
+      setCategories(mapped)
+      setLoading(false)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar categorias.',
+    },
+  )
+
+  useEffect(() => {
+    loadCategories.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Filter and Search
   const filteredCategories = categories.filter((category) =>
@@ -71,10 +111,31 @@ export function CategoryList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedCategory) {
-        updateCategory({ ...selectedCategory, ...data })
+        // Update
+        const { error } = await supabaseAny
+          .from('financial_categories')
+          .update({
+            name: data.name,
+            type: data.type,
+          })
+          .eq('id', selectedCategory.id)
+
+        if (error) throw error
+
+        await loadCategories.execute()
         return 'Categoria atualizada com sucesso.'
       } else {
-        addCategory({ id: crypto.randomUUID(), ...data })
+        // Create
+        const { error } = await supabaseAny
+          .from('financial_categories')
+          .insert({
+            name: data.name,
+            type: data.type,
+          })
+
+        if (error) throw error
+
+        await loadCategories.execute()
         return 'Categoria criada com sucesso.'
       }
     },
@@ -86,7 +147,32 @@ export function CategoryList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteCategory(id)
+      // Check if category is in use by transactions
+      const { data: transactions, error: checkError } = await supabaseAny
+        .from('financial_transactions')
+        .select('id')
+        .eq('category_id', id)
+        .limit(1)
+
+      if (checkError) throw checkError
+
+      if (transactions && transactions.length > 0) {
+        toast({
+          title: 'Erro',
+          description: 'Não é possível excluir uma categoria que está em uso por transações.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const { error } = await supabaseAny
+        .from('financial_categories')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadCategories.execute()
       return 'Categoria removida.'
     },
     {
@@ -103,18 +189,6 @@ export function CategoryList() {
   }
 
   const handleDeleteClick = (category: Category) => {
-    // Check if in use
-    const isInUse = transactions.some(
-      (t) =>
-        t.category === category.name &&
-        t.type === category.type,
-    )
-
-    if (isInUse) {
-      // Use toast directly for validation errors
-      return
-    }
-
     setCategoryToDelete(category)
   }
 
@@ -162,10 +236,21 @@ export function CategoryList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedCategories.length === 0 ? (
+            {loading ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-8">
-                  Nenhuma categoria encontrada.
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando categorias...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : paginatedCategories.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-8">
+                  {searchTerm
+                    ? 'Nenhuma categoria encontrada com o termo buscado.'
+                    : 'Nenhuma categoria cadastrada.'}
                 </TableCell>
               </TableRow>
             ) : (

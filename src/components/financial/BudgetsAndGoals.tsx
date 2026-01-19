@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -8,33 +8,184 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
-import { Budget, FinancialGoal } from '@/lib/data'
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2 } from 'lucide-react'
+import { Budget, FinancialGoal, Transaction } from '@/lib/data'
 import { useToast } from '@/hooks/use-toast'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { BudgetDialog } from './BudgetDialog'
 import { GoalDialog } from './GoalDialog'
 import { format } from 'date-fns'
 
+interface BudgetFromDB {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+  category_id: string | null
+  amount: number
+  period: 'Mensal' | 'Anual' | 'Personalizado'
+  start_date: string | null
+  end_date: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+}
+
+interface GoalFromDB {
+  id: string
+  name: string
+  target_amount: number
+  linked_category_id: string | null
+  deadline: string
+  financial_categories?: {
+    id: string
+    name: string
+  }
+}
+
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+}
+
 export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
-  const {
-    budgets,
-    goals,
-    transactions,
-    addBudget,
-    updateBudget,
-    deleteBudget,
-    addGoal,
-    updateGoal,
-    deleteGoal,
-  } = useFinancialStore()
+  const [budgets, setBudgets] = useState<Budget[]>([])
+  const [goals, setGoals] = useState<FinancialGoal[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const supabaseAny = supabase as any
 
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false)
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null)
 
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<FinancialGoal | null>(null)
+
+  // Load all data from Supabase
+  const loadData = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      try {
+        // Load budgets
+        const { data: budgetsData, error: budgetsError } = await supabaseAny
+          .from('budgets')
+          .select(
+            `
+            *,
+            financial_categories!budgets_category_id_fkey (
+              id,
+              name
+            )
+          `,
+          )
+          .order('name')
+
+        if (budgetsError) throw budgetsError
+
+        const mappedBudgets: Budget[] = (budgetsData || []).map(
+          (b: BudgetFromDB) => ({
+            id: b.id,
+            name: b.name,
+            type: b.type,
+            category: b.financial_categories?.name || undefined,
+            amount: parseFloat(b.amount.toString()),
+            period: b.period,
+            startDate: b.start_date || undefined,
+            endDate: b.end_date || undefined,
+          }),
+        )
+
+        // Load goals
+        const { data: goalsData, error: goalsError } = await supabaseAny
+          .from('financial_goals')
+          .select(
+            `
+            *,
+            financial_categories!financial_goals_linked_category_id_fkey (
+              id,
+              name
+            )
+          `,
+          )
+          .order('deadline')
+
+        if (goalsError) throw goalsError
+
+        const mappedGoals: FinancialGoal[] = (goalsData || []).map(
+          (g: GoalFromDB) => ({
+            id: g.id,
+            name: g.name,
+            targetAmount: parseFloat(g.target_amount.toString()),
+            linkedCategory: g.financial_categories?.name || undefined,
+            deadline: g.deadline,
+          }),
+        )
+
+        // Load transactions for progress calculation
+        const { data: transactionsData, error: transactionsError } =
+          await supabaseAny
+            .from('financial_transactions')
+            .select(
+              `
+              *,
+              financial_categories!financial_transactions_category_id_fkey (
+                id,
+                name
+              )
+            `,
+            )
+            .order('date', { ascending: false })
+
+        if (transactionsError) throw transactionsError
+
+        const mappedTransactions: Transaction[] = (transactionsData || []).map(
+          (t: TransactionFromDB) => ({
+            id: t.id,
+            date: t.date,
+            description: t.description,
+            category: t.financial_categories?.name || 'Sem categoria',
+            type: t.type,
+            amount: parseFloat(t.amount.toString()),
+            accountId: t.account_id || undefined,
+          }),
+        )
+
+        setBudgets(mappedBudgets)
+        setGoals(mappedGoals)
+        setTransactions(mappedTransactions)
+      } catch (error) {
+        console.error('Error loading budgets and goals:', error)
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar dados.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar dados.',
+    },
+  )
+
+  useEffect(() => {
+    loadData.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Calculate Budget Progress - Memoized function
   const calculateBudgetProgress = useMemo(
@@ -79,20 +230,99 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
   )
 
   // Handlers for Budgets
-  const handleSaveBudget = (data: any) => {
-    if (selectedBudget) {
-      updateBudget({ ...selectedBudget, ...data })
-      toast({ title: 'Sucesso', description: 'Orçamento atualizado.' })
-    } else {
-      addBudget({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Orçamento criado.' })
+  const handleSaveBudget = useAsyncOperation(
+    async (data: any) => {
+      // Find category by name if provided
+      let categoryId = null
+      if (data.category) {
+        const { data: categoryData, error: categoryError } = await supabaseAny
+          .from('financial_categories')
+          .select('id')
+          .eq('name', data.category)
+          .eq('type', data.type)
+          .maybeSingle()
+
+        if (categoryError) {
+          throw new Error('Erro ao buscar categoria.')
+        }
+
+        if (categoryData) {
+          categoryId = categoryData.id
+        } else {
+          throw new Error('Categoria não encontrada.')
+        }
+      }
+
+      if (selectedBudget) {
+        // Update
+        const { error } = await supabaseAny
+          .from('budgets')
+          .update({
+            name: data.name,
+            type: data.type,
+            category_id: categoryId,
+            amount: data.amount,
+            period: data.period,
+            start_date: data.startDate || null,
+            end_date: data.endDate || null,
+          })
+          .eq('id', selectedBudget.id)
+
+        if (error) throw error
+
+        await loadData.execute()
+        return 'Orçamento atualizado.'
+      } else {
+        // Create
+        const { error } = await supabaseAny.from('budgets').insert({
+          name: data.name,
+          type: data.type,
+          category_id: categoryId,
+          amount: data.amount,
+          period: data.period,
+          start_date: data.startDate || null,
+          end_date: data.endDate || null,
+        })
+
+        if (error) throw error
+
+        await loadData.execute()
+        return 'Orçamento criado.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o orçamento.',
+    },
+  )
+
+  const handleDeleteBudget = useAsyncOperation(
+    async (id: string) => {
+      const { error } = await supabaseAny
+        .from('budgets')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadData.execute()
+      return 'Orçamento excluído.'
+    },
+    {
+      successMessage: 'Orçamento removido com sucesso!',
+      errorMessage: 'Falha ao remover o orçamento.',
+    },
+  )
+
+  const onSaveBudget = async (data: any) => {
+    const result = await handleSaveBudget.execute(data)
+    if (result) {
+      setIsBudgetDialogOpen(false)
     }
-    setIsBudgetDialogOpen(false)
   }
 
-  const handleDeleteBudget = (id: string) => {
-    deleteBudget(id)
-    toast({ title: 'Removido', description: 'Orçamento excluído.' })
+  const onDeleteBudget = (id: string) => {
+    handleDeleteBudget.execute(id)
   }
 
   const openNewBudget = () => {
@@ -106,20 +336,93 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
   }
 
   // Handlers for Goals
-  const handleSaveGoal = (data: any) => {
-    if (selectedGoal) {
-      updateGoal({ ...selectedGoal, ...data })
-      toast({ title: 'Sucesso', description: 'Meta atualizada.' })
-    } else {
-      addGoal({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Meta criada.' })
+  const handleSaveGoal = useAsyncOperation(
+    async (data: any) => {
+      // Find category by name if provided
+      let linkedCategoryId = null
+      if (data.linkedCategory) {
+        const { data: categoryData, error: categoryError } = await supabaseAny
+          .from('financial_categories')
+          .select('id')
+          .eq('name', data.linkedCategory)
+          .eq('type', 'Receita')
+          .maybeSingle()
+
+        if (categoryError) {
+          throw new Error('Erro ao buscar categoria.')
+        }
+
+        if (categoryData) {
+          linkedCategoryId = categoryData.id
+        } else {
+          throw new Error('Categoria não encontrada.')
+        }
+      }
+
+      if (selectedGoal) {
+        // Update
+        const { error } = await supabaseAny
+          .from('financial_goals')
+          .update({
+            name: data.name,
+            target_amount: data.targetAmount,
+            linked_category_id: linkedCategoryId,
+            deadline: data.deadline,
+          })
+          .eq('id', selectedGoal.id)
+
+        if (error) throw error
+
+        await loadData.execute()
+        return 'Meta atualizada.'
+      } else {
+        // Create
+        const { error } = await supabaseAny.from('financial_goals').insert({
+          name: data.name,
+          target_amount: data.targetAmount,
+          linked_category_id: linkedCategoryId,
+          deadline: data.deadline,
+        })
+
+        if (error) throw error
+
+        await loadData.execute()
+        return 'Meta criada.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a meta.',
+    },
+  )
+
+  const handleDeleteGoal = useAsyncOperation(
+    async (id: string) => {
+      const { error } = await supabaseAny
+        .from('financial_goals')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadData.execute()
+      return 'Meta excluída.'
+    },
+    {
+      successMessage: 'Meta removida com sucesso!',
+      errorMessage: 'Falha ao remover a meta.',
+    },
+  )
+
+  const onSaveGoal = async (data: any) => {
+    const result = await handleSaveGoal.execute(data)
+    if (result) {
+      setIsGoalDialogOpen(false)
     }
-    setIsGoalDialogOpen(false)
   }
 
-  const handleDeleteGoal = (id: string) => {
-    deleteGoal(id)
-    toast({ title: 'Removido', description: 'Meta excluída.' })
+  const onDeleteGoal = (id: string) => {
+    handleDeleteGoal.execute(id)
   }
 
   const openNewGoal = () => {
@@ -130,6 +433,17 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
   const openEditGoal = (goal: FinancialGoal) => {
     setSelectedGoal(goal)
     setIsGoalDialogOpen(true)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando orçamentos e metas...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -171,7 +485,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteBudget(budget.id)}
+                          onClick={() => onDeleteBudget(budget.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -245,7 +559,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteGoal(goal.id)}
+                          onClick={() => onDeleteGoal(goal.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -282,14 +596,14 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
         open={isBudgetDialogOpen}
         onOpenChange={setIsBudgetDialogOpen}
         budgetToEdit={selectedBudget}
-        onSave={handleSaveBudget}
+        onSave={onSaveBudget}
       />
 
       <GoalDialog
         open={isGoalDialogOpen}
         onOpenChange={setIsGoalDialogOpen}
         goalToEdit={selectedGoal}
-        onSave={handleSaveGoal}
+        onSave={onSaveGoal}
       />
     </div>
   )

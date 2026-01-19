@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,27 +18,104 @@ import {
   Calendar,
   Folder,
   Wallet,
+  Loader2,
 } from 'lucide-react'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
-import useFinancialStore from '@/stores/useFinancialStore'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { supabase } from '@/lib/supabase/client'
+
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+  bank_accounts?: {
+    id: string
+    name: string
+  }
+}
 
 export function IncomeList() {
-  const {
-    transactions,
-    accounts,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useFinancialStore()
-  const incomes = transactions.filter((t) => t.type === 'Receita')
+  const [incomes, setIncomes] = useState<Transaction[]>([])
+  const [accountNames, setAccountNames] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
+  const supabaseAny = supabase as any
+
+  // Load incomes from Supabase
+  const loadIncomes = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      const { data, error } = await supabaseAny
+        .from('financial_transactions')
+        .select(
+          `
+          *,
+          financial_categories!financial_transactions_category_id_fkey (
+            id,
+            name
+          ),
+          bank_accounts!financial_transactions_account_id_fkey (
+            id,
+            name
+          )
+        `,
+        )
+        .eq('type', 'Receita')
+        .order('date', { ascending: false })
+
+      if (error) {
+        throw new Error('Falha ao carregar receitas.')
+      }
+
+      const mapped: Transaction[] = (data || []).map(
+        (t: TransactionFromDB) => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          category: t.financial_categories?.name || 'Sem categoria',
+          type: t.type,
+          amount: parseFloat(t.amount.toString()),
+          accountId: t.account_id || undefined,
+        }),
+      )
+
+      // Create account names map
+      const namesMap: Record<string, string> = {}
+      ;(data || []).forEach((t: TransactionFromDB) => {
+        if (t.bank_accounts?.name) {
+          namesMap[t.account_id || ''] = t.bank_accounts.name
+        }
+      })
+      setAccountNames(namesMap)
+
+      setIncomes(mapped)
+      setLoading(false)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar receitas.',
+    },
+  )
+
+  useEffect(() => {
+    loadIncomes.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filteredIncomes = incomes.filter(
     (income) =>
@@ -48,14 +125,51 @@ export function IncomeList() {
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
+      // Find category by name
+      const { data: categoryData, error: categoryError } = await supabaseAny
+        .from('financial_categories')
+        .select('id')
+        .eq('name', data.category)
+        .eq('type', 'Receita')
+        .maybeSingle()
+
+      if (categoryError || !categoryData) {
+        throw new Error('Categoria não encontrada.')
+      }
+
       if (selectedIncome) {
-        updateTransaction({ ...selectedIncome, ...data })
+        // Update
+        const { error } = await supabaseAny
+          .from('financial_transactions')
+          .update({
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            category_id: categoryData.id,
+            account_id: data.accountId || null,
+          })
+          .eq('id', selectedIncome.id)
+
+        if (error) throw error
+
+        await loadIncomes.execute()
         return 'Receita atualizada com sucesso.'
       } else {
-        addTransaction({
-          id: crypto.randomUUID(),
-          ...data,
-        })
+        // Create
+        const { error } = await supabaseAny
+          .from('financial_transactions')
+          .insert({
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            category_id: categoryData.id,
+            type: 'Receita',
+            account_id: data.accountId || null,
+          })
+
+        if (error) throw error
+
+        await loadIncomes.execute()
         return 'Receita registrada com sucesso.'
       }
     },
@@ -67,7 +181,14 @@ export function IncomeList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteTransaction(id)
+      const { error } = await supabaseAny
+        .from('financial_transactions')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadIncomes.execute()
       return 'Receita removida.'
     },
     {
@@ -98,8 +219,8 @@ export function IncomeList() {
   }
 
   const getAccountName = (id?: string) => {
-    const acc = accounts.find((a) => a.id === id)
-    return acc ? acc.name : 'N/A'
+    if (!id) return 'N/A'
+    return accountNames[id] || 'N/A'
   }
 
   return (
@@ -133,10 +254,21 @@ export function IncomeList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredIncomes.length === 0 ? (
+            {loading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  Nenhuma receita encontrada.
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando receitas...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredIncomes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  {searchTerm
+                    ? 'Nenhuma receita encontrada com o termo buscado.'
+                    : 'Nenhuma receita cadastrada.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -186,9 +318,16 @@ export function IncomeList() {
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {filteredIncomes.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground border rounded-md">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando receitas...
+          </div>
+        ) : filteredIncomes.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-md">
-            Nenhuma receita encontrada.
+            {searchTerm
+              ? 'Nenhuma receita encontrada com o termo buscado.'
+              : 'Nenhuma receita cadastrada.'}
           </div>
         ) : (
           filteredIncomes.map((income) => (

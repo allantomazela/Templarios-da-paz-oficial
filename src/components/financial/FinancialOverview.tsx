@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -14,9 +14,10 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
-import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter } from 'lucide-react'
+import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 import {
   Select,
   SelectContent,
@@ -34,15 +35,109 @@ import {
   startOfYear,
   endOfYear,
 } from 'date-fns'
+import { Transaction, BankAccount } from '@/lib/data'
 
 const chartConfig = {
   receita: { label: 'Receitas', color: 'hsl(var(--chart-1))' },
   despesa: { label: 'Despesas', color: 'hsl(var(--destructive))' },
 }
 
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+}
+
+interface AccountFromDB {
+  id: string
+  name: string
+  type: string
+  initial_balance: number
+}
+
 export function FinancialOverview() {
-  const { transactions, accounts } = useFinancialStore()
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('current_year')
+  const supabaseAny = supabase as any
+  const { toast } = useToast()
+
+  // Load transactions and accounts from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        // Load transactions with categories
+        const { data: transactionsData, error: transactionsError } =
+          await supabaseAny
+            .from('financial_transactions')
+            .select(
+              `
+              *,
+              financial_categories!financial_transactions_category_id_fkey (
+                id,
+                name
+              )
+            `,
+            )
+            .order('date', { ascending: false })
+
+        if (transactionsError) throw transactionsError
+
+        const mappedTransactions: Transaction[] = (transactionsData || []).map(
+          (t: TransactionFromDB) => ({
+            id: t.id,
+            date: t.date,
+            description: t.description,
+            category: t.financial_categories?.name || 'Sem categoria',
+            type: t.type,
+            amount: parseFloat(t.amount.toString()),
+            accountId: t.account_id || undefined,
+          }),
+        )
+
+        // Load accounts
+        const { data: accountsData, error: accountsError } = await supabaseAny
+          .from('bank_accounts')
+          .select('*')
+          .order('name')
+
+        if (accountsError) throw accountsError
+
+        const mappedAccounts: BankAccount[] = (accountsData || []).map(
+          (a: AccountFromDB) => ({
+            id: a.id,
+            name: a.name,
+            type: a.type as 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento',
+            initialBalance: parseFloat(a.initial_balance.toString()),
+          }),
+        )
+
+        setTransactions(mappedTransactions)
+        setAccounts(mappedAccounts)
+      } catch (error) {
+        console.error('Error loading financial data:', error)
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar dados financeiros.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [supabaseAny, toast])
 
   // Date Filtering
   const getDateRange = () => {
@@ -140,6 +235,17 @@ export function FinancialOverview() {
       )
     return bal < 100 // Example threshold
   })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando dados financeiros...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

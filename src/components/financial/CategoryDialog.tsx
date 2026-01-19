@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
@@ -50,7 +50,6 @@ export function CategoryDialog({
   categoryToEdit,
   onSave,
 }: CategoryDialogProps) {
-  const { categories } = useFinancialStore()
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
@@ -73,13 +72,28 @@ export function CategoryDialog({
     }
   }, [categoryToEdit, form, open])
 
-  const handleSubmit = (data: CategoryFormValues) => {
-    // Duplicate check
-    const isDuplicate = categories.some(
-      (c) =>
-        c.name.toLowerCase() === data.name.toLowerCase() &&
-        c.type === data.type &&
-        c.id !== categoryToEdit?.id,
+  const handleSubmit = async (data: CategoryFormValues) => {
+    const supabaseAny = supabase as any
+
+    // Check for duplicate category (same name and type)
+    const { data: existingCategories, error } = await supabaseAny
+      .from('financial_categories')
+      .select('id, name, type')
+      .eq('name', data.name)
+      .eq('type', data.type)
+
+    if (error) {
+      form.setError('name', {
+        type: 'manual',
+        message: 'Erro ao verificar duplicatas. Tente novamente.',
+      })
+      return
+    }
+
+    // If editing, exclude current category from duplicate check
+    const isDuplicate = existingCategories?.some(
+      (c: { id: string; name: string; type: string }) =>
+        categoryToEdit ? c.id !== categoryToEdit.id : true,
     )
 
     if (isDuplicate) {

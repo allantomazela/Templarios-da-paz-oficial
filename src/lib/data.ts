@@ -108,6 +108,7 @@ export interface Announcement {
   date: string
   author: string
   content: string
+  isPrivate?: boolean
 }
 
 export interface BankAccount {
@@ -144,6 +145,7 @@ export interface LibraryItem {
   type: 'PDF' | 'Imagem' | 'Video' | 'Texto'
   degree: 'Aprendiz' | 'Companheiro' | 'Mestre'
   addedAt: string
+  fileUrl?: string | null
 }
 
 export interface LodgeDocument {

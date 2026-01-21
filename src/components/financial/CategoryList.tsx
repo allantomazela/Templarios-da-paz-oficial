@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { Category } from '@/lib/data'
 import { CategoryDialog } from './CategoryDialog'
@@ -41,10 +41,19 @@ export function CategoryList() {
   const {
     categories,
     transactions,
+    loading,
+    fetchCategories,
+    fetchTransactions,
     addCategory,
     updateCategory,
     deleteCategory,
   } = useFinancialStore()
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchCategories()
+    fetchTransactions()
+  }, [fetchCategories, fetchTransactions])
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const dialog = useDialog()
@@ -71,10 +80,10 @@ export function CategoryList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedCategory) {
-        updateCategory({ ...selectedCategory, ...data })
+        await updateCategory({ ...selectedCategory, ...data })
         return 'Categoria atualizada com sucesso.'
       } else {
-        addCategory({ id: crypto.randomUUID(), ...data })
+        await addCategory({ id: crypto.randomUUID(), ...data })
         return 'Categoria criada com sucesso.'
       }
     },
@@ -86,7 +95,7 @@ export function CategoryList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteCategory(id)
+      await deleteCategory(id)
       return 'Categoria removida.'
     },
     {
@@ -135,6 +144,14 @@ export function CategoryList() {
     dialog.openDialog()
   }
 
+  if (loading && categories.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -147,7 +164,7 @@ export function CategoryList() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button onClick={openNew}>
+        <Button onClick={openNew} disabled={loading}>
           <Plus className="mr-2 h-4 w-4" /> Nova Categoria
         </Button>
       </div>
@@ -162,7 +179,13 @@ export function CategoryList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedCategories.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : paginatedCategories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-8">
                   Nenhuma categoria encontrada.

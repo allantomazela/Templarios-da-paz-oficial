@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -74,10 +74,23 @@ type CharityFormValues = z.infer<typeof charitySchema>
 export function CharityCollection() {
   const { toast } = useToast()
   const { events, sessionRecords } = useChancellorStore()
-  const { transactions, accounts, addTransaction, updateTransaction, deleteTransaction } =
-    useFinancialStore()
+  const {
+    transactions,
+    accounts,
+    fetchTransactions,
+    fetchAccounts,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useFinancialStore()
   const dialog = useDialog()
   const [charityToEdit, setCharityToEdit] = useState<string | null>(null)
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchTransactions()
+    fetchAccounts()
+  }, [fetchTransactions, fetchAccounts])
 
   const form = useForm<CharityFormValues>({
     resolver: zodResolver(charitySchema),
@@ -155,9 +168,9 @@ export function CharityCollection() {
       }
 
       if (charityToEdit) {
-        updateTransaction(transactionData)
+        await updateTransaction(transactionData)
       } else {
-        addTransaction(transactionData)
+        await addTransaction(transactionData)
       }
 
       // Atualizar SessionRecord se existir

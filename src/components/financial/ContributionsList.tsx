@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Contribution, mockBrothers } from '@/lib/data'
+import { useState, useEffect } from 'react'
+import { Contribution, Brother } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -11,27 +11,60 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { ContributionDialog } from './ContributionDialog'
 import { format } from 'date-fns'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { supabase } from '@/lib/supabase/client'
+import { logError } from '@/lib/logger'
 
 export function ContributionsList() {
   const {
     contributions,
+    loading,
+    fetchContributions,
     addContribution,
     updateContribution,
     deleteContribution,
   } = useFinancialStore()
   const [searchTerm, setSearchTerm] = useState('')
+  const [brothers, setBrothers] = useState<Brother[]>([])
+  const [loadingBrothers, setLoadingBrothers] = useState(false)
   const dialog = useDialog()
   const [selectedContribution, setSelectedContribution] =
     useState<Contribution | null>(null)
 
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchContributions()
+    loadBrothers()
+  }, [fetchContributions])
+
+  const loadBrothers = async () => {
+    setLoadingBrothers(true)
+    try {
+      const supabaseAny = supabase as any
+      const { data, error } = await supabaseAny
+        .from('brothers')
+        .select('id, name')
+        .order('name', { ascending: true })
+
+      if (error) throw error
+
+      if (data) {
+        setBrothers(data.map((row: any) => ({ id: row.id, name: row.name } as Brother)))
+      }
+    } catch (error) {
+      logError('Error loading brothers:', error)
+    } finally {
+      setLoadingBrothers(false)
+    }
+  }
+
   const getBrotherName = (id: string) =>
-    mockBrothers.find((b) => b.id === id)?.name || 'Desconhecido'
+    brothers.find((b) => b.id === id)?.name || 'Desconhecido'
 
   const filteredContributions = contributions.filter((c) => {
     const brotherName = getBrotherName(c.brotherId).toLowerCase()
@@ -41,14 +74,14 @@ export function ContributionsList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedContribution) {
-        updateContribution({ ...selectedContribution, ...data })
+        await updateContribution({ ...selectedContribution, ...data })
         return 'Contribuição atualizada com sucesso.'
       } else {
         const newContribution: Contribution = {
           id: crypto.randomUUID(),
           ...data,
         }
-        addContribution(newContribution)
+        await addContribution(newContribution)
         return 'Contribuição registrada com sucesso.'
       }
     },
@@ -60,7 +93,7 @@ export function ContributionsList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteContribution(id)
+      await deleteContribution(id)
       return 'Contribuição removida.'
     },
     {
@@ -90,6 +123,14 @@ export function ContributionsList() {
     dialog.openDialog()
   }
 
+  if ((loading || loadingBrothers) && contributions.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -102,7 +143,7 @@ export function ContributionsList() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button onClick={openNew}>
+        <Button onClick={openNew} disabled={loading}>
           <Plus className="mr-2 h-4 w-4" /> Registrar Contribuição
         </Button>
       </div>
@@ -120,7 +161,13 @@ export function ContributionsList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredContributions.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : filteredContributions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
                   Nenhuma contribuição encontrada.

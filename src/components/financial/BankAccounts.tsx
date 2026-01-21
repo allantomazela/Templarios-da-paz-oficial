@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -15,6 +15,7 @@ import {
   Landmark,
   PiggyBank,
   TrendingUp,
+  Loader2,
 } from 'lucide-react'
 import { BankAccount } from '@/lib/data'
 import useFinancialStore from '@/stores/useFinancialStore'
@@ -33,8 +34,22 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export function BankAccounts() {
-  const { accounts, transactions, addAccount, updateAccount, deleteAccount } =
-    useFinancialStore()
+  const {
+    accounts,
+    transactions,
+    loading,
+    fetchAccounts,
+    fetchTransactions,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+  } = useFinancialStore()
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchAccounts()
+    fetchTransactions()
+  }, [fetchAccounts, fetchTransactions])
 
   const dialog = useDialog()
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(
@@ -60,10 +75,10 @@ export function BankAccounts() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedAccount) {
-        updateAccount({ ...selectedAccount, ...data })
+        await updateAccount({ ...selectedAccount, ...data })
         return 'Conta atualizada com sucesso.'
       } else {
-        addAccount({
+        await addAccount({
           id: crypto.randomUUID(),
           color: `hsl(var(--chart-${Math.floor(Math.random() * 5) + 1}))`,
           ...data,
@@ -79,7 +94,7 @@ export function BankAccounts() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteAccount(id)
+      await deleteAccount(id)
       return 'Conta removida.'
     },
     {
@@ -134,6 +149,14 @@ export function BankAccounts() {
     }
   }
 
+  if (loading && accounts.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -143,13 +166,23 @@ export function BankAccounts() {
             Gerencie suas contas e saldos.
           </p>
         </div>
-        <Button onClick={openNew}>
+        <Button onClick={openNew} disabled={loading}>
           <Plus className="mr-2 h-4 w-4" /> Nova Conta
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {accounts.map((account) => {
+      {accounts.length === 0 && !loading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">
+              Nenhuma conta cadastrada. Clique em "Nova Conta" para começar.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {accounts.map((account) => {
           const balance = calculateBalance(account)
           return (
             <Card
@@ -198,7 +231,8 @@ export function BankAccounts() {
             </Card>
           )
         })}
-      </div>
+        </div>
+      )}
 
       <BankAccountDialog
         open={dialog.open}

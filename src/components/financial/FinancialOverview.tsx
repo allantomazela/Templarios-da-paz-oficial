@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
-import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter } from 'lucide-react'
+import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import useFinancialStore from '@/stores/useFinancialStore'
 import {
@@ -41,8 +41,20 @@ const chartConfig = {
 }
 
 export function FinancialOverview() {
-  const { transactions, accounts } = useFinancialStore()
+  const {
+    transactions,
+    accounts,
+    loading,
+    fetchTransactions,
+    fetchAccounts,
+  } = useFinancialStore()
   const [period, setPeriod] = useState('current_year')
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchTransactions()
+    fetchAccounts()
+  }, [fetchTransactions, fetchAccounts])
 
   // Date Filtering
   const getDateRange = () => {

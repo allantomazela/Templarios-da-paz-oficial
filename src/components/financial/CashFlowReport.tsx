@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,7 +25,12 @@ import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 
 export function CashFlowReport() {
-  const { transactions } = useFinancialStore()
+  const { transactions, fetchTransactions } = useFinancialStore()
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
   const { toast } = useToast()
   const [period, setPeriod] = useState('current_month')
   const printRef = useRef<HTMLDivElement>(null)

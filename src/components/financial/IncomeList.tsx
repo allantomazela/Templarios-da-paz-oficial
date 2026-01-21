@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +18,7 @@ import {
   Calendar,
   Folder,
   Wallet,
+  Loader2,
 } from 'lucide-react'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
@@ -31,10 +32,20 @@ export function IncomeList() {
   const {
     transactions,
     accounts,
+    loading,
+    fetchTransactions,
+    fetchAccounts,
     addTransaction,
     updateTransaction,
     deleteTransaction,
   } = useFinancialStore()
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchTransactions()
+    fetchAccounts()
+  }, [fetchTransactions, fetchAccounts])
+
   const incomes = transactions.filter((t) => t.type === 'Receita')
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
@@ -49,12 +60,13 @@ export function IncomeList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedIncome) {
-        updateTransaction({ ...selectedIncome, ...data })
+        await updateTransaction({ ...selectedIncome, ...data, type: 'Receita' })
         return 'Receita atualizada com sucesso.'
       } else {
-        addTransaction({
+        await addTransaction({
           id: crypto.randomUUID(),
           ...data,
+          type: 'Receita',
         })
         return 'Receita registrada com sucesso.'
       }
@@ -67,7 +79,7 @@ export function IncomeList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteTransaction(id)
+      await deleteTransaction(id)
       return 'Receita removida.'
     },
     {

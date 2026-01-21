@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -15,12 +15,17 @@ import useFinancialStore from '@/stores/useFinancialStore'
 import { BudgetDialog } from './BudgetDialog'
 import { GoalDialog } from './GoalDialog'
 import { format } from 'date-fns'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
   const {
     budgets,
     goals,
     transactions,
+    loading,
+    fetchBudgets,
+    fetchGoals,
+    fetchTransactions,
     addBudget,
     updateBudget,
     deleteBudget,
@@ -29,6 +34,13 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
     deleteGoal,
   } = useFinancialStore()
   const { toast } = useToast()
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchBudgets()
+    fetchGoals()
+    fetchTransactions()
+  }, [fetchBudgets, fetchGoals, fetchTransactions])
 
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false)
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null)
@@ -78,21 +90,43 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
     [transactions],
   )
 
+  const saveBudgetOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedBudget) {
+        await updateBudget({ ...selectedBudget, ...data })
+        return 'Orçamento atualizado com sucesso.'
+      } else {
+        await addBudget({ id: crypto.randomUUID(), ...data })
+        return 'Orçamento criado com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o orçamento.',
+    },
+  )
+
+  const deleteBudgetOperation = useAsyncOperation(
+    async (id: string) => {
+      await deleteBudget(id)
+      return 'Orçamento removido.'
+    },
+    {
+      successMessage: 'Orçamento removido com sucesso!',
+      errorMessage: 'Falha ao remover o orçamento.',
+    },
+  )
+
   // Handlers for Budgets
-  const handleSaveBudget = (data: any) => {
-    if (selectedBudget) {
-      updateBudget({ ...selectedBudget, ...data })
-      toast({ title: 'Sucesso', description: 'Orçamento atualizado.' })
-    } else {
-      addBudget({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Orçamento criado.' })
+  const handleSaveBudget = async (data: any) => {
+    const result = await saveBudgetOperation.execute(data)
+    if (result) {
+      setIsBudgetDialogOpen(false)
     }
-    setIsBudgetDialogOpen(false)
   }
 
   const handleDeleteBudget = (id: string) => {
-    deleteBudget(id)
-    toast({ title: 'Removido', description: 'Orçamento excluído.' })
+    deleteBudgetOperation.execute(id)
   }
 
   const openNewBudget = () => {
@@ -105,21 +139,43 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
     setIsBudgetDialogOpen(true)
   }
 
+  const saveGoalOperation = useAsyncOperation(
+    async (data: any) => {
+      if (selectedGoal) {
+        await updateGoal({ ...selectedGoal, ...data })
+        return 'Meta atualizada com sucesso.'
+      } else {
+        await addGoal({ id: crypto.randomUUID(), ...data })
+        return 'Meta criada com sucesso.'
+      }
+    },
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar a meta.',
+    },
+  )
+
+  const deleteGoalOperation = useAsyncOperation(
+    async (id: string) => {
+      await deleteGoal(id)
+      return 'Meta removida.'
+    },
+    {
+      successMessage: 'Meta removida com sucesso!',
+      errorMessage: 'Falha ao remover a meta.',
+    },
+  )
+
   // Handlers for Goals
-  const handleSaveGoal = (data: any) => {
-    if (selectedGoal) {
-      updateGoal({ ...selectedGoal, ...data })
-      toast({ title: 'Sucesso', description: 'Meta atualizada.' })
-    } else {
-      addGoal({ id: crypto.randomUUID(), ...data })
-      toast({ title: 'Sucesso', description: 'Meta criada.' })
+  const handleSaveGoal = async (data: any) => {
+    const result = await saveGoalOperation.execute(data)
+    if (result) {
+      setIsGoalDialogOpen(false)
     }
-    setIsGoalDialogOpen(false)
   }
 
   const handleDeleteGoal = (id: string) => {
-    deleteGoal(id)
-    toast({ title: 'Removido', description: 'Meta excluída.' })
+    deleteGoalOperation.execute(id)
   }
 
   const openNewGoal = () => {

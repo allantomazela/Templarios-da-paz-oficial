@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +18,7 @@ import {
   Calendar,
   Folder,
   Wallet,
+  Loader2,
 } from 'lucide-react'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
@@ -31,10 +32,20 @@ export function ExpenseList() {
   const {
     transactions,
     accounts,
+    loading,
+    fetchTransactions,
+    fetchAccounts,
     addTransaction,
     updateTransaction,
     deleteTransaction,
   } = useFinancialStore()
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchTransactions()
+    fetchAccounts()
+  }, [fetchTransactions, fetchAccounts])
+
   const expenses = transactions.filter((t) => t.type === 'Despesa')
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
@@ -51,12 +62,13 @@ export function ExpenseList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedExpense) {
-        updateTransaction({ ...selectedExpense, ...data })
+        await updateTransaction({ ...selectedExpense, ...data, type: 'Despesa' })
         return 'Despesa atualizada com sucesso.'
       } else {
-        addTransaction({
+        await addTransaction({
           id: crypto.randomUUID(),
           ...data,
+          type: 'Despesa',
         })
         return 'Despesa registrada com sucesso.'
       }
@@ -69,7 +81,7 @@ export function ExpenseList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      deleteTransaction(id)
+      await deleteTransaction(id)
       return 'Despesa removida.'
     },
     {

@@ -132,6 +132,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       supabase.auth.onAuthStateChange(async (event, session) => {
+        // Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          // Token refresh failed, clear session
+          logWarning('Token refresh failed, signing out')
+          await supabase.auth.signOut()
+          set({
+            session: null,
+            user: null,
+            isAuthenticated: false,
+            loading: false,
+          })
+          return
+        }
+
         if (event === 'SIGNED_OUT' || !session) {
           set({
             session: null,
@@ -143,38 +157,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         if (session) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
 
-          const userProfile = profile as Profile
-          const isMasterAdmin = session.user.email === MASTER_ADMIN_EMAIL
+            const userProfile = profile as Profile
+            const isMasterAdmin = session.user.email === MASTER_ADMIN_EMAIL
 
-          let role = userProfile?.role || 'member'
-          let status = userProfile?.status || 'pending'
+            let role = userProfile?.role || 'member'
+            let status = userProfile?.status || 'pending'
 
-          if (isMasterAdmin) {
-            role = 'admin'
-            status = 'approved'
-          }
+            if (isMasterAdmin) {
+              role = 'admin'
+              status = 'approved'
+            }
 
-          set({
-            session,
-            user: {
-              ...session.user,
-              role,
-              profile: userProfile || {
-                id: session.user.id,
-                full_name: session.user.user_metadata?.name || 'Usuário',
-                role: role as any,
-                status: status as any,
+            set({
+              session,
+              user: {
+                ...session.user,
+                role,
+                profile: userProfile || {
+                  id: session.user.id,
+                  full_name: session.user.user_metadata?.name || 'Usuário',
+                  role: role as any,
+                  status: status as any,
+                },
               },
-            },
-            isAuthenticated: true,
-            loading: false,
-          })
+              isAuthenticated: true,
+              loading: false,
+            })
+          } catch (error) {
+            logError('Error updating auth state', error)
+            // Don't sign out on profile fetch error, just log it
+          }
         }
       })
     } catch (error) {

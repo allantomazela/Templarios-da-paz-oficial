@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import useAuthStore from '@/stores/useAuthStore'
 import useChancellorStore from '@/stores/useChancellorStore'
 import {
@@ -8,7 +8,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import { mockAnnouncements, mockLibrary } from '@/lib/data'
 import {
   CalendarDays,
   BookOpen,
@@ -20,10 +19,16 @@ import { format, parseISO, isAfter, startOfToday, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
+import { supabase } from '@/lib/supabase/client'
+import { Announcement, LibraryItem } from '@/lib/data'
+import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
   const { events } = useChancellorStore()
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([])
+  const supabaseAny = supabase as any
 
   // Filtrar e ordenar próximos eventos (futuros ou do dia atual)
   const upcomingEvents = useMemo(() => {
@@ -52,6 +57,103 @@ export default function Dashboard() {
       })
       .slice(0, 3) // Limitar a 3 eventos
   }, [events])
+
+  // Load announcements from Supabase
+  const loadAnnouncements = useAsyncOperation(
+    async () => {
+      const {
+        data: { user: authUser },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !authUser) {
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabaseAny
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('id', authUser.id)
+        .maybeSingle()
+
+      if (profileError) {
+        return
+      }
+
+      // Se for membro comum, filtrar apenas avisos públicos
+      const isAdminOrEditor = ['admin', 'editor'].includes(profile?.role || 'member')
+
+      const { data: rows, error } = await supabaseAny
+        .from('announcements')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(2)
+
+      if (error) {
+        return
+      }
+
+      // Filtrar no cliente: membros comuns veem apenas avisos públicos
+      const filteredRows = (rows || []).filter((row: any) => {
+        if (isAdminOrEditor) return true
+        if (row.is_private === undefined || row.is_private === null) return true
+        return row.is_private === false
+      })
+
+      const mapped: Announcement[] = filteredRows.map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        date: row.created_at,
+        author: row.author_name || 'Sistema',
+        isPrivate: row.is_private || false,
+      }))
+
+      setAnnouncements(mapped)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: '',
+    },
+  )
+
+  // Load library items from Supabase
+  const loadLibraryItems = useAsyncOperation(
+    async () => {
+      const { data, error } = await supabaseAny
+        .from('library_items')
+        .select('*')
+        .order('added_at', { ascending: false })
+        .limit(2)
+
+      if (error) {
+        return
+      }
+
+      const mapped: LibraryItem[] = (data || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        degree: item.degree,
+        addedAt: item.added_at,
+        fileUrl: item.file_url || null,
+      }))
+
+      setLibraryItems(mapped)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: '',
+    },
+  )
+
+  useEffect(() => {
+    loadAnnouncements.execute()
+    loadLibraryItems.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -146,19 +248,27 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4 mt-2">
-              {mockAnnouncements.slice(0, 2).map((ann) => (
-                <div key={ann.id} className="bg-muted/30 p-3 rounded-md">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="font-semibold text-sm">{ann.title}</h4>
-                    <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground">
-                      {format(new Date(ann.date), 'dd/MM')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {ann.content}
+              {announcements.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum aviso disponível
                   </p>
                 </div>
-              ))}
+              ) : (
+                announcements.map((ann) => (
+                  <div key={ann.id} className="bg-muted/30 p-3 rounded-md">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-semibold text-sm">{ann.title}</h4>
+                      <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground">
+                        {format(new Date(ann.date), 'dd/MM')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {ann.content}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
             <Button
               asChild
@@ -198,23 +308,31 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-              {mockLibrary.slice(0, 2).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/20 transition-colors cursor-pointer"
-                >
-                  <div className="h-10 w-10 bg-primary/20 rounded flex items-center justify-center text-primary">
-                    {item.type === 'PDF' ? 'PDF' : 'DOC'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Adicionado em{' '}
-                      {format(new Date(item.addedAt), 'dd/MM/yyyy')}
-                    </p>
-                  </div>
+              {libraryItems.length === 0 ? (
+                <div className="col-span-2 flex flex-col items-center justify-center py-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum material disponível
+                  </p>
                 </div>
-              ))}
+              ) : (
+                libraryItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/20 transition-colors cursor-pointer"
+                  >
+                    <div className="h-10 w-10 bg-primary/20 rounded flex items-center justify-center text-primary">
+                      {item.type === 'PDF' ? 'PDF' : 'DOC'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Adicionado em{' '}
+                        {format(new Date(item.addedAt), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
             <Button
               asChild

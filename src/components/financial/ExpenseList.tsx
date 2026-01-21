@@ -22,13 +22,32 @@ import {
 } from 'lucide-react'
 import { TransactionDialog } from './TransactionDialog'
 import { format } from 'date-fns'
-import useFinancialStore from '@/stores/useFinancialStore'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { supabase } from '@/lib/supabase/client'
+
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+  bank_accounts?: {
+    id: string
+    name: string
+  }
+}
 
 export function ExpenseList() {
+<<<<<<< HEAD
   const {
     transactions,
     accounts,
@@ -47,11 +66,79 @@ export function ExpenseList() {
   }, [fetchTransactions, fetchAccounts])
 
   const expenses = transactions.filter((t) => t.type === 'Despesa')
+=======
+  const [expenses, setExpenses] = useState<Transaction[]>([])
+  const [accountNames, setAccountNames] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
     null,
   )
+  const supabaseAny = supabase as any
+
+  // Load expenses from Supabase
+  const loadExpenses = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      const { data, error } = await supabaseAny
+        .from('financial_transactions')
+        .select(
+          `
+          *,
+          financial_categories!financial_transactions_category_id_fkey (
+            id,
+            name
+          ),
+          bank_accounts!financial_transactions_account_id_fkey (
+            id,
+            name
+          )
+        `,
+        )
+        .eq('type', 'Despesa')
+        .order('date', { ascending: false })
+
+      if (error) {
+        throw new Error('Falha ao carregar despesas.')
+      }
+
+      const mapped: Transaction[] = (data || []).map(
+        (t: TransactionFromDB) => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          category: t.financial_categories?.name || 'Sem categoria',
+          type: t.type,
+          amount: parseFloat(t.amount.toString()),
+          accountId: t.account_id || undefined,
+        }),
+      )
+
+      // Create account names map
+      const namesMap: Record<string, string> = {}
+      ;(data || []).forEach((t: TransactionFromDB) => {
+        if (t.bank_accounts?.name) {
+          namesMap[t.account_id || ''] = t.bank_accounts.name
+        }
+      })
+      setAccountNames(namesMap)
+
+      setExpenses(mapped)
+      setLoading(false)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar despesas.',
+    },
+  )
+
+  useEffect(() => {
+    loadExpenses.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filteredExpenses = expenses.filter(
     (expense) =>
@@ -61,7 +148,20 @@ export function ExpenseList() {
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
+      // Find category by name
+      const { data: categoryData, error: categoryError } = await supabaseAny
+        .from('financial_categories')
+        .select('id')
+        .eq('name', data.category)
+        .eq('type', 'Despesa')
+        .maybeSingle()
+
+      if (categoryError || !categoryData) {
+        throw new Error('Categoria não encontrada.')
+      }
+
       if (selectedExpense) {
+<<<<<<< HEAD
         await updateTransaction({ ...selectedExpense, ...data, type: 'Despesa' })
         return 'Despesa atualizada com sucesso.'
       } else {
@@ -70,6 +170,40 @@ export function ExpenseList() {
           ...data,
           type: 'Despesa',
         })
+=======
+        // Update
+        const { error } = await supabaseAny
+          .from('financial_transactions')
+          .update({
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            category_id: categoryData.id,
+            account_id: data.accountId || null,
+          })
+          .eq('id', selectedExpense.id)
+
+        if (error) throw error
+
+        await loadExpenses.execute()
+        return 'Despesa atualizada com sucesso.'
+      } else {
+        // Create
+        const { error } = await supabaseAny
+          .from('financial_transactions')
+          .insert({
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            category_id: categoryData.id,
+            type: 'Despesa',
+            account_id: data.accountId || null,
+          })
+
+        if (error) throw error
+
+        await loadExpenses.execute()
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Despesa registrada com sucesso.'
       }
     },
@@ -81,7 +215,18 @@ export function ExpenseList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
+<<<<<<< HEAD
       await deleteTransaction(id)
+=======
+      const { error } = await supabaseAny
+        .from('financial_transactions')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadExpenses.execute()
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Despesa removida.'
     },
     {
@@ -112,8 +257,8 @@ export function ExpenseList() {
   }
 
   const getAccountName = (id?: string) => {
-    const acc = accounts.find((a) => a.id === id)
-    return acc ? acc.name : 'N/A'
+    if (!id) return 'N/A'
+    return accountNames[id] || 'N/A'
   }
 
   return (
@@ -147,10 +292,21 @@ export function ExpenseList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredExpenses.length === 0 ? (
+            {loading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  Nenhuma despesa encontrada.
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando despesas...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredExpenses.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  {searchTerm
+                    ? 'Nenhuma despesa encontrada com o termo buscado.'
+                    : 'Nenhuma despesa cadastrada.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -200,9 +356,16 @@ export function ExpenseList() {
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {filteredExpenses.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground border rounded-md">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando despesas...
+          </div>
+        ) : filteredExpenses.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-md">
-            Nenhuma despesa encontrada.
+            {searchTerm
+              ? 'Nenhuma despesa encontrada com o termo buscado.'
+              : 'Nenhuma despesa cadastrada.'}
           </div>
         ) : (
           filteredExpenses.map((expense) => (

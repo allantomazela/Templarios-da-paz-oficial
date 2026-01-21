@@ -8,9 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Download, Printer } from 'lucide-react'
+import { Download, Printer, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
 import {
   parseISO,
   isWithinInterval,
@@ -23,17 +23,84 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
+import { Transaction } from '@/lib/data'
+
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+}
 
 export function CashFlowReport() {
+<<<<<<< HEAD
   const { transactions, fetchTransactions } = useFinancialStore()
 
   // Carregar dados ao montar o componente
   useEffect(() => {
     fetchTransactions()
   }, [fetchTransactions])
+=======
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const { toast } = useToast()
   const [period, setPeriod] = useState('current_month')
   const printRef = useRef<HTMLDivElement>(null)
+  const supabaseAny = supabase as any
+
+  // Load transactions from Supabase
+  useEffect(() => {
+    const loadTransactions = async () => {
+      setLoading(true)
+      try {
+        const { data, error } = await supabaseAny
+          .from('financial_transactions')
+          .select(
+            `
+            *,
+            financial_categories!financial_transactions_category_id_fkey (
+              id,
+              name
+            )
+          `,
+          )
+          .order('date', { ascending: false })
+
+        if (error) throw error
+
+        const mapped: Transaction[] = (data || []).map((t: TransactionFromDB) => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          category: t.financial_categories?.name || 'Sem categoria',
+          type: t.type,
+          amount: parseFloat(t.amount.toString()),
+          accountId: t.account_id || undefined,
+        }))
+
+        setTransactions(mapped)
+      } catch (error) {
+        console.error('Error loading transactions:', error)
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar transações.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadTransactions()
+  }, [supabaseAny, toast])
 
   const getDateRange = () => {
     const now = new Date()
@@ -96,6 +163,17 @@ export function CashFlowReport() {
       })
     },
   })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando dados do fluxo de caixa...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

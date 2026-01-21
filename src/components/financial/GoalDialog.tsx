@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { FinancialGoal } from '@/lib/data'
+import { FinancialGoal, Category } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
+
+interface CategoryFromDB {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+}
 
 const goalSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
@@ -52,7 +59,10 @@ export function GoalDialog({
   goalToEdit,
   onSave,
 }: GoalDialogProps) {
-  const { categories } = useFinancialStore()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const supabaseAny = supabase as any
+
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(goalSchema),
     defaultValues: {
@@ -62,6 +72,38 @@ export function GoalDialog({
       deadline: '',
     },
   })
+
+  // Load categories from Supabase
+  useEffect(() => {
+    if (open) {
+      const loadCategories = async () => {
+        setLoadingCategories(true)
+        try {
+          const { data, error } = await supabaseAny
+            .from('financial_categories')
+            .select('*')
+            .eq('type', 'Receita')
+            .order('name')
+
+          if (error) throw error
+
+          const mapped: Category[] = (data || []).map((c: CategoryFromDB) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+          }))
+
+          setCategories(mapped)
+        } catch (error) {
+          console.error('Error loading categories:', error)
+        } finally {
+          setLoadingCategories(false)
+        }
+      }
+
+      loadCategories()
+    }
+  }, [open, supabaseAny])
 
   useEffect(() => {
     if (goalToEdit) {
@@ -81,8 +123,8 @@ export function GoalDialog({
     }
   }, [goalToEdit, form, open])
 
-  // Only show Revenue categories for Goals (e.g. Savings/Income sources)
-  const revenueCategories = categories.filter((c) => c.type === 'Receita')
+  // Categories are already filtered to Receita in the query
+  const revenueCategories = categories
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -156,11 +198,21 @@ export function GoalDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {revenueCategories.map((c) => (
-                        <SelectItem key={c.id} value={c.name}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
+                      {loadingCategories ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      ) : revenueCategories.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Nenhuma categoria de receita cadastrada
+                        </div>
+                      ) : (
+                        revenueCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

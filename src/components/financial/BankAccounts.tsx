@@ -18,10 +18,11 @@ import {
   Loader2,
 } from 'lucide-react'
 import { BankAccount } from '@/lib/data'
-import useFinancialStore from '@/stores/useFinancialStore'
 import { BankAccountDialog } from './BankAccountDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+<<<<<<< HEAD
 export function BankAccounts() {
   const {
     accounts,
@@ -50,7 +52,21 @@ export function BankAccounts() {
     fetchAccounts()
     fetchTransactions()
   }, [fetchAccounts, fetchTransactions])
+=======
+interface BankAccountFromDB {
+  id: string
+  name: string
+  type: 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento'
+  initial_balance: number
+  color: string | null
+  created_at: string
+  updated_at: string
+}
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
 
+export function BankAccounts() {
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [loading, setLoading] = useState(true)
   const dialog = useDialog()
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(
     null,
@@ -58,23 +74,52 @@ export function BankAccounts() {
   const [accountToDelete, setAccountToDelete] = useState<BankAccount | null>(
     null,
   )
+  const { toast } = useToast()
+  const supabaseAny = supabase as any
 
-  const calculateBalance = (account: BankAccount) => {
-    const accountTransactions = transactions.filter(
-      (t) => t.accountId === account.id,
-    )
-    const income = accountTransactions
-      .filter((t) => t.type === 'Receita')
-      .reduce((acc, curr) => acc + curr.amount, 0)
-    const expense = accountTransactions
-      .filter((t) => t.type === 'Despesa')
-      .reduce((acc, curr) => acc + curr.amount, 0)
-    return account.initialBalance + income - expense
-  }
+  // Load accounts from Supabase
+  const loadAccounts = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      const { data, error } = await supabaseAny
+        .from('bank_accounts')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (error) {
+        throw new Error('Falha ao carregar contas.')
+      }
+
+      const mapped: BankAccount[] = (data || []).map((a: BankAccountFromDB) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        initialBalance: parseFloat(a.initial_balance.toString()),
+        color: a.color || undefined,
+      }))
+
+      setAccounts(mapped)
+      setLoading(false)
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar contas.',
+    },
+  )
+
+  useEffect(() => {
+    loadAccounts.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // TODO: Calculate balance from transactions when financial_transactions is integrated
+  // For now, we show initial balance only
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedAccount) {
+<<<<<<< HEAD
         await updateAccount({ ...selectedAccount, ...data })
         return 'Conta atualizada com sucesso.'
       } else {
@@ -83,6 +128,45 @@ export function BankAccounts() {
           color: `hsl(var(--chart-${Math.floor(Math.random() * 5) + 1}))`,
           ...data,
         })
+=======
+        // Update
+        const { error } = await supabaseAny
+          .from('bank_accounts')
+          .update({
+            name: data.name,
+            type: data.type,
+            initial_balance: data.initialBalance,
+          })
+          .eq('id', selectedAccount.id)
+
+        if (error) throw error
+
+        await loadAccounts.execute()
+        return 'Conta atualizada com sucesso.'
+      } else {
+        // Create - generate random color if not provided
+        const colors = [
+          'hsl(var(--chart-1))',
+          'hsl(var(--chart-2))',
+          'hsl(var(--chart-3))',
+          'hsl(var(--chart-4))',
+          'hsl(var(--chart-5))',
+        ]
+        const randomColor = colors[Math.floor(Math.random() * colors.length)]
+
+        const { error } = await supabaseAny
+          .from('bank_accounts')
+          .insert({
+            name: data.name,
+            type: data.type,
+            initial_balance: data.initialBalance,
+            color: randomColor,
+          })
+
+        if (error) throw error
+
+        await loadAccounts.execute()
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Conta criada com sucesso.'
       }
     },
@@ -94,7 +178,36 @@ export function BankAccounts() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
+<<<<<<< HEAD
       await deleteAccount(id)
+=======
+      // Check if account has transactions
+      const { data: transactions, error: checkError } = await supabaseAny
+        .from('financial_transactions')
+        .select('id')
+        .eq('account_id', id)
+        .limit(1)
+
+      if (checkError) throw checkError
+
+      if (transactions && transactions.length > 0) {
+        toast({
+          title: 'Erro',
+          description: 'Não é possível excluir uma conta que possui transações associadas.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const { error } = await supabaseAny
+        .from('bank_accounts')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadAccounts.execute()
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Conta removida.'
     },
     {
@@ -111,11 +224,6 @@ export function BankAccounts() {
   }
 
   const handleDeleteClick = (account: BankAccount) => {
-    const hasTransactions = transactions.some((t) => t.accountId === account.id)
-    if (hasTransactions) {
-      // Validation error - will be handled by toast
-      return
-    }
     setAccountToDelete(account)
   }
 
@@ -171,6 +279,7 @@ export function BankAccounts() {
         </Button>
       </div>
 
+<<<<<<< HEAD
       {accounts.length === 0 && !loading ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -231,6 +340,73 @@ export function BankAccounts() {
             </Card>
           )
         })}
+=======
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Carregando contas...</span>
+          </div>
+        </div>
+      ) : accounts.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Nenhuma conta cadastrada.</p>
+          <p className="text-sm mt-2">
+            Clique em "Nova Conta" para adicionar uma conta bancária.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {accounts.map((account) => {
+            const balance = account.initialBalance // Will be updated when transactions are integrated
+            return (
+              <Card
+                key={account.id}
+                className="relative overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <div
+                  className="absolute top-0 left-0 w-1 h-full"
+                  style={{ backgroundColor: account.color || 'gray' }}
+                ></div>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      {getIcon(account.type)}
+                      {account.name}
+                    </CardTitle>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(account)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteClick(account)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <CardDescription>{account.type}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    R$ {balance.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Saldo Inicial: R$ {account.initialBalance.toFixed(2)}
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          })}
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         </div>
       )}
 

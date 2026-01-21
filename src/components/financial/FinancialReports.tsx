@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -21,9 +21,10 @@ import {
   BarChart3,
   AlertCircle,
   Calendar,
+  Loader2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
 import { logDebug } from '@/lib/logger'
 import {
   Dialog,
@@ -53,12 +54,75 @@ import {
   subMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Transaction } from '@/lib/data'
+
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+}
 
 export function FinancialReports() {
   const { toast } = useToast()
-  const { transactions } = useFinancialStore()
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
   const [period, setPeriod] = useState('current_month')
+  const supabaseAny = supabase as any
+
+  // Load transactions from Supabase
+  useEffect(() => {
+    const loadTransactions = async () => {
+      setLoading(true)
+      try {
+        const { data, error } = await supabaseAny
+          .from('financial_transactions')
+          .select(
+            `
+            *,
+            financial_categories!financial_transactions_category_id_fkey (
+              id,
+              name
+            )
+          `,
+          )
+          .order('date', { ascending: false })
+
+        if (error) throw error
+
+        const mapped: Transaction[] = (data || []).map((t: TransactionFromDB) => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          category: t.financial_categories?.name || 'Sem categoria',
+          type: t.type,
+          amount: parseFloat(t.amount.toString()),
+          accountId: t.account_id || undefined,
+        }))
+
+        setTransactions(mapped)
+      } catch (error) {
+        console.error('Error loading transactions:', error)
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar transações.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadTransactions()
+  }, [supabaseAny, toast])
   const [exportFields, setExportFields] = useState({
     id: true,
     date: true,
@@ -192,6 +256,17 @@ export function FinancialReports() {
     if (!dateRange) return 'Todos os períodos'
 
     return `${format(dateRange.start, "dd 'de' MMMM", { locale: ptBR })} - ${format(dateRange.end, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando relatórios financeiros...</span>
+        </div>
+      </div>
+    )
   }
 
   return (

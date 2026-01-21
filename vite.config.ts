@@ -40,4 +40,21 @@ export default defineConfig(({ mode }) => ({
       }
     ],
   },
+  optimizeDeps: {
+    include: [
+      '@tiptap/react',
+      '@tiptap/starter-kit',
+      '@tiptap/extension-placeholder',
+      '@tiptap/extension-text-align',
+      '@tiptap/extension-underline',
+      '@tiptap/extension-link',
+    ],
+  },
+  server: {
+    host: '::',
+    port: 8080,
+    hmr: {
+      overlay: true,
+    },
+  },
 }))

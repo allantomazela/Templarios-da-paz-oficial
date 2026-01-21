@@ -50,7 +50,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import useChancellorStore from '@/stores/useChancellorStore'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
 import {
   Plus,
   Edit,
@@ -58,8 +58,34 @@ import {
   Calendar,
   DollarSign,
   TrendingUp,
+  Loader2,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Transaction, BankAccount, Event } from '@/lib/data'
+
+interface TransactionFromDB {
+  id: string
+  date: string
+  description: string
+  category_id: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  account_id: string | null
+  financial_categories?: {
+    id: string
+    name: string
+  }
+  bank_accounts?: {
+    id: string
+    name: string
+  }
+}
+
+interface AccountFromDB {
+  id: string
+  name: string
+  type: string
+}
 
 const charitySchema = z.object({
   eventId: z.string().min(1, 'Selecione um evento'),
@@ -74,6 +100,7 @@ type CharityFormValues = z.infer<typeof charitySchema>
 export function CharityCollection() {
   const { toast } = useToast()
   const { events, sessionRecords } = useChancellorStore()
+<<<<<<< HEAD
   const {
     transactions,
     accounts,
@@ -83,8 +110,130 @@ export function CharityCollection() {
     updateTransaction,
     deleteTransaction,
   } = useFinancialStore()
+=======
+  const [charityTransactions, setCharityTransactions] = useState<Transaction[]>([])
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [loading, setLoading] = useState(true)
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const dialog = useDialog()
   const [charityToEdit, setCharityToEdit] = useState<string | null>(null)
+  const supabaseAny = supabase as any
+
+  // Load charity transactions and accounts from Supabase
+  const loadData = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      try {
+        // Find category ID for "Tronco de Beneficência"
+        let { data: categoryData, error: categoryError } = await supabaseAny
+          .from('financial_categories')
+          .select('id')
+          .eq('name', 'Tronco de Beneficência')
+          .eq('type', 'Receita')
+          .maybeSingle()
+
+        if (categoryError && categoryError.code !== 'PGRST116') {
+          // PGRST116 = no rows returned, which is expected if category doesn't exist
+          throw new Error('Erro ao buscar categoria.')
+        }
+
+        if (!categoryData) {
+          // Category doesn't exist, create it
+          const { data: newCategory, error: insertError } = await supabaseAny
+            .from('financial_categories')
+            .insert({
+              name: 'Tronco de Beneficência',
+              type: 'Receita',
+            })
+            .select('id')
+            .single()
+
+          if (insertError || !newCategory) {
+            throw new Error('Não foi possível criar a categoria.')
+          }
+
+          categoryData = newCategory
+        }
+
+        if (categoryData) {
+          // Load transactions with this category
+          const { data: transactionsData, error: transactionsError } =
+            await supabaseAny
+              .from('financial_transactions')
+              .select(
+                `
+                *,
+                financial_categories!financial_transactions_category_id_fkey (
+                  id,
+                  name
+                ),
+                bank_accounts!financial_transactions_account_id_fkey (
+                  id,
+                  name
+                )
+              `,
+              )
+              .eq('category_id', categoryData.id)
+              .eq('type', 'Receita')
+              .order('date', { ascending: false })
+
+          if (transactionsError) throw transactionsError
+
+          const mapped: Transaction[] = (transactionsData || []).map(
+            (t: TransactionFromDB) => ({
+              id: t.id,
+              date: t.date,
+              description: t.description,
+              category: t.financial_categories?.name || 'Tronco de Beneficência',
+              type: t.type,
+              amount: parseFloat(t.amount.toString()),
+              accountId: t.account_id || undefined,
+            }),
+          )
+
+          setCharityTransactions(mapped)
+        }
+
+        // Load accounts
+        const { data: accountsData, error: accountsError } = await supabaseAny
+          .from('bank_accounts')
+          .select('*')
+          .order('name')
+
+        if (accountsError) throw accountsError
+
+        const mappedAccounts: BankAccount[] = (accountsData || []).map(
+          (a: AccountFromDB) => ({
+            id: a.id,
+            name: a.name,
+            type: a.type as 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento',
+            initialBalance: 0,
+          }),
+        )
+
+        setAccounts(mappedAccounts)
+      } catch (error) {
+        console.error('Error loading charity data:', error)
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar dados.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+      return null
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar dados.',
+    },
+  )
+
+  useEffect(() => {
+    loadData.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Carregar dados ao montar o componente
   useEffect(() => {
@@ -126,12 +275,7 @@ export function CharityCollection() {
       })
   }, [events])
 
-  // Buscar transações de tronco de beneficência
-  const charityTransactions = useMemo(() => {
-    return transactions.filter(
-      (t) => t.category === 'Tronco de Beneficência' && t.type === 'Receita',
-    )
-  }, [transactions])
+  // charityTransactions is already loaded from Supabase
 
   // Combinar com informações de eventos
   const charityWithEvents = useMemo(() => {
@@ -150,30 +294,81 @@ export function CharityCollection() {
     })
   }, [charityTransactions, events])
 
-  const saveOperation = useAsyncOperation({
-    operation: async (data: CharityFormValues) => {
+  const saveOperation = useAsyncOperation(
+    async (data: CharityFormValues) => {
       const event = events.find((e) => e.id === data.eventId)
       if (!event) throw new Error('Evento não encontrado')
 
-      const transactionData = {
-        id: charityToEdit || crypto.randomUUID(),
-        date: data.date,
-        description:
-          data.description ||
-          `Tronco de Beneficência - ${event.title} - ${format(parseISO(data.date), 'dd/MM/yyyy', { locale: ptBR })}`,
-        category: 'Tronco de Beneficência',
-        type: 'Receita' as const,
-        amount: data.amount,
-        accountId: data.accountId,
+      // Find or create category
+      let { data: categoryData, error: categoryError } = await supabaseAny
+        .from('financial_categories')
+        .select('id')
+        .eq('name', 'Tronco de Beneficência')
+        .eq('type', 'Receita')
+        .maybeSingle()
+
+      if (categoryError && categoryError.code !== 'PGRST116') {
+        // PGRST116 = no rows returned, which is expected if category doesn't exist
+        throw new Error('Erro ao buscar categoria.')
       }
 
+      if (!categoryData) {
+        const { data: newCategory, error: insertError } = await supabaseAny
+          .from('financial_categories')
+          .insert({
+            name: 'Tronco de Beneficência',
+            type: 'Receita',
+          })
+          .select('id')
+          .single()
+
+        if (insertError || !newCategory) {
+          throw new Error('Não foi possível criar a categoria.')
+        }
+
+        categoryData = newCategory
+      }
+
+      const description =
+        data.description ||
+        `Tronco de Beneficência - ${event.title} - ${format(parseISO(data.date), 'dd/MM/yyyy', { locale: ptBR })}`
+
       if (charityToEdit) {
+<<<<<<< HEAD
         await updateTransaction(transactionData)
       } else {
         await addTransaction(transactionData)
+=======
+        // Update
+        const { error } = await supabaseAny
+          .from('financial_transactions')
+          .update({
+            description,
+            amount: data.amount,
+            date: data.date,
+            account_id: data.accountId || null,
+          })
+          .eq('id', charityToEdit)
+
+        if (error) throw error
+      } else {
+        // Create
+        const { error } = await supabaseAny
+          .from('financial_transactions')
+          .insert({
+            description,
+            amount: data.amount,
+            date: data.date,
+            category_id: categoryData.id,
+            type: 'Receita',
+            account_id: data.accountId || null,
+          })
+
+        if (error) throw error
+>>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       }
 
-      // Atualizar SessionRecord se existir
+      // Update SessionRecord if exists
       const sessionRecord = sessionRecords.find((sr) => sr.eventId === data.eventId)
       if (sessionRecord) {
         useChancellorStore.getState().updateSessionRecord({
@@ -181,45 +376,33 @@ export function CharityCollection() {
           charityCollection: data.amount,
         })
       }
-    },
-    onSuccess: () => {
-      toast({
-        title: charityToEdit ? 'Tronco Atualizado' : 'Tronco Registrado',
-        description: charityToEdit
-          ? 'O registro do tronco foi atualizado com sucesso.'
-          : 'O tronco de beneficência foi registrado com sucesso.',
-      })
-      dialog.closeDialog()
-      form.reset()
-      setCharityToEdit(null)
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error?.message || 'Não foi possível salvar o registro.',
-      })
-    },
-  })
 
-  const deleteOperation = useAsyncOperation({
-    operation: async (transactionId: string) => {
-      deleteTransaction(transactionId)
+      await loadData.execute()
+      return charityToEdit ? 'Tronco atualizado com sucesso.' : 'Tronco registrado com sucesso.'
     },
-    onSuccess: () => {
-      toast({
-        title: 'Registro Removido',
-        description: 'O registro do tronco foi removido com sucesso.',
-      })
+    {
+      successMessage: 'Operação realizada com sucesso!',
+      errorMessage: 'Falha ao salvar o registro.',
     },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error?.message || 'Não foi possível remover o registro.',
-      })
+  )
+
+  const deleteOperation = useAsyncOperation(
+    async (transactionId: string) => {
+      const { error } = await supabaseAny
+        .from('financial_transactions')
+        .delete()
+        .eq('id', transactionId)
+
+      if (error) throw error
+
+      await loadData.execute()
+      return 'Registro removido com sucesso.'
     },
-  })
+    {
+      successMessage: 'Registro removido com sucesso!',
+      errorMessage: 'Falha ao remover o registro.',
+    },
+  )
 
   const handleOpenDialog = (transactionId?: string) => {
     if (transactionId) {
@@ -265,13 +448,29 @@ export function CharityCollection() {
     }
   }
 
-  const handleSubmit = (data: CharityFormValues) => {
-    saveOperation.execute(data)
+  const handleSubmit = async (data: CharityFormValues) => {
+    const result = await saveOperation.execute(data)
+    if (result) {
+      dialog.closeDialog()
+      form.reset()
+      setCharityToEdit(null)
+    }
   }
 
   const totalCharity = useMemo(() => {
     return charityTransactions.reduce((sum, t) => sum + t.amount, 0)
   }, [charityTransactions])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Carregando dados do tronco de beneficência...</span>
+        </div>
+      </div>
+    )
+  }
 
   // Filtrar apenas contas do tipo Caixa para tronco
   const cashAccounts = accounts.filter((a) => a.type === 'Caixa')

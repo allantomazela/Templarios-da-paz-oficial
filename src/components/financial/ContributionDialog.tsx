@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Contribution, mockBrothers } from '@/lib/data'
+import { Contribution } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { format } from 'date-fns'
+import { supabase } from '@/lib/supabase/client'
+
+interface Profile {
+  id: string
+  full_name: string | null
+}
 
 const contributionSchema = z.object({
   brotherId: z.string().min(1, 'Irmão é obrigatório'),
@@ -69,6 +74,10 @@ export function ContributionDialog({
   contributionToEdit,
   onSave,
 }: ContributionDialogProps) {
+  const [brothers, setBrothers] = useState<Profile[]>([])
+  const [loadingBrothers, setLoadingBrothers] = useState(true)
+  const supabaseAny = supabase as any
+
   const form = useForm<ContributionFormValues>({
     resolver: zodResolver(contributionSchema),
     defaultValues: {
@@ -80,6 +89,31 @@ export function ContributionDialog({
       paymentDate: '',
     },
   })
+
+  useEffect(() => {
+    if (open) {
+      const loadBrothers = async () => {
+        setLoadingBrothers(true)
+        try {
+          const { data, error } = await supabaseAny
+            .from('profiles')
+            .select('id, full_name')
+            .eq('status', 'approved')
+            .order('full_name', { ascending: true })
+
+          if (error) throw error
+
+          setBrothers(data || [])
+        } catch (error) {
+          console.error('Erro ao carregar irmãos:', error)
+        } finally {
+          setLoadingBrothers(false)
+        }
+      }
+
+      loadBrothers()
+    }
+  }, [open, supabaseAny])
 
   useEffect(() => {
     if (contributionToEdit) {
@@ -127,17 +161,21 @@ export function ContributionDialog({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    disabled={!!contributionToEdit}
+                    disabled={!!contributionToEdit || loadingBrothers}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o irmão" />
+                        <SelectValue placeholder={
+                          loadingBrothers 
+                            ? 'Carregando irmãos...' 
+                            : 'Selecione o irmão'
+                        } />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {mockBrothers.map((brother) => (
+                      {brothers.map((brother) => (
                         <SelectItem key={brother.id} value={brother.id}>
-                          {brother.name}
+                          {brother.full_name || 'Sem nome'}
                         </SelectItem>
                       ))}
                     </SelectContent>

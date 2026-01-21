@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Budget } from '@/lib/data'
+import { Budget, Category } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { supabase } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
+
+interface CategoryFromDB {
+  id: string
+  name: string
+  type: 'Receita' | 'Despesa'
+}
 
 const budgetSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
@@ -53,7 +60,10 @@ export function BudgetDialog({
   budgetToEdit,
   onSave,
 }: BudgetDialogProps) {
-  const { categories } = useFinancialStore()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const supabaseAny = supabase as any
+
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetSchema),
     defaultValues: {
@@ -64,6 +74,37 @@ export function BudgetDialog({
       period: 'Mensal',
     },
   })
+
+  // Load categories from Supabase
+  useEffect(() => {
+    if (open) {
+      const loadCategories = async () => {
+        setLoadingCategories(true)
+        try {
+          const { data, error } = await supabaseAny
+            .from('financial_categories')
+            .select('*')
+            .order('name')
+
+          if (error) throw error
+
+          const mapped: Category[] = (data || []).map((c: CategoryFromDB) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+          }))
+
+          setCategories(mapped)
+        } catch (error) {
+          console.error('Error loading categories:', error)
+        } finally {
+          setLoadingCategories(false)
+        }
+      }
+
+      loadCategories()
+    }
+  }, [open, supabaseAny])
 
   useEffect(() => {
     if (budgetToEdit) {
@@ -158,11 +199,21 @@ export function BudgetDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableCategories.map((c) => (
-                          <SelectItem key={c.id} value={c.name}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
+                        {loadingCategories ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : availableCategories.length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground">
+                            Nenhuma categoria cadastrada para {selectedType}
+                          </div>
+                        ) : (
+                          availableCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.name}>
+                              {c.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

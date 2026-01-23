@@ -100,21 +100,9 @@ type CharityFormValues = z.infer<typeof charitySchema>
 export function CharityCollection() {
   const { toast } = useToast()
   const { events, sessionRecords } = useChancellorStore()
-<<<<<<< HEAD
-  const {
-    transactions,
-    accounts,
-    fetchTransactions,
-    fetchAccounts,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useFinancialStore()
-=======
   const [charityTransactions, setCharityTransactions] = useState<Transaction[]>([])
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const dialog = useDialog()
   const [charityToEdit, setCharityToEdit] = useState<string | null>(null)
   const supabaseAny = supabase as any
@@ -235,12 +223,6 @@ export function CharityCollection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchTransactions()
-    fetchAccounts()
-  }, [fetchTransactions, fetchAccounts])
-
   const form = useForm<CharityFormValues>({
     resolver: zodResolver(charitySchema),
     defaultValues: {
@@ -334,11 +316,6 @@ export function CharityCollection() {
         `Tronco de Beneficência - ${event.title} - ${format(parseISO(data.date), 'dd/MM/yyyy', { locale: ptBR })}`
 
       if (charityToEdit) {
-<<<<<<< HEAD
-        await updateTransaction(transactionData)
-      } else {
-        await addTransaction(transactionData)
-=======
         // Update
         const { error } = await supabaseAny
           .from('financial_transactions')
@@ -365,7 +342,6 @@ export function CharityCollection() {
           })
 
         if (error) throw error
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       }
 
       // Update SessionRecord if exists

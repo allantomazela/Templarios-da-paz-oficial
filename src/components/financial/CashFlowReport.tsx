@@ -40,17 +40,8 @@ interface TransactionFromDB {
 }
 
 export function CashFlowReport() {
-<<<<<<< HEAD
-  const { transactions, fetchTransactions } = useFinancialStore()
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
-=======
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const { toast } = useToast()
   const [period, setPeriod] = useState('current_month')
   const printRef = useRef<HTMLDivElement>(null)

@@ -34,25 +34,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-<<<<<<< HEAD
-export function BankAccounts() {
-  const {
-    accounts,
-    transactions,
-    loading,
-    fetchAccounts,
-    fetchTransactions,
-    addAccount,
-    updateAccount,
-    deleteAccount,
-  } = useFinancialStore()
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchAccounts()
-    fetchTransactions()
-  }, [fetchAccounts, fetchTransactions])
-=======
 interface BankAccountFromDB {
   id: string
   name: string
@@ -62,7 +43,6 @@ interface BankAccountFromDB {
   created_at: string
   updated_at: string
 }
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
 
 export function BankAccounts() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
@@ -119,16 +99,6 @@ export function BankAccounts() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedAccount) {
-<<<<<<< HEAD
-        await updateAccount({ ...selectedAccount, ...data })
-        return 'Conta atualizada com sucesso.'
-      } else {
-        await addAccount({
-          id: crypto.randomUUID(),
-          color: `hsl(var(--chart-${Math.floor(Math.random() * 5) + 1}))`,
-          ...data,
-        })
-=======
         // Update
         const { error } = await supabaseAny
           .from('bank_accounts')
@@ -166,7 +136,6 @@ export function BankAccounts() {
         if (error) throw error
 
         await loadAccounts.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Conta criada com sucesso.'
       }
     },
@@ -178,9 +147,6 @@ export function BankAccounts() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-<<<<<<< HEAD
-      await deleteAccount(id)
-=======
       // Check if account has transactions
       const { data: transactions, error: checkError } = await supabaseAny
         .from('financial_transactions')
@@ -207,7 +173,6 @@ export function BankAccounts() {
       if (error) throw error
 
       await loadAccounts.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Conta removida.'
     },
     {
@@ -279,68 +244,6 @@ export function BankAccounts() {
         </Button>
       </div>
 
-<<<<<<< HEAD
-      {accounts.length === 0 && !loading ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              Nenhuma conta cadastrada. Clique em "Nova Conta" para começar.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {accounts.map((account) => {
-          const balance = calculateBalance(account)
-          return (
-            <Card
-              key={account.id}
-              className="relative overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <div
-                className="absolute top-0 left-0 w-1 h-full"
-                style={{ backgroundColor: account.color || 'gray' }}
-              ></div>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {getIcon(account.type)}
-                    {account.name}
-                  </CardTitle>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => openEdit(account)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteClick(account)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <CardDescription>{account.type}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  R$ {balance.toFixed(2)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Saldo Inicial: R$ {account.initialBalance.toFixed(2)}
-                </p>
-              </CardContent>
-            </Card>
-          )
-        })}
-=======
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -406,7 +309,6 @@ export function BankAccounts() {
               </Card>
             )
           })}
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         </div>
       )}
 

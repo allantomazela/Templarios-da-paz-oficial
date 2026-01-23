@@ -16,7 +16,6 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { BudgetDialog } from './BudgetDialog'
 import { GoalDialog } from './GoalDialog'
 import { format } from 'date-fns'
-import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 interface BudgetFromDB {
   id: string
@@ -60,37 +59,12 @@ interface TransactionFromDB {
 }
 
 export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
-<<<<<<< HEAD
-  const {
-    budgets,
-    goals,
-    transactions,
-    loading,
-    fetchBudgets,
-    fetchGoals,
-    fetchTransactions,
-    addBudget,
-    updateBudget,
-    deleteBudget,
-    addGoal,
-    updateGoal,
-    deleteGoal,
-  } = useFinancialStore()
-=======
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [goals, setGoals] = useState<FinancialGoal[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const { toast } = useToast()
   const supabaseAny = supabase as any
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchBudgets()
-    fetchGoals()
-    fetchTransactions()
-  }, [fetchBudgets, fetchGoals, fetchTransactions])
 
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false)
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null)
@@ -255,38 +229,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
     [transactions],
   )
 
-  const saveBudgetOperation = useAsyncOperation(
-    async (data: any) => {
-      if (selectedBudget) {
-        await updateBudget({ ...selectedBudget, ...data })
-        return 'Orçamento atualizado com sucesso.'
-      } else {
-        await addBudget({ id: crypto.randomUUID(), ...data })
-        return 'Orçamento criado com sucesso.'
-      }
-    },
-    {
-      successMessage: 'Operação realizada com sucesso!',
-      errorMessage: 'Falha ao salvar o orçamento.',
-    },
-  )
-
-  const deleteBudgetOperation = useAsyncOperation(
-    async (id: string) => {
-      await deleteBudget(id)
-      return 'Orçamento removido.'
-    },
-    {
-      successMessage: 'Orçamento removido com sucesso!',
-      errorMessage: 'Falha ao remover o orçamento.',
-    },
-  )
-
   // Handlers for Budgets
-<<<<<<< HEAD
-  const handleSaveBudget = async (data: any) => {
-    const result = await saveBudgetOperation.execute(data)
-=======
   const handleSaveBudget = useAsyncOperation(
     async (data: any) => {
       // Find category by name if provided
@@ -373,19 +316,13 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
   const onSaveBudget = async (data: any) => {
     const result = await handleSaveBudget.execute(data)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
     if (result) {
       setIsBudgetDialogOpen(false)
     }
   }
 
-<<<<<<< HEAD
-  const handleDeleteBudget = (id: string) => {
-    deleteBudgetOperation.execute(id)
-=======
   const onDeleteBudget = (id: string) => {
     handleDeleteBudget.execute(id)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   }
 
   const openNewBudget = () => {
@@ -398,38 +335,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
     setIsBudgetDialogOpen(true)
   }
 
-  const saveGoalOperation = useAsyncOperation(
-    async (data: any) => {
-      if (selectedGoal) {
-        await updateGoal({ ...selectedGoal, ...data })
-        return 'Meta atualizada com sucesso.'
-      } else {
-        await addGoal({ id: crypto.randomUUID(), ...data })
-        return 'Meta criada com sucesso.'
-      }
-    },
-    {
-      successMessage: 'Operação realizada com sucesso!',
-      errorMessage: 'Falha ao salvar a meta.',
-    },
-  )
-
-  const deleteGoalOperation = useAsyncOperation(
-    async (id: string) => {
-      await deleteGoal(id)
-      return 'Meta removida.'
-    },
-    {
-      successMessage: 'Meta removida com sucesso!',
-      errorMessage: 'Falha ao remover a meta.',
-    },
-  )
-
   // Handlers for Goals
-<<<<<<< HEAD
-  const handleSaveGoal = async (data: any) => {
-    const result = await saveGoalOperation.execute(data)
-=======
   const handleSaveGoal = useAsyncOperation(
     async (data: any) => {
       // Find category by name if provided
@@ -510,19 +416,13 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
   const onSaveGoal = async (data: any) => {
     const result = await handleSaveGoal.execute(data)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
     if (result) {
       setIsGoalDialogOpen(false)
     }
   }
 
-<<<<<<< HEAD
-  const handleDeleteGoal = (id: string) => {
-    deleteGoalOperation.execute(id)
-=======
   const onDeleteGoal = (id: string) => {
     handleDeleteGoal.execute(id)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   }
 
   const openNewGoal = () => {

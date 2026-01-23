@@ -47,30 +47,9 @@ interface TransactionFromDB {
 }
 
 export function IncomeList() {
-<<<<<<< HEAD
-  const {
-    transactions,
-    accounts,
-    loading,
-    fetchTransactions,
-    fetchAccounts,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useFinancialStore()
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchTransactions()
-    fetchAccounts()
-  }, [fetchTransactions, fetchAccounts])
-
-  const incomes = transactions.filter((t) => t.type === 'Receita')
-=======
   const [incomes, setIncomes] = useState<Transaction[]>([])
   const [accountNames, setAccountNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
@@ -159,16 +138,6 @@ export function IncomeList() {
       }
 
       if (selectedIncome) {
-<<<<<<< HEAD
-        await updateTransaction({ ...selectedIncome, ...data, type: 'Receita' })
-        return 'Receita atualizada com sucesso.'
-      } else {
-        await addTransaction({
-          id: crypto.randomUUID(),
-          ...data,
-          type: 'Receita',
-        })
-=======
         // Update
         const { error } = await supabaseAny
           .from('financial_transactions')
@@ -201,7 +170,6 @@ export function IncomeList() {
         if (error) throw error
 
         await loadIncomes.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Receita registrada com sucesso.'
       }
     },
@@ -213,9 +181,6 @@ export function IncomeList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-<<<<<<< HEAD
-      await deleteTransaction(id)
-=======
       const { error } = await supabaseAny
         .from('financial_transactions')
         .delete()
@@ -224,7 +189,6 @@ export function IncomeList() {
       if (error) throw error
 
       await loadIncomes.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Receita removida.'
     },
     {

@@ -10,10 +10,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Search, Pencil, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
-<<<<<<< HEAD
-import useFinancialStore from '@/stores/useFinancialStore'
-=======
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
 import { Category } from '@/lib/data'
 import { CategoryDialog } from './CategoryDialog'
 import { useDialog } from '@/hooks/use-dialog'
@@ -51,27 +47,8 @@ interface CategoryFromDB {
 }
 
 export function CategoryList() {
-<<<<<<< HEAD
-  const {
-    categories,
-    transactions,
-    loading,
-    fetchCategories,
-    fetchTransactions,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-  } = useFinancialStore()
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchCategories()
-    fetchTransactions()
-  }, [fetchCategories, fetchTransactions])
-=======
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const dialog = useDialog()
@@ -134,12 +111,6 @@ export function CategoryList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedCategory) {
-<<<<<<< HEAD
-        await updateCategory({ ...selectedCategory, ...data })
-        return 'Categoria atualizada com sucesso.'
-      } else {
-        await addCategory({ id: crypto.randomUUID(), ...data })
-=======
         // Update
         const { error } = await supabaseAny
           .from('financial_categories')
@@ -165,7 +136,6 @@ export function CategoryList() {
         if (error) throw error
 
         await loadCategories.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Categoria criada com sucesso.'
       }
     },
@@ -177,9 +147,6 @@ export function CategoryList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-<<<<<<< HEAD
-      await deleteCategory(id)
-=======
       // Check if category is in use by transactions
       const { data: transactions, error: checkError } = await supabaseAny
         .from('financial_transactions')
@@ -206,7 +173,6 @@ export function CategoryList() {
       if (error) throw error
 
       await loadCategories.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Categoria removida.'
     },
     {
@@ -279,15 +245,6 @@ export function CategoryList() {
           </TableHeader>
           <TableBody>
             {loading ? (
-<<<<<<< HEAD
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            ) : paginatedCategories.length === 0 ? (
-=======
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-8">
                   <div className="flex items-center justify-center gap-2">

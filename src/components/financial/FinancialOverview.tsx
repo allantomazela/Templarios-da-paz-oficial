@@ -64,19 +64,9 @@ interface AccountFromDB {
 }
 
 export function FinancialOverview() {
-<<<<<<< HEAD
-  const {
-    transactions,
-    accounts,
-    loading,
-    fetchTransactions,
-    fetchAccounts,
-  } = useFinancialStore()
-=======
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const [period, setPeriod] = useState('current_year')
   const supabaseAny = supabase as any
   const { toast } = useToast()
@@ -148,12 +138,6 @@ export function FinancialOverview() {
 
     loadData()
   }, [supabaseAny, toast])
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchTransactions()
-    fetchAccounts()
-  }, [fetchTransactions, fetchAccounts])
 
   // Date Filtering
   const getDateRange = () => {

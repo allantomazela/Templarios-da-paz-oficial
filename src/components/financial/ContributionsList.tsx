@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react'
-<<<<<<< HEAD
-import { Contribution, Brother } from '@/lib/data'
-=======
 import { Contribution } from '@/lib/data'
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -21,19 +17,6 @@ import { format } from 'date-fns'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
-<<<<<<< HEAD
-import { logError } from '@/lib/logger'
-
-export function ContributionsList() {
-  const {
-    contributions,
-    loading,
-    fetchContributions,
-    addContribution,
-    updateContribution,
-    deleteContribution,
-  } = useFinancialStore()
-=======
 
 interface ContributionFromDB {
   id: string
@@ -68,46 +51,12 @@ export function ContributionsList() {
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const [searchTerm, setSearchTerm] = useState('')
-  const [brothers, setBrothers] = useState<Brother[]>([])
-  const [loadingBrothers, setLoadingBrothers] = useState(false)
   const dialog = useDialog()
   const [selectedContribution, setSelectedContribution] =
     useState<Contribution | null>(null)
   const supabaseAny = supabase as any
 
-<<<<<<< HEAD
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchContributions()
-    loadBrothers()
-  }, [fetchContributions])
-
-  const loadBrothers = async () => {
-    setLoadingBrothers(true)
-    try {
-      const supabaseAny = supabase as any
-      const { data, error } = await supabaseAny
-        .from('brothers')
-        .select('id, name')
-        .order('name', { ascending: true })
-
-      if (error) throw error
-
-      if (data) {
-        setBrothers(data.map((row: any) => ({ id: row.id, name: row.name } as Brother)))
-      }
-    } catch (error) {
-      logError('Error loading brothers:', error)
-    } finally {
-      setLoadingBrothers(false)
-    }
-  }
-
-  const getBrotherName = (id: string) =>
-    brothers.find((b) => b.id === id)?.name || 'Desconhecido'
-=======
   const loadContributions = useAsyncOperation(
     async () => {
       setLoading(true)
@@ -160,7 +109,6 @@ export function ContributionsList() {
     loadContributions.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
 
   const filteredContributions = contributions.filter((c) => {
     const searchLower = searchTerm.toLowerCase()
@@ -178,16 +126,6 @@ export function ContributionsList() {
       const monthNumber = MONTHS.indexOf(data.month) + 1
 
       if (selectedContribution) {
-<<<<<<< HEAD
-        await updateContribution({ ...selectedContribution, ...data })
-        return 'Contribuição atualizada com sucesso.'
-      } else {
-        const newContribution: Contribution = {
-          id: crypto.randomUUID(),
-          ...data,
-        }
-        await addContribution(newContribution)
-=======
         // Atualizar
         const { error } = await supabaseAny
           .from('contributions')
@@ -218,7 +156,6 @@ export function ContributionsList() {
         if (error) throw error
 
         await loadContributions.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Contribuição registrada com sucesso.'
       }
     },
@@ -230,9 +167,6 @@ export function ContributionsList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-<<<<<<< HEAD
-      await deleteContribution(id)
-=======
       const { error } = await supabaseAny
         .from('contributions')
         .delete()
@@ -241,7 +175,6 @@ export function ContributionsList() {
       if (error) throw error
 
       await loadContributions.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Contribuição removida.'
     },
     {
@@ -271,7 +204,7 @@ export function ContributionsList() {
     dialog.openDialog()
   }
 
-  if ((loading || loadingBrothers) && contributions.length === 0) {
+  if (loading && contributions.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -297,27 +230,6 @@ export function ContributionsList() {
       </div>
 
       <div className="rounded-md border bg-card">
-<<<<<<< HEAD
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Irmão</TableHead>
-              <TableHead>Referência</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Data Pagto.</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            ) : filteredContributions.length === 0 ? (
-=======
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -325,7 +237,6 @@ export function ContributionsList() {
         ) : (
           <Table>
             <TableHeader>
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
               <TableRow>
                 <TableHead>Irmão</TableHead>
                 <TableHead>Referência</TableHead>

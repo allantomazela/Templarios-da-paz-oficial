@@ -47,30 +47,9 @@ interface TransactionFromDB {
 }
 
 export function ExpenseList() {
-<<<<<<< HEAD
-  const {
-    transactions,
-    accounts,
-    loading,
-    fetchTransactions,
-    fetchAccounts,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useFinancialStore()
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    fetchTransactions()
-    fetchAccounts()
-  }, [fetchTransactions, fetchAccounts])
-
-  const expenses = transactions.filter((t) => t.type === 'Despesa')
-=======
   const [expenses, setExpenses] = useState<Transaction[]>([])
   const [accountNames, setAccountNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
@@ -161,16 +140,6 @@ export function ExpenseList() {
       }
 
       if (selectedExpense) {
-<<<<<<< HEAD
-        await updateTransaction({ ...selectedExpense, ...data, type: 'Despesa' })
-        return 'Despesa atualizada com sucesso.'
-      } else {
-        await addTransaction({
-          id: crypto.randomUUID(),
-          ...data,
-          type: 'Despesa',
-        })
-=======
         // Update
         const { error } = await supabaseAny
           .from('financial_transactions')
@@ -203,7 +172,6 @@ export function ExpenseList() {
         if (error) throw error
 
         await loadExpenses.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
         return 'Despesa registrada com sucesso.'
       }
     },
@@ -215,9 +183,6 @@ export function ExpenseList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-<<<<<<< HEAD
-      await deleteTransaction(id)
-=======
       const { error } = await supabaseAny
         .from('financial_transactions')
         .delete()
@@ -226,7 +191,6 @@ export function ExpenseList() {
       if (error) throw error
 
       await loadExpenses.execute()
->>>>>>> c2521e56afe76ce1fb856c2a463dd416fbc37422
       return 'Despesa removida.'
     },
     {

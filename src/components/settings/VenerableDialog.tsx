@@ -1,13 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -21,8 +18,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { FormHeader } from '@/components/ui/form-header'
 import { Venerable } from '@/stores/useSiteSettingsStore'
-import { Loader2, Upload, Trash2 } from 'lucide-react'
+import { Loader2, Upload, Trash2, UserCircle } from 'lucide-react'
 import { useImageUpload } from '@/hooks/use-image-upload'
 
 const venerableSchema = z.object({
@@ -47,6 +45,8 @@ export function VenerableDialog({
   onSave,
 }: VenerableDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const prevVenerableRef = useRef<string>('')
+  const prevOpenRef = useRef<boolean>(false)
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
@@ -67,16 +67,35 @@ export function VenerableDialog({
   })
 
   useEffect(() => {
+    // Só executar quando o dialog abrir
+    if (!open) {
+      // Limpar quando fechar
+      prevVenerableRef.current = ''
+      prevOpenRef.current = false
+      return
+    }
+
+    // Verificar se realmente mudou para evitar loops
+    const currentKey = venerableToEdit ? `${venerableToEdit.id}` : 'new'
+    const hasChanged = prevVenerableRef.current !== currentKey || prevOpenRef.current !== open
+
+    if (!hasChanged) return
+
+    prevVenerableRef.current = currentKey
+    prevOpenRef.current = open
+
     if (venerableToEdit) {
       form.reset({
         name: venerableToEdit.name,
         period: venerableToEdit.period,
         imageUrl: venerableToEdit.imageUrl || '',
       })
+      // Reset do imageUpload apenas se necessário
       if (venerableToEdit.imageUrl) {
         imageUpload.reset()
       }
     } else {
+      // Limpar completamente para novo registro
       form.reset({
         name: '',
         period: '',
@@ -84,7 +103,8 @@ export function VenerableDialog({
       })
       imageUpload.reset()
     }
-  }, [venerableToEdit, form, open, imageUpload])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, venerableToEdit?.id])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -107,16 +127,15 @@ export function VenerableDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {venerableToEdit ? 'Editar Venerável' : 'Adicionar Venerável'}
-          </DialogTitle>
-          <DialogDescription>
-            {venerableToEdit
+        <FormHeader
+          title={venerableToEdit ? 'Editar Venerável' : 'Adicionar Venerável'}
+          description={
+            venerableToEdit
               ? 'Edite as informações do venerável abaixo.'
-              : 'Preencha os dados do venerável para adicionar à galeria.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Preencha os dados do venerável para adicionar à galeria.'
+          }
+          icon={<UserCircle className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

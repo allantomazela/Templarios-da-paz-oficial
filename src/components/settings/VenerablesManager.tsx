@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -17,13 +17,14 @@ import {
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import useSiteSettingsStore, { Venerable } from '@/stores/useSiteSettingsStore'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { VenerableDialog } from './VenerableDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { useToast } from '@/hooks/use-toast'
 
 export function VenerablesManager() {
-  const { venerables, addVenerable, updateVenerable, deleteVenerable } =
+  const { venerables, addVenerable, updateVenerable, deleteVenerable, reorderVenerables } =
     useSiteSettingsStore()
 
   const dialog = useDialog()
@@ -61,6 +62,7 @@ export function VenerablesManager() {
   const handleSave = async (data: any) => {
     const result = await saveOperation.execute(data)
     if (result) {
+      setSelectedVenerable(null)
       dialog.closeDialog()
     }
   }
@@ -77,6 +79,54 @@ export function VenerablesManager() {
   const openEdit = (venerable: Venerable) => {
     setSelectedVenerable(venerable)
     dialog.openDialog()
+  }
+
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return
+    
+    const newOrder = [...venerables]
+    const temp = newOrder[index]
+    newOrder[index] = newOrder[index - 1]
+    newOrder[index - 1] = temp
+    
+    const ids = newOrder.map(v => v.id)
+    try {
+      await reorderVenerables(ids)
+      toast({
+        title: 'Ordem atualizada',
+        description: 'A ordem dos veneráveis foi atualizada com sucesso.',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar a ordem.',
+      })
+    }
+  }
+
+  const handleMoveDown = async (index: number) => {
+    if (index === venerables.length - 1) return
+    
+    const newOrder = [...venerables]
+    const temp = newOrder[index]
+    newOrder[index] = newOrder[index + 1]
+    newOrder[index + 1] = temp
+    
+    const ids = newOrder.map(v => v.id)
+    try {
+      await reorderVenerables(ids)
+      toast({
+        title: 'Ordem atualizada',
+        description: 'A ordem dos veneráveis foi atualizada com sucesso.',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar a ordem.',
+      })
+    }
   }
 
   return (
@@ -99,6 +149,7 @@ export function VenerablesManager() {
               <TableHead className="w-[80px]">Foto</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Período</TableHead>
+              <TableHead className="w-[120px]">Ordem</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -106,14 +157,14 @@ export function VenerablesManager() {
             {venerables.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Nenhum registro na galeria.
                 </TableCell>
               </TableRow>
             ) : (
-              venerables.map((v) => (
+              venerables.map((v, index) => (
                 <TableRow key={v.id}>
                   <TableCell>
                     <Avatar className="h-10 w-10">
@@ -129,8 +180,33 @@ export function VenerablesManager() {
                   </TableCell>
                   <TableCell className="font-medium">{v.name}</TableCell>
                   <TableCell>{v.period}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === venerables.length - 1}
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => openEdit(v)}
@@ -138,6 +214,7 @@ export function VenerablesManager() {
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
@@ -155,7 +232,12 @@ export function VenerablesManager() {
 
       <VenerableDialog
         open={dialog.open}
-        onOpenChange={dialog.onOpenChange}
+        onOpenChange={(open) => {
+          dialog.onOpenChange(open)
+          if (!open) {
+            setSelectedVenerable(null)
+          }
+        }}
         venerableToEdit={selectedVenerable}
         onSave={handleSave}
       />

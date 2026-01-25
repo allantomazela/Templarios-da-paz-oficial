@@ -241,24 +241,158 @@
   }
 
   #gob-report-container,
-  #gob-report-container * {
+  #gob-report-container *,
+  #agape-monthly-report-container,
+  #agape-monthly-report-container *,
+  #custom-report-container,
+  #custom-report-container *,
+  #chancellor-report-container,
+  #chancellor-report-container *,
+  #visitor-certificate-container,
+  #visitor-certificate-container *,
+  #visitor-certificate-dialog-container,
+  #visitor-certificate-dialog-container * {
     visibility: visible;
   }
 
-  #gob-report-container {
+  #gob-report-container,
+  #agape-monthly-report-container,
+  #custom-report-container,
+  #chancellor-report-container {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 15mm 20mm;
+    background: white !important;
+    color: black !important;
+    z-index: 9999;
+    box-sizing: border-box;
+  }
+
+  /* Container do certificado de visitante */
+  #visitor-certificate-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
     margin: 0;
     padding: 0;
     background: white !important;
     color: black !important;
     z-index: 9999;
+    box-sizing: border-box;
+  }
+
+  #visitor-certificate-dialog-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+    z-index: 9999;
+    box-sizing: border-box;
+  }
+
+  /* Mostrar relatório do chanceler na impressão */
+  #chancellor-report-container {
+    display: block !important;
+  }
+
+  /* Ajustes específicos para o relatório GOB */
+  #gob-report-container {
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  #gob-report-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin-top: 4pt;
+  }
+
+  #gob-report-container th,
+  #gob-report-container td {
+    padding: 4pt 6pt;
+  }
+
+  /* Ajustes específicos para o relatório do ágape */
+  #agape-monthly-report-container {
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  #agape-monthly-report-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin-top: 4pt;
+  }
+
+  #agape-monthly-report-container th,
+  #agape-monthly-report-container td {
+    padding: 4pt 6pt;
+  }
+
+  /* Reduzir espaçamentos gerais */
+  #agape-monthly-report-container > * + * {
+    margin-top: 6pt;
+  }
+
+  /* Garantir que imagens não ultrapassem as margens */
+  #agape-monthly-report-container img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Evitar quebra de página no meio de elementos importantes */
+  #agape-monthly-report-container table {
+    page-break-inside: auto;
+  }
+
+  #agape-monthly-report-container tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Ajustes específicos para o relatório do chanceler */
+  #chancellor-report-container {
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  #chancellor-report-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin-top: 4pt;
+  }
+
+  #chancellor-report-container th,
+  #chancellor-report-container td {
+    padding: 4pt 6pt;
+  }
+
+  /* Reduzir espaçamentos gerais */
+  #chancellor-report-container > * + * {
+    margin-top: 6pt;
   }
 
   /* Force background colors for print if needed */
-  #gob-report-container .bg-muted {
+  #gob-report-container .bg-muted,
+  #agape-monthly-report-container .bg-muted,
+  #custom-report-container .bg-muted,
+  #chancellor-report-container .bg-muted,
+  #visitor-certificate-container .bg-muted,
+  #visitor-certificate-dialog-container .bg-muted {
     background-color: #f3f4f6 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

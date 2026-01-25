@@ -302,6 +302,7 @@ export function CustomReportBuilder() {
 
       {/* Printable Area */}
       <div
+        id="custom-report-container"
         className="border rounded-md bg-white text-black p-8"
         ref={reportRef}
       >

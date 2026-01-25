@@ -7,6 +7,7 @@ export interface Venerable {
   name: string
   period: string
   imageUrl?: string
+  mandateOrder?: number
 }
 
 export interface CustomSection {
@@ -63,6 +64,11 @@ export interface SiteSettingsState {
     textTransform: string
     textDecoration: string
   }
+  agapePix: {
+    pixKey: string
+    pixName: string
+    paymentType: 'monthly' | 'per_session'
+  }
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
@@ -82,11 +88,15 @@ export interface SiteSettingsState {
   updateTypography: (
     data: Partial<SiteSettingsState['typography']>,
   ) => Promise<void>
+  updateAgapePaymentSettings: (
+    data: Partial<SiteSettingsState['agapePix']>,
+  ) => Promise<void>
 
   fetchVenerables: () => Promise<void>
   addVenerable: (venerable: Omit<Venerable, 'id'>) => Promise<void>
   updateVenerable: (venerable: Venerable) => Promise<void>
   deleteVenerable: (id: string) => Promise<void>
+  reorderVenerables: (venerableIds: string[]) => Promise<void>
 
   // Custom Sections
   addCustomSection: (section: Omit<CustomSection, 'id'>) => Promise<void>
@@ -167,6 +177,11 @@ const mapSettingsFromDB = (data: any) => {
       fontSizeBase: data.typography_font_size_base || '16px',
       textColor: data.typography_text_color || '#ffffff',
       textColorMuted: data.typography_text_color_muted || '#94a3b8',
+    },
+    agapePix: {
+      pixKey: data.agape_pix_key || '',
+      pixName: data.agape_pix_name || '',
+      paymentType: (data.agape_payment_type as 'monthly' | 'per_session') || 'monthly',
       textTransform: data.typography_text_transform || 'none',
       textDecoration: data.typography_text_decoration || 'none',
     },
@@ -214,6 +229,11 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     textColorMuted: '#94a3b8',
     textTransform: 'none',
     textDecoration: 'none',
+  },
+  agapePix: {
+    pixKey: '',
+    pixName: '',
+    paymentType: 'monthly' as 'monthly' | 'per_session',
   },
 
   fetchSettings: async (force = false) => {
@@ -451,6 +471,28 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     }
   },
 
+  updateAgapePaymentSettings: async (data) => {
+    try {
+      const updates: any = {}
+      if (data.pixKey !== undefined) updates.agape_pix_key = data.pixKey
+      if (data.pixName !== undefined) updates.agape_pix_name = data.pixName
+      if (data.paymentType !== undefined) updates.agape_payment_type = data.paymentType
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+      set((state) => ({
+        agapePix: { ...state.agapePix, ...data },
+      }))
+    } catch (error) {
+      logError('Error updating agape payment settings', error)
+      throw error
+    }
+  },
+
   fetchVenerables: async (force = false) => {
     const state = get()
     // Se já temos veneráveis carregados e não é forçado, não precisa buscar novamente
@@ -462,6 +504,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       const { data, error } = await supabase
         .from('venerables')
         .select('*')
+        .order('mandate_order', { ascending: false })
         .order('period', { ascending: false })
 
       if (error) throw error
@@ -472,6 +515,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
           name: v.name,
           period: v.period,
           imageUrl: v.image_url,
+          mandateOrder: v.mandate_order || 0,
         }))
         set({ venerables: mappedVenerables })
       }
@@ -482,12 +526,23 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
   addVenerable: async (venerable) => {
     try {
+      // Calcular ordem baseada no período se não fornecido
+      let mandateOrder = venerable.mandateOrder
+      if (mandateOrder === undefined || mandateOrder === null) {
+        // Extrair ano final do período (ex: "2022 - 2024" -> 2024)
+        const yearMatch = venerable.period.match(/\d{4}/g)
+        mandateOrder = yearMatch && yearMatch.length > 0 
+          ? parseInt(yearMatch[yearMatch.length - 1], 10) 
+          : 0
+      }
+
       const { data, error } = await supabase
         .from('venerables')
         .insert({
           name: venerable.name,
           period: venerable.period,
           image_url: venerable.imageUrl,
+          mandate_order: mandateOrder,
         })
         .select()
         .single()
@@ -500,10 +555,14 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
           name: data.name,
           period: data.period,
           imageUrl: data.image_url,
+          mandateOrder: data.mandate_order || 0,
         }
-        set((state) => ({
-          venerables: [newVenerable, ...state.venerables],
-        }))
+        set((state) => {
+          const updated = [newVenerable, ...state.venerables]
+          // Ordenar por mandate_order
+          updated.sort((a, b) => (b.mandateOrder || 0) - (a.mandateOrder || 0))
+          return { venerables: updated }
+        })
       }
     } catch (error) {
       logError('Error adding venerable', error)
@@ -519,18 +578,42 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
           name: venerable.name,
           period: venerable.period,
           image_url: venerable.imageUrl,
+          mandate_order: venerable.mandateOrder ?? undefined,
         })
         .eq('id', venerable.id)
 
       if (error) throw error
 
-      set((state) => ({
-        venerables: state.venerables.map((v) =>
+      set((state) => {
+        const updated = state.venerables.map((v) =>
           v.id === venerable.id ? venerable : v,
-        ),
-      }))
+        )
+        // Reordenar após atualização
+        updated.sort((a, b) => (b.mandateOrder || 0) - (a.mandateOrder || 0))
+        return { venerables: updated }
+      })
     } catch (error) {
       logError('Error updating venerable', error)
+      throw error
+    }
+  },
+
+  reorderVenerables: async (venerableIds: string[]) => {
+    try {
+      // Atualizar ordem de cada venerável
+      const updates = venerableIds.map((id, index) => 
+        supabase
+          .from('venerables')
+          .update({ mandate_order: venerableIds.length - index })
+          .eq('id', id)
+      )
+
+      await Promise.all(updates)
+
+      // Recarregar veneráveis para refletir nova ordem
+      await get().fetchVenerables(true)
+    } catch (error) {
+      logError('Error reordering venerables', error)
       throw error
     }
   },

@@ -6,9 +6,6 @@ import { Category } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogDescription,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,7 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
 import { supabase } from '@/lib/supabase/client'
+import { FolderTree } from 'lucide-react'
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
@@ -110,16 +109,15 @@ export function CategoryDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {categoryToEdit ? 'Editar Categoria' : 'Nova Categoria'}
-          </DialogTitle>
-          <DialogDescription>
-            {categoryToEdit
+        <FormHeader
+          title={categoryToEdit ? 'Editar Categoria' : 'Nova Categoria'}
+          description={
+            categoryToEdit
               ? 'Atualize as informações da categoria.'
-              : 'Crie uma nova categoria para organizar receitas e despesas.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Crie uma nova categoria para organizar receitas e despesas.'
+          }
+          icon={<FolderTree className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

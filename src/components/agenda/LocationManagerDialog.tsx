@@ -2,9 +2,6 @@ import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Table,
@@ -18,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { FormHeader } from '@/components/ui/form-header'
 import { Plus, Pencil, Trash2, MapPin } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Location } from '@/lib/data'
@@ -100,12 +98,11 @@ export function LocationManagerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Gerenciar Espaços e Locais</DialogTitle>
-          <DialogDescription>
-            Cadastre e edite os locais disponíveis para eventos da loja.
-          </DialogDescription>
-        </DialogHeader>
+        <FormHeader
+          title="Gerenciar Espaços e Locais"
+          description="Cadastre e edite os locais disponíveis para eventos da loja."
+          icon={<MapPin className="h-5 w-5" />}
+        />
 
         {isFormOpen ? (
           <div className="space-y-4 border p-4 rounded-md">

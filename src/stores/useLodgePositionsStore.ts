@@ -8,6 +8,7 @@ export type LodgePositionType =
   | 'secretario'
   | 'chanceler'
   | 'tesoureiro'
+  | 'mestre_banquete'
 
 export interface LodgePosition {
   id: string
@@ -40,6 +41,7 @@ export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {
   chanceler: ['chancellor', 'agenda'],
   tesoureiro: ['financial'],
   orador: ['reports'], // Apenas visualização de relatórios
+  mestre_banquete: ['agenda', 'events', 'agape'],
 }
 
 // Labels dos cargos
@@ -49,6 +51,7 @@ export const POSITION_LABELS: Record<LodgePositionType, string> = {
   secretario: 'Secretário',
   chanceler: 'Chanceler',
   tesoureiro: 'Tesoureiro',
+  mestre_banquete: 'Mestre de Banquete',
 }
 
 interface LodgePositionsState {

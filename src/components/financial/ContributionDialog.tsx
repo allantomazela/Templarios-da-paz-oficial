@@ -6,11 +6,10 @@ import { Contribution } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogDescription,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { FormHeader } from '@/components/ui/form-header'
+import { Wallet } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -140,16 +139,15 @@ export function ContributionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {contributionToEdit ? 'Editar' : 'Nova'} Contribuição
-          </DialogTitle>
-          <DialogDescription>
-            {contributionToEdit
+        <FormHeader
+          title={`${contributionToEdit ? 'Editar' : 'Nova'} Contribuição`}
+          description={
+            contributionToEdit
               ? 'Atualize as informações da contribuição.'
-              : 'Registre uma nova contribuição de um irmão.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Registre uma nova contribuição de um irmão.'
+          }
+          icon={<Wallet className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

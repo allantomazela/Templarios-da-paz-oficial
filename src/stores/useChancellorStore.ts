@@ -1,7 +1,9 @@
 import { create } from 'zustand'
+import { supabase } from '@/lib/supabase/client'
 import {
   SessionRecord,
   Attendance,
+  VisitorAttendance,
   Brother,
   Event,
   Solid,
@@ -15,11 +17,12 @@ import {
   mockLocations,
   mockNotifications,
 } from '@/lib/data'
-import { devLog } from '@/lib/logger'
+import { devLog, logError } from '@/lib/logger'
 
 interface ChancellorState {
   sessionRecords: SessionRecord[]
   attendanceRecords: Attendance[]
+  visitorAttendances: VisitorAttendance[]
   brothers: Brother[]
   events: Event[]
   solids: Solid[]
@@ -32,6 +35,14 @@ interface ChancellorState {
   addAttendanceRecord: (record: Attendance) => void
   updateAttendanceRecord: (record: Attendance) => void
   bulkAddAttendance: (records: Attendance[]) => void
+  bulkAddVisitorAttendance: (records: VisitorAttendance[]) => void
+  fetchVisitorAttendances: (
+    sessionRecordId: string,
+  ) => Promise<VisitorAttendance[]>
+  saveVisitorAttendances: (
+    sessionRecordId: string,
+    visitors: VisitorAttendance[],
+  ) => Promise<void>
   updateBrotherDegree: (brotherId: string, updates: Partial<Brother>) => void
 
   // Events
@@ -61,6 +72,7 @@ interface ChancellorState {
 export const useChancellorStore = create<ChancellorState>((set) => ({
   sessionRecords: mockSessionRecords,
   attendanceRecords: mockAttendance,
+  visitorAttendances: [],
   brothers: mockBrothers,
   events: mockEvents,
   solids: mockSolids,
@@ -101,6 +113,71 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
         attendanceRecords: [...filtered, ...records],
       }
     }),
+
+  bulkAddVisitorAttendance: (records) =>
+    set((state) => {
+      const sessionIds = Array.from(
+        new Set(records.map((r) => r.sessionRecordId)),
+      )
+      const filtered = state.visitorAttendances.filter(
+        (vr) => !sessionIds.includes(vr.sessionRecordId),
+      )
+      return {
+        visitorAttendances: [...filtered, ...records],
+      }
+    }),
+
+  fetchVisitorAttendances: async (sessionRecordId) => {
+    try {
+      const { data, error } = await supabase
+        .from('visitor_attendances')
+        .select('*')
+        .eq('session_record_id', sessionRecordId)
+        .order('name', { ascending: true })
+
+      if (error) throw error
+
+      const mapped = (data || []).map(mapVisitorAttendanceFromDb)
+      set((state) => ({
+        visitorAttendances: [
+          ...state.visitorAttendances.filter(
+            (visitor) => visitor.sessionRecordId !== sessionRecordId,
+          ),
+          ...mapped,
+        ],
+      }))
+
+      return mapped
+    } catch (error) {
+      logError('Erro ao buscar visitantes da sessao', error)
+      return []
+    }
+  },
+
+  saveVisitorAttendances: async (sessionRecordId, visitors) => {
+    try {
+      const payload = visitors.map((visitor) =>
+        mapVisitorAttendanceToDb(visitor, sessionRecordId),
+      )
+
+      const { error: deleteError } = await supabase
+        .from('visitor_attendances')
+        .delete()
+        .eq('session_record_id', sessionRecordId)
+
+      if (deleteError) throw deleteError
+
+      if (payload.length > 0) {
+        const { error: insertError } = await supabase
+          .from('visitor_attendances')
+          .insert(payload)
+
+        if (insertError) throw insertError
+      }
+    } catch (error) {
+      logError('Erro ao salvar visitantes da sessao', error)
+    }
+  },
 
   updateBrotherDegree: (brotherId, updates) =>
     set((state) => ({
@@ -165,3 +242,33 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
 }))
 
 export default useChancellorStore
+
+function mapVisitorAttendanceFromDb(row: any): VisitorAttendance {
+  return {
+    id: row.id,
+    sessionRecordId: row.session_record_id,
+    name: row.name,
+    degree: row.degree,
+    lodge: row.lodge,
+    lodgeNumber: row.lodge_number,
+    obedience: row.obedience,
+    masonicNumber: row.masonic_number || undefined,
+  }
+}
+
+function mapVisitorAttendanceToDb(
+  visitor: VisitorAttendance,
+  sessionRecordId: string,
+) {
+  return {
+    id: visitor.id,
+    session_record_id: sessionRecordId,
+    name: visitor.name,
+    degree: visitor.degree,
+    lodge: visitor.lodge,
+    lodge_number: visitor.lodgeNumber,
+    obedience: visitor.obedience,
+    masonic_number: visitor.masonicNumber || null,
+    updated_at: new Date().toISOString(),
+  }
+}

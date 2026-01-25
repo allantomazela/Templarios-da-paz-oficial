@@ -1,27 +1,34 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Announcement } from '@/lib/data'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Plus } from 'lucide-react'
 import { NoticeDialog } from './NoticeDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
+import { NoticeCard } from './NoticeCard'
+import { NoticesAccessAlert } from './NoticesAccessAlert'
 
 export function NoticesList() {
   const [notices, setNotices] = useState<Announcement[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState<string>('Você')
   const [userRole, setUserRole] = useState<string>('member')
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedNotice, setSelectedNotice] = useState<Announcement | null>(
     null,
   )
   const supabaseAny = supabase as any
+  const PAGE_SIZE = 20
 
   const loadNotices = useAsyncOperation(
-    async () => {
+    async (options?: { reset?: boolean }) => {
+      const shouldReset = options?.reset ?? false
       const {
         data: { user },
         error: userError,
@@ -50,11 +57,15 @@ export function NoticesList() {
       // Se for membro comum, filtrar apenas avisos públicos
       const isAdminOrEditor = ['admin', 'editor'].includes(profile?.role || 'member')
       
-      // Buscar todos os avisos (filtrar no cliente para evitar problemas com sintaxe PostgREST)
+      const targetPage = shouldReset ? 0 : page
+      const rangeFrom = targetPage * PAGE_SIZE
+      const rangeTo = rangeFrom + PAGE_SIZE - 1
+
       const { data: rows, error } = await supabaseAny
         .from('announcements')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .range(rangeFrom, rangeTo)
 
       if (error) {
         throw new Error('Não foi possível carregar os avisos.')
@@ -79,7 +90,11 @@ export function NoticesList() {
         isPrivate: row.is_private || false,
       }))
 
-      setNotices(mappedNotices)
+      setNotices((prev) =>
+        shouldReset ? mappedNotices : [...prev, ...mappedNotices],
+      )
+      setPage(targetPage + 1)
+      setHasMore((rows || []).length === PAGE_SIZE)
       return null
     },
     {
@@ -121,6 +136,7 @@ export function NoticesList() {
           content: updatedRow.content,
           author: updatedRow.author_name,
           date: format(new Date(updatedRow.created_at), 'yyyy-MM-dd'),
+          isPrivate: updatedRow.is_private || false,
         }
 
         setNotices((prev) =>
@@ -165,6 +181,7 @@ export function NoticesList() {
           content: createdRow.content,
           author: createdRow.author_name,
           date: format(new Date(createdRow.created_at), 'yyyy-MM-dd'),
+          isPrivate: createdRow.is_private || false,
         }
 
         setNotices((prev) => [newNotice, ...prev])
@@ -226,69 +243,74 @@ export function NoticesList() {
   useEffect(() => {
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true
-      loadNoticesExecute()
+      loadNoticesExecute({ reset: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const canEdit = ['admin', 'editor'].includes(userRole)
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+
+  const filteredNotices = useMemo(() => {
+    if (!normalizedSearch) return notices
+    return notices.filter((notice) => {
+      const haystack = `${notice.title} ${notice.content} ${notice.author}`
+        .toLowerCase()
+        .trim()
+      return haystack.includes(normalizedSearch)
+    })
+  }, [notices, normalizedSearch])
 
   return (
     <div className="space-y-4">
-      {canEdit && (
-        <div className="flex justify-end">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Input
+          placeholder="Buscar avisos por título, autor ou conteúdo..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          className="md:max-w-md"
+        />
+        {canEdit && (
           <Button onClick={openNew} disabled={loadNoticesLoading}>
             <Plus className="mr-2 h-4 w-4" /> Criar Novo Aviso
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+
+      <NoticesAccessAlert visible={!canEdit} />
 
       <div className="grid gap-4">
-        {loadNoticesLoading ? (
+        {loadNoticesLoading && notices.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             Carregando avisos...
           </div>
-        ) : notices.length === 0 ? (
+        ) : filteredNotices.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum aviso publicado.
           </div>
         ) : (
-          notices.map((notice) => (
-            <Card key={notice.id}>
-              <CardHeader className="flex flex-row items-start justify-between pb-2">
-                <div>
-                  <CardTitle className="text-lg">{notice.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Publicado em {notice.date} por {notice.author}
-                  </p>
-                </div>
-                {canEdit && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(notice)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(notice.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{notice.content}</p>
-              </CardContent>
-            </Card>
+          filteredNotices.map((notice) => (
+            <NoticeCard
+              key={notice.id}
+              notice={notice}
+              canEdit={canEdit}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
           ))
         )}
       </div>
+
+      {hasMore && !loadNoticesLoading && normalizedSearch.length === 0 && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => loadNoticesExecute({ reset: false })}
+          >
+            Carregar mais avisos
+          </Button>
+        </div>
+      )}
 
       <NoticeDialog
         open={dialog.open}

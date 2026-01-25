@@ -7,6 +7,8 @@ import { VenerablesManager } from '@/components/settings/VenerablesManager'
 import { LayoutSettings } from '@/components/settings/LayoutSettings'
 import { ThemeSettings } from '@/components/settings/ThemeSettings'
 import { TypographySettings } from '@/components/settings/TypographySettings'
+import { LodgeInfoSettings } from '@/components/settings/LodgeInfoSettings'
+import { AgapePaymentSettings } from '@/components/settings/AgapePaymentSettings'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import {
   LayoutTemplate,
@@ -17,6 +19,8 @@ import {
   Grid,
   History,
   Type,
+  Building2,
+  CreditCard,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -114,10 +118,13 @@ export default function SiteSettings() {
       </div>
 
       <Tabs
-        defaultValue={isAdmin ? 'general' : 'content'}
+        defaultValue="lodge"
         className="space-y-4"
       >
         <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="lodge">
+            <Building2 className="mr-2 h-4 w-4" /> Dados da Loja
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="general">
               <LayoutTemplate className="mr-2 h-4 w-4" /> Identidade & SEO
@@ -150,6 +157,10 @@ export default function SiteSettings() {
             </TabsTrigger>
           )}
         </TabsList>
+
+        <TabsContent value="lodge">
+          <LodgeInfoSettings />
+        </TabsContent>
 
         {isAdmin && (
           <>
@@ -192,6 +203,12 @@ export default function SiteSettings() {
         <TabsContent value="gallery">
           <VenerablesManager />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="agape-payment">
+            <AgapePaymentSettings />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

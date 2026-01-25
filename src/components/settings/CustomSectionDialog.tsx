@@ -5,10 +5,7 @@ import { z } from 'zod'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -30,9 +27,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FormHeader } from '@/components/ui/form-header'
 import { CustomSection } from '@/stores/useSiteSettingsStore'
 import { useImageUpload } from '@/hooks/use-image-upload'
-import { Loader2, Upload } from 'lucide-react'
+import { Loader2, Upload, Layout } from 'lucide-react'
 
 const customSectionSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -143,16 +141,15 @@ export function CustomSectionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {sectionToEdit ? 'Editar Seção Customizada' : 'Nova Seção Customizada'}
-          </DialogTitle>
-          <DialogDescription>
-            {sectionToEdit
+        <FormHeader
+          title={sectionToEdit ? 'Editar Seção Customizada' : 'Nova Seção Customizada'}
+          description={
+            sectionToEdit
               ? 'Atualize as informações da seção.'
-              : 'Crie uma nova seção para adicionar à página inicial do site.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Crie uma nova seção para adicionar à página inicial do site.'
+          }
+          icon={<Layout className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

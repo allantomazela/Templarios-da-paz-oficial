@@ -6,8 +6,6 @@ import { Brother, Child } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -29,7 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Upload, X, Plus, Search } from 'lucide-react'
+import { FormHeader } from '@/components/ui/form-header'
+import { Loader2, Upload, X, Plus, Search, UserPlus } from 'lucide-react'
 import { useImageUpload } from '@/hooks/use-image-upload'
 import {
   formatCPF,
@@ -351,11 +350,11 @@ export function BrotherDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {brotherToEdit ? 'Editar Irmão' : 'Adicionar Novo Irmão'}
-          </DialogTitle>
-        </DialogHeader>
+        <FormHeader
+          title={brotherToEdit ? 'Editar Irmão' : 'Adicionar Novo Irmão'}
+          description="Gerencie as informações pessoais e maçônicas do irmão."
+          icon={<UserPlus className="h-5 w-5" />}
+        />
 
         <Form {...form}>
           <form

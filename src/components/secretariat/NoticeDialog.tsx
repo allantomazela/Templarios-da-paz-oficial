@@ -6,9 +6,6 @@ import { Announcement } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -23,6 +20,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FormHeader } from '@/components/ui/form-header'
+import { Bell } from 'lucide-react'
 
 const noticeSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -65,16 +64,15 @@ export function NoticeDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>
-            {noticeToEdit ? 'Editar Aviso' : 'Criar Novo Aviso'}
-          </DialogTitle>
-          <DialogDescription>
-            {noticeToEdit
+        <FormHeader
+          title={noticeToEdit ? 'Editar Aviso' : 'Criar Novo Aviso'}
+          description={
+            noticeToEdit
               ? 'Atualize as informações do aviso.'
-              : 'Crie um novo aviso para o mural da loja.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Crie um novo aviso para o mural da loja.'
+          }
+          icon={<Bell className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

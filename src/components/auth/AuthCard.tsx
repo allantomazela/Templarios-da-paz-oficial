@@ -51,7 +51,7 @@ const registerSchema = z
       .min(1, 'Selecione um grau'),
     password: z
       .string()
-      .min(6, { message: 'A senha deve ter no mínimo 6 caracteres' }),
+      .min(8, { message: 'A senha deve ter no mínimo 8 caracteres' }),
     confirmPassword: z.string(),
     terms: z.boolean().refine((val) => val === true, {
       message: 'Você deve aceitar os termos',
@@ -145,27 +145,50 @@ export function AuthCard() {
 
   async function onRegister(data: z.infer<typeof registerSchema>) {
     setIsLoading(true)
-    const { error } = await signUp(
-      data.email,
-      data.password,
-      data.name,
-      data.degree,
-    )
+    
+    try {
+      const { error } = await signUp(
+        data.email.trim().toLowerCase(),
+        data.password,
+        data.name.trim(),
+        data.degree,
+      )
 
-    setIsLoading(false)
-    if (error) {
+      if (error) {
+        let errorMessage = error.message || 'Erro ao realizar cadastro'
+        
+        // Tratar erros específicos do Supabase
+        if (error.status === 422 || error.message?.includes('422')) {
+          if (error.message?.toLowerCase().includes('password')) {
+            errorMessage = 'A senha deve ter no mínimo 8 caracteres.'
+          } else if (error.message?.toLowerCase().includes('email') || error.message?.toLowerCase().includes('already')) {
+            errorMessage = 'Este email já está cadastrado. Use outro email ou recupere sua senha.'
+          } else {
+            errorMessage = 'Dados inválidos. Verifique se todos os campos estão preenchidos corretamente.'
+          }
+        }
+        
+        toast({
+          variant: 'destructive',
+          title: 'Erro no Registro',
+          description: errorMessage,
+        })
+      } else {
+        toast({
+          title: 'Cadastro Realizado',
+          description:
+            'Sua conta foi criada e está aguardando aprovação da secretaria. Você será notificado por email.',
+        })
+        registerForm.reset()
+      }
+    } catch (e) {
       toast({
         variant: 'destructive',
         title: 'Erro no Registro',
-        description: error.message,
+        description: 'Ocorreu um erro inesperado. Tente novamente.',
       })
-    } else {
-      toast({
-        title: 'Cadastro Realizado',
-        description:
-          'Sua conta foi criada e está aguardando aprovação da secretaria. Você será notificado por email.',
-      })
-      registerForm.reset()
+    } finally {
+      setIsLoading(false)
     }
   }
 

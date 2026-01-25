@@ -6,9 +6,6 @@ import { Budget, Category } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,8 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
 import { supabase } from '@/lib/supabase/client'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Target } from 'lucide-react'
 
 interface CategoryFromDB {
   id: string
@@ -132,16 +130,15 @@ export function BudgetDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {budgetToEdit ? 'Editar Orçamento' : 'Novo Orçamento'}
-          </DialogTitle>
-          <DialogDescription>
-            {budgetToEdit
+        <FormHeader
+          title={budgetToEdit ? 'Editar Orçamento' : 'Novo Orçamento'}
+          description={
+            budgetToEdit
               ? 'Atualize as informações do orçamento.'
-              : 'Crie um novo orçamento para planejamento financeiro.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Crie um novo orçamento para planejamento financeiro.'
+          }
+          icon={<Target className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

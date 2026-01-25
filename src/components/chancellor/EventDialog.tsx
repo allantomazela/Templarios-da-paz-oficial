@@ -6,9 +6,6 @@ import { Event } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -29,6 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { FormHeader } from '@/components/ui/form-header'
+import { Calendar } from 'lucide-react'
 
 const eventSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -95,16 +94,15 @@ export function EventDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {eventToEdit ? 'Editar Evento' : 'Novo Evento'}
-          </DialogTitle>
-          <DialogDescription>
-            {eventToEdit
+        <FormHeader
+          title={eventToEdit ? 'Editar Evento' : 'Novo Evento'}
+          description={
+            eventToEdit
               ? 'Atualize as informações do evento.'
-              : 'Crie um novo evento ou sessão para a agenda da loja.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Crie um novo evento ou sessão para a agenda da loja.'
+          }
+          icon={<Calendar className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

@@ -5,6 +5,7 @@ import { DegreeManager } from '@/components/chancellor/DegreeManager'
 import { ChancellorReports } from '@/components/chancellor/ChancellorReports'
 import { SolidsManager } from '@/components/chancellor/SolidsManager'
 import { EventsManager } from '@/components/chancellor/EventsManager'
+import { VisitorCertificate } from '@/components/chancellor/VisitorCertificate'
 
 export default function Chancellor() {
   return (
@@ -24,6 +25,7 @@ export default function Chancellor() {
           <TabsTrigger value="solids">Sólidos</TabsTrigger>
           <TabsTrigger value="degrees">Controle de Graus</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
+          <TabsTrigger value="certificate">Certificado de Visitante</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -48,6 +50,10 @@ export default function Chancellor() {
 
         <TabsContent value="reports">
           <ChancellorReports />
+        </TabsContent>
+
+        <TabsContent value="certificate">
+          <VisitorCertificate />
         </TabsContent>
       </Tabs>
     </div>

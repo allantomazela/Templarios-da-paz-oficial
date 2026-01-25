@@ -6,9 +6,6 @@ import { BankAccount } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogDescription,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
+import { Building2 } from 'lucide-react'
 
 const accountSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
@@ -80,16 +79,15 @@ export function BankAccountDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {accountToEdit ? 'Editar Conta' : 'Nova Conta Bancária'}
-          </DialogTitle>
-          <DialogDescription>
-            {accountToEdit
+        <FormHeader
+          title={accountToEdit ? 'Editar Conta' : 'Nova Conta Bancária'}
+          description={
+            accountToEdit
               ? 'Atualize as informações da conta bancária.'
-              : 'Adicione uma nova conta bancária ou caixa físico ao sistema.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Adicione uma nova conta bancária ou caixa físico ao sistema.'
+          }
+          icon={<Building2 className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

@@ -1,5 +1,5 @@
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -16,55 +16,62 @@ export function ReportHeader({
   description,
   className = '',
 }: ReportHeaderProps) {
-  const { logoUrl, contact } = useSiteSettingsStore()
+  const { logoUrl, contact, siteTitle } = useSiteSettingsStore()
 
   return (
     <div
-      className={`flex flex-col border-b-2 border-primary/20 pb-6 mb-8 w-full ${className}`}
+      className={`flex flex-col w-full mb-2 print:mb-1.5 ${className}`}
     >
-      <div className="flex flex-row justify-between items-start gap-4">
-        <div className="flex items-center gap-6">
-          <div className="w-24 h-24 relative flex-shrink-0 flex items-center justify-center p-1 border border-border/10 rounded-lg">
+      {/* Cabeçalho Compacto */}
+      <div className="flex items-center gap-3 print:gap-2 pb-2 print:pb-1 border-b border-gray-300 print:border-black">
+        {/* Logo - menor */}
+        <div className="flex-shrink-0">
+          <div className="w-12 h-12 print:w-10 print:h-10 flex items-center justify-center border border-gray-300 print:border-black rounded">
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo da Loja"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain p-1"
               />
             ) : (
-              <ShieldCheck className="w-16 h-16 text-primary/30" />
+              <ShieldCheck className="w-8 h-8 print:w-7 print:h-7 text-gray-400 print:text-black" />
             )}
           </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold uppercase tracking-wide text-primary">
-              Templários da Paz
-            </h1>
-            <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">
-              {subtitle || 'Administração da Loja'}
-            </p>
-            <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
-              {contact.address && <p>{contact.address}</p>}
-              {contact.city && (
-                <p>
-                  {contact.city} {contact.zip ? `- ${contact.zip}` : ''}
-                </p>
-              )}
-              {contact.email && <p>{contact.email}</p>}
-            </div>
-          </div>
         </div>
-        <div className="text-right flex-shrink-0 max-w-[40%]">
-          <h2 className="text-xl font-bold text-foreground leading-tight">
+
+        {/* Informações da Loja - compacto */}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base print:text-sm font-bold text-gray-900 print:text-black leading-tight mb-0.5 print:mb-0">
+            {siteTitle || 'Templários da Paz'}
+          </h1>
+          
+          {/* Endereço - compacto */}
+          {contact.address && (
+            <div className="flex items-center gap-1 print:gap-0.5 text-xs print:text-[10px] text-gray-700 print:text-black">
+              <MapPin className="h-3 w-3 print:h-2.5 print:w-2.5 flex-shrink-0" />
+              <span className="truncate">
+                {contact.address}
+                {contact.city && `, ${contact.city}`}
+                {contact.zip && ` - CEP: ${contact.zip}`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Título do Relatório - compacto */}
+        <div className="text-right flex-shrink-0 max-w-[45%] print:max-w-[40%]">
+          <h2 className="text-base print:text-sm font-bold text-gray-900 print:text-black leading-tight mb-0.5 print:mb-0">
             {title}
           </h2>
-          {description && (
-            <p className="text-sm text-muted-foreground mt-1 leading-snug">
-              {description}
+          {subtitle && (
+            <p className="text-xs print:text-[10px] text-gray-600 print:text-black mb-0.5 print:mb-0">
+              {subtitle}
             </p>
           )}
-          <p className="text-xs text-muted-foreground mt-4 font-medium">
-            Emissão:{' '}
-            {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          <p className="text-[10px] print:text-[9px] text-gray-500 print:text-black mt-1 print:mt-0.5">
+            {format(new Date(), "dd/MM/yyyy HH:mm", {
+              locale: ptBR,
+            })}
           </p>
         </div>
       </div>

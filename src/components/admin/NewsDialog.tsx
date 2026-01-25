@@ -5,9 +5,6 @@ import * as z from 'zod'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -29,8 +26,9 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FormHeader } from '@/components/ui/form-header'
 import { NewsEvent } from '@/stores/useNewsStore'
-import { Loader2, Upload } from 'lucide-react'
+import { Loader2, Upload, Newspaper } from 'lucide-react'
 import { useImageUpload } from '@/hooks/use-image-upload'
 
 const newsSchema = z.object({
@@ -134,16 +132,15 @@ export function NewsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Publicação'}
-          </DialogTitle>
-          <DialogDescription>
-            {newsToEdit
+        <FormHeader
+          title={newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Publicação'}
+          description={
+            newsToEdit
               ? 'Atualize as informações da publicação abaixo.'
-              : 'Preencha os campos para publicar uma nova notícia ou evento no site.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Preencha os campos para publicar uma nova notícia ou evento no site.'
+          }
+          icon={<Newspaper className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

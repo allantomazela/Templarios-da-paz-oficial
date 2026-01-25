@@ -6,8 +6,6 @@ import { Minute } from '@/stores/useMinutesStore'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -20,6 +18,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { FormHeader } from '@/components/ui/form-header'
 import { format } from 'date-fns'
 import { Loader2, FileText } from 'lucide-react'
 import { RichTextEditor } from './RichTextEditor'
@@ -105,9 +104,11 @@ export function MinutesDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{minuteToEdit ? 'Editar Ata' : 'Nova Ata'}</DialogTitle>
-        </DialogHeader>
+        <FormHeader
+          title={minuteToEdit ? 'Editar Ata' : 'Nova Ata'}
+          description="Registre ou edite uma ata de sessão da loja."
+          icon={<FileText className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

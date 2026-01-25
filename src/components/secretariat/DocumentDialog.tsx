@@ -6,9 +6,6 @@ import { LodgeDocument } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,7 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Upload, X } from 'lucide-react'
+import { FormHeader } from '@/components/ui/form-header'
+import { Loader2, Upload, X, FileText } from 'lucide-react'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { useToast } from '@/hooks/use-toast'
 
@@ -188,16 +186,15 @@ export function DocumentDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {documentToEdit ? 'Editar Documento' : 'Upload de Documento'}
-          </DialogTitle>
-          <DialogDescription>
-            {documentToEdit
+        <FormHeader
+          title={documentToEdit ? 'Editar Documento' : 'Upload de Documento'}
+          description={
+            documentToEdit
               ? 'Atualize as informações do documento.'
-              : 'Faça upload de um novo documento para a biblioteca da loja.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Faça upload de um novo documento para a biblioteca da loja.'
+          }
+          icon={<FileText className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField

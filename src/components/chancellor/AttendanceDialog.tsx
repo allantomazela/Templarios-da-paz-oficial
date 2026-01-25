@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -19,23 +16,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { FormHeader } from '@/components/ui/form-header'
 import {
   Event,
   SessionRecord,
   Attendance,
-  mockBrothers,
-  Brother,
+  VisitorAttendance,
 } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { format, parseISO } from 'date-fns'
-import { Check, X, FileText } from 'lucide-react'
+import { Check, X, FileText, Users } from 'lucide-react'
+import { useReactToPrint } from 'react-to-print'
+import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import { VisitorCertificateDocument } from './VisitorCertificateDocument'
+import { VisitorAttendanceSection } from './VisitorAttendanceSection'
 
 interface AttendanceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   event: Event | null
   existingSessionRecord: SessionRecord | null
-  onSave: () => void
+  onSave: () => Promise<void>
 }
 
 export function AttendanceDialog({
@@ -50,7 +51,13 @@ export function AttendanceDialog({
     updateSessionRecord,
     bulkAddAttendance,
     attendanceRecords,
+    brothers,
+    bulkAddVisitorAttendance,
+    fetchVisitorAttendances,
+    saveVisitorAttendances,
   } = useChancellorStore()
+  const { positions, fetchPositions } = useLodgePositionsStore()
+  const certificateRef = useRef<HTMLDivElement>(null)
 
   const [observations, setObservations] = useState<string>('')
   const [attendances, setAttendances] = useState<
@@ -60,6 +67,53 @@ export function AttendanceDialog({
       justification: string
     }[]
   >([])
+  const [visitorList, setVisitorList] = useState<VisitorAttendance[]>([])
+  const [certificateVisitor, setCertificateVisitor] =
+    useState<VisitorAttendance | null>(null)
+
+  const venerableMaster =
+    positions.find((p) => p.position_type === 'veneravel_mestre')?.user
+      ?.full_name || 'Venerável Mestre'
+  const chancellor =
+    positions.find((p) => p.position_type === 'chanceler')?.user?.full_name ||
+    'Chanceler'
+
+  const handlePrintCertificate = useReactToPrint({
+    contentRef: certificateRef,
+    documentTitle: certificateVisitor
+      ? `Certificado_Presenca_${certificateVisitor.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}`
+      : 'Certificado_Presenca',
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    `,
+  })
+
+  const handleAddVisitor = (visitor: VisitorAttendance) => {
+    setVisitorList((prev) => [...prev, visitor])
+  }
+
+  const handleRemoveVisitor = (visitorId: string) => {
+    setVisitorList((prev) => prev.filter((visitor) => visitor.id !== visitorId))
+  }
+
+  const handlePrintVisitor = (visitor: VisitorAttendance) => {
+    if (!event) return
+    setCertificateVisitor(visitor)
+    setTimeout(() => handlePrintCertificate(), 0)
+  }
+
+  useEffect(() => {
+    fetchPositions()
+  }, [fetchPositions])
 
   useEffect(() => {
     if (open) {
@@ -72,7 +126,7 @@ export function AttendanceDialog({
           (ar) => ar.sessionRecordId === existingSessionRecord.id,
         )
         setAttendances(
-          mockBrothers.map((b) => {
+          brothers.map((b) => {
             const found = existing.find((e) => e.brotherId === b.id)
             return {
               brotherId: b.id,
@@ -81,18 +135,24 @@ export function AttendanceDialog({
             }
           }),
         )
+        void fetchVisitorAttendances(existingSessionRecord.id).then(
+          (visitors) => {
+            setVisitorList(visitors)
+          },
+        )
       } else {
         setObservations('')
         setAttendances(
-          mockBrothers.map((b) => ({
+          brothers.map((b) => ({
             brotherId: b.id,
             status: 'Ausente', // Default to absent until checked
             justification: '',
           })),
         )
+        setVisitorList([])
       }
     }
-  }, [open, existingSessionRecord, attendanceRecords])
+  }, [open, existingSessionRecord, attendanceRecords, brothers, fetchVisitorAttendances])
 
   const handleStatusChange = (
     brotherId: string,
@@ -111,7 +171,7 @@ export function AttendanceDialog({
     )
   }
 
-  const handleSaveInternal = () => {
+  const handleSaveInternal = async () => {
     if (!event) return
 
     const recordId = existingSessionRecord
@@ -143,23 +203,33 @@ export function AttendanceDialog({
     }))
     bulkAddAttendance(newAttendances)
 
-    onSave()
+    const newVisitorAttendances: VisitorAttendance[] = visitorList.map(
+      (visitor) => ({
+        ...visitor,
+        sessionRecordId: recordId,
+      }),
+    )
+    bulkAddVisitorAttendance(newVisitorAttendances)
+    await saveVisitorAttendances(recordId, newVisitorAttendances)
+
+    await onSave()
     onOpenChange(false)
   }
 
   const presentCount = attendances.filter((a) => a.status === 'Presente').length
-  const percentage = Math.round((presentCount / mockBrothers.length) * 100)
+  const visitorCount = visitorList.length
+  const totalBrothers = brothers.length || 1
+  const percentage = Math.round((presentCount / totalBrothers) * 100)
+  const totalParticipants = presentCount + visitorCount
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Registro de Presença</DialogTitle>
-          <DialogDescription>
-            Registre a presença dos irmãos neste evento. O tronco de beneficência
-            deve ser registrado no módulo Financeiro.
-          </DialogDescription>
-        </DialogHeader>
+        <FormHeader
+          title="Registro de Presença"
+          description="Registre a presença dos irmãos neste evento. O tronco de beneficência deve ser registrado no módulo Financeiro."
+          icon={<Users className="h-5 w-5" />}
+        />
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4">
@@ -170,12 +240,18 @@ export function AttendanceDialog({
                 {event?.date ? format(parseISO(event.date), 'dd/MM/yyyy') : ''}
               </div>
             </div>
-            <div className="flex flex-col justify-center items-center bg-secondary/20 rounded-md">
+            <div className="flex flex-col justify-center items-center bg-secondary/20 rounded-md py-3 gap-1">
               <span className="text-xs text-muted-foreground">
                 Presença Atual
               </span>
               <span className="text-2xl font-bold text-primary">
                 {percentage}%
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Participantes: {totalParticipants}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Visitantes: {visitorCount}
               </span>
             </div>
           </div>
@@ -193,7 +269,7 @@ export function AttendanceDialog({
                 </TableHeader>
                 <TableBody>
                   {attendances.map((att) => {
-                    const brother = mockBrothers.find(
+                    const brother = brothers.find(
                       (b) => b.id === att.brotherId,
                     )
                     return (
@@ -270,6 +346,14 @@ export function AttendanceDialog({
             </div>
           </div>
 
+          <VisitorAttendanceSection
+            visitors={visitorList}
+            sessionRecordId={existingSessionRecord?.id}
+            onAddVisitor={handleAddVisitor}
+            onRemoveVisitor={handleRemoveVisitor}
+            onPrintCertificate={handlePrintVisitor}
+          />
+
           <div>
             <Label>Observações Gerais</Label>
             <Textarea
@@ -287,6 +371,21 @@ export function AttendanceDialog({
           </Button>
           <Button onClick={handleSaveInternal}>Salvar Registro</Button>
         </DialogFooter>
+
+        {certificateVisitor && event && (
+          <div
+            id="visitor-certificate-dialog-container"
+            className="hidden print:block"
+            ref={certificateRef}
+          >
+            <VisitorCertificateDocument
+              visitor={certificateVisitor}
+              event={event}
+              venerableMaster={venerableMaster}
+              chancellor={chancellor}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -6,9 +6,6 @@ import { FinancialGoal, Category } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,8 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
 import { supabase } from '@/lib/supabase/client'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Target } from 'lucide-react'
 
 interface CategoryFromDB {
   id: string
@@ -129,16 +127,15 @@ export function GoalDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {goalToEdit ? 'Editar Meta Financeira' : 'Nova Meta Financeira'}
-          </DialogTitle>
-          <DialogDescription>
-            {goalToEdit
+        <FormHeader
+          title={goalToEdit ? 'Editar Meta Financeira' : 'Nova Meta Financeira'}
+          description={
+            goalToEdit
               ? 'Atualize as informações da meta financeira.'
-              : 'Crie uma nova meta financeira para acompanhar seus objetivos.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Crie uma nova meta financeira para acompanhar seus objetivos.'
+          }
+          icon={<Target className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

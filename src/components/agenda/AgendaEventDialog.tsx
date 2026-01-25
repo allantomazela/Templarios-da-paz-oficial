@@ -6,8 +6,6 @@ import { Event } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { FormHeader } from '@/components/ui/form-header'
 import { format } from 'date-fns'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useChancellorStore from '@/stores/useChancellorStore'
@@ -210,11 +209,13 @@ export function AgendaEventDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle>
-            {eventToEdit ? 'Editar Evento' : 'Novo Evento na Agenda'}
-          </DialogTitle>
-        </DialogHeader>
+        <div className="px-6 pt-6 pb-2">
+          <FormHeader
+            title={eventToEdit ? 'Editar Evento' : 'Novo Evento na Agenda'}
+            description="Gerencie os detalhes do evento na agenda da loja."
+            icon={<Calendar className="h-5 w-5" />}
+          />
+        </div>
 
         <Form {...form}>
           <form

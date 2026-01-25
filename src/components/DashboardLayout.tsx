@@ -28,8 +28,15 @@ export default function DashboardLayout() {
   }, [loading])
 
   const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
+    try {
+      await signOut()
+      // Forçar navegação usando window.location para garantir que funcione
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+      // Mesmo em caso de erro, forçar navegação
+      window.location.href = '/login'
+    }
   }
 
   const handleRetry = () => {

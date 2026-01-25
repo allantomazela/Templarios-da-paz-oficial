@@ -5,8 +5,6 @@ import * as z from 'zod'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -27,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
+import { Mail } from 'lucide-react'
 
 const messageSchema = z.object({
   recipientId: z.string().min(1, 'Destinatário é obrigatório'),
@@ -74,9 +74,11 @@ export function MessageDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Nova Mensagem</DialogTitle>
-        </DialogHeader>
+        <FormHeader
+          title="Nova Mensagem"
+          description="Envie uma mensagem interna para outro irmão da loja."
+          icon={<Mail className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

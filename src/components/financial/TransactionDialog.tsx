@@ -6,9 +6,6 @@ import { Transaction, Category, BankAccount } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogDescription,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,9 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
-import { Loader2 } from 'lucide-react'
+import { Loader2, DollarSign } from 'lucide-react'
 
 const transactionSchema = z.object({
   description: z.string().min(3, 'Descrição é obrigatória'),
@@ -163,17 +161,15 @@ export function TransactionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {transactionToEdit ? 'Editar' : 'Nova'}{' '}
-            {defaultType === 'Receita' ? 'Receita' : 'Despesa'}
-          </DialogTitle>
-          <DialogDescription>
-            {transactionToEdit
+        <FormHeader
+          title={`${transactionToEdit ? 'Editar' : 'Nova'} ${defaultType === 'Receita' ? 'Receita' : 'Despesa'}`}
+          description={
+            transactionToEdit
               ? 'Atualize as informações da transação.'
-              : `Registre uma nova ${defaultType === 'Receita' ? 'receita' : 'despesa'}.`}
-          </DialogDescription>
-        </DialogHeader>
+              : `Registre uma nova ${defaultType === 'Receita' ? 'receita' : 'despesa'}.`
+          }
+          icon={<DollarSign className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
             <FormField

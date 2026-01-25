@@ -19,6 +19,7 @@ import {
   Mail,
   Wallet,
   Megaphone,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -43,8 +44,15 @@ export function AppSidebar() {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await signOut()
-    navigate('/')
+    try {
+      await signOut()
+      // Forçar navegação usando window.location para garantir que funcione
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+      // Mesmo em caso de erro, forçar navegação
+      window.location.href = '/'
+    }
   }
 
   const userRole = user?.role || 'member'
@@ -73,6 +81,11 @@ export function AppSidebar() {
   const canSeeLibrary = 
     ['admin', 'editor', 'member'].includes(userRole) || 
     canAccessModule('library') ||
+    isMasterAdmin
+
+  const canSeeAgape = 
+    ['admin', 'editor', 'member'].includes(userRole) || 
+    canAccessModule('agape') ||
     isMasterAdmin
 
   const canSeeMedia = 
@@ -104,6 +117,9 @@ export function AppSidebar() {
       : []),
     ...(canSeeLibrary
       ? [{ name: 'Biblioteca', icon: Library, path: '/dashboard/library' }]
+      : []),
+    ...(canSeeAgape
+      ? [{ name: 'Ágape', icon: UtensilsCrossed, path: '/dashboard/agape' }]
       : []),
     { name: 'Avisos', icon: Megaphone, path: '/dashboard/notices' },
     { name: 'Minhas Mensagens', icon: Mail, path: '/dashboard/messages' },

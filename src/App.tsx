@@ -29,6 +29,7 @@ const Chancellor = lazy(() => import('@/pages/Chancellor'))
 const Reports = lazy(() => import('@/pages/Reports'))
 const Agenda = lazy(() => import('@/pages/Agenda'))
 const Library = lazy(() => import('@/pages/Library'))
+const Agape = lazy(() => import('@/pages/Agape'))
 const MinutesDetail = lazy(() => import('@/pages/MinutesDetail'))
 const Admin = lazy(() => import('@/pages/Admin'))
 const MediaManager = lazy(() => import('@/pages/admin/MediaManager'))
@@ -217,6 +218,14 @@ const App = () => (
               element={
                 <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
                   <Library />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="agape"
+              element={
+                <RoleGuard allowedRoles={['admin', 'editor', 'member']} requiredModule="agape">
+                  <Agape />
                 </RoleGuard>
               }
             />

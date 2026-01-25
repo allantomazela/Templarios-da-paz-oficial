@@ -227,6 +227,17 @@ export interface Attendance {
   justification?: string
 }
 
+export interface VisitorAttendance {
+  id: string
+  sessionRecordId: string
+  name: string
+  degree: 'Aprendiz' | 'Companheiro' | 'Mestre'
+  lodge: string
+  lodgeNumber: string
+  obedience: string
+  masonicNumber?: string
+}
+
 export interface Solid {
   id: string
   date: string

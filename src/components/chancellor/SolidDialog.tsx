@@ -6,9 +6,6 @@ import { Solid, mockBrothers } from '@/lib/data'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -28,7 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormHeader } from '@/components/ui/form-header'
 import { format } from 'date-fns'
+import { HeartHandshake } from 'lucide-react'
 
 const solidSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -95,16 +94,15 @@ export function SolidDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {solidToEdit ? 'Editar Sólido' : 'Registrar Sólido'}
-          </DialogTitle>
-          <DialogDescription>
-            {solidToEdit
+        <FormHeader
+          title={solidToEdit ? 'Editar Sólido' : 'Registrar Sólido'}
+          description={
+            solidToEdit
               ? 'Atualize as informações do sólido de beneficência.'
-              : 'Registre um novo sólido de beneficência para a loja.'}
-          </DialogDescription>
-        </DialogHeader>
+              : 'Registre um novo sólido de beneficência para a loja.'
+          }
+          icon={<HeartHandshake className="h-5 w-5" />}
+        />
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}

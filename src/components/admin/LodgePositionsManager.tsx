@@ -74,6 +74,7 @@ const positionFormSchema = z.object({
     'secretario',
     'chanceler',
     'tesoureiro',
+    'mestre_banquete',
   ]),
   user_id: z.string().min(1, 'Selecione um usuário'),
   start_date: z.string().min(1, 'Data de início é obrigatória'),

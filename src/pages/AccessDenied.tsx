@@ -8,8 +8,15 @@ export default function AccessDenied() {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await signOut()
-    navigate('/')
+    try {
+      await signOut()
+      // Forçar navegação usando window.location para garantir que funcione
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+      // Mesmo em caso de erro, forçar navegação
+      window.location.href = '/'
+    }
   }
 
   const status = user?.profile?.status || 'pending'

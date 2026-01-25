@@ -306,9 +306,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    const { error } = await supabase.auth.signOut()
-    set({ user: null, session: null, isAuthenticated: false })
-    return { error }
+    try {
+      // Limpar estado primeiro para garantir que a UI seja atualizada
+      set({ user: null, session: null, isAuthenticated: false, loading: false })
+      
+      // Fazer logout no Supabase
+      const { error } = await supabase.auth.signOut()
+      
+      // Garantir que o estado esteja limpo mesmo se houver erro
+      if (error) {
+        console.error('Erro ao fazer logout:', error)
+      }
+      
+      // Garantir que o estado esteja limpo
+      set({ user: null, session: null, isAuthenticated: false, loading: false })
+      
+      return { error }
+    } catch (err) {
+      console.error('Erro ao fazer logout:', err)
+      // Garantir que o estado esteja limpo mesmo em caso de erro
+      set({ user: null, session: null, isAuthenticated: false, loading: false })
+      return { error: err }
+    }
   },
 
   sendPasswordResetEmail: async (email: string) => {

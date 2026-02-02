@@ -20,6 +20,9 @@ jobs:
         cache: 'npm'
 
     - name: 3. Instalando dependências e buildando
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: |
         npm install --legacy-peer-deps
         npm run build

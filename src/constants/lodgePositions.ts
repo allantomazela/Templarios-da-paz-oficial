@@ -1,6 +1,6 @@
 /**
  * Tipos e constantes dos cargos da loja (sem dependência do store).
- * Módulo separado para evitar "Export is not defined" no bundle.
+ * POSITION_LABELS ficou apenas em LodgePositionsManager para evitar erro de export no bundle.
  */
 
 export type LodgePositionType =
@@ -10,16 +10,6 @@ export type LodgePositionType =
   | 'chanceler'
   | 'tesoureiro'
   | 'mestre_banquete'
-
-/** Labels dos cargos para exibição na UI */
-export const POSITION_LABELS: Record<LodgePositionType, string> = {
-  veneravel_mestre: 'Venerável Mestre',
-  orador: 'Orador',
-  secretario: 'Secretário',
-  chanceler: 'Chanceler',
-  tesoureiro: 'Tesoureiro',
-  mestre_banquete: 'Mestre de Banquete',
-}
 
 /** Mapeamento de permissões por cargo */
 export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {

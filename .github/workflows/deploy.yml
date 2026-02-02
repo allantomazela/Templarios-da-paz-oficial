@@ -10,42 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 1. Baixando código do GitHub
-      uses: actions/checkout@v2
+    - name: 1. Baixando código
+      uses: actions/checkout@v4
 
-    - name: 2. Instalando Dependências e Buildando (GitHub)
-      # Adicionado --legacy-peer-deps para ignorar conflitos de versão
+    - name: 2. Configurando Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: 3. Instalando dependências e buildando
       run: |
         npm install --legacy-peer-deps
         npm run build
 
-    - name: 3. Enviando para o Servidor
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          echo "🚀 Iniciando Deploy Templários..."
-          
-          # Vai para a pasta do projeto NOVO
-          cd /var/www/templarios
-          
-          # Verifica se o git já foi iniciado, se não, clona
-          if [ ! -d ".git" ]; then
-            git clone https://github.com/allantomazela/Templarios-da-paz-oficial.git .
-          fi
-
-          # Baixa as novidades
-          git fetch --all
-          git reset --hard origin/main
-          
-          # Instala e Builda NO SERVIDOR (garante que roda igual ao Tatame)
-          # AQUI TAMBÉM: Adicionado --legacy-peer-deps
-          npm install --legacy-peer-deps
-          npm run build
-          
-          # Ajusta permissões
-          chown -R www-data:www-data /var/www/templarios
-          
-          echo "✅ Site Templários atualizado!"
+    - name: 4. Enviando build para o servidor
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+        HOST: ${{ secrets.HOST }}
+        USERNAME: ${{ secrets.USERNAME }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${USERNAME}@${HOST} "mkdir -p /var/www/templarios"
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key" \
+          dist/ \
+          ${USERNAME}@${HOST}:/var/www/templarios/
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${USERNAME}@${HOST} \
+          "chown -R www-data:www-data /var/www/templarios && echo '✅ Site atualizado!'"

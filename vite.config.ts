@@ -15,6 +15,16 @@ export default defineConfig(({ mode }) => ({
   build: {
     minify: mode !== 'development',
     sourcemap: mode === 'development',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Coloca date-fns/locale no chunk principal para evitar "Export enUS is not defined" (Rolldown)
+          if (id.includes('date-fns') && id.includes('locale')) {
+            return undefined // undefined = incluir no chunk do entry
+          }
+        },
+      },
+    },
     rolldownOptions: {
       onwarn(warning, warn) {
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {

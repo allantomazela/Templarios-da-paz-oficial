@@ -48,6 +48,9 @@ export default defineConfig(({ mode }) => ({
       '@tiptap/extension-text-align',
       '@tiptap/extension-underline',
       '@tiptap/extension-link',
+      'date-fns',
+      'date-fns/locale',
+      'react-day-picker',
     ],
   },
   server: {

@@ -2,6 +2,8 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './main.css'
+// Garante que date-fns/locale seja avaliado no chunk principal (evita "Export enUS is not defined" no Rolldown)
+import 'date-fns/locale'
 import { logDebug, logWarning } from '@/lib/logger'
 
 // Suppress browser extension errors that don't affect our application

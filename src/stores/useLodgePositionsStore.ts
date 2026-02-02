@@ -1,14 +1,12 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { devLog, logError } from '@/lib/logger'
+import {
+  type LodgePositionType,
+  POSITION_PERMISSIONS,
+} from '@/constants/lodgePositions'
 
-export type LodgePositionType =
-  | 'veneravel_mestre'
-  | 'orador'
-  | 'secretario'
-  | 'chanceler'
-  | 'tesoureiro'
-  | 'mestre_banquete'
+export type { LodgePositionType }
 
 export interface LodgePosition {
   id: string
@@ -32,26 +30,6 @@ export interface LodgePositionHistory {
   start_date: string
   end_date: string
   created_at: string
-}
-
-// Mapeamento de permissões por cargo
-export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {
-  veneravel_mestre: ['*'], // Acesso total
-  secretario: ['secretariat', 'agenda', 'library'],
-  chanceler: ['chancellor', 'agenda'],
-  tesoureiro: ['financial'],
-  orador: ['reports'], // Apenas visualização de relatórios
-  mestre_banquete: ['agenda', 'events', 'agape'],
-}
-
-// Labels dos cargos
-export const POSITION_LABELS: Record<LodgePositionType, string> = {
-  veneravel_mestre: 'Venerável Mestre',
-  orador: 'Orador',
-  secretario: 'Secretário',
-  chanceler: 'Chanceler',
-  tesoureiro: 'Tesoureiro',
-  mestre_banquete: 'Mestre de Banquete',
 }
 
 interface LodgePositionsState {

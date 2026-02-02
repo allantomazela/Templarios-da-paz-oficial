@@ -152,8 +152,8 @@ export function LodgePositionsManager() {
     fetchHistory()
   }, [fetchPositions, fetchHistory])
 
-  const assignOperation = useAsyncOperation({
-    operation: async (data: PositionFormValues) => {
+  const assignOperation = useAsyncOperation(
+    async (data: PositionFormValues) => {
       await assignPosition(
         data.position_type,
         data.user_id,
@@ -161,42 +161,21 @@ export function LodgePositionsManager() {
         data.end_date,
       )
     },
-    onSuccess: () => {
-      toast({
-        title: 'Cargo Atribuído',
-        description: 'O cargo foi atribuído com sucesso.',
-      })
-      dialog.closeDialog()
-      form.reset()
-      setPositionToEdit(null)
+    {
+      successMessage: 'O cargo foi atribuído com sucesso.',
+      errorMessage: 'Não foi possível atribuir o cargo.',
     },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error?.message || 'Não foi possível atribuir o cargo.',
-      })
-    },
-  })
+  )
 
-  const deleteOperation = useAsyncOperation({
-    operation: async (positionId: string) => {
+  const deleteOperation = useAsyncOperation(
+    async (positionId: string) => {
       await removePosition(positionId)
     },
-    onSuccess: () => {
-      toast({
-        title: 'Cargo Removido',
-        description: 'O cargo foi removido com sucesso.',
-      })
+    {
+      successMessage: 'O cargo foi removido com sucesso.',
+      errorMessage: 'Não foi possível remover o cargo.',
     },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error?.message || 'Não foi possível remover o cargo.',
-      })
-    },
-  })
+  )
 
   const handleOpenDialog = (position?: LodgePosition) => {
     if (position) {
@@ -219,17 +198,24 @@ export function LodgePositionsManager() {
     dialog.openDialog()
   }
 
-  const handleSubmit = (data: PositionFormValues) => {
-    assignOperation.execute(data)
+  const handleSubmit = async (data: PositionFormValues) => {
+    const result = await assignOperation.execute(data)
+    if (result !== null) {
+      dialog.closeDialog()
+      form.reset()
+      setPositionToEdit(null)
+    }
   }
 
-  const handleDelete = (positionId: string) => {
+  const handleDelete = async (positionId: string) => {
     if (
       window.confirm(
         'Tem certeza que deseja remover este cargo? O cargo será movido para o histórico.',
       )
     ) {
-      deleteOperation.execute(positionId)
+      await deleteOperation.execute(positionId)
+      fetchPositions()
+      fetchHistory()
     }
   }
 
@@ -436,7 +422,7 @@ export function LodgePositionsManager() {
       )}
 
       <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               {positionToEdit ? 'Editar Cargo' : 'Atribuir Novo Cargo'}

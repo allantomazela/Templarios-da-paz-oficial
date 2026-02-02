@@ -13,6 +13,15 @@ interface UseAsyncOperationOptions {
   showErrorToast?: boolean
 }
 
+/** API antiga: objeto com operation, onSuccess, onError */
+interface UseAsyncOperationLegacyOptions {
+  operation: (...args: any[]) => Promise<any>
+  onSuccess?: () => void
+  onError?: (error: Error) => void
+  successMessage?: string
+  errorMessage?: string
+}
+
 interface UseAsyncOperationReturn<T> {
   /** Estado de carregamento */
   loading: boolean
@@ -56,15 +65,41 @@ interface UseAsyncOperationReturn<T> {
  * )
  * ```
  */
+function isLegacyOptions(
+  op: ((...args: any[]) => Promise<any>) | (UseAsyncOperationOptions & UseAsyncOperationLegacyOptions),
+): op is UseAsyncOperationLegacyOptions {
+  return (
+    typeof op === 'object' &&
+    op !== null &&
+    'operation' in op &&
+    typeof (op as UseAsyncOperationLegacyOptions).operation === 'function'
+  )
+}
+
 export function useAsyncOperation<T = unknown>(
-  operation: (...args: any[]) => Promise<T>,
-  options: UseAsyncOperationOptions = {},
+  operationOrOptions:
+    | ((...args: any[]) => Promise<T>)
+    | (UseAsyncOperationOptions & UseAsyncOperationLegacyOptions),
+  optionsMaybe?: UseAsyncOperationOptions,
 ): UseAsyncOperationReturn<T> {
+  let operation: (...args: any[]) => Promise<T>
+  let options: UseAsyncOperationOptions & Partial<UseAsyncOperationLegacyOptions>
+
+  if (isLegacyOptions(operationOrOptions)) {
+    operation = operationOrOptions.operation as (...args: any[]) => Promise<T>
+    options = operationOrOptions
+  } else {
+    operation = operationOrOptions
+    options = optionsMaybe ?? {}
+  }
+
   const {
     successMessage = 'Operação realizada com sucesso.',
     errorMessage = 'Erro ao realizar operação.',
     showSuccessToast = true,
     showErrorToast = true,
+    onSuccess,
+    onError,
   } = options
 
   const [loading, setLoading] = useState(false)
@@ -82,33 +117,35 @@ export function useAsyncOperation<T = unknown>(
         const result = await operation(...args)
         setData(result)
 
-        if (showSuccessToast) {
+        if (showSuccessToast && !onSuccess) {
           toast({
             title: 'Sucesso',
             description: successMessage,
           })
         }
+        onSuccess?.()
 
         return result
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        logError('Async operation error', error)
-        setError(error)
+        const errorObj = err instanceof Error ? err : new Error(String(err))
+        logError('Async operation error', errorObj)
+        setError(errorObj)
 
-        if (showErrorToast) {
+        if (showErrorToast && !onError) {
           toast({
             variant: 'destructive',
             title: 'Erro',
-            description: error instanceof Error ? error.message : errorMessage,
+            description: errorObj instanceof Error ? errorObj.message : errorMessage,
           })
         }
+        onError?.(errorObj)
 
         return null
       } finally {
         setLoading(false)
       }
     },
-    [operation, successMessage, errorMessage, showSuccessToast, showErrorToast, toast],
+    [operation, successMessage, errorMessage, showSuccessToast, showErrorToast, onSuccess, onError, toast],
   )
 
   const reset = useCallback(() => {

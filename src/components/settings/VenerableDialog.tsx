@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -124,16 +125,17 @@ export function VenerableDialog({
 
   const imageUrl = form.watch('imageUrl')
 
+  const dialogTitle = venerableToEdit ? 'Editar Venerável' : 'Adicionar Venerável'
+  const dialogDescription = venerableToEdit
+    ? 'Edite as informações do venerável abaixo.'
+    : 'Preencha os dados do venerável para adicionar à galeria.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={venerableToEdit ? 'Editar Venerável' : 'Adicionar Venerável'}
-          description={
-            venerableToEdit
-              ? 'Edite as informações do venerável abaixo.'
-              : 'Preencha os dados do venerável para adicionar à galeria.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<UserCircle className="h-5 w-5" />}
         />
         <Form {...form}>

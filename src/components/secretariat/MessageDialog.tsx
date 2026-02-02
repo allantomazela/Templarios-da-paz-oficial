@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -73,7 +74,8 @@ export function MessageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Nova Mensagem</DialogTitle>
         <FormHeader
           title="Nova Mensagem"
           description="Envie uma mensagem interna para outro irmão da loja."

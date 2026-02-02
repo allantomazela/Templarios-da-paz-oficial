@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -53,7 +54,7 @@ export function MinutesDialog({
   onSave,
 }: MinutesDialogProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
-  
+
   const form = useForm<MinuteFormValues>({
     resolver: zodResolver(minuteSchema),
     defaultValues: {
@@ -97,15 +98,21 @@ export function MinutesDialog({
   }
 
   const handleSubmit = async (data: MinuteFormValues) => {
-    await onSave(data)
-    form.reset()
+    try {
+      await onSave(data)
+      form.reset()
+    } catch {
+      // Erro já tratado pelo chamador
+    }
   }
 
+  const dialogTitle = minuteToEdit ? 'Editar Ata' : 'Nova Ata'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={minuteToEdit ? 'Editar Ata' : 'Nova Ata'}
+          title={dialogTitle}
           description="Registre ou edite uma ata de sessão da loja."
           icon={<FileText className="h-5 w-5" />}
         />

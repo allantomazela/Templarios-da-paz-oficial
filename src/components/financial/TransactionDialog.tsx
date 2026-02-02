@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -158,16 +159,17 @@ export function TransactionDialog({
   const currentType = form.watch('type') || defaultType
   const availableCategories = categories.filter((c) => c.type === currentType)
 
+  const dialogTitle = `${transactionToEdit ? 'Editar' : 'Nova'} ${defaultType === 'Receita' ? 'Receita' : 'Despesa'}`
+  const dialogDescription = transactionToEdit
+    ? 'Atualize as informações da transação.'
+    : `Registre uma nova ${defaultType === 'Receita' ? 'receita' : 'despesa'}.`
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={`${transactionToEdit ? 'Editar' : 'Nova'} ${defaultType === 'Receita' ? 'Receita' : 'Despesa'}`}
-          description={
-            transactionToEdit
-              ? 'Atualize as informações da transação.'
-              : `Registre uma nova ${defaultType === 'Receita' ? 'receita' : 'despesa'}.`
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<DollarSign className="h-5 w-5" />}
         />
         <Form {...form}>

@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -127,16 +128,17 @@ export function BudgetDialog({
   const selectedType = form.watch('type')
   const availableCategories = categories.filter((c) => c.type === selectedType)
 
+  const dialogTitle = budgetToEdit ? 'Editar Orçamento' : 'Novo Orçamento'
+  const dialogDescription = budgetToEdit
+    ? 'Atualize as informações do orçamento.'
+    : 'Crie um novo orçamento para planejamento financeiro.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={budgetToEdit ? 'Editar Orçamento' : 'Novo Orçamento'}
-          description={
-            budgetToEdit
-              ? 'Atualize as informações do orçamento.'
-              : 'Crie um novo orçamento para planejamento financeiro.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Target className="h-5 w-5" />}
         />
         <Form {...form}>

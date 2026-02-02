@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -51,8 +52,8 @@ export function NoticeDialog({
 
   useEffect(() => {
     if (noticeToEdit) {
-      form.reset({ 
-        title: noticeToEdit.title, 
+      form.reset({
+        title: noticeToEdit.title,
         content: noticeToEdit.content,
         isPrivate: (noticeToEdit as any).isPrivate || false,
       })
@@ -61,16 +62,17 @@ export function NoticeDialog({
     }
   }, [noticeToEdit, form, open])
 
+  const dialogTitle = noticeToEdit ? 'Editar Aviso' : 'Criar Novo Aviso'
+  const dialogDescription = noticeToEdit
+    ? 'Atualize as informações do aviso.'
+    : 'Crie um novo aviso para o mural da loja.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={noticeToEdit ? 'Editar Aviso' : 'Criar Novo Aviso'}
-          description={
-            noticeToEdit
-              ? 'Atualize as informações do aviso.'
-              : 'Crie um novo aviso para o mural da loja.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Bell className="h-5 w-5" />}
         />
         <Form {...form}>

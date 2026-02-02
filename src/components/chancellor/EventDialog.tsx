@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -91,16 +92,17 @@ export function EventDialog({
     }
   }, [eventToEdit, form, open])
 
+  const dialogTitle = eventToEdit ? 'Editar Evento' : 'Novo Evento'
+  const dialogDescription = eventToEdit
+    ? 'Atualize as informações do evento.'
+    : 'Crie um novo evento ou sessão para a agenda da loja.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={eventToEdit ? 'Editar Evento' : 'Novo Evento'}
-          description={
-            eventToEdit
-              ? 'Atualize as informações do evento.'
-              : 'Crie um novo evento ou sessão para a agenda da loja.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Calendar className="h-5 w-5" />}
         />
         <Form {...form}>

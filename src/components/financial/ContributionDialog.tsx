@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { FormHeader } from '@/components/ui/form-header'
 import { Wallet } from 'lucide-react'
@@ -136,16 +137,17 @@ export function ContributionDialog({
     }
   }, [contributionToEdit, form, open])
 
+  const dialogTitle = `${contributionToEdit ? 'Editar' : 'Nova'} Contribuição`
+  const dialogDescription = contributionToEdit
+    ? 'Atualize as informações da contribuição.'
+    : 'Registre uma nova contribuição de um irmão.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={`${contributionToEdit ? 'Editar' : 'Nova'} Contribuição`}
-          description={
-            contributionToEdit
-              ? 'Atualize as informações da contribuição.'
-              : 'Registre uma nova contribuição de um irmão.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Wallet className="h-5 w-5" />}
         />
         <Form {...form}>
@@ -164,8 +166,8 @@ export function ContributionDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={
-                          loadingBrothers 
-                            ? 'Carregando irmãos...' 
+                          loadingBrothers
+                            ? 'Carregando irmãos...'
                             : 'Selecione o irmão'
                         } />
                       </SelectTrigger>

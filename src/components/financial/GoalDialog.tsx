@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -124,16 +125,17 @@ export function GoalDialog({
   // Categories are already filtered to Receita in the query
   const revenueCategories = categories
 
+  const dialogTitle = goalToEdit ? 'Editar Meta Financeira' : 'Nova Meta Financeira'
+  const dialogDescription = goalToEdit
+    ? 'Atualize as informações da meta financeira.'
+    : 'Crie uma nova meta financeira para acompanhar seus objetivos.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={goalToEdit ? 'Editar Meta Financeira' : 'Nova Meta Financeira'}
-          description={
-            goalToEdit
-              ? 'Atualize as informações da meta financeira.'
-              : 'Crie uma nova meta financeira para acompanhar seus objetivos.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Target className="h-5 w-5" />}
         />
         <Form {...form}>

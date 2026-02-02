@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -76,16 +77,17 @@ export function BankAccountDialog({
     }
   }, [accountToEdit, form, open])
 
+  const dialogTitle = accountToEdit ? 'Editar Conta' : 'Nova Conta Bancária'
+  const dialogDescription = accountToEdit
+    ? 'Atualize as informações da conta bancária.'
+    : 'Adicione uma nova conta bancária ou caixa físico ao sistema.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={accountToEdit ? 'Editar Conta' : 'Nova Conta Bancária'}
-          description={
-            accountToEdit
-              ? 'Atualize as informações da conta bancária.'
-              : 'Adicione uma nova conta bancária ou caixa físico ao sistema.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Building2 className="h-5 w-5" />}
         />
         <Form {...form}>

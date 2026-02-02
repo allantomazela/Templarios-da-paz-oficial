@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -91,16 +92,17 @@ export function SolidDialog({
     onSave(formattedData)
   }
 
+  const dialogTitle = solidToEdit ? 'Editar Sólido' : 'Registrar Sólido'
+  const dialogDescription = solidToEdit
+    ? 'Atualize as informações do sólido de beneficência.'
+    : 'Registre um novo sólido de beneficência para a loja.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={solidToEdit ? 'Editar Sólido' : 'Registrar Sólido'}
-          description={
-            solidToEdit
-              ? 'Atualize as informações do sólido de beneficência.'
-              : 'Registre um novo sólido de beneficência para a loja.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<HeartHandshake className="h-5 w-5" />}
         />
         <Form {...form}>

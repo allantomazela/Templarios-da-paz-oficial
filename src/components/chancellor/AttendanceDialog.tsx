@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -224,7 +225,8 @@ export function AttendanceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Registro de Presença</DialogTitle>
         <FormHeader
           title="Registro de Presença"
           description="Registre a presença dos irmãos neste evento. O tronco de beneficência deve ser registrado no módulo Financeiro."

@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -206,12 +207,14 @@ export function AgendaEventDialog({
     onSave(formattedData)
   }
 
+  const dialogTitle = eventToEdit ? 'Editar Evento' : 'Novo Evento na Agenda'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <div className="px-6 pt-6 pb-2">
           <FormHeader
-            title={eventToEdit ? 'Editar Evento' : 'Novo Evento na Agenda'}
+            title={dialogTitle}
             description="Gerencie os detalhes do evento na agenda da loja."
             icon={<Calendar className="h-5 w-5" />}
           />

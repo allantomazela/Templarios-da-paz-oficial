@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -71,7 +72,7 @@ const brotherSchema = z.object({
   elevationDate: z.string().optional(),
   exaltationDate: z.string().optional(),
   degree: z.enum(['Aprendiz', 'Companheiro', 'Mestre']),
-  
+
   // Additional masonic information
   masonicRegistrationNumber: z.string().optional(),
   obedience: z.string().optional(),
@@ -81,14 +82,14 @@ const brotherSchema = z.object({
   affiliationDate: z.string().optional(),
   regularStatus: z.string().optional(),
   notes: z.string().optional(),
-  
+
   // Spouse
   spouseName: z.string().optional(),
   spouseDob: z.string().optional(),
-  
+
   // Children
   children: z.array(childSchema).default([]),
-  
+
   // Address
   addressStreet: z.string().optional(),
   addressNumber: z.string().optional(),
@@ -103,7 +104,7 @@ const brotherSchema = z.object({
       (val) => !val || validateCEP(val),
       'CEP inválido (deve ter 8 dígitos)'
     ),
-  
+
   // Legacy address
   address: z.string().optional(),
 })
@@ -181,7 +182,7 @@ export function BrotherDialog({
 
     if (brotherToEdit) {
       const children: Child[] = brotherToEdit.children || []
-      
+
       form.reset({
         name: brotherToEdit.name,
         email: brotherToEdit.email,
@@ -213,7 +214,7 @@ export function BrotherDialog({
         addressZipcode: brotherToEdit.addressZipcode || '',
         address: brotherToEdit.address || '',
       })
-      
+
       if (brotherToEdit.photoUrl) {
         setPhotoPreview(brotherToEdit.photoUrl)
         imageUpload.reset()
@@ -283,7 +284,7 @@ export function BrotherDialog({
     setIsLoadingCEP(true)
     try {
       const cepData = await fetchCEPData(cep)
-      
+
       if (cepData) {
         form.setValue('addressStreet', cepData.logradouro)
         form.setValue('addressNeighborhood', cepData.bairro)
@@ -292,7 +293,7 @@ export function BrotherDialog({
         if (cepData.complemento) {
           form.setValue('addressComplement', cepData.complemento)
         }
-        
+
         toast({
           title: 'CEP encontrado',
           description: 'Endereço preenchido automaticamente.',
@@ -347,11 +348,13 @@ export function BrotherDialog({
     'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
   ]
 
+  const dialogTitle = brotherToEdit ? 'Editar Irmão' : 'Adicionar Novo Irmão'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={brotherToEdit ? 'Editar Irmão' : 'Adicionar Novo Irmão'}
+          title={dialogTitle}
           description="Gerencie as informações pessoais e maçônicas do irmão."
           icon={<UserPlus className="h-5 w-5" />}
         />

@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -183,16 +184,17 @@ export function DocumentDialog({
     }
   }
 
+  const dialogTitle = documentToEdit ? 'Editar Documento' : 'Upload de Documento'
+  const dialogDescription = documentToEdit
+    ? 'Atualize as informações do documento.'
+    : 'Faça upload de um novo documento para a biblioteca da loja.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={documentToEdit ? 'Editar Documento' : 'Upload de Documento'}
-          description={
-            documentToEdit
-              ? 'Atualize as informações do documento.'
-              : 'Faça upload de um novo documento para a biblioteca da loja.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<FileText className="h-5 w-5" />}
         />
         <Form {...form}>

@@ -143,7 +143,7 @@ export function DegreeManager() {
       </div>
 
       <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Atualizar Grau e Datas</DialogTitle>
           </DialogHeader>

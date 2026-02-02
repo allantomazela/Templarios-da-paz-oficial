@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -106,16 +107,17 @@ export function CategoryDialog({
     onSave(data)
   }
 
+  const dialogTitle = categoryToEdit ? 'Editar Categoria' : 'Nova Categoria'
+  const dialogDescription = categoryToEdit
+    ? 'Atualize as informações da categoria.'
+    : 'Crie uma nova categoria para organizar receitas e despesas.'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={categoryToEdit ? 'Editar Categoria' : 'Nova Categoria'}
-          description={
-            categoryToEdit
-              ? 'Atualize as informações da categoria.'
-              : 'Crie uma nova categoria para organizar receitas e despesas.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<FolderTree className="h-5 w-5" />}
         />
         <Form {...form}>

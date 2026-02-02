@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -205,11 +206,14 @@ export function RedirectsManager() {
       </div>
 
       <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               {selectedRedirect ? 'Editar' : 'Novo'} Redirecionamento
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Defina o caminho antigo e o novo destino do redirecionamento.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">

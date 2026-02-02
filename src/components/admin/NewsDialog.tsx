@@ -5,7 +5,9 @@ import * as z from 'zod'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -125,20 +127,26 @@ export function NewsDialog({
 
   const handleSubmit = async (data: NewsFormValues) => {
     setIsSubmitting(true)
-    await onSave(data)
-    setIsSubmitting(false)
+    try {
+      await onSave(data)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  const dialogTitle = newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Publicação'
+  const dialogDescription =
+    newsToEdit
+      ? 'Atualize as informações da publicação abaixo.'
+      : 'Preencha os campos para publicar uma nova notícia ou evento no site.'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
-          title={newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Publicação'}
-          description={
-            newsToEdit
-              ? 'Atualize as informações da publicação abaixo.'
-              : 'Preencha os campos para publicar uma nova notícia ou evento no site.'
-          }
+          title={dialogTitle}
+          description={dialogDescription}
           icon={<Newspaper className="h-5 w-5" />}
         />
         <Form {...form}>

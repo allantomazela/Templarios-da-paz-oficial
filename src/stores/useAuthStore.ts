@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { logWarning, logError } from '@/lib/logger'
 
-export type UserStatus = 'pending' | 'approved' | 'blocked'
+export type UserStatus = 'pending' | 'approved' | 'blocked' | 'in_memoriam' | 'adormecido'
 
 export interface Profile {
   id: string
@@ -309,18 +309,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Limpar estado primeiro para garantir que a UI seja atualizada
       set({ user: null, session: null, isAuthenticated: false, loading: false })
-      
+
       // Fazer logout no Supabase
       const { error } = await supabase.auth.signOut()
-      
+
       // Garantir que o estado esteja limpo mesmo se houver erro
       if (error) {
         console.error('Erro ao fazer logout:', error)
       }
-      
+
       // Garantir que o estado esteja limpo
       set({ user: null, session: null, isAuthenticated: false, loading: false })
-      
+
       return { error }
     } catch (err) {
       console.error('Erro ao fazer logout:', err)

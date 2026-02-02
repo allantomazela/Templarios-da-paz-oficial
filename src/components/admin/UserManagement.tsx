@@ -36,6 +36,9 @@ import {
   Loader2,
   Mail,
   UserCog,
+  Flower2,
+  Moon,
+  UserX,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
 import {
@@ -89,11 +92,11 @@ export function UserManagement() {
     } catch (error: any) {
       const errorMessage = error?.message || 'Não foi possível atualizar o status.'
       const errorDetails = error?.details || error?.hint || ''
-      
+
       toast({
         variant: 'destructive',
         title: 'Erro ao Atualizar Status',
-        description: errorDetails 
+        description: errorDetails
           ? `${errorMessage} (${errorDetails})`
           : errorMessage,
       })
@@ -149,6 +152,18 @@ export function UserManagement() {
         )
       case 'blocked':
         return <Badge variant="destructive">Bloqueado</Badge>
+      case 'in_memoriam':
+        return (
+          <Badge variant="outline" className="border-gray-400 text-gray-600">
+            In Memoriam
+          </Badge>
+        )
+      case 'adormecido':
+        return (
+          <Badge variant="outline" className="border-slate-400 text-slate-600">
+            Adormecido
+          </Badge>
+        )
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -199,6 +214,8 @@ export function UserManagement() {
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="approved">Aprovado</SelectItem>
               <SelectItem value="blocked">Bloqueado</SelectItem>
+              <SelectItem value="in_memoriam">In Memoriam</SelectItem>
+              <SelectItem value="adormecido">Adormecido</SelectItem>
             </SelectContent>
           </Select>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -315,6 +332,33 @@ export function UserManagement() {
                             className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           >
                             <Ban className="mr-2 h-4 w-4" /> Bloquear Acesso
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Status na Loja</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {user.status !== 'in_memoriam' && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(user, 'in_memoriam')}
+                            className="text-gray-600"
+                          >
+                            <Flower2 className="mr-2 h-4 w-4" /> Marcar In Memoriam
+                          </DropdownMenuItem>
+                        )}
+                        {user.status !== 'adormecido' && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(user, 'adormecido')}
+                            className="text-slate-600"
+                          >
+                            <Moon className="mr-2 h-4 w-4" /> Marcar Adormecido
+                          </DropdownMenuItem>
+                        )}
+                        {(user.status === 'in_memoriam' || user.status === 'adormecido') && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(user, 'approved')}
+                            className="text-green-600"
+                          >
+                            <UserX className="mr-2 h-4 w-4" /> Reativar como Aprovado
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

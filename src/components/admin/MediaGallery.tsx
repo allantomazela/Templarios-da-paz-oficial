@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Card, CardDescription } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -139,13 +140,13 @@ export function MediaGallery() {
         open={!!fileToDelete}
         onOpenChange={(o) => !o && setFileToDelete(null)}
       >
-        <DialogContent>
+        <DialogContent aria-describedby={fileToDelete ? 'media-delete-desc' : undefined}>
           <DialogHeader>
             <DialogTitle>Excluir Arquivo?</DialogTitle>
-            <CardDescription>
+            <DialogDescription id="media-delete-desc">
               Esta ação não pode ser desfeita. O arquivo "{fileToDelete?.name}"
               será permanentemente removido.
-            </CardDescription>
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFileToDelete(null)}>

@@ -46,7 +46,6 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { POSITION_LABELS } from '@/constants/lodgePositions'
 import {
   useLodgePositionsStore,
   type LodgePositionType,
@@ -66,6 +65,16 @@ import {
   History,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
+/** Labels dos cargos (local para evitar erro de export no bundle) */
+const POSITION_LABELS: Record<LodgePositionType, string> = {
+  veneravel_mestre: 'Venerável Mestre',
+  orador: 'Orador',
+  secretario: 'Secretário',
+  chanceler: 'Chanceler',
+  tesoureiro: 'Tesoureiro',
+  mestre_banquete: 'Mestre de Banquete',
+}
 
 const positionFormSchema = z.object({
   position_type: z.enum([

@@ -1,0 +1,62 @@
+name: Deploy Templarios da Paz
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. Baixando código do GitHub
+      uses: actions/checkout@v2
+
+    - name: 2. Instalando Dependências e Buildando
+      # Se você usa Node/Vite, mantém isso. Se for só HTML, pode remover esse passo.
+      run: |
+        npm install
+        npm run build
+
+    - name: 3. Enviando para o Servidor
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          echo "🚀 Iniciando Deploy Templários..."
+          
+          # Vai para a pasta do projeto NOVO
+          cd /var/www/templarios
+          
+          # OBS: Como é a primeira vez, a pasta pode estar vazia e sem git.
+          # Vamos garantir que a pasta esteja limpa para receber os arquivos novos
+          # Se você já usa git no servidor, usaria git pull. 
+          # Mas para simplificar e evitar conflitos iniciais, vamos copiar via RSYNC ou TAR seria ideal, 
+          # mas vamos manter o padrão GIT que usamos no Tatame se você preferir clonar lá.
+          
+          # ESTRATÉGIA SEGURA PARA VITE/REACT:
+          # O GitHub Actions já buildou no passo 2. Vamos apenas copiar a pasta 'dist' para o servidor?
+          # OU vamos fazer igual ao Tatame (git pull no servidor)?
+          
+          # Vamos manter o padrão Tatame (Git Pull no servidor) para você poder editar lá se precisar.
+          
+          # Verifica se o git já foi iniciado, se não, clona
+          if [ ! -d ".git" ]; then
+            git clone https://github.com/allantomazela/Templarios-da-paz-oficial.git .
+          fi
+
+          # Baixa as novidades
+          git fetch --all
+          git reset --hard origin/main
+          
+          # Instala e Builda NO SERVIDOR (garante que roda igual ao Tatame)
+          npm install
+          npm run build
+          
+          # Ajusta permissões
+          chown -R www-data:www-data /var/www/templarios
+          
+          echo "✅ Site Templários atualizado!"

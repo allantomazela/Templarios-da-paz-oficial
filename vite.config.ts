@@ -8,31 +8,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: '::',
     port: 8080,
-  },
-  experimental: {
-    enableNativePlugin: true
+    hmr: { overlay: true },
   },
   build: {
     minify: mode !== 'development',
     sourcemap: mode === 'development',
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // Coloca date-fns/locale no chunk principal para evitar "Export enUS is not defined" (Rolldown)
-          if (id.includes('date-fns') && id.includes('locale')) {
-            return undefined // undefined = incluir no chunk do entry
-          }
-        },
-      },
-    },
-    rolldownOptions: {
-      onwarn(warning, warn) {
-        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
-          return
-        }
-        warn(warning)
-      },
-    },
   },
   plugins: [react()],
   define: {
@@ -62,12 +42,5 @@ export default defineConfig(({ mode }) => ({
       'date-fns/locale',
       'react-day-picker',
     ],
-  },
-  server: {
-    host: '::',
-    port: 8080,
-    hmr: {
-      overlay: true,
-    },
   },
 }))

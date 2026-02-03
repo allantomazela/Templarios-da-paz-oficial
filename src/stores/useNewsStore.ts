@@ -91,16 +91,17 @@ export const useNewsStore = create<NewsState>((set, get) => ({
 
   addNews: async (news) => {
     try {
+      const payload = {
+        title: news.title,
+        content: news.content,
+        image_url: news.imageUrl?.trim() || null,
+        event_date: news.eventDate?.trim() ? news.eventDate : null,
+        is_published: news.isPublished,
+        category: news.category,
+      }
       const { data, error } = await supabase
         .from('news_events')
-        .insert({
-          title: news.title,
-          content: news.content,
-          image_url: news.imageUrl,
-          event_date: news.eventDate,
-          is_published: news.isPublished,
-          category: news.category,
-        })
+        .insert(payload)
         .select()
         .single()
 
@@ -119,15 +120,18 @@ export const useNewsStore = create<NewsState>((set, get) => ({
 
   updateNews: async (id, news) => {
     try {
-      const updates: any = {}
+      const updates: any = {
+        updated_at: new Date().toISOString(),
+      }
       if (news.title !== undefined) updates.title = news.title
       if (news.content !== undefined) updates.content = news.content
-      if (news.imageUrl !== undefined) updates.image_url = news.imageUrl
-      if (news.eventDate !== undefined) updates.event_date = news.eventDate
+      if (news.imageUrl !== undefined)
+        updates.image_url = news.imageUrl?.trim() || null
+      if (news.eventDate !== undefined)
+        updates.event_date = news.eventDate?.trim() ? news.eventDate : null
       if (news.isPublished !== undefined)
         updates.is_published = news.isPublished
       if (news.category !== undefined) updates.category = news.category
-      updates.updated_at = new Date().toISOString()
 
       const { data, error } = await supabase
         .from('news_events')

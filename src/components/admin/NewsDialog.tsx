@@ -32,6 +32,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { FormHeader } from '@/components/ui/form-header'
 import { NewsEvent } from '@/stores/useNewsStore'
 import { Loader2, Upload, Newspaper } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { logError } from '@/lib/logger'
 import { useImageUpload } from '@/hooks/use-image-upload'
 
 const newsSchema = z.object({
@@ -60,6 +62,7 @@ export function NewsDialog({
 }: NewsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
@@ -130,9 +133,23 @@ export function NewsDialog({
     setIsSubmitting(true)
     try {
       await onSave(data)
+    } catch (err) {
+      logError('NewsDialog: falha ao salvar publicação', err)
+      throw err
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleInvalid = (errors: Record<string, { message?: string }>) => {
+    logError('NewsDialog: validação falhou', errors)
+    toast({
+      variant: 'destructive',
+      title: 'Erro de validação',
+      description:
+        Object.values(errors)[0]?.message ??
+        'Preencha título (mín. 3 caracteres) e conteúdo (mín. 10 caracteres).',
+    })
   }
 
   const dialogTitle = newsToEdit ? 'Editar Notícia/Evento' : 'Criar Nova Publicação'
@@ -157,7 +174,7 @@ export function NewsDialog({
         />
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(handleSubmit)}
+            onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}
             className="space-y-4"
           >
             <FormField

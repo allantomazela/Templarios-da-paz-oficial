@@ -178,7 +178,7 @@ export function AppSidebar() {
           )}
           {!collapsed && (
             <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">
-              Templários
+              Templários da Paz
             </span>
           )}
         </div>

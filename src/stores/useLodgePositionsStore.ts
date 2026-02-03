@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { devLog, logError } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 import {
   type LodgePositionType,
   POSITION_PERMISSIONS,
@@ -119,6 +129,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
 
         set({ history: data || [] })
       } catch (error) {
+        if (handleAuthError(error)) return
         logError('Error fetching position history', error)
       }
     },
@@ -196,6 +207,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
         set({ loading: false })
         return { error: null }
       } catch (error) {
+        if (handleAuthError(error)) return
         logError('Error removing position', error)
         set({ loading: false })
         return { error }

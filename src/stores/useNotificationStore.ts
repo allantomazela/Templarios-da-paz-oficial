@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { logWarning, logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 interface NotificationState {
   permission: NotificationPermission
@@ -93,6 +103,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         set({ isSubscribed: true })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error requesting notification permission', error)
     } finally {
       set({ loading: false })

@@ -11,6 +11,16 @@ import {
 } from '@/lib/data'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 import {
   mapBankAccountFromDB,
   mapBankAccountToDB,
@@ -111,6 +121,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ transactions: data.map(mapTransactionFromDB) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching transactions:', error)
     } finally {
       set({ loading: false })
@@ -131,6 +142,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ categories: data.map(mapCategoryFromDB) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching categories:', error)
     } finally {
       set({ loading: false })
@@ -161,6 +173,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ contributions: data.map(mapContributionFromDB) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching contributions:', error)
       set({ contributions: [] })
     } finally {
@@ -182,6 +195,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ budgets: data.map(mapBudgetFromDB) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching budgets:', error)
     } finally {
       set({ loading: false })
@@ -202,6 +216,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ goals: data.map(mapFinancialGoalFromDB) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching goals:', error)
     } finally {
       set({ loading: false })
@@ -222,6 +237,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ accounts: data.map(mapBankAccountFromDB) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching accounts:', error)
     } finally {
       set({ loading: false })
@@ -240,6 +256,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         get().fetchAccounts(),
       ])
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching all financial data:', error)
     } finally {
       set({ loading: false })
@@ -263,6 +280,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set((state) => ({ transactions: [mapped, ...state.transactions] }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding transaction:', error)
       throw error
     }
@@ -289,6 +307,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating transaction:', error)
       throw error
     }
@@ -307,6 +326,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         transactions: state.transactions.filter((t) => t.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting transaction:', error)
       throw error
     }
@@ -329,6 +349,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set((state) => ({ categories: [...state.categories, mapped] }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding category:', error)
       throw error
     }
@@ -355,6 +376,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating category:', error)
       throw error
     }
@@ -373,6 +395,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         categories: state.categories.filter((c) => c.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting category:', error)
       throw error
     }
@@ -404,6 +427,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set((state) => ({ contributions: [...state.contributions, mapped] }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding contribution:', error)
       throw error
     }
@@ -441,6 +465,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating contribution:', error)
       throw error
     }
@@ -468,6 +493,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         contributions: state.contributions.filter((c) => c.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting contribution:', error)
       throw error
     }
@@ -490,6 +516,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set((state) => ({ budgets: [...state.budgets, mapped] }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding budget:', error)
       throw error
     }
@@ -514,6 +541,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating budget:', error)
       throw error
     }
@@ -532,6 +560,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         budgets: state.budgets.filter((b) => b.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting budget:', error)
       throw error
     }
@@ -554,6 +583,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set((state) => ({ goals: [...state.goals, mapped] }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding goal:', error)
       throw error
     }
@@ -578,6 +608,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating goal:', error)
       throw error
     }
@@ -596,6 +627,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         goals: state.goals.filter((g) => g.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting goal:', error)
       throw error
     }
@@ -618,6 +650,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set((state) => ({ accounts: [...state.accounts, mapped] }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding account:', error)
       throw error
     }
@@ -642,6 +675,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating account:', error)
       throw error
     }
@@ -660,6 +694,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         accounts: state.accounts.filter((a) => a.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting account:', error)
       throw error
     }

@@ -61,12 +61,12 @@ function ThemeApplicator() {
   const { fetchPositions } = useLodgePositionsStore()
 
   useEffect(() => {
-    fetchSettings()
+    // Inicializar auth primeiro; depois carregar configurações e cargos
     initialize().then(() => {
-      // Carregar cargos após autenticação
+      fetchSettings()
       fetchPositions()
     })
-  }, [fetchSettings, initialize, fetchPositions])
+  }, [initialize, fetchSettings, fetchPositions])
 
   useEffect(() => {
     if (primaryColor) {
@@ -156,114 +156,114 @@ const App = () => (
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/access-denied" element={<AccessDenied />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<TermsOfUse />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/access-denied" element={<AccessDenied />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<TermsOfUse />} />
 
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route
-              path="secretariat"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="secretariat">
-                  <Secretariat />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="secretariat/minutes/:id"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="secretariat">
-                  <MinutesDetail />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="financial"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="financial">
-                  <Financial />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="chancellor"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="chancellor">
-                  <Chancellor />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="reports"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor', 'member']} requiredModule="reports">
-                  <Reports />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="agenda"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
-                  <Agenda />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="library"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
-                  <Library />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="agape"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor', 'member']} requiredModule="agape">
-                  <Agape />
-                </RoleGuard>
-              }
-            />
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route
+                path="secretariat"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="secretariat">
+                    <Secretariat />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="secretariat/minutes/:id"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="secretariat">
+                    <MinutesDetail />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="financial"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="financial">
+                    <Financial />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="chancellor"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="chancellor">
+                    <Chancellor />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="reports"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']} requiredModule="reports">
+                    <Reports />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="agenda"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
+                    <Agenda />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="library"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
+                    <Library />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="agape"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']} requiredModule="agape">
+                    <Agape />
+                  </RoleGuard>
+                }
+              />
 
-            <Route path="profile" element={<Profile />} />
-            <Route path="messages" element={<MyMessages />} />
-            <Route path="payments" element={<MyPayments />} />
-            <Route path="notices" element={<Notices />} />
-            <Route path="settings/user" element={<UserSettings />} />
-            <Route
-              path="settings"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor']}>
-                  <SiteSettings />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="admin"
-              element={
-                <RoleGuard allowedRoles={['admin']}>
-                  <Admin />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="admin/media"
-              element={
-                <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
-                  <MediaManager />
-                </RoleGuard>
-              }
-            />
-          </Route>
+              <Route path="profile" element={<Profile />} />
+              <Route path="messages" element={<MyMessages />} />
+              <Route path="payments" element={<MyPayments />} />
+              <Route path="notices" element={<Notices />} />
+              <Route path="settings/user" element={<UserSettings />} />
+              <Route
+                path="settings"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor']}>
+                    <SiteSettings />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="admin"
+                element={
+                  <RoleGuard allowedRoles={['admin']}>
+                    <Admin />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="admin/media"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
+                    <MediaManager />
+                  </RoleGuard>
+                }
+              />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </ErrorBoundary>
     </TooltipProvider>
   </BrowserRouter>

@@ -1,6 +1,17 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+/** Se for erro de auth (ex.: refresh token inválido), redireciona ao login e retorna true. */
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface Venerable {
   id: string
@@ -155,16 +166,16 @@ const mapSettingsFromDB = (data: any) => {
     sectionOrder: order,
     customSections: Array.isArray(data.custom_sections)
       ? data.custom_sections.map((s: any) => ({
-          id: s.id || crypto.randomUUID(),
-          title: s.title || '',
-          content: s.content || '',
-          type: s.type || 'text',
-          imageUrl: s.imageUrl || s.image_url || undefined,
-          backgroundColor: s.backgroundColor || s.background_color || undefined,
-          textColor: s.textColor || s.text_color || undefined,
-          visible: s.visible !== undefined ? s.visible : true,
-          order: s.order || 0,
-        }))
+        id: s.id || crypto.randomUUID(),
+        title: s.title || '',
+        content: s.content || '',
+        type: s.type || 'text',
+        imageUrl: s.imageUrl || s.image_url || undefined,
+        backgroundColor: s.backgroundColor || s.background_color || undefined,
+        textColor: s.textColor || s.text_color || undefined,
+        visible: s.visible !== undefined ? s.visible : true,
+        order: s.order || 0,
+      }))
       : [],
     primaryColor: data.primary_color || '#007AFF',
     secondaryColor: data.secondary_color || '#1e293b',
@@ -269,6 +280,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         set({ loading: false })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching settings', error)
       set({ loading: false })
     }
@@ -284,6 +296,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (error) throw error
       set({ logoUrl: url })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating logo', error)
       throw error
     }
@@ -299,6 +312,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (error) throw error
       set({ faviconUrl: url })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating favicon', error)
       throw error
     }
@@ -317,6 +331,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (error) throw error
       set({ siteTitle: data.title, metaDescription: data.description })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating SEO', error)
       throw error
     }
@@ -340,6 +355,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         history: { ...state.history, ...data },
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating history', error)
       throw error
     }
@@ -364,6 +380,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         values: { ...state.values, ...data },
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating values', error)
       throw error
     }
@@ -393,6 +410,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         contact: { ...state.contact, ...data },
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating contact', error)
       throw error
     }
@@ -408,6 +426,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (error) throw error
       set({ sectionOrder: order })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating layout', error)
       throw error
     }
@@ -428,6 +447,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (error) throw error
       set((state) => ({ ...state, ...data }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating theme', error)
       throw error
     }
@@ -466,6 +486,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         typography: { ...state.typography, ...data },
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating typography', error)
       throw error
     }
@@ -488,6 +509,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         agapePix: { ...state.agapePix, ...data },
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating agape payment settings', error)
       throw error
     }
@@ -520,6 +542,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         set({ venerables: mappedVenerables })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching venerables', error)
     }
   },
@@ -531,8 +554,8 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (mandateOrder === undefined || mandateOrder === null) {
         // Extrair ano final do período (ex: "2022 - 2024" -> 2024)
         const yearMatch = venerable.period.match(/\d{4}/g)
-        mandateOrder = yearMatch && yearMatch.length > 0 
-          ? parseInt(yearMatch[yearMatch.length - 1], 10) 
+        mandateOrder = yearMatch && yearMatch.length > 0
+          ? parseInt(yearMatch[yearMatch.length - 1], 10)
           : 0
       }
 
@@ -565,6 +588,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding venerable', error)
       throw error
     }
@@ -593,6 +617,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         return { venerables: updated }
       })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating venerable', error)
       throw error
     }
@@ -601,7 +626,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   reorderVenerables: async (venerableIds: string[]) => {
     try {
       // Atualizar ordem de cada venerável
-      const updates = venerableIds.map((id, index) => 
+      const updates = venerableIds.map((id, index) =>
         supabase
           .from('venerables')
           .update({ mandate_order: venerableIds.length - index })
@@ -613,6 +638,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       // Recarregar veneráveis para refletir nova ordem
       await get().fetchVenerables(true)
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error reordering venerables', error)
       throw error
     }
@@ -628,6 +654,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         venerables: state.venerables.filter((v) => v.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting venerable', error)
       throw error
     }
@@ -653,6 +680,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       set({ customSections: updatedSections })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding custom section', error)
       throw error
     }
@@ -674,6 +702,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       set({ customSections: updatedSections })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating custom section', error)
       throw error
     }
@@ -693,6 +722,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       set({ customSections: updatedSections })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting custom section', error)
       throw error
     }
@@ -709,6 +739,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       set({ customSections: sections })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error reordering custom sections', error)
       throw error
     }

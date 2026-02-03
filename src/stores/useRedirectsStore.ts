@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface Redirect {
   id: string
@@ -37,6 +47,7 @@ export const useRedirectsStore = create<RedirectsState>((set) => ({
         set({ redirects: data })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching redirects:', error)
     } finally {
       set({ loading: false })
@@ -59,6 +70,7 @@ export const useRedirectsStore = create<RedirectsState>((set) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding redirect:', error)
       throw error
     }
@@ -96,6 +108,7 @@ export const useRedirectsStore = create<RedirectsState>((set) => ({
         redirects: state.redirects.filter((r) => r.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting redirect:', error)
       throw error
     }

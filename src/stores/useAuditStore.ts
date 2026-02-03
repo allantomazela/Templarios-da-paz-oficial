@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface AuditLog {
   id: string
@@ -49,6 +59,7 @@ export const useAuditStore = create<AuditState>((set) => ({
         set({ logs: data as unknown as AuditLog[] })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching audit logs:', error)
     } finally {
       set({ loading: false })

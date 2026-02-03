@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
 import { logError } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
 
 interface UserPreferences {
   notifications: {
@@ -25,7 +27,7 @@ interface ProfileState {
   profile: Profile | null
   preferences: UserPreferences
   loading: boolean
-  
+
   fetchProfile: (userId: string) => Promise<void>
   updateProfile: (data: Partial<Profile>) => Promise<void>
   updateAvatar: (avatarUrl: string) => Promise<void>
@@ -80,6 +82,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         set({ profile, loading: false })
       }
     } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
       logError('Error fetching profile', error)
       set({ loading: false })
       throw error
@@ -118,6 +124,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         profile: state.profile ? { ...state.profile, ...data } : null,
       }))
     } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
       logError('Error updating profile', error)
       throw error
     }
@@ -141,6 +151,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           : null,
       }))
     } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
       logError('Error updating avatar', error)
       throw error
     }

@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError, devLog } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface AgapeSession {
   id: string
@@ -90,6 +100,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ sessions: data || [], loading: false })
       devLog(`Agape: Carregadas ${data?.length || 0} sessões`)
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching agape sessions', error)
       set({ loading: false })
     }
@@ -116,6 +127,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error creating agape session', error)
       set({ loading: false })
       return { error }
@@ -136,6 +148,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating agape session', error)
       set({ loading: false })
       return { error }
@@ -164,6 +177,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ menuItems: data || [], loading: false })
       devLog(`Agape: Carregados ${data?.length || 0} itens do cardápio`)
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching menu items', error)
       set({ loading: false })
     }
@@ -184,6 +198,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error creating menu item', error)
       set({ loading: false })
       return { error }
@@ -204,6 +219,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating menu item', error)
       set({ loading: false })
       return { error }
@@ -224,6 +240,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting menu item', error)
       set({ loading: false })
       return { error }
@@ -253,6 +270,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ consumptions: data || [], loading: false })
       devLog(`Agape: Carregados ${data?.length || 0} consumos`)
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching consumptions', error)
       set({ loading: false })
     }
@@ -336,6 +354,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: insertError }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error creating consumption', error)
       set({ loading: false })
       return { error }
@@ -359,6 +378,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating consumption', error)
       set({ loading: false })
       return { error }
@@ -369,7 +389,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
     set({ loading: true })
     try {
       const consumption = get().consumptions.find(c => c.id === id)
-      
+
       const { error } = await supabase
         .from('agape_consumptions')
         .delete()
@@ -383,6 +403,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       set({ loading: false })
       return { error: null }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting consumption', error)
       set({ loading: false })
       return { error }
@@ -400,6 +421,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       return data?.[0] || null
     } catch (error) {
+      if (handleAuthError(error)) return null
       logError('Error getting brother session total', error)
       return null
     }
@@ -415,6 +437,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       return data?.[0] || null
     } catch (error) {
+      if (handleAuthError(error)) return null
       logError('Error getting session total', error)
       return null
     }

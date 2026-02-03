@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface AppNotification {
   id: string
@@ -49,6 +59,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
           set({ notifications: data, unreadCount: unread })
         }
       } catch (error) {
+        if (handleAuthError(error)) return
         logError('Error fetching notifications:', error)
       } finally {
         set({ loading: false })
@@ -99,6 +110,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
           unreadCount: 0,
         }))
       } catch (error) {
+        if (handleAuthError(error)) return
         logError('Error marking all as read:', error)
       }
     },

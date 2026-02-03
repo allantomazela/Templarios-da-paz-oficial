@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
 import {
   SessionRecord,
   Attendance,
@@ -18,6 +20,14 @@ import {
   mockNotifications,
 } from '@/lib/data'
 import { devLog, logError } from '@/lib/logger'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 interface ChancellorState {
   sessionRecords: SessionRecord[]
@@ -175,6 +185,7 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
         if (insertError) throw insertError
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Erro ao salvar visitantes da sessao', error)
     }
   },

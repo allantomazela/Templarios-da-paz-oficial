@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 import { uploadToStorage } from '@/lib/upload-utils'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 interface ImageTask {
   id: string
@@ -137,6 +147,7 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
 
         set({ tasks: foundTasks })
       } catch (error) {
+        if (handleAuthError(error)) return
         logError('Scan failed:', error)
       } finally {
         set({ scanning: false })
@@ -200,6 +211,7 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
             ),
           }))
         } catch (error: any) {
+          if (handleAuthError(error)) return
           logError(`Error processing ${task.id}:`, error)
           set((state) => ({
             tasks: state.tasks.map((t) =>

@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
 import { logError } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface Minute {
   id: string
@@ -51,6 +61,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
       if (error) throw error
       set({ minutes: data as Minute[] })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching minutes:', error)
     } finally {
       set({ loading: false })
@@ -85,6 +96,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
 
       set({ currentMinute: fullMinute })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching minute details:', error)
     } finally {
       set({ loading: false })
@@ -105,6 +117,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
         minutes: [data as Minute, ...state.minutes],
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error creating minute:', error)
       throw error
     }
@@ -129,6 +142,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
             : state.currentMinute,
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating minute:', error)
       throw error
     }
@@ -178,6 +192,7 @@ export const useMinutesStore = create<MinutesState>((set) => ({
         }
       })
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error signing minute:', error)
       throw error
     }

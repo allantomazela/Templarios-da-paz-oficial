@@ -89,7 +89,6 @@ export function LodgeInfoSettings() {
       secondaryEmail: contact.secondaryEmail || '',
       messageEmail: contact.messageEmail || '',
     })
-    setLogoPreview(logoUrl)
   }, [siteTitle, logoUrl, contact, form])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,7 +103,6 @@ export function LodgeInfoSettings() {
         'site-assets',
         'logos',
       )
-      setLogoPreview(publicUrl)
       form.setValue('logoUrl', publicUrl, { shouldDirty: true })
       toast({
         title: 'Upload Concluído',

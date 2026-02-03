@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
 import { logError } from '@/lib/logger'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 interface UserStoreState {
   users: Profile[]
@@ -30,6 +40,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         set({ users: data as Profile[] })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching users', error)
     } finally {
       set({ loading: false })
@@ -65,6 +76,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating user status:', error)
       throw error
     }
@@ -83,6 +95,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         users: state.users.map((u) => (u.id === id ? { ...u, role } : u)),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating user role:', error)
       throw error
     }
@@ -103,6 +116,7 @@ export const useUserStore = create<UserStoreState>((set) => ({
         ),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating user degree:', error)
       throw error
     }

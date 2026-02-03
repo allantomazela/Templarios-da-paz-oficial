@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 import { toErrorMessage, withTimeout } from '@/lib/async-utils'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 const NEWS_SAVE_TIMEOUT_MS = 20000
 
@@ -65,6 +75,7 @@ export const useNewsStore = create<NewsState>((set) => ({
         set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching news:', error)
     } finally {
       set({ loading: false })
@@ -88,6 +99,7 @@ export const useNewsStore = create<NewsState>((set) => ({
         set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching public news:', error)
     } finally {
       set({ loading: false })
@@ -122,6 +134,7 @@ export const useNewsStore = create<NewsState>((set) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error adding news:', error)
       throw new Error(
         toErrorMessage(error, 'Falha ao salvar a publicacao.'),
@@ -165,6 +178,7 @@ export const useNewsStore = create<NewsState>((set) => ({
         }))
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error updating news:', error)
       throw new Error(
         toErrorMessage(error, 'Falha ao atualizar a publicacao.'),
@@ -182,6 +196,7 @@ export const useNewsStore = create<NewsState>((set) => ({
         news: state.news.filter((n) => n.id !== id),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting news:', error)
       throw error
     }

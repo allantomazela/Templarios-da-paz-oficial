@@ -2,6 +2,10 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { logWarning, logError } from '@/lib/logger'
+import {
+  isAuthError as isAuthErrorUtil,
+  clearSupabaseAuthStorage,
+} from '@/lib/auth-utils'
 
 export type UserStatus = 'pending' | 'approved' | 'blocked' | 'in_memoriam' | 'adormecido'
 
@@ -36,6 +40,8 @@ interface AuthState {
   ) => Promise<{ error: any }>
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>
   updatePassword: (password: string) => Promise<{ error: any }>
+  /** Limpa sessão e redireciona para /login (ex.: quando refresh token é inválido) */
+  clearSessionAndRedirectToLogin: () => void
 }
 
 const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
@@ -55,13 +61,41 @@ export const useAuthStore = create<AuthState>((set) => ({
    */
   initialize: async () => {
     try {
-      // 1. Check for current session
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
+      // 1. Check for current session (pode falhar se refresh token for inválido)
+      let session: Session | null = null
+      let sessionError: Error | null = null
+      try {
+        const result = await supabase.auth.getSession()
+        session = result.data.session
+        sessionError = result.error ?? null
+      } catch (err) {
+        if (isAuthErrorUtil(err)) {
+          logWarning('Sessão inválida (refresh token), limpando e deslogando', err)
+          clearSupabaseAuthStorage()
+          set({
+            session: null,
+            user: null,
+            isAuthenticated: false,
+            loading: false,
+          })
+          return
+        }
+        throw err
+      }
 
-      if (sessionError) throw sessionError
+      if (sessionError) {
+        if (isAuthErrorUtil(sessionError)) {
+          clearSupabaseAuthStorage()
+          set({
+            session: null,
+            user: null,
+            isAuthenticated: false,
+            loading: false,
+          })
+          return
+        }
+        throw sessionError
+      }
 
       if (session) {
         // 2. Fetch Profile with Timeout Strategy
@@ -132,9 +166,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       supabase.auth.onAuthStateChange(async (event, session) => {
         // Handle token refresh errors
         if (event === 'TOKEN_REFRESHED' && !session) {
-          // Token refresh failed, clear session
-          logWarning('Token refresh failed, signing out')
-          await supabase.auth.signOut()
+          // Token refresh failed, clear session e storage para evitar loop
+          logWarning('Token refresh failed, clearing session')
+          clearSupabaseAuthStorage()
           set({
             session: null,
             user: null,
@@ -145,6 +179,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
 
         if (event === 'SIGNED_OUT' || !session) {
+          clearSupabaseAuthStorage()
           set({
             session: null,
             user: null,
@@ -195,9 +230,31 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       })
     } catch (error) {
+      if (isAuthErrorUtil(error)) {
+        logWarning('Erro de autenticação na inicialização, limpando sessão', error)
+        clearSupabaseAuthStorage()
+        set({
+          session: null,
+          user: null,
+          isAuthenticated: false,
+          loading: false,
+        })
+        return
+      }
       logError('Auth initialization critical error', error)
       set({ loading: false })
     }
+  },
+
+  clearSessionAndRedirectToLogin: () => {
+    clearSupabaseAuthStorage()
+    set({
+      session: null,
+      user: null,
+      isAuthenticated: false,
+      loading: false,
+    })
+    window.location.href = '/login'
   },
 
   /**

@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+
+function handleAuthError(error: unknown): boolean {
+  if (isAuthError(error)) {
+    useAuthStore.getState().clearSessionAndRedirectToLogin()
+    return true
+  }
+  return false
+}
 
 export interface MediaFile {
   id: string
@@ -75,6 +85,7 @@ export const useMediaStore = create<MediaState>((set) => ({
         files: state.files.filter((f) => f.name !== fileName),
       }))
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error deleting file:', error)
       throw error
     }

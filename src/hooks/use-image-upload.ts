@@ -4,8 +4,8 @@ import { uploadToStorage } from '@/lib/upload-utils'
 import { compressImage } from '@/lib/image-utils'
 import { logError } from '@/lib/logger'
 
-/** Tempo após o qual forçamos saída do estado de loading (evita loop infinito) */
-const SAFETY_LOADING_MS = 70000
+/** Tempo após o qual forçamos saída do estado de loading (maior que UPLOAD_TIMEOUT_MS) */
+const SAFETY_LOADING_MS = 130000
 
 interface UseImageUploadOptions {
   /** Bucket do Supabase Storage (padrão: 'site-assets') */
@@ -126,7 +126,7 @@ export function useImageUpload(
         toast({
           variant: 'destructive',
           title: 'Upload cancelado',
-          description: 'Demorou demais. Use uma imagem de até 1200 px e 5 MB.',
+          description: 'Demorou demais. Tente uma imagem menor ou verifique sua conexão.',
         })
       }, SAFETY_LOADING_MS)
 

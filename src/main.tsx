@@ -11,14 +11,17 @@ window.addEventListener('error', (event) => {
   const errorMessage = event.message || ''
   const errorSource = event.filename || ''
   
-  // Suppress common browser extension errors
+  // Suppress common browser extension errors (e.g. "media:1" = extension script)
   if (
     errorMessage.includes('A listener indicated an asynchronous response by returning true') ||
     errorMessage.includes('message channel closed before a response was received') ||
     errorSource.includes('chrome-extension://') ||
     errorSource.includes('moz-extension://') ||
     errorSource.includes('safari-extension://') ||
-    errorSource.includes('settings:')
+    errorSource.includes('extension://') ||
+    errorSource.includes('settings:') ||
+    errorSource === 'media' ||
+    /^[a-z]+:\d+$/.test(errorSource) // e.g. "media:1", "ext:1"
   ) {
     event.preventDefault()
     event.stopPropagation()
@@ -28,21 +31,29 @@ window.addEventListener('error', (event) => {
   return true
 }, true)
 
-// Also handle unhandled promise rejections from extensions
+// Also handle unhandled promise rejections from extensions (capture phase = run first)
 window.addEventListener('unhandledrejection', (event) => {
-  const errorMessage = event.reason?.message || String(event.reason || '')
-  
-  // Suppress common browser extension promise rejection errors
-  if (
+  const reason = event.reason
+  const errorMessage =
+    (reason && typeof reason === 'object' && 'message' in reason && String((reason as Error).message)) ||
+    String(reason ?? '')
+  const errorSource =
+    reason && typeof reason === 'object' && 'filename' in reason
+      ? String((reason as { filename?: string }).filename ?? '')
+      : ''
+
+  const isExtensionNoise =
     errorMessage.includes('A listener indicated an asynchronous response by returning true') ||
-    errorMessage.includes('message channel closed before a response was received')
-  ) {
+    errorMessage.includes('message channel closed before a response was received') ||
+    errorSource.includes('extension://') ||
+    errorSource === 'media' // e.g. "media:1" from some extensions
+
+  if (isExtensionNoise) {
     event.preventDefault()
+    event.stopPropagation()
     return false
   }
-  
-  return true
-})
+}, true)
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {

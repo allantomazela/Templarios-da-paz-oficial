@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 
-const UPLOAD_TIMEOUT_MS = 55000
+/** 2 minutos: permite envio de até 5 MB em conexões lentas */
+const UPLOAD_TIMEOUT_MS = 120000
 
 /**
  * Uploads a file to Supabase Storage (direct upload).
@@ -31,7 +32,7 @@ export async function uploadToStorage(
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(
-      () => reject(new Error('Upload demorou muito. Use imagem de até 1200 px e 5 MB (JPG ou PNG).')),
+      () => reject(new Error('Upload demorou muito. Tente uma imagem menor ou verifique sua conexão. Máx. 1200 px e 5 MB (JPG ou PNG).')),
       UPLOAD_TIMEOUT_MS,
     )
   })

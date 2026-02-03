@@ -13,10 +13,22 @@ const AUTH_ERROR_PATTERNS = [
 
 /**
  * Verifica se o erro é de autenticação (refresh token inválido, sessão expirada, etc.)
+ * Não trata como auth: 403 (permissão/RLS), código 42501 (RLS) ou erros PostgREST de política.
  */
 export function isAuthError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
-  const err = error as { name?: string; message?: string; status?: number }
+  const err = error as {
+    name?: string
+    message?: string
+    status?: number
+    code?: string
+  }
+  // 403 = permissão negada (RLS), não redirecionar para login
+  if (err.status === 403) return false
+  // Erro de RLS no Postgres / PostgREST - não é falha de auth
+  if (err.code === '42501' || (typeof err.message === 'string' && /row-level security|policy/i.test(err.message))) {
+    return false
+  }
   if (err.status === 401) return true
   if (err.name === 'AuthApiError' && err.message) {
     return AUTH_ERROR_PATTERNS.some((p) => p.test(err.message ?? ''))
@@ -25,6 +37,23 @@ export function isAuthError(error: unknown): boolean {
     return AUTH_ERROR_PATTERNS.some((p) => p.test(err.message))
   }
   return false
+}
+
+/**
+ * Retorna mensagem amigável para erros de salvamento (RLS, permissão, rede).
+ */
+export function getSaveErrorMessage(error: unknown): string {
+  if (!error || typeof error !== 'object') return 'Não foi possível salvar. Tente novamente.'
+  const err = error as { message?: string; code?: string; status?: number }
+  if (err.code === '42501' || (typeof err.message === 'string' && /row-level security|policy/i.test(err.message ?? ''))) {
+    return 'Você não tem permissão para esta ação. Verifique se está logado como admin/editor.'
+  }
+  if (err.status === 403) return 'Acesso negado. Verifique suas permissões.'
+  if (err.status === 401) return 'Sessão expirada. Faça login novamente.'
+  if (typeof err.message === 'string' && err.message.length > 0 && err.message.length < 200) {
+    return err.message
+  }
+  return 'Não foi possível salvar. Tente novamente.'
 }
 
 const SUPABASE_AUTH_KEY_PREFIX = 'sb-'

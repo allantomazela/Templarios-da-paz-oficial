@@ -21,6 +21,7 @@ import {
 import { compressImage } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logDebug, logError } from '@/lib/logger'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 
 export function LogoSettings() {
   const { logoUrl, faviconUrl, updateLogo, updateFavicon } =
@@ -92,7 +93,7 @@ export function LogoSettings() {
     if (!file) return
 
     setIsUploadingFavicon(true)
-    
+
     // Add timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
       setIsUploadingFavicon(false)
@@ -149,11 +150,11 @@ export function LogoSettings() {
         title: 'Logo Atualizado',
         description: 'O logo do site foi atualizado com sucesso.',
       })
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi possível atualizar o logo.',
+        description: getSaveErrorMessage(error),
       })
     } finally {
       setIsSavingLogo(false)
@@ -168,11 +169,11 @@ export function LogoSettings() {
         title: 'Favicon Atualizado',
         description: 'O ícone do navegador foi atualizado com sucesso.',
       })
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi possível atualizar o favicon.',
+        description: getSaveErrorMessage(error),
       })
     } finally {
       setIsSavingFavicon(false)

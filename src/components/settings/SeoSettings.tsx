@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 import { Loader2, Globe, Search } from 'lucide-react'
 
 export function SeoSettings() {
@@ -34,11 +35,11 @@ export function SeoSettings() {
         title: 'SEO Atualizado',
         description: 'As configurações de busca foram salvas com sucesso.',
       })
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi possível atualizar as configurações de SEO.',
+        description: getSaveErrorMessage(error),
       })
     } finally {
       setIsSaving(false)

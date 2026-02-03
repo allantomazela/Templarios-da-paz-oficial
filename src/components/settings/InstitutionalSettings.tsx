@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Upload } from 'lucide-react'
 import { compressImage } from '@/lib/image-utils'
@@ -149,11 +150,11 @@ export function InstitutionalSettings() {
         title: 'Conteúdo Atualizado',
         description: 'As informações institucionais foram salvas com sucesso.',
       })
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao salvar as configurações.',
+        title: 'Erro ao salvar',
+        description: getSaveErrorMessage(error),
       })
     }
   }

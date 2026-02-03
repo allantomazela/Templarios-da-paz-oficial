@@ -34,6 +34,7 @@ import {
 import { compressImage } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logError } from '@/lib/logger'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 
 const lodgeInfoSchema = z.object({
   lodgeName: z.string().min(1, 'Nome da loja é obrigatório'),
@@ -153,8 +154,8 @@ export function LodgeInfoSettings() {
       logError('Error updating lodge info', error)
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Falha ao salvar as configurações.',
+        title: 'Erro ao salvar',
+        description: getSaveErrorMessage(error),
       })
     }
   }

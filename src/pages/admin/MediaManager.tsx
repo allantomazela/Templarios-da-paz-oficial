@@ -6,6 +6,9 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Info } from 'lucide-react'
+import { NEWS_IMAGE_RULE_LABEL } from '@/constants/upload-rules'
 
 export default function MediaManager() {
   return (
@@ -16,6 +19,13 @@ export default function MediaManager() {
           Gerencie notícias, eventos e comunicados públicos do site.
         </p>
       </div>
+
+      <Alert className="border-muted bg-muted/30">
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Imagens (notícias e eventos):</strong> {NEWS_IMAGE_RULE_LABEL}
+        </AlertDescription>
+      </Alert>
 
       <div className="space-y-6">
         <NewsManager />

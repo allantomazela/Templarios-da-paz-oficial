@@ -35,6 +35,11 @@ import { Loader2, Upload, Newspaper } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { logError } from '@/lib/logger'
 import { useImageUpload } from '@/hooks/use-image-upload'
+import {
+  NEWS_IMAGE_MAX_DIMENSION_PX,
+  NEWS_IMAGE_MAX_FILE_SIZE_BYTES,
+  NEWS_IMAGE_RULE_LABEL,
+} from '@/constants/upload-rules'
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -68,7 +73,8 @@ export function NewsDialog({
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
     folder: 'news',
-    maxSize: 1280,
+    maxSize: NEWS_IMAGE_MAX_DIMENSION_PX,
+    maxFileSizeBytes: NEWS_IMAGE_MAX_FILE_SIZE_BYTES,
     quality: 0.85,
     successMessage: 'Imagem da notícia carregada com sucesso.',
     errorMessage: 'Falha ao fazer upload da imagem.',
@@ -261,6 +267,9 @@ export function NewsDialog({
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <FormLabel>Imagem de Destaque</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  {NEWS_IMAGE_RULE_LABEL}
+                </p>
                 <div className="flex flex-col gap-3">
                   <div className="relative aspect-video w-full border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden group">
                     {imageUpload.isUploading ? (

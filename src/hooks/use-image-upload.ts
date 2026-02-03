@@ -9,8 +9,10 @@ interface UseImageUploadOptions {
   bucket?: string
   /** Pasta dentro do bucket (padrão: 'uploads') */
   folder?: string
-  /** Tamanho máximo da imagem em pixels (padrão: 1024) */
+  /** Tamanho máximo da imagem em pixels no maior lado (padrão: 1024) */
   maxSize?: number
+  /** Tamanho máximo do arquivo em bytes antes da compressão (opcional). Ex.: 2 * 1024 * 1024 = 2 MB */
+  maxFileSizeBytes?: number
   /** Qualidade de compressão 0-1 (padrão: 0.8) */
   quality?: number
   /** Mensagem de sucesso customizada */
@@ -67,6 +69,7 @@ export function useImageUpload(
     bucket = 'site-assets',
     folder = 'uploads',
     maxSize = 1024,
+    maxFileSizeBytes,
     quality = 0.8,
     successMessage = 'Imagem carregada com sucesso.',
     errorMessage = 'Não foi possível carregar a imagem.',
@@ -87,6 +90,19 @@ export function useImageUpload(
           variant: 'destructive',
           title: 'Erro',
           description: 'Por favor, selecione um arquivo de imagem.',
+        })
+        return null
+      }
+
+      if (maxFileSizeBytes != null && file.size > maxFileSizeBytes) {
+        const err = new Error(
+          `Arquivo muito grande. O tamanho máximo permitido é ${Math.round(maxFileSizeBytes / (1024 * 1024))} MB.`,
+        )
+        setError(err)
+        toast({
+          variant: 'destructive',
+          title: 'Arquivo muito grande',
+          description: err.message,
         })
         return null
       }
@@ -128,7 +144,7 @@ export function useImageUpload(
         setIsUploading(false)
       }
     },
-    [bucket, folder, maxSize, quality, successMessage, errorMessage, toast],
+    [bucket, folder, maxSize, maxFileSizeBytes, quality, successMessage, errorMessage, toast],
   )
 
   const reset = useCallback(() => {

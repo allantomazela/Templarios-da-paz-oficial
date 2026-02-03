@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 
-const UPLOAD_TIMEOUT_MS = 30000
+const UPLOAD_TIMEOUT_MS = 60000
 
 /**
  * Uploads a file to Supabase Storage (direct upload).
@@ -31,7 +31,7 @@ export async function uploadToStorage(
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(
-      () => reject(new Error('Upload demorou muito. Tente novamente com uma imagem menor ou verifique a conexão.')),
+      () => reject(new Error('Upload demorou mais de 1 minuto. Tente uma imagem menor ou verifique sua conexão.')),
       UPLOAD_TIMEOUT_MS,
     )
   })

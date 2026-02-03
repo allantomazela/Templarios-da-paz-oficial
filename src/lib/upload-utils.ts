@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { toErrorMessage, withTimeout } from '@/lib/async-utils'
 
 /** 2 minutos: permite envio de até 5 MB em conexões lentas */
 const UPLOAD_TIMEOUT_MS = 120000
@@ -30,18 +31,14 @@ export async function uploadToStorage(
       upsert: false,
     })
 
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(
-      () => reject(new Error('Upload demorou muito. Tente uma imagem menor ou verifique sua conexão. Máx. 1200 px e 5 MB (JPG ou PNG).')),
-      UPLOAD_TIMEOUT_MS,
-    )
-  })
+  const timeoutMessage =
+    'Upload demorou muito. Tente uma imagem menor ou verifique sua conexão. Máx. 1200 px e 5 MB (JPG ou PNG).'
 
   let result: { data: unknown; error: { message?: string } | null }
   try {
-    result = await Promise.race([uploadPromise, timeoutPromise])
+    result = await withTimeout(uploadPromise, UPLOAD_TIMEOUT_MS, timeoutMessage)
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Upload demorou muito.'
+    const msg = toErrorMessage(err, 'Upload demorou muito.')
     logError('Upload timeout or error', err)
     throw new Error(msg)
   }
@@ -51,7 +48,10 @@ export async function uploadToStorage(
   if (uploadError) {
     logError('Direct upload error', uploadError)
     throw new Error(
-      'Falha no upload da imagem. Verifique se você está logado e tente novamente.',
+      toErrorMessage(
+        uploadError,
+        'Falha no upload da imagem. Verifique se você está logado e tente novamente.',
+      ),
     )
   }
 

@@ -19,15 +19,23 @@ jobs:
         node-version: '20'
         cache: 'npm'
 
-    - name: 3. Instalando dependências e buildando
+    - name: 3. Instalando dependências
+      run: |
+        npm install --legacy-peer-deps
+
+    - name: 4. Lint e testes
+      run: |
+        npm run lint
+        npm run test
+
+    - name: 5. Buildando
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: |
-        npm install --legacy-peer-deps
         npm run build
 
-    - name: 4. Enviando build para o servidor
+    - name: 6. Enviando build para o servidor
       env:
         SSH_KEY: ${{ secrets.SSH_KEY }}
         HOST: ${{ secrets.HOST }}

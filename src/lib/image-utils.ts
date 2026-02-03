@@ -1,7 +1,7 @@
 /**
  * Compresses and resizes an image file to ensure optimization.
  * @param file The original file
- * @param maxWidth The maximum width of the output image (default: 1200)
+ * @param maxWidth The maximum dimension (larger side) of the output image (default: 1200)
  * @param quality The quality of the output image (0 to 1, default: 0.8)
  * @returns A promise that resolves to the optimized File
  */
@@ -41,13 +41,15 @@ export async function compressImage(
 
     img.onload = () => {
       clearTimeout(timeoutId)
-      // Calculate new dimensions
+      // Calculate new dimensions based on the larger side
       let width = img.width
       let height = img.height
+      const maxSide = Math.max(width, height)
 
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width
-        width = maxWidth
+      if (maxSide > maxWidth) {
+        const scale = maxWidth / maxSide
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
       }
 
       // Create canvas

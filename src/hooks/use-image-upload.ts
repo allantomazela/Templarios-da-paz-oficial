@@ -132,6 +132,11 @@ export function useImageUpload(
 
       try {
         const compressedFile = await compressImage(file, maxSize, quality)
+        if (maxFileSizeBytes != null && compressedFile.size > maxFileSizeBytes) {
+          throw new Error(
+            `Arquivo ainda muito grande após otimização. O tamanho máximo permitido é ${Math.round(maxFileSizeBytes / (1024 * 1024))} MB.`,
+          )
+        }
         const publicUrl = await uploadToStorage(compressedFile, bucket, folder)
         if (safetyTimerRef.current) {
           clearTimeout(safetyTimerRef.current)

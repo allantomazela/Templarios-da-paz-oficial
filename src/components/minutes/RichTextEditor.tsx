@@ -4,7 +4,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Bold,
@@ -34,6 +34,7 @@ export function RichTextEditor({
   onChange,
   placeholder = 'Digite o conteúdo da ata...',
 }: RichTextEditorProps) {
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -64,8 +65,14 @@ export function RichTextEditor({
         class:
           'prose prose-sm sm:prose lg:prose-lg xl:prose-xl dark:prose-invert mx-auto focus:outline-none min-h-[400px] p-4 prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground prose-h1:text-foreground prose-h2:text-foreground prose-h3:text-foreground',
       },
+      handleBlur: () => {
+        const current = editorRef.current
+        if (current) onChange(current.getHTML())
+      },
     },
   })
+
+  editorRef.current = editor
 
   // Sincronizar conteúdo quando mudar externamente (ex: template selecionado)
   useEffect(() => {

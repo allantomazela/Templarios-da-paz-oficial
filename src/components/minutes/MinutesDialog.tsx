@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/button'
 import { FormHeader } from '@/components/ui/form-header'
 import { format } from 'date-fns'
 import { Loader2, FileText } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { logError } from '@/lib/logger'
 import { RichTextEditor } from './RichTextEditor'
 import { minuteTemplates } from '@/lib/minute-templates'
 import {
@@ -54,6 +56,7 @@ export function MinutesDialog({
   onSave,
 }: MinutesDialogProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  const { toast } = useToast()
 
   const form = useForm<MinuteFormValues>({
     resolver: zodResolver(minuteSchema),
@@ -101,9 +104,20 @@ export function MinutesDialog({
     try {
       await onSave(data)
       form.reset()
-    } catch {
-      // Erro já tratado pelo chamador
+    } catch (err) {
+      logError('MinutesDialog: falha ao salvar ata', err)
+      throw err
     }
+  }
+
+  const handleInvalid = (errors: Record<string, { message?: string }>) => {
+    logError('MinutesDialog: validação falhou', errors)
+    toast({
+      variant: 'destructive',
+      title: 'Erro de validação',
+      description:
+        Object.values(errors)[0]?.message ?? 'Preencha todos os campos corretamente (título, data e texto da ata com pelo menos 10 caracteres).',
+    })
   }
 
   const dialogTitle = minuteToEdit ? 'Editar Ata' : 'Nova Ata'
@@ -118,7 +132,7 @@ export function MinutesDialog({
         />
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(handleSubmit)}
+            onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}
             className="space-y-4"
           >
             <FormField

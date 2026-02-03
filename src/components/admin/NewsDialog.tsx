@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import {
   Dialog,
   DialogContent,
@@ -143,7 +144,12 @@ export function NewsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
-        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
+        <VisuallyHidden asChild>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+        </VisuallyHidden>
+        <VisuallyHidden asChild>
+          <DialogDescription>{dialogDescription}</DialogDescription>
+        </VisuallyHidden>
         <FormHeader
           title={dialogTitle}
           description={dialogDescription}

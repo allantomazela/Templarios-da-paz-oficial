@@ -10,7 +10,7 @@ import { logDebug, logWarning } from '@/lib/logger'
 window.addEventListener('error', (event) => {
   const errorMessage = event.message || ''
   const errorSource = event.filename || ''
-  
+
   // Suppress common browser extension errors (e.g. "media:1" = extension script)
   if (
     errorMessage.includes('A listener indicated an asynchronous response by returning true') ||
@@ -27,7 +27,7 @@ window.addEventListener('error', (event) => {
     event.stopPropagation()
     return false
   }
-  
+
   return true
 }, true)
 
@@ -46,7 +46,9 @@ window.addEventListener('unhandledrejection', (event) => {
     errorMessage.includes('A listener indicated an asynchronous response by returning true') ||
     errorMessage.includes('message channel closed before a response was received') ||
     errorSource.includes('extension://') ||
-    errorSource === 'media' // e.g. "media:1" from some extensions
+    errorSource.includes('settings') || // e.g. "settings:1" from extensions
+    errorSource === 'media' ||
+    /^[a-z]+:\d+$/.test(errorSource) // e.g. "media:1", "ext:1", "settings:1"
 
   if (isExtensionNoise) {
     event.preventDefault()
@@ -57,49 +59,49 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker
-            .register('/sw.js', { scope: '/' })
-            .then((registration) => {
-                logDebug('Service Worker registered', registration.scope)
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .then((registration) => {
+        logDebug('Service Worker registered', registration.scope)
 
-                // Check for updates periodically (reduced frequency to avoid errors)
-                // Only check if registration is still active
-                let updateInterval: NodeJS.Timeout | null = null
-                
-                const scheduleUpdate = () => {
-                    if (updateInterval) {
-                        clearInterval(updateInterval)
-                    }
-                    
-                    updateInterval = setInterval(() => {
-                        if (registration.active) {
-                            registration.update().catch((err) => {
-                                // Silently fail - updates are optional
-                                logWarning('Service Worker update check failed', err)
-                            })
-                        } else {
-                            // Registration is no longer active, stop checking
-                            if (updateInterval) {
-                                clearInterval(updateInterval)
-                                updateInterval = null
-                            }
-                        }
-                    }, 300000) // Check every 5 minutes instead of 1 minute
-                }
+        // Check for updates periodically (reduced frequency to avoid errors)
+        // Only check if registration is still active
+        let updateInterval: NodeJS.Timeout | null = null
 
-                scheduleUpdate()
+        const scheduleUpdate = () => {
+          if (updateInterval) {
+            clearInterval(updateInterval)
+          }
 
-                // Listen for updates
-                registration.addEventListener('updatefound', () => {
-                    logDebug('Service Worker update found')
-                })
-            })
-            .catch((error) => {
-                logWarning('Service Worker registration failed', error)
-                // Don't throw - PWA is optional
-            })
-    })
+          updateInterval = setInterval(() => {
+            if (registration.active) {
+              registration.update().catch((err) => {
+                // Silently fail - updates are optional
+                logWarning('Service Worker update check failed', err)
+              })
+            } else {
+              // Registration is no longer active, stop checking
+              if (updateInterval) {
+                clearInterval(updateInterval)
+                updateInterval = null
+              }
+            }
+          }, 300000) // Check every 5 minutes instead of 1 minute
+        }
+
+        scheduleUpdate()
+
+        // Listen for updates
+        registration.addEventListener('updatefound', () => {
+          logDebug('Service Worker update found')
+        })
+      })
+      .catch((error) => {
+        logWarning('Service Worker registration failed', error)
+        // Don't throw - PWA is optional
+      })
+  })
 }
 
 createRoot(document.getElementById('root')!).render(<App />)

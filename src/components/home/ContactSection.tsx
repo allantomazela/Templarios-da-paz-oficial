@@ -138,7 +138,7 @@ export function ContactSection({
       <div className="container px-4 md:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-6">
+            <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-6 leading-snug">
               Entre em Contato
             </h2>
             <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px] leading-relaxed">

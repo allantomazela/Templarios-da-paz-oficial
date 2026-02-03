@@ -6,9 +6,17 @@ interface HistorySectionProps {
   imageUrl?: string
 }
 
+const FALLBACK_IMAGE_URL = '/placeholder.svg'
+
+/** URLs do usecurling.com retornam 500; não tentamos carregá-las. */
+function getSafeImageUrl(imageUrl?: string): string {
+  if (!imageUrl || imageUrl.trim() === '') return FALLBACK_IMAGE_URL
+  if (imageUrl.includes('usecurling.com')) return FALLBACK_IMAGE_URL
+  return imageUrl
+}
+
 export function HistorySection({ title, text, imageUrl }: HistorySectionProps) {
-  const fallbackImageUrl = '/placeholder.svg'
-  const resolvedImageUrl = imageUrl || fallbackImageUrl
+  const resolvedImageUrl = getSafeImageUrl(imageUrl)
 
   return (
     <section
@@ -21,7 +29,7 @@ export function HistorySection({ title, text, imageUrl }: HistorySectionProps) {
             <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
               <History className="mr-2 h-4 w-4" /> Nossa História
             </div>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+            <h2 className="text-3xl font-bold tracking-normal md:text-4xl leading-snug">
               {title}
             </h2>
             <div className="text-lg text-muted-foreground leading-relaxed">
@@ -35,8 +43,8 @@ export function HistorySection({ title, text, imageUrl }: HistorySectionProps) {
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               onError={(event) => {
                 const target = event.currentTarget
-                if (target.src !== fallbackImageUrl) {
-                  target.src = fallbackImageUrl
+                if (target.src !== FALLBACK_IMAGE_URL) {
+                  target.src = FALLBACK_IMAGE_URL
                 }
               }}
             />

@@ -16,7 +16,7 @@ export function VenerablesSection({ venerables }: VenerablesSectionProps) {
           <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
             <Award className="mr-2 h-4 w-4" /> Nossa Liderança
           </div>
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
+          <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-4 leading-snug">
             Galeria dos Veneráveis
           </h2>
           <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">

@@ -452,8 +452,8 @@ export default function Agenda() {
 
           <div className="flex-1 flex flex-col min-h-0">
             <div className="px-4 py-3 bg-muted/10 border-b flex justify-between items-center">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-semibold text-sm flex items-center gap-2 text-left">
+                <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
                 {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
               </h3>
               <Badge variant="secondary" className="text-xs">
@@ -468,8 +468,8 @@ export default function Agenda() {
                     <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                       <Clock className="h-6 w-6 opacity-20" />
                     </div>
-                    <p className="text-sm">Nenhum evento agendado</p>
-                    <p className="text-xs opacity-60 mt-1">
+                    <p className="text-sm leading-relaxed">Nenhum evento agendado</p>
+                    <p className="text-xs opacity-60 mt-1 leading-relaxed">
                       Selecione outra data ou adicione um novo evento.
                     </p>
                   </div>
@@ -478,7 +478,7 @@ export default function Agenda() {
                     <div
                       key={event.id}
                       onClick={() => handleEventClick(event)}
-                      className="group flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-border hover:bg-accent/50 transition-all cursor-pointer bg-card/50"
+                      className="group flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-border hover:bg-accent/50 transition-all cursor-pointer bg-card/50 text-left"
                     >
                       <div className="flex flex-col items-center min-w-[3rem] pt-0.5">
                         <span className="text-sm font-bold font-mono">
@@ -492,7 +492,7 @@ export default function Agenda() {
                         />
                       </div>
                       <div className="flex-1 min-w-0 border-l pl-3">
-                        <h4 className="font-medium text-sm truncate leading-none mb-1.5">
+                        <h4 className="font-medium text-sm truncate leading-snug mb-1.5">
                           {event.title}
                         </h4>
                         <div className="flex flex-col gap-0.5">
@@ -564,22 +564,22 @@ export default function Agenda() {
           <TabsContent value="day" className="mt-0 h-full">
             <ErrorBoundary>
               <Card className="h-full border-0 shadow-none">
-                <CardHeader>
+                <CardHeader className="text-left">
                   <CardTitle>
                     Agenda Detalhada -{' '}
                     {format(currentDate, 'dd/MM/yyyy', { locale: ptBR })}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="leading-relaxed">
                     Visão completa dos eventos e compromissos.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-left">
                   {allEvents.filter((e) =>
                     isSameDay(new Date(e.date + 'T12:00:00'), currentDate),
                   ).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
                       <CalendarIcon className="h-16 w-16 mb-4 opacity-20" />
-                      <p>Nenhum evento agendado para este dia.</p>
+                      <p className="leading-relaxed">Nenhum evento agendado para este dia.</p>
                       {canEdit && (
                         <Button
                           variant="link"
@@ -605,7 +605,7 @@ export default function Agenda() {
                         .map((event) => (
                           <div
                             key={event.id}
-                            className="flex gap-4 p-4 border rounded-lg hover:bg-secondary/10 transition-colors bg-card"
+                            className="flex gap-4 p-4 border rounded-lg hover:bg-secondary/10 transition-colors bg-card text-left"
                           >
                             <div className="flex flex-col items-center justify-center min-w-[80px] border-r pr-4">
                               <span className="text-xl font-bold font-mono">
@@ -615,25 +615,25 @@ export default function Agenda() {
                                 {event.type}
                               </span>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start">
-                                <h3 className="text-lg font-bold">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-2">
+                                <h3 className="text-lg font-bold leading-snug">
                                   {event.title}
                                 </h3>
                                 <div
                                   className={cn(
-                                    'w-3 h-3 rounded-full',
+                                    'w-3 h-3 rounded-full shrink-0',
                                     getTypeColor(event.type),
                                   )}
                                   title={event.type}
                                 />
                               </div>
-                              <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+                              <p className="text-muted-foreground text-sm mt-1 line-clamp-2 leading-relaxed">
                                 {event.description || 'Sem descrição.'}
                               </p>
                               {event.location && (
                                 <p className="text-xs font-medium mt-2 flex items-center gap-1 text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />{' '}
+                                  <MapPin className="h-3 w-3 shrink-0" />{' '}
                                   {event.location}
                                 </p>
                               )}

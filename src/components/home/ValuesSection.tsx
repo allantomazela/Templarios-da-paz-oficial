@@ -15,7 +15,7 @@ export function ValuesSection({
     <section id="pilares" className="py-16 md:py-24 scroll-mt-20">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
+          <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-4 leading-snug">
             Nossos Pilares
           </h2>
           <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">

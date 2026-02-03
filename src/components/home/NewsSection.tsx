@@ -34,10 +34,10 @@ export function NewsSection() {
           <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
             <Newspaper className="mr-2 h-4 w-4" /> Notícias e Eventos
           </div>
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-4">
+          <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-4">
             Acontece na Loja
           </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
+          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
             Fique por dentro das últimas atividades e eventos da nossa oficina.
           </p>
         </div>
@@ -52,7 +52,7 @@ export function NewsSection() {
               <Info className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Novidades em breve</h3>
-            <p className="text-muted-foreground max-w-md px-4">
+            <p className="text-muted-foreground max-w-md px-4 leading-relaxed">
               Estamos preparando conteúdo especial para você. Volte em breve
               para conferir as notícias e eventos da nossa loja.
             </p>
@@ -73,7 +73,7 @@ export function NewsSection() {
                     />
                   </div>
                 )}
-                <CardHeader>
+                <CardHeader className="text-left">
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <Badge
                       variant={
@@ -102,16 +102,16 @@ export function NewsSection() {
                       </div>
                     )}
                   </div>
-                  <CardTitle className="text-xl line-clamp-2 group-hover:text-primary transition-colors">
+                  <CardTitle className="text-xl line-clamp-2 group-hover:text-primary transition-colors text-left leading-snug">
                     {item.title}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1">
-                  <p className="text-muted-foreground text-sm line-clamp-4">
+                <CardContent className="flex-1 text-left">
+                  <p className="text-muted-foreground text-sm line-clamp-4 leading-relaxed">
                     {item.content}
                   </p>
                 </CardContent>
-                <CardFooter className="border-t pt-4 flex justify-between items-center bg-muted/5">
+                <CardFooter className="border-t pt-4 flex justify-between items-center bg-muted/5 text-left">
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(item.createdAt), "dd 'de' MMM", {
                       locale: ptBR,

@@ -75,9 +75,9 @@ export function NewsDialog({
     folder: 'news',
     maxSize: NEWS_IMAGE_MAX_DIMENSION_PX,
     maxFileSizeBytes: NEWS_IMAGE_MAX_FILE_SIZE_BYTES,
-    quality: 0.85,
+    quality: 0.7,
     successMessage: 'Imagem da notícia carregada com sucesso.',
-    errorMessage: 'Falha ao fazer upload da imagem.',
+    errorMessage: 'Falha no upload. Use imagem de até 800 px e 1 MB.',
   })
 
   const form = useForm<NewsFormValues>({

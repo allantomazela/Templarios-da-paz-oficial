@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { compressImage } from '@/lib/image-utils'
 import { logError } from '@/lib/logger'
+
+/** Tempo após o qual forçamos saída do estado de loading (evita loop infinito) */
+const SAFETY_LOADING_MS = 70000
 
 interface UseImageUploadOptions {
   /** Bucket do Supabase Storage (padrão: 'site-assets') */
@@ -79,7 +82,14 @@ export function useImageUpload(
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { toast } = useToast()
+
+  useEffect(() => {
+    return () => {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
+    }
+  }, [])
 
   const handleUpload = useCallback(
     async (file: File): Promise<string | null> => {
@@ -109,13 +119,24 @@ export function useImageUpload(
 
       setIsUploading(true)
       setError(null)
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
+      safetyTimerRef.current = setTimeout(() => {
+        safetyTimerRef.current = null
+        setIsUploading(false)
+        toast({
+          variant: 'destructive',
+          title: 'Upload cancelado',
+          description: 'Demorou demais. Use uma imagem de até 800 px e 1 MB.',
+        })
+      }, SAFETY_LOADING_MS)
 
       try {
-        // Compress image
         const compressedFile = await compressImage(file, maxSize, quality)
-
-        // Upload to storage
         const publicUrl = await uploadToStorage(compressedFile, bucket, folder)
+        if (safetyTimerRef.current) {
+          clearTimeout(safetyTimerRef.current)
+          safetyTimerRef.current = null
+        }
 
         setImageUrl(publicUrl)
         toast({
@@ -130,6 +151,10 @@ export function useImageUpload(
 
         return publicUrl
       } catch (err) {
+        if (safetyTimerRef.current) {
+          clearTimeout(safetyTimerRef.current)
+          safetyTimerRef.current = null
+        }
         const error = err instanceof Error ? err : new Error(String(err))
         logError('Error uploading image', error)
         setError(error)
@@ -141,6 +166,10 @@ export function useImageUpload(
         if (inputRef.current) inputRef.current.value = ''
         return null
       } finally {
+        if (safetyTimerRef.current) {
+          clearTimeout(safetyTimerRef.current)
+          safetyTimerRef.current = null
+        }
         setIsUploading(false)
       }
     },

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -62,6 +62,7 @@ export function NewsDialog({
 }: NewsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const submittingRef = useRef(false)
   const { toast } = useToast()
 
   const imageUpload = useImageUpload({
@@ -86,7 +87,11 @@ export function NewsDialog({
   })
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      submittingRef.current = false
+      return
+    }
+    submittingRef.current = false
 
     if (newsToEdit) {
       form.reset({
@@ -130,6 +135,8 @@ export function NewsDialog({
   }
 
   const handleSubmit = async (data: NewsFormValues) => {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setIsSubmitting(true)
     try {
       await onSave(data)
@@ -137,6 +144,7 @@ export function NewsDialog({
       logError('NewsDialog: falha ao salvar publicação', err)
       throw err
     } finally {
+      submittingRef.current = false
       setIsSubmitting(false)
     }
   }

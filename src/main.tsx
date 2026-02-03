@@ -56,7 +56,7 @@ window.addEventListener('unhandledrejection', (event) => {
     return false
   }
 
-  // Chunk load error (404 em asset após novo deploy): forçar reload para buscar index e chunks novos
+  // Chunk load error (404 em asset após novo deploy): recarregar com cache-bust
   const isChunkLoadError =
     errorMessage.includes('Failed to fetch dynamically imported module') ||
     (errorMessage.includes('Loading chunk') && errorMessage.includes('failed'))
@@ -65,7 +65,13 @@ window.addEventListener('unhandledrejection', (event) => {
     if (sessionStorage.getItem(key) !== '1') {
       sessionStorage.setItem(key, '1')
       event.preventDefault()
-      window.location.reload()
+      try {
+        const url = new URL(window.location.href)
+        url.searchParams.set('_', String(Date.now()))
+        window.location.href = url.toString()
+      } catch {
+        window.location.reload()
+      }
       return false
     }
   }

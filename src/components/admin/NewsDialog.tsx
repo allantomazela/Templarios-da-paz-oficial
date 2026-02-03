@@ -68,7 +68,15 @@ export function NewsDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const submittingRef = useRef(false)
+  const previewBlobRef = useRef<string | null>(null)
   const { toast } = useToast()
+
+  const revokePreviewBlob = () => {
+    if (previewBlobRef.current) {
+      URL.revokeObjectURL(previewBlobRef.current)
+      previewBlobRef.current = null
+    }
+  }
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
@@ -77,7 +85,7 @@ export function NewsDialog({
     maxFileSizeBytes: NEWS_IMAGE_MAX_FILE_SIZE_BYTES,
     quality: 0.7,
     successMessage: 'Imagem da notícia carregada com sucesso.',
-    errorMessage: 'Falha no upload. Use imagem de até 800 px e 1 MB.',
+    errorMessage: 'Falha no upload. Use imagem de até 1200 px e 5 MB.',
   })
 
   const form = useForm<NewsFormValues>({
@@ -95,9 +103,11 @@ export function NewsDialog({
   useEffect(() => {
     if (!open) {
       submittingRef.current = false
+      revokePreviewBlob()
       return
     }
     submittingRef.current = false
+    revokePreviewBlob()
 
     if (newsToEdit) {
       form.reset({
@@ -126,6 +136,7 @@ export function NewsDialog({
       setPreviewImage(null)
       imageUpload.reset()
     }
+    return () => revokePreviewBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newsToEdit, open])
 
@@ -133,10 +144,16 @@ export function NewsDialog({
     const file = e.target.files?.[0]
     if (!file) return
 
+    revokePreviewBlob()
+    const blobUrl = URL.createObjectURL(file)
+    previewBlobRef.current = blobUrl
+    setPreviewImage(blobUrl)
+
     const url = await imageUpload.handleUpload(file)
+    revokePreviewBlob()
     if (url) {
-      form.setValue('imageUrl', url, { shouldDirty: true })
       setPreviewImage(url)
+      form.setValue('imageUrl', url, { shouldDirty: true })
     }
   }
 
@@ -272,14 +289,22 @@ export function NewsDialog({
                 </p>
                 <div className="flex flex-col gap-3">
                   <div className="relative aspect-video w-full border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden group">
-                    {imageUpload.isUploading ? (
+                    {previewImage ? (
+                      <>
+                        <img
+                          src={previewImage}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        {imageUpload.isUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-white" />
+                            <span className="sr-only">Enviando imagem...</span>
+                          </div>
+                        )}
+                      </>
+                    ) : imageUpload.isUploading ? (
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    ) : previewImage ? (
-                      <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
                     ) : (
                       <div className="flex flex-col items-center text-muted-foreground text-xs pointer-events-none">
                         <Upload className="h-8 w-8 mb-2 opacity-50" />

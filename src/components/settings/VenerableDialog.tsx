@@ -46,8 +46,17 @@ export function VenerableDialog({
   onSave,
 }: VenerableDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const prevVenerableRef = useRef<string>('')
   const prevOpenRef = useRef<boolean>(false)
+  const previewBlobRef = useRef<string | null>(null)
+
+  const revokePreviewBlob = () => {
+    if (previewBlobRef.current) {
+      URL.revokeObjectURL(previewBlobRef.current)
+      previewBlobRef.current = null
+    }
+  }
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
@@ -68,13 +77,14 @@ export function VenerableDialog({
   })
 
   useEffect(() => {
-    // Só executar quando o dialog abrir
     if (!open) {
-      // Limpar quando fechar
       prevVenerableRef.current = ''
       prevOpenRef.current = false
+      revokePreviewBlob()
+      setPreviewImage(null)
       return
     }
+    revokePreviewBlob()
 
     // Verificar se realmente mudou para evitar loops
     const currentKey = venerableToEdit ? `${venerableToEdit.id}` : 'new'
@@ -91,19 +101,20 @@ export function VenerableDialog({
         period: venerableToEdit.period,
         imageUrl: venerableToEdit.imageUrl || '',
       })
-      // Reset do imageUpload apenas se necessário
+      setPreviewImage(null)
       if (venerableToEdit.imageUrl) {
         imageUpload.reset()
       }
     } else {
-      // Limpar completamente para novo registro
       form.reset({
         name: '',
         period: '',
         imageUrl: '',
       })
+      setPreviewImage(null)
       imageUpload.reset()
     }
+    return () => revokePreviewBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, venerableToEdit?.id])
 
@@ -111,9 +122,18 @@ export function VenerableDialog({
     const file = e.target.files?.[0]
     if (!file) return
 
+    revokePreviewBlob()
+    const blobUrl = URL.createObjectURL(file)
+    previewBlobRef.current = blobUrl
+    setPreviewImage(blobUrl)
+
     const url = await imageUpload.handleUpload(file)
+    revokePreviewBlob()
     if (url) {
+      setPreviewImage(null)
       form.setValue('imageUrl', url, { shouldDirty: true })
+    } else {
+      setPreviewImage(null)
     }
   }
 
@@ -124,6 +144,7 @@ export function VenerableDialog({
   }
 
   const imageUrl = form.watch('imageUrl')
+  const displayUrl = previewImage ?? imageUrl
 
   const dialogTitle = venerableToEdit ? 'Editar Venerável' : 'Adicionar Venerável'
   const dialogDescription = venerableToEdit
@@ -144,15 +165,21 @@ export function VenerableDialog({
             className="space-y-4"
           >
             <div className="flex items-center gap-4 mb-4">
-              <Avatar className="h-20 w-20 border-2">
-                <AvatarImage src={imageUrl} alt="Preview" />
+              <Avatar className="h-20 w-20 border-2 relative">
+                <AvatarImage src={displayUrl || undefined} alt="Preview" />
                 <AvatarFallback>
-                  {imageUpload.isUploading ? (
+                  {!displayUrl && imageUpload.isUploading ? (
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   ) : (
                     'VM'
                   )}
                 </AvatarFallback>
+                {displayUrl && imageUpload.isUploading && (
+                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    <span className="sr-only">Enviando foto...</span>
+                  </div>
+                )}
               </Avatar>
               <div className="space-y-2">
                 <Button
@@ -176,13 +203,14 @@ export function VenerableDialog({
                   accept="image/*"
                   onChange={handleFileSelect}
                 />
-                {imageUrl && (
+                {displayUrl && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="text-destructive hover:text-destructive text-xs"
                     onClick={() => {
+                      setPreviewImage(null)
                       form.setValue('imageUrl', '')
                       imageUpload.reset()
                     }}

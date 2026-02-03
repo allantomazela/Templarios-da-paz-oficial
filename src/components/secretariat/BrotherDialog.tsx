@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -126,7 +126,15 @@ export function BrotherDialog({
 }: BrotherDialogProps) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isLoadingCEP, setIsLoadingCEP] = useState(false)
+  const photoBlobRef = useRef<string | null>(null)
   const { toast } = useToast()
+
+  const revokePhotoBlob = () => {
+    if (photoBlobRef.current) {
+      URL.revokeObjectURL(photoBlobRef.current)
+      photoBlobRef.current = null
+    }
+  }
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
@@ -178,7 +186,11 @@ export function BrotherDialog({
   })
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      revokePhotoBlob()
+      return
+    }
+    revokePhotoBlob()
 
     if (brotherToEdit) {
       const children: Child[] = brotherToEdit.children || []
@@ -257,6 +269,7 @@ export function BrotherDialog({
       setPhotoPreview(null)
       imageUpload.reset()
     }
+    return () => revokePhotoBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brotherToEdit?.id, open])
 
@@ -264,10 +277,16 @@ export function BrotherDialog({
     const file = e.target.files?.[0]
     if (!file) return
 
+    revokePhotoBlob()
+    const blobUrl = URL.createObjectURL(file)
+    photoBlobRef.current = blobUrl
+    setPhotoPreview(blobUrl)
+
     const url = await imageUpload.handleUpload(file)
+    revokePhotoBlob()
     if (url) {
-      form.setValue('photoUrl', url)
       setPhotoPreview(url)
+      form.setValue('photoUrl', url)
     }
   }
 
@@ -375,19 +394,30 @@ export function BrotherDialog({
                       alt="Preview"
                       className="w-24 h-24 object-cover rounded-lg border"
                     />
+                    {imageUpload.isUploading && (
+                      <div className="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        <span className="sr-only">Enviando foto...</span>
+                      </div>
+                    )}
                     <Button
                       type="button"
                       variant="destructive"
                       size="icon"
                       className="absolute -top-2 -right-2 h-6 w-6"
                       onClick={handleRemovePhoto}
+                      disabled={imageUpload.isUploading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ) : (
                   <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    {imageUpload.isUploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                    )}
                   </div>
                 )}
                 <div className="flex-1">
@@ -399,7 +429,7 @@ export function BrotherDialog({
                     disabled={imageUpload.isUploading}
                     className="cursor-pointer"
                   />
-                  {imageUpload.isUploading && (
+                  {imageUpload.isUploading && !photoPreview && (
                     <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Enviando foto...

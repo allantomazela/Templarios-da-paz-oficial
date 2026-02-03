@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -61,6 +61,14 @@ export function CustomSectionDialog({
 }: CustomSectionDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const previewBlobRef = useRef<string | null>(null)
+
+  const revokePreviewBlob = () => {
+    if (previewBlobRef.current) {
+      URL.revokeObjectURL(previewBlobRef.current)
+      previewBlobRef.current = null
+    }
+  }
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
@@ -85,7 +93,11 @@ export function CustomSectionDialog({
   })
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      revokePreviewBlob()
+      return
+    }
+    revokePreviewBlob()
 
     if (sectionToEdit) {
       form.reset({
@@ -114,6 +126,7 @@ export function CustomSectionDialog({
       setPreviewImage(null)
       imageUpload.reset()
     }
+    return () => revokePreviewBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionToEdit, open])
 
@@ -121,10 +134,16 @@ export function CustomSectionDialog({
     const file = e.target.files?.[0]
     if (!file) return
 
+    revokePreviewBlob()
+    const blobUrl = URL.createObjectURL(file)
+    previewBlobRef.current = blobUrl
+    setPreviewImage(blobUrl)
+
     const url = await imageUpload.handleUpload(file)
+    revokePreviewBlob()
     if (url) {
-      form.setValue('imageUrl', url, { shouldDirty: true })
       setPreviewImage(url)
+      form.setValue('imageUrl', url, { shouldDirty: true })
     }
   }
 
@@ -209,14 +228,22 @@ export function CustomSectionDialog({
                 <FormLabel>Imagem da Seção</FormLabel>
                 <div className="flex flex-col gap-3">
                   <div className="relative aspect-video w-full border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden group">
-                    {imageUpload.isUploading ? (
+                    {previewImage ? (
+                      <>
+                        <img
+                          src={previewImage}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        {imageUpload.isUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-white" />
+                            <span className="sr-only">Enviando imagem...</span>
+                          </div>
+                        )}
+                      </>
+                    ) : imageUpload.isUploading ? (
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    ) : previewImage ? (
-                      <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
                     ) : (
                       <div className="flex flex-col items-center text-muted-foreground text-xs pointer-events-none">
                         <Upload className="h-8 w-8 mb-2 opacity-50" />

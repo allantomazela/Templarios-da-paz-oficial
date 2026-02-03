@@ -126,7 +126,7 @@ export function useImageUpload(
         toast({
           variant: 'destructive',
           title: 'Upload cancelado',
-          description: 'Demorou demais. Use uma imagem de até 800 px e 1 MB.',
+          description: 'Demorou demais. Use uma imagem de até 1200 px e 5 MB.',
         })
       }, SAFETY_LOADING_MS)
 

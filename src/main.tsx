@@ -55,6 +55,20 @@ window.addEventListener('unhandledrejection', (event) => {
     event.stopPropagation()
     return false
   }
+
+  // Chunk load error (404 em asset após novo deploy): forçar reload para buscar index e chunks novos
+  const isChunkLoadError =
+    errorMessage.includes('Failed to fetch dynamically imported module') ||
+    (errorMessage.includes('Loading chunk') && errorMessage.includes('failed'))
+  if (isChunkLoadError && typeof sessionStorage !== 'undefined') {
+    const key = 'templarios-chunk-reload'
+    if (sessionStorage.getItem(key) !== '1') {
+      sessionStorage.setItem(key, '1')
+      event.preventDefault()
+      window.location.reload()
+      return false
+    }
+  }
 }, true)
 
 // Register Service Worker for PWA
@@ -105,3 +119,12 @@ if ('serviceWorker' in navigator) {
 }
 
 createRoot(document.getElementById('root')!).render(<App />)
+
+// Limpar flag de chunk-reload após carregamento ok (permite novo reload após próximo deploy)
+setTimeout(() => {
+  try {
+    sessionStorage.removeItem('templarios-chunk-reload')
+  } catch {
+    // ignore
+  }
+}, 3000)

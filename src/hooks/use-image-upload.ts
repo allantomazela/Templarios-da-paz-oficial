@@ -122,6 +122,7 @@ export function useImageUpload(
           title: 'Erro no Upload',
           description: error instanceof Error ? error.message : errorMessage,
         })
+        if (inputRef.current) inputRef.current.value = ''
         return null
       } finally {
         setIsUploading(false)

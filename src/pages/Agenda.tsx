@@ -12,8 +12,6 @@ import {
   subDays,
   startOfWeek,
   endOfWeek,
-  isSameMonth,
-  parseISO,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -26,7 +24,6 @@ import {
   LayoutGrid,
   MapPin,
   Clock,
-  MoreVertical,
   CalendarDays,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -49,7 +46,6 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 
 import useChancellorStore from '@/stores/useChancellorStore'
 import { CalendarGrid } from '@/components/agenda/CalendarGrid'
@@ -220,7 +216,7 @@ export default function Agenda() {
         })
       }
       setIsEventDialogOpen(false)
-    } catch (error) {
+    } catch (_error) {
       logError('Error saving event', error)
       toast({
         variant: 'destructive',
@@ -253,7 +249,7 @@ export default function Agenda() {
           description: 'O evento foi removido da agenda.',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

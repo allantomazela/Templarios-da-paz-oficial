@@ -35,19 +35,11 @@ import {
   Ban,
   Loader2,
   Mail,
-  UserCog,
   Flower2,
   Moon,
   UserX,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
 
 export function UserManagement() {
   const {
@@ -110,7 +102,7 @@ export function UserManagement() {
         title: 'Permissão Atualizada',
         description: `A função de ${user.full_name} foi alterada para ${newRole}.`,
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
@@ -126,7 +118,7 @@ export function UserManagement() {
         title: 'Grau Atualizado',
         description: `O grau de ${user.full_name} foi alterado para ${newDegree}.`,
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
@@ -166,21 +158,6 @@ export function UserManagement() {
         )
       default:
         return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return (
-          <Badge variant="default" className="bg-primary/80">
-            Admin
-          </Badge>
-        )
-      case 'editor':
-        return <Badge variant="secondary">Editor</Badge>
-      default:
-        return <span className="text-sm text-muted-foreground">Membro</span>
     }
   }
 

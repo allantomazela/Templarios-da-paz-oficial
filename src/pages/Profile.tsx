@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useProfileStore } from '@/stores/useProfileStore'
 import { supabase } from '@/lib/supabase/client'
@@ -16,13 +16,7 @@ export default function Profile() {
   const [createdAt, setCreatedAt] = useState<string>()
   const [updatedAt, setUpdatedAt] = useState<string>()
 
-  useEffect(() => {
-    if (user?.id) {
-      loadProfile()
-    }
-  }, [user?.id])
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user?.id) return
 
     try {
@@ -42,7 +36,13 @@ export default function Profile() {
     } catch (error) {
       logError('Error loading profile', error)
     }
-  }
+  }, [fetchProfile, user?.id])
+
+  useEffect(() => {
+    if (user?.id) {
+      loadProfile()
+    }
+  }, [user?.id, loadProfile])
 
   if (loading || !profile) {
     return (

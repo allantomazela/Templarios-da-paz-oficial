@@ -41,7 +41,7 @@ interface AuthState {
 const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
 const PROFILE_TIMEOUT_MS = 3000
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
   loading: true,
@@ -66,7 +66,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (session) {
         // 2. Fetch Profile with Timeout Strategy
         let userProfile: Profile | null = null
-        let fetchError: any = null
 
         try {
           const timeoutPromise = new Promise((_, reject) =>
@@ -91,7 +90,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             timeoutPromise,
           ])) as Profile
         } catch (error) {
-          fetchError = error
           logWarning('Auth initialization warning: Profile fetch failed', error)
         }
 

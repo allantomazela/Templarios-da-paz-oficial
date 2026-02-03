@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 import useMinutesStore from '@/stores/useMinutesStore'
 import useAuthStore from '@/stores/useAuthStore'
-import { ArrowLeft, PenTool, CheckCircle2, Calendar, Download, Share2, FileText, Printer } from 'lucide-react'
+import { ArrowLeft, PenTool, CheckCircle2, Calendar, Share2, FileText, Printer } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
@@ -47,7 +47,7 @@ export default function MinutesDetail() {
         title: 'Assinado',
         description: 'Documento assinado digitalmente com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
@@ -90,7 +90,7 @@ ${currentMinute.signatures?.map(s => `- ${s.profile_name}`).join('\n') || 'Nenhu
           text: currentMinute.content.substring(0, 200) + '...',
           url: window.location.href,
         })
-      } catch (err) {
+      } catch (_err) {
         // Usuário cancelou ou erro
       }
     } else {

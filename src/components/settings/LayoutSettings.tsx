@@ -97,7 +97,7 @@ export function LayoutSettings() {
         title: 'Layout Atualizado',
         description: 'A ordem das seções da página inicial foi salva.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

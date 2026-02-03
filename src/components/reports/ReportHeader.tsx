@@ -6,14 +6,12 @@ import { ptBR } from 'date-fns/locale'
 interface ReportHeaderProps {
   title: string
   subtitle?: string
-  description?: string
   className?: string
 }
 
 export function ReportHeader({
   title,
   subtitle,
-  description,
   className = '',
 }: ReportHeaderProps) {
   const { logoUrl, contact, siteTitle } = useSiteSettingsStore()

@@ -324,7 +324,7 @@ export function BrotherDialog({
           description: 'Verifique o CEP digitado.',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

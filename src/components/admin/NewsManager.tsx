@@ -21,7 +21,6 @@ import useAuthStore from '@/stores/useAuthStore'
 import { Plus, Pencil, Trash2, CalendarDays, Loader2 } from 'lucide-react'
 import { NewsDialog } from './NewsDialog'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 

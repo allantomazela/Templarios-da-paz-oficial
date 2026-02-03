@@ -18,7 +18,6 @@ import {
   AlignRight,
   Undo,
   Redo,
-  Link as LinkIcon,
 } from 'lucide-react'
 import { Toggle } from '@/components/ui/toggle'
 import { Separator } from '@/components/ui/separator'

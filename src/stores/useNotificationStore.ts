@@ -10,7 +10,7 @@ interface NotificationState {
   requestPermission: (profileId: string) => Promise<void>
 }
 
-export const useNotificationStore = create<NotificationState>((set, get) => ({
+export const useNotificationStore = create<NotificationState>((set) => ({
   permission: 'default',
   loading: false,
   isSubscribed: false,

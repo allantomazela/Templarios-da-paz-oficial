@@ -23,7 +23,7 @@ import {
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Users, UserCheck, Calendar } from 'lucide-react'
-import { format, subDays, startOfMonth, parseISO, isAfter } from 'date-fns'
+import { format, subDays, parseISO, isAfter } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 const chartConfig = {

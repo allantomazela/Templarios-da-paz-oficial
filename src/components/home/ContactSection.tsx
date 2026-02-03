@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
-import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),

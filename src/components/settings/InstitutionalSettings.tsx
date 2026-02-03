@@ -23,7 +23,7 @@ import {
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2, Upload, Image as ImageIcon } from 'lucide-react'
+import { Loader2, Upload } from 'lucide-react'
 import { compressImage } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 
@@ -111,7 +111,7 @@ export function InstitutionalSettings() {
         title: 'Upload Concluído',
         description: 'Imagem carregada com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro no Upload',
@@ -149,7 +149,7 @@ export function InstitutionalSettings() {
         title: 'Conteúdo Atualizado',
         description: 'As informações institucionais foram salvas com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

@@ -101,7 +101,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('agape_sessions')
         .insert({
           ...session,

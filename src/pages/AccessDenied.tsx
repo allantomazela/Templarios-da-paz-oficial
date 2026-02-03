@@ -1,11 +1,9 @@
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
-import { ShieldAlert, LogOut, Clock, Ban } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Clock, Ban, LogOut } from 'lucide-react'
 
 export default function AccessDenied() {
   const { user, signOut } = useAuthStore()
-  const navigate = useNavigate()
 
   const handleLogout = async () => {
     try {

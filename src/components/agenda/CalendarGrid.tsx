@@ -9,7 +9,6 @@ import {
   isSameDay,
   isToday,
 } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CalendarEvent } from './EventDetailsSheet'
 
@@ -82,7 +81,7 @@ export function CalendarGrid({
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 grid-rows-5 md:grid-rows-auto flex-1 auto-rows-fr bg-muted/20 gap-px border-b">
-        {calendarDays.map((day, dayIdx) => {
+        {calendarDays.map((day) => {
           const dayEvents = getEventsForDay(day)
           const isCurrentMonth = isSameMonth(day, monthStart)
 

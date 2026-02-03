@@ -22,7 +22,7 @@ interface AdminNotificationState {
 }
 
 export const useAdminNotificationStore = create<AdminNotificationState>(
-  (set, get) => ({
+  (set) => ({
     notifications: [],
     loading: false,
     unreadCount: 0,

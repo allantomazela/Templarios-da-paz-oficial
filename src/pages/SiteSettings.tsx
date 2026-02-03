@@ -20,7 +20,6 @@ import {
   History,
   Type,
   Building2,
-  CreditCard,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'

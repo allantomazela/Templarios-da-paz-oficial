@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { toErrorMessage, withTimeout } from '@/lib/async-utils'
+
+const NEWS_SAVE_TIMEOUT_MS = 20000
 
 export interface NewsEvent {
   id: string
@@ -42,7 +45,7 @@ const mapRowToNews = (row: any): NewsEvent => ({
   updatedAt: row.updated_at,
 })
 
-export const useNewsStore = create<NewsState>((set, get) => ({
+export const useNewsStore = create<NewsState>((set) => ({
   news: [],
   loading: false,
 
@@ -54,7 +57,9 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        throw new Error(toErrorMessage(error, 'Falha ao salvar a publicacao.'))
+      }
 
       if (data) {
         set({ news: data.map(mapRowToNews) })
@@ -99,11 +104,15 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         is_published: news.isPublished,
         category: news.category,
       }
-      const { data, error } = await supabase
-        .from('news_events')
-        .insert(payload)
-        .select()
-        .single()
+      const { data, error } = await withTimeout(
+        supabase
+          .from('news_events')
+          .insert(payload)
+          .select()
+          .single(),
+        NEWS_SAVE_TIMEOUT_MS,
+        'Salvamento demorou demais. Verifique sua conexao e tente novamente.',
+      )
 
       if (error) throw error
 
@@ -114,7 +123,9 @@ export const useNewsStore = create<NewsState>((set, get) => ({
       }
     } catch (error) {
       logError('Error adding news:', error)
-      throw error
+      throw new Error(
+        toErrorMessage(error, 'Falha ao salvar a publicacao.'),
+      )
     }
   },
 
@@ -133,14 +144,20 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         updates.is_published = news.isPublished
       if (news.category !== undefined) updates.category = news.category
 
-      const { data, error } = await supabase
-        .from('news_events')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single()
+      const { data, error } = await withTimeout(
+        supabase
+          .from('news_events')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single(),
+        NEWS_SAVE_TIMEOUT_MS,
+        'Salvamento demorou demais. Verifique sua conexao e tente novamente.',
+      )
 
-      if (error) throw error
+      if (error) {
+        throw new Error(toErrorMessage(error, 'Falha ao atualizar a publicacao.'))
+      }
 
       if (data) {
         set((state) => ({
@@ -149,7 +166,9 @@ export const useNewsStore = create<NewsState>((set, get) => ({
       }
     } catch (error) {
       logError('Error updating news:', error)
-      throw error
+      throw new Error(
+        toErrorMessage(error, 'Falha ao atualizar a publicacao.'),
+      )
     }
   },
 

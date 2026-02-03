@@ -7,6 +7,9 @@ interface HistorySectionProps {
 }
 
 export function HistorySection({ title, text, imageUrl }: HistorySectionProps) {
+  const fallbackImageUrl = '/placeholder.svg'
+  const resolvedImageUrl = imageUrl || fallbackImageUrl
+
   return (
     <section
       id="quem-somos"
@@ -27,12 +30,15 @@ export function HistorySection({ title, text, imageUrl }: HistorySectionProps) {
           </div>
           <div className="relative aspect-video md:aspect-square overflow-hidden rounded-xl shadow-xl">
             <img
-              src={
-                imageUrl ||
-                'https://img.usecurling.com/p/800/800?q=old%20books%20library'
-              }
+              src={resolvedImageUrl}
               alt="História da Loja"
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              onError={(event) => {
+                const target = event.currentTarget
+                if (target.src !== fallbackImageUrl) {
+                  target.src = fallbackImageUrl
+                }
+              }}
             />
           </div>
         </div>

@@ -23,7 +23,6 @@ interface Payment {
 
 export default function MyPayments() {
   const [payments, setPayments] = useState<Payment[]>([])
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const supabaseAny = supabase as any
 
   const loadPayments = useAsyncOperation(
@@ -37,7 +36,6 @@ export default function MyPayments() {
         throw new Error('Usuário não autenticado.')
       }
 
-      setCurrentUserId(user.id)
 
       const mappedPayments: Payment[] = []
 

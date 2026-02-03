@@ -19,7 +19,7 @@ interface MediaState {
   deleteFile: (fileName: string) => Promise<void>
 }
 
-export const useMediaStore = create<MediaState>((set, get) => ({
+export const useMediaStore = create<MediaState>((set) => ({
   files: [],
   loading: false,
 

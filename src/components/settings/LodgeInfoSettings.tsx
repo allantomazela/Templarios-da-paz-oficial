@@ -60,7 +60,6 @@ export function LodgeInfoSettings() {
   const { toast } = useToast()
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
-  const [logoPreview, setLogoPreview] = useState(logoUrl)
 
   const form = useForm({
     resolver: zodResolver(lodgeInfoSchema),

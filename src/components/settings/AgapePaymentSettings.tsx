@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -23,7 +23,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { Loader2, Save, CreditCard, QrCode } from 'lucide-react'
+import { Loader2, Save, CreditCard } from 'lucide-react'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 const paymentSettingsSchema = z.object({
@@ -37,7 +37,7 @@ const paymentSettingsSchema = z.object({
 type PaymentSettingsFormValues = z.infer<typeof paymentSettingsSchema>
 
 export function AgapePaymentSettings() {
-  const { agapePix, updateAgapePaymentSettings, fetchSettings } = useSiteSettingsStore()
+  const { agapePix, updateAgapePaymentSettings } = useSiteSettingsStore()
   const { toast } = useToast()
   const prevValuesRef = useRef<string>('')
 
@@ -78,7 +78,7 @@ export function AgapePaymentSettings() {
       })
     },
     {
-      onError: (error) => {
+      onError: () => {
         toast({
           variant: 'destructive',
           title: 'Erro ao salvar',

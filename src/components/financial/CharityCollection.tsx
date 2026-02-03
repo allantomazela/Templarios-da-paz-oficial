@@ -45,7 +45,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -61,7 +60,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Transaction, BankAccount, Event } from '@/lib/data'
+import { Transaction, BankAccount } from '@/lib/data'
 
 interface TransactionFromDB {
   id: string

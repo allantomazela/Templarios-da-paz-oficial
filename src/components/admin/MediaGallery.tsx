@@ -51,7 +51,7 @@ export function MediaGallery() {
         title: 'Arquivo Removido',
         description: 'O arquivo foi excluído com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

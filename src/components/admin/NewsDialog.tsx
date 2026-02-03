@@ -41,9 +41,14 @@ import {
   NEWS_IMAGE_RULE_LABEL,
 } from '@/constants/upload-rules'
 
+const MAX_NEWS_CONTENT_CHARS = 5000
+
 const newsSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
-  content: z.string().min(10, 'Conteúdo muito curto'),
+  content: z
+    .string()
+    .min(10, 'Conteúdo muito curto')
+    .max(MAX_NEWS_CONTENT_CHARS, 'Conteúdo excede o limite permitido'),
   imageUrl: z.string().optional(),
   eventDate: z.string().optional(),
   isPublished: z.boolean().default(true),
@@ -139,6 +144,8 @@ export function NewsDialog({
     return () => revokePreviewBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newsToEdit, open])
+
+  const contentValue = form.watch('content') || ''
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -273,9 +280,13 @@ export function NewsDialog({
                     <Textarea
                       placeholder="Escreva o conteúdo completo..."
                       className="min-h-[150px]"
+                      maxLength={MAX_NEWS_CONTENT_CHARS}
                       {...field}
                     />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    {contentValue.length}/{MAX_NEWS_CONTENT_CHARS} caracteres
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

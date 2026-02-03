@@ -138,7 +138,7 @@ export function AgapeConsumptionSimple() {
         setQuantity(1)
         fetchConsumptions(selectedSession)
       }
-    } catch (err) {
+    } catch (_err) {
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro inesperado ao adicionar o consumo.',

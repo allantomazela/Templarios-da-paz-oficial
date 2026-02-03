@@ -25,7 +25,7 @@ export function FormHeader({
   icon,
   className = '',
 }: FormHeaderProps) {
-  const { logoUrl, siteTitle } = useSiteSettingsStore()
+  const { logoUrl } = useSiteSettingsStore()
 
   return (
     <div

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -32,27 +32,29 @@ export function EventNotifications({ event }: EventNotificationsProps) {
     (b) => b.status === 'Ativo',
   ).length
 
-  const templates: Record<string, { subject: string; body: string }> = {
-    invitation: {
-      subject: `Convite: ${event.title}`,
-      body: `Prezado Irmão,\n\nConvocamos vossa presença para o evento "${event.title}", a realizar-se no dia ${event.date} às ${event.time}, no local ${event.location}.\n\nContamos com sua presença.\n\nFraternalmente,\nA Secretaria.`,
-    },
-    reminder: {
-      subject: `Lembrete: ${event.title} é amanhã`,
-      body: `Prezado Irmão,\n\nLembramos que o evento "${event.title}" ocorrerá em breve. Não esqueça de confirmar sua presença.\n\nDetalhes: ${event.description || 'Sem detalhes adicionais.'}\n\nFraternalmente,\nA Secretaria.`,
-    },
-    cancellation: {
-      subject: `CANCELAMENTO: ${event.title}`,
-      body: `Prezado Irmão,\n\nInformamos com pesar que o evento "${event.title}" agendado para ${event.date} foi CANCELADO.\n\nAguarde novas instruções.\n\nFraternalmente,\nA Secretaria.`,
-    },
-  }
+  const templates: Record<string, { subject: string; body: string }> = useMemo(() => {
+    return {
+      invitation: {
+        subject: `Convite: ${event.title}`,
+        body: `Prezado Irmão,\n\nConvocamos vossa presença para o evento "${event.title}", a realizar-se no dia ${event.date} às ${event.time}, no local ${event.location}.\n\nContamos com sua presença.\n\nFraternalmente,\nA Secretaria.`,
+      },
+      reminder: {
+        subject: `Lembrete: ${event.title} é amanhã`,
+        body: `Prezado Irmão,\n\nLembramos que o evento "${event.title}" ocorrerá em breve. Não esqueça de confirmar sua presença.\n\nDetalhes: ${event.description || 'Sem detalhes adicionais.'}\n\nFraternalmente,\nA Secretaria.`,
+      },
+      cancellation: {
+        subject: `CANCELAMENTO: ${event.title}`,
+        body: `Prezado Irmão,\n\nInformamos com pesar que o evento "${event.title}" agendado para ${event.date} foi CANCELADO.\n\nAguarde novas instruções.\n\nFraternalmente,\nA Secretaria.`,
+      },
+    }
+  }, [event])
 
   useEffect(() => {
     if (templates[template]) {
       setSubject(templates[template].subject)
       setMessage(templates[template].body)
     }
-  }, [template, event])
+  }, [template, templates])
 
   const handleSend = () => {
     setIsSending(true)

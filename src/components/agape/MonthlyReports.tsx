@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/table'
 import { AgapePaymentReport } from './AgapePaymentReport'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { useReactToPrint } from 'react-to-print'
 import { useToast } from '@/hooks/use-toast'
@@ -31,7 +30,6 @@ import { useToast } from '@/hooks/use-toast'
 export function MonthlyReports() {
   const { sessions, fetchSessions, fetchConsumptions } = useAgapeStore()
   const { agapePix } = useSiteSettingsStore()
-  const { isAgapeAdmin } = useAgapePermissions()
   const { toast } = useToast()
   const reportRef = useRef<HTMLDivElement>(null)
   const [selectedMonth, setSelectedMonth] = useState<string>(

@@ -63,7 +63,7 @@ export function TypographySettings() {
         title: 'Tipografia Atualizada',
         description: 'As configurações de tipografia foram salvas com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

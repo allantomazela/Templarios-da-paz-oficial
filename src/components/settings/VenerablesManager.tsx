@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Card,
   CardContent,
@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast'
 export function VenerablesManager() {
   const { venerables, addVenerable, updateVenerable, deleteVenerable, reorderVenerables } =
     useSiteSettingsStore()
+  const { toast } = useToast()
 
   const dialog = useDialog()
   const [selectedVenerable, setSelectedVenerable] = useState<Venerable | null>(
@@ -96,7 +97,7 @@ export function VenerablesManager() {
         title: 'Ordem atualizada',
         description: 'A ordem dos veneráveis foi atualizada com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
@@ -120,7 +121,7 @@ export function VenerablesManager() {
         title: 'Ordem atualizada',
         description: 'A ordem dos veneráveis foi atualizada com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

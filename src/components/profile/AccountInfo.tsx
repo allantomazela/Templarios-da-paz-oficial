@@ -9,15 +9,7 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Profile } from '@/stores/useAuthStore'
-import {
-  User,
-  Mail,
-  Shield,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  XCircle,
-} from 'lucide-react'
+import { Shield, Calendar, CheckCircle2, Clock, XCircle } from 'lucide-react'
 
 interface AccountInfoProps {
   profile: Profile

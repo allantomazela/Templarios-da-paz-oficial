@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AlertTriangle, CheckCircle } from 'lucide-react'
-import { formatCPF, formatPhone, formatCEP, formatDateBR } from '@/lib/format-utils'
+import { formatCPF, formatPhone, formatCEP } from '@/lib/format-utils'
 import { supabase } from '@/lib/supabase/client'
 import { useState, useEffect } from 'react'
 
@@ -19,6 +19,8 @@ interface BrotherDetailsProps {
   onOpenChange: (open: boolean) => void
   brother: Brother | null
 }
+
+const supabaseAny = supabase as any
 
 export function BrotherDetails({
   open,
@@ -32,11 +34,6 @@ export function BrotherDetails({
     amount: number
     status: string
   }>>([])
-  const [loadingContributions, setLoadingContributions] = useState(false)
-  const supabaseAny = supabase as any
-
-  if (!brother) return null
-
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-'
     try {
@@ -46,12 +43,10 @@ export function BrotherDetails({
     }
   }
 
-  // Buscar contribuições do banco de dados
   useEffect(() => {
     if (!brother?.id || !open) return
 
     const loadContributions = async () => {
-      setLoadingContributions(true)
       try {
         // Buscar contribuições pendentes do irmão
         // Nota: A tabela contributions usa brother_id que referencia profiles.id
@@ -82,13 +77,13 @@ export function BrotherDetails({
       } catch (error) {
         console.error('Erro ao carregar contribuições:', error)
         setContributions([])
-      } finally {
-        setLoadingContributions(false)
       }
     }
 
     loadContributions()
   }, [brother?.id, open])
+
+  if (!brother) return null
 
   const brotherContributions = contributions
 

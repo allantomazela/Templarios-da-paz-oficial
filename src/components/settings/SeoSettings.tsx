@@ -34,7 +34,7 @@ export function SeoSettings() {
         title: 'SEO Atualizado',
         description: 'As configurações de busca foram salvas com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

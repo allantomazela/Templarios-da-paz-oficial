@@ -26,7 +26,6 @@ export function MinutesList() {
     createMinute,
     updateMinute,
     deleteMinute,
-    loading,
   } = useMinutesStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()

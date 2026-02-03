@@ -29,7 +29,7 @@ export async function compressImage(
       img.src = e.target?.result as string
     }
 
-    reader.onerror = (e) => {
+    reader.onerror = (_e) => {
       clearTimeout(timeoutId)
       reject(new Error('Erro ao ler arquivo de imagem'))
     }

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Table,
   TableBody,
@@ -28,14 +28,6 @@ export function AttendanceManager() {
     null,
   )
   const dialog = useDialog()
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  // Força re-render quando eventos mudam
-  useEffect(() => {
-    devLog(`AttendanceManager: Eventos mudaram - Total: ${events.length}`)
-    setRefreshKey((prev) => prev + 1)
-  }, [events.length])
-
   // Debug: Log events count
   devLog(`AttendanceManager: Total de eventos no store: ${events.length}`)
 
@@ -71,7 +63,7 @@ export function AttendanceManager() {
 
     devLog(`AttendanceManager: Eventos processados: ${merged.length}`)
     return merged
-  }, [events, sessionRecords, refreshKey])
+  }, [events, sessionRecords])
 
   const saveOperation = useAsyncOperation(
     async () => {

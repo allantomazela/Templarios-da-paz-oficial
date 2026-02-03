@@ -1,11 +1,4 @@
 import { NewsManager } from '@/components/admin/NewsManager'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
 import { NEWS_IMAGE_RULE_LABEL } from '@/constants/upload-rules'

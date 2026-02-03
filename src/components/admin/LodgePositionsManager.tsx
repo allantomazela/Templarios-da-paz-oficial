@@ -53,7 +53,6 @@ import {
 } from '@/stores/useLodgePositionsStore'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useDialog } from '@/hooks/use-dialog'
-import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import {
   Crown,
@@ -99,7 +98,6 @@ interface User {
 }
 
 export function LodgePositionsManager() {
-  const { toast } = useToast()
   const {
     positions,
     history,

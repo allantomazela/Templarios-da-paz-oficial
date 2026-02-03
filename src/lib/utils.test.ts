@@ -4,8 +4,9 @@ import { cn, hexToHSL } from './utils'
 describe('utils', () => {
   describe('cn', () => {
     it('deve mesclar classes corretamente', () => {
+      const includeBar = false
       expect(cn('foo', 'bar')).toBe('foo bar')
-      expect(cn('foo', false && 'bar', 'baz')).toBe('foo baz')
+      expect(cn('foo', includeBar && 'bar', 'baz')).toBe('foo baz')
       expect(cn({ foo: true, bar: false })).toBe('foo')
     })
 

@@ -36,7 +36,6 @@ import {
 } from 'lucide-react'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -246,7 +245,7 @@ export function ContactMessagesList() {
       try {
         updateData.replied_at = new Date().toISOString()
         updateData.replied_by = user.id
-      } catch (e) {
+      } catch (_e) {
         // Ignora se não conseguir adicionar
       }
 

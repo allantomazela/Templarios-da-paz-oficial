@@ -5,7 +5,6 @@ import { z } from 'zod'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog'

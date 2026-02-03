@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, TrendingUp, Loader2 } from 'lucide-react'
 import { Budget, FinancialGoal, Transaction } from '@/lib/data'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'

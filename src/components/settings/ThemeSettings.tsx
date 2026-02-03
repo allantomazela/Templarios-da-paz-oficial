@@ -82,7 +82,7 @@ export function ThemeSettings() {
         title: 'Tema Atualizado',
         description: 'As configurações visuais foram salvas com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

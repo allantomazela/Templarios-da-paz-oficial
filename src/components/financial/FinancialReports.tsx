@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -135,7 +135,7 @@ export function FinancialReports() {
   })
 
   // Função para obter o intervalo de datas baseado no período selecionado
-  const getDateRange = () => {
+  const getDateRange = useCallback(() => {
     const now = new Date()
     switch (period) {
       case 'current_month':
@@ -157,7 +157,7 @@ export function FinancialReports() {
       default:
         return null // null significa todos os dados
     }
-  }
+  }, [period])
 
   // Filtrar transações por período
   const filteredTransactions = useMemo(() => {
@@ -175,7 +175,7 @@ export function FinancialReports() {
         return false
       }
     })
-  }, [transactions, period])
+  }, [transactions, getDateRange])
 
   // Agregar dados para os gráficos
   const incomeByCategory = useMemo(() => {

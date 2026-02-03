@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { FormHeader } from '@/components/ui/form-header'
+import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useChancellorStore from '@/stores/useChancellorStore'
@@ -36,7 +37,6 @@ import {
   Trash2,
   AlertCircle,
   Clock,
-  MapPin,
   Calendar,
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'

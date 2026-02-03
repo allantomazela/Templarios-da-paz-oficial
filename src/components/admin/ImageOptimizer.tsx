@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -20,8 +19,6 @@ import useImageOptimizationStore from '@/stores/useImageOptimizationStore'
 import {
   Play,
   RotateCw,
-  CheckCircle,
-  AlertCircle,
   Loader2,
   Image as ImageIcon,
 } from 'lucide-react'
@@ -36,7 +33,6 @@ export function ImageOptimizer() {
     progress,
     scanImages,
     processAll,
-    reset,
   } = useImageOptimizationStore()
 
   const pendingCount = tasks.filter((t) => t.status === 'pending').length

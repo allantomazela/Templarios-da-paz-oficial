@@ -1,4 +1,4 @@
-import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
@@ -9,10 +9,9 @@ import { Button } from '@/components/ui/button'
 import { NotificationBanner } from '@/components/NotificationBanner'
 
 export default function DashboardLayout() {
-  const { isAuthenticated, user, loading, signOut, initialize } = useAuthStore()
+  const { isAuthenticated, user, loading, signOut } = useAuthStore()
   const isMobile = useIsMobile()
   const location = useLocation()
-  const navigate = useNavigate()
   const [showTimeout, setShowTimeout] = useState(false)
 
   // Resilient Timeout Logic: 3 seconds

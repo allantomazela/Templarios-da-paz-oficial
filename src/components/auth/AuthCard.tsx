@@ -136,7 +136,7 @@ export function AuthCard() {
         })
         navigate('/dashboard')
       }
-    } catch (e) {
+    } catch (_e) {
       setLoginError('Ocorreu um erro inesperado.')
     } finally {
       setIsLoading(false)
@@ -181,7 +181,7 @@ export function AuthCard() {
         })
         registerForm.reset()
       }
-    } catch (e) {
+    } catch (_e) {
       toast({
         variant: 'destructive',
         title: 'Erro no Registro',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { logError } from '@/lib/logger'
 import {
   Dialog,
@@ -17,7 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Loader2, Trash2 } from 'lucide-react'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { useToast } from '@/hooks/use-toast'
@@ -67,15 +66,7 @@ export function ConsumptionManager({
   const sessionConsumptions = consumptions.filter((c) => c.session_id === sessionId)
   const activeMenuItems = menuItems.filter((m) => m.is_active)
 
-  useEffect(() => {
-    if (open && sessionId) {
-      fetchConsumptions(sessionId)
-      loadBrothers()
-      loadSessionTotal()
-    }
-  }, [open, sessionId])
-
-  const loadBrothers = async () => {
+  const loadBrothers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -88,14 +79,22 @@ export function ConsumptionManager({
     } catch (error) {
       logError('Error loading brothers', error)
     }
-  }
+  }, [])
 
-  const loadSessionTotal = async () => {
+  const loadSessionTotal = useCallback(async () => {
     const total = await getSessionTotal(sessionId)
     if (total) {
       setSessionTotal(total)
     }
-  }
+  }, [getSessionTotal, sessionId])
+
+  useEffect(() => {
+    if (open && sessionId) {
+      fetchConsumptions(sessionId)
+      loadBrothers()
+      loadSessionTotal()
+    }
+  }, [open, sessionId, fetchConsumptions, loadBrothers, loadSessionTotal])
 
   const handleAddConsumption = async () => {
     // Proteção contra cliques duplos
@@ -164,7 +163,7 @@ export function ConsumptionManager({
         setQuantity(1)
         loadSessionTotal()
       }
-    } catch (err) {
+    } catch (_err) {
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro inesperado ao adicionar o consumo.',

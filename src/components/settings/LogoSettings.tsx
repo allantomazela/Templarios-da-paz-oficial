@@ -68,7 +68,7 @@ export function LogoSettings() {
         title: 'Upload Concluído',
         description: 'A imagem do logo foi carregada com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       logError('Error uploading logo', error)
       toast({
         variant: 'destructive',
@@ -123,7 +123,7 @@ export function LogoSettings() {
         title: 'Upload Concluído',
         description: 'O favicon foi carregado com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       clearTimeout(timeoutId)
       logError('Erro no upload do favicon', error)
       toast({
@@ -149,7 +149,7 @@ export function LogoSettings() {
         title: 'Logo Atualizado',
         description: 'O logo do site foi atualizado com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
@@ -168,7 +168,7 @@ export function LogoSettings() {
         title: 'Favicon Atualizado',
         description: 'O ícone do navegador foi atualizado com sucesso.',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Erro',

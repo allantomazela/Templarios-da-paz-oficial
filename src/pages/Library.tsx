@@ -18,8 +18,26 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { LibraryItem } from '@/lib/data'
-import { Search, FileText, Download, Lock, AlertCircle, Loader2, Upload } from 'lucide-react'
+import { Search, FileText, Download, Lock, AlertCircle, Loader2, Upload, Pencil, Trash2 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
@@ -113,7 +131,15 @@ export default function LibraryPage() {
   const [uploadDegree, setUploadDegree] = useState<MasonicDegree>('Aprendiz')
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [editingItem, setEditingItem] = useState<LibraryItem | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDegree, setEditDegree] = useState<MasonicDegree>('Aprendiz')
+  const [editFile, setEditFile] = useState<File | null>(null)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
   const supabaseAny = supabase as any
 
   const userDegree = user?.profile?.masonic_degree as MasonicDegree | undefined
@@ -220,6 +246,105 @@ export default function LibraryPage() {
       })
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const openEdit = (item: LibraryItem) => {
+    setEditingItem(item)
+    setEditTitle(item.title)
+    setEditDegree(item.degree as MasonicDegree)
+    setEditFile(null)
+    if (editFileInputRef.current) editFileInputRef.current.value = ''
+  }
+
+  const closeEdit = () => {
+    setEditingItem(null)
+    setEditTitle('')
+    setEditDegree('Aprendiz')
+    setEditFile(null)
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingItem || !editTitle.trim()) return
+    setIsSavingEdit(true)
+    try {
+      let fileUrl = libraryItems.find((i) => i.id === editingItem.id)?.fileUrl ?? editingItem.fileUrl
+      if (editFile) {
+        if (editFile.type !== 'application/pdf') {
+          toast({
+            variant: 'destructive',
+            title: 'Arquivo inválido',
+            description: 'Apenas arquivos PDF são permitidos.',
+          })
+          setIsSavingEdit(false)
+          return
+        }
+        fileUrl = await uploadToStorage(editFile, 'site-assets', 'library')
+      }
+      const { error } = await supabase
+        .from('library_items')
+        .update({
+          title: editTitle.trim(),
+          degree: editDegree,
+          ...(fileUrl && { file_url: fileUrl }),
+          ...(editFile && {
+            file_name: editFile.name,
+            file_size: editFile.size,
+          }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingItem.id)
+      if (error) throw error
+      toast({ title: 'Documento atualizado', description: 'As alterações foram salvas.' })
+      closeEdit()
+      loadLibraryItems.execute()
+    } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar',
+        description: getSaveErrorMessage(error),
+      })
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetId) return
+    const item = libraryItems.find((i) => i.id === deleteTargetId)
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase.from('library_items').delete().eq('id', deleteTargetId)
+      if (error) throw error
+      // Remover arquivo do Storage (opcional; falha não bloqueia)
+      if (item?.fileUrl) {
+        try {
+          const path = item.fileUrl.split('/').slice(-2).join('/')
+          await supabase.storage.from('site-assets').remove([path])
+        } catch {
+          // Ignorar; registro já foi removido
+        }
+      }
+      toast({ title: 'Documento excluído', description: 'O item foi removido da biblioteca.' })
+      setDeleteTargetId(null)
+      loadLibraryItems.execute()
+    } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir',
+        description: getSaveErrorMessage(error),
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -488,23 +613,44 @@ export default function LibraryPage() {
                               Grau: {item.degree} • Tipo: {item.type}
                             </CardDescription>
                           </CardContent>
-                          <CardFooter>
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => {
-                                // Use fileUrl already stored in state
-                                const fullItem = libraryItems.find((i) => i.id === item.id)
-                                if (fullItem?.fileUrl) {
-                                  // Open file URL in new tab or download
-                                  window.open(fullItem.fileUrl, '_blank')
-                                } else {
-                                  console.error('File URL not available for this item')
-                                }
-                              }}
-                            >
-                              <Download className="mr-2 h-4 w-4" /> Baixar
-                            </Button>
+                          <CardFooter className="flex flex-col gap-2">
+                            <div className="flex w-full gap-2">
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => {
+                                  const fullItem = libraryItems.find((i) => i.id === item.id)
+                                  if (fullItem?.fileUrl) {
+                                    window.open(fullItem.fileUrl, '_blank')
+                                  }
+                                }}
+                              >
+                                <Download className="mr-2 h-4 w-4" /> Baixar
+                              </Button>
+                              {canUpload && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Editar"
+                                    onClick={() => {
+                                      const full = libraryItems.find((i) => i.id === item.id)
+                                      if (full) openEdit(full)
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Excluir"
+                                    onClick={() => setDeleteTargetId(item.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </CardFooter>
                         </Card>
                       )
@@ -516,6 +662,102 @@ export default function LibraryPage() {
           })}
         </Tabs>
       )}
+
+      {/* Dialog Editar documento */}
+      <Dialog open={!!editingItem} onOpenChange={(open) => !open && closeEdit()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar documento</DialogTitle>
+            <DialogDescription>
+              Altere o título, o grau com acesso ou substitua o arquivo PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Título</Label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Título do documento"
+                disabled={isSavingEdit}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-degree">Grau com acesso</Label>
+              <Select
+                value={editDegree}
+                onValueChange={(v) => setEditDegree(v as MasonicDegree)}
+                disabled={isSavingEdit}
+              >
+                <SelectTrigger id="edit-degree">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Aprendiz">Grau I - Aprendiz</SelectItem>
+                  <SelectItem value="Companheiro">Grau II - Companheiro</SelectItem>
+                  <SelectItem value="Mestre">Grau III - Mestre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-file">Substituir arquivo (opcional)</Label>
+              <Input
+                id="edit-file"
+                ref={editFileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
+                disabled={isSavingEdit}
+              />
+              {editFile && (
+                <p className="text-xs text-muted-foreground">
+                  Novo arquivo: {editFile.name} ({(editFile.size / 1024).toFixed(1)} KB)
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeEdit} disabled={isSavingEdit}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSavingEdit}>
+                {isSavingEdit ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Salvar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação Excluir */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O documento será removido da biblioteca e os irmãos
+              não poderão mais baixá-lo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDeleteConfirm()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

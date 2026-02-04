@@ -8,14 +8,25 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LibraryItem } from '@/lib/data'
-import { Search, FileText, Download, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Search, FileText, Download, Lock, AlertCircle, Loader2, Upload } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { useToast } from '@/hooks/use-toast'
+import { uploadToStorage } from '@/lib/upload-utils'
+import { getSaveErrorMessage, isAuthError } from '@/lib/auth-utils'
 
 interface LibraryItemFromDB {
   id: string
@@ -87,14 +98,26 @@ function getAccessibleDegrees(
   return []
 }
 
+/** Apenas admin ou editor (Irmão Secretário) podem enviar PDFs. */
+function canUploadLibrary(role: string | undefined): boolean {
+  return role === 'admin' || role === 'editor'
+}
+
 export default function LibraryPage() {
   const { user } = useAuthStore()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [uploadTitle, setUploadTitle] = useState('')
+  const [uploadDegree, setUploadDegree] = useState<MasonicDegree>('Aprendiz')
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const supabaseAny = supabase as any
 
   const userDegree = user?.profile?.masonic_degree as MasonicDegree | undefined
+  const canUpload = canUploadLibrary(user?.role)
 
   // Load library items from Supabase
   const loadLibraryItems = useAsyncOperation(
@@ -119,6 +142,10 @@ export default function LibraryPage() {
 
         setLibraryItems(mapped)
       } catch (error) {
+        if (isAuthError(error)) {
+          useAuthStore.getState().clearSessionAndRedirectToLogin()
+          return
+        }
         console.error('Error loading library items:', error)
       } finally {
         setLoading(false)
@@ -135,6 +162,66 @@ export default function LibraryPage() {
     loadLibraryItems.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id || !uploadTitle.trim() || !uploadFile) {
+      toast({
+        variant: 'destructive',
+        title: 'Preencha os campos',
+        description: 'Informe o título e selecione um arquivo PDF.',
+      })
+      return
+    }
+    if (uploadFile.type !== 'application/pdf') {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo inválido',
+        description: 'Apenas arquivos PDF são permitidos.',
+      })
+      return
+    }
+    setIsUploading(true)
+    try {
+      const publicUrl = await uploadToStorage(
+        uploadFile,
+        'site-assets',
+        'library',
+      )
+      const { error } = await supabase.from('library_items').insert({
+        title: uploadTitle.trim(),
+        type: 'PDF',
+        degree: uploadDegree,
+        file_url: publicUrl,
+        file_name: uploadFile.name,
+        file_size: uploadFile.size,
+        added_at: new Date().toISOString().slice(0, 10),
+        uploaded_by: user.id,
+      })
+      if (error) throw error
+      toast({
+        title: 'PDF enviado',
+        description: 'O arquivo foi disponibilizado na biblioteca.',
+      })
+      setUploadTitle('')
+      setUploadDegree('Aprendiz')
+      setUploadFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      loadLibraryItems.execute()
+    } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao enviar',
+        description: getSaveErrorMessage(error),
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   // Obter graus acessíveis
   const accessibleDegrees = useMemo(
@@ -228,7 +315,7 @@ export default function LibraryPage() {
         </Alert>
       )}
 
-      <div className="flex items-center space-x-2 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -239,6 +326,86 @@ export default function LibraryPage() {
           />
         </div>
       </div>
+
+      {canUpload && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Enviar PDF para a Biblioteca
+            </CardTitle>
+            <CardDescription>
+              Como Secretário, você pode disponibilizar arquivos em PDF para
+              download pelos irmãos. Selecione o grau que pode acessar o
+              material.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="upload-title">Título do documento</Label>
+                  <Input
+                    id="upload-title"
+                    value={uploadTitle}
+                    onChange={(e) => setUploadTitle(e.target.value)}
+                    placeholder="Ex.: Ritual do Grau de Aprendiz"
+                    disabled={isUploading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="upload-degree">Grau com acesso</Label>
+                  <Select
+                    value={uploadDegree}
+                    onValueChange={(v) => setUploadDegree(v as MasonicDegree)}
+                    disabled={isUploading}
+                  >
+                    <SelectTrigger id="upload-degree">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Aprendiz">Grau I - Aprendiz</SelectItem>
+                      <SelectItem value="Companheiro">
+                        Grau II - Companheiro
+                      </SelectItem>
+                      <SelectItem value="Mestre">Grau III - Mestre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="upload-file">Arquivo PDF</Label>
+                <Input
+                  id="upload-file"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                  disabled={isUploading}
+                />
+                {uploadFile && (
+                  <p className="text-xs text-muted-foreground">
+                    {uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+              </div>
+              <Button type="submit" disabled={isUploading}>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Enviar PDF
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">

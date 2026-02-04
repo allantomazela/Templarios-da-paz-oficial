@@ -255,6 +255,56 @@ export type Database = {
           },
         ]
       }
+      library_items: {
+        Row: {
+          id: string
+          title: string
+          type: string
+          degree: string
+          file_url: string
+          file_name: string | null
+          file_size: number | null
+          added_at: string
+          uploaded_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          type?: string
+          degree: string
+          file_url: string
+          file_name?: string | null
+          file_size?: number | null
+          added_at?: string
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          type?: string
+          degree?: string
+          file_url?: string
+          file_name?: string | null
+          file_size?: number | null
+          added_at?: string
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_items_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lodge_position_history: {
         Row: {
           created_at: string

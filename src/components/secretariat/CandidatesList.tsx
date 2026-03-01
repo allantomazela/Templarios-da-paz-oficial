@@ -23,6 +23,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -35,6 +42,7 @@ import {
 import { Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { CandidateDialog } from './CandidateDialog'
 import { CandidateDetail } from './CandidateDetail'
+import { PhaseDefinitionsManager } from './PhaseDefinitionsManager'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
@@ -87,6 +95,7 @@ export function CandidatesList() {
   const [selectedCandidate, setSelectedCandidate] = useState<InitiationCandidate | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
   const dialog = useDialog()
   const detailDialog = useDialog()
   const hasLoadedRef = useRef(false)
@@ -298,6 +307,33 @@ export function CandidatesList() {
     }
   }
 
+  const updateStatusInList = async (candidateId: string, newStatus: InitiationCandidateStatus) => {
+    setUpdatingStatusId(candidateId)
+    try {
+      const { error } = await supabaseAny
+        .from('initiation_candidates')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', candidateId)
+      if (error) throw error
+      setCandidates((prev) =>
+        prev.map((c) => (c.id === candidateId ? { ...c, status: newStatus } : c)),
+      )
+      toast({ title: 'Status atualizado', description: 'Alteração salva.' })
+    } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar status',
+        description: getSaveErrorMessage(error),
+      })
+    } finally {
+      setUpdatingStatusId(null)
+    }
+  }
+
   const handleDeleteConfirm = async () => {
     if (!deleteTargetId) return
     setIsDeleting(true)
@@ -356,6 +392,11 @@ export function CandidatesList() {
 
   return (
     <div className="space-y-4">
+      <PhaseDefinitionsManager
+        phases={phaseDefinitions}
+        onUpdated={() => loadPhaseDefinitions.execute()}
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -422,7 +463,27 @@ export function CandidatesList() {
                     {format(new Date(c.indicationDate), 'dd/MM/yyyy', { locale: ptBR })}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{STATUS_LABELS[c.status]}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={c.status}
+                        onValueChange={(v) => updateStatusInList(c.id, v as InitiationCandidateStatus)}
+                        disabled={updatingStatusId === c.id}
+                      >
+                        <SelectTrigger className="w-[160px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(STATUS_LABELS) as InitiationCandidateStatus[]).map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {STATUS_LABELS[s]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {updatingStatusId === c.id && (
+                        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>

@@ -4,6 +4,7 @@ import type {
   CandidatePhaseProgress,
   SindicanciaPhaseDefinition,
   CandidatePhaseStatus,
+  InitiationCandidateStatus,
 } from '@/lib/data'
 import {
   Dialog,
@@ -37,6 +38,14 @@ const PHASE_STATUS_LABELS: Record<CandidatePhaseStatus, string> = {
   rejected: 'Reprovada',
 }
 
+const CANDIDATE_STATUS_LABELS: Record<InitiationCandidateStatus, string> = {
+  indicado: 'Indicado',
+  em_sindicancia: 'Em sindicância',
+  aprovado: 'Aprovado',
+  reprovado: 'Reprovado',
+  iniciado: 'Iniciado',
+}
+
 interface CandidateDetailProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -56,8 +65,16 @@ export function CandidateDetail({
 }: CandidateDetailProps) {
   const { toast } = useToast()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [updatingCandidateStatus, setUpdatingCandidateStatus] = useState(false)
+  const [localCandidateStatus, setLocalCandidateStatus] = useState<InitiationCandidateStatus>(
+    candidate?.status ?? 'em_sindicancia',
+  )
   const [notesEdit, setNotesEdit] = useState<Record<string, string>>({})
   const supabaseAny = supabase as any
+
+  useEffect(() => {
+    if (candidate) setLocalCandidateStatus(candidate.status)
+  }, [candidate?.id, candidate?.status])
 
   useEffect(() => {
     if (!open || !phaseProgress.length) return
@@ -116,6 +133,33 @@ export function CandidateDetail({
     updatePhaseProgress(progressId, { notes })
   }
 
+  const updateCandidateStatus = async (newStatus: InitiationCandidateStatus) => {
+    if (!candidate) return
+    setUpdatingCandidateStatus(true)
+    try {
+      const { error } = await supabaseAny
+        .from('initiation_candidates')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', candidate.id)
+      if (error) throw error
+      setLocalCandidateStatus(newStatus)
+      toast({ title: 'Status atualizado', description: 'Status geral do candidato alterado.' })
+      onUpdated()
+    } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar status',
+        description: getSaveErrorMessage(error),
+      })
+    } finally {
+      setUpdatingCandidateStatus(false)
+    }
+  }
+
   if (!candidate) return null
 
   const progressByPhase = phaseDefinitions
@@ -163,9 +207,29 @@ export function CandidateDetail({
               <span className="text-muted-foreground">Data da indicação:</span>{' '}
               {format(new Date(candidate.indicationDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </div>
-            <div>
-              <span className="text-muted-foreground">Status geral:</span>{' '}
-              <Badge variant="secondary">{candidate.status}</Badge>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-muted-foreground">Status geral</Label>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={localCandidateStatus}
+                  onValueChange={(v) => updateCandidateStatus(v as InitiationCandidateStatus)}
+                  disabled={updatingCandidateStatus}
+                >
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(CANDIDATE_STATUS_LABELS) as InitiationCandidateStatus[]).map(
+                      (s) => (
+                        <SelectItem key={s} value={s}>
+                          {CANDIDATE_STATUS_LABELS[s]}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+                {updatingCandidateStatus && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
             </div>
           </div>
           {candidate.notes && (

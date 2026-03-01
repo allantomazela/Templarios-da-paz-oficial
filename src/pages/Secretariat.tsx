@@ -4,6 +4,7 @@ import { NoticesList } from '@/components/secretariat/NoticesList'
 import { MessagesList } from '@/components/secretariat/MessagesList'
 import { ContactMessagesList } from '@/components/secretariat/ContactMessagesList'
 import { DocumentsList } from '@/components/secretariat/DocumentsList'
+import { CandidatesList } from '@/components/secretariat/CandidatesList'
 import { MinutesList } from '@/components/minutes/MinutesList'
 import {
   Card,
@@ -26,6 +27,7 @@ export default function Secretariat() {
       <Tabs defaultValue="brothers" className="space-y-4">
         <TabsList>
           <TabsTrigger value="brothers">Irmãos</TabsTrigger>
+          <TabsTrigger value="indications">Indicações</TabsTrigger>
           <TabsTrigger value="communications">Comunicações</TabsTrigger>
           <TabsTrigger value="docs">Documentos</TabsTrigger>
           <TabsTrigger value="minutes">Atas e Balaústres</TabsTrigger>
@@ -33,6 +35,21 @@ export default function Secretariat() {
 
         <TabsContent value="brothers">
           <BrothersList />
+        </TabsContent>
+
+        <TabsContent value="indications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Candidatos à iniciação</CardTitle>
+              <CardDescription>
+                Acompanhamento das indicações e das fases da sindicância (documentação,
+                entrevistas, visita à loja, parecer, votação).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CandidatesList />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="communications" className="space-y-4">

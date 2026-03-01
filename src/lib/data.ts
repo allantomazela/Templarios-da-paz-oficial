@@ -157,6 +157,54 @@ export interface LodgeDocument {
   url: string
 }
 
+/** Status do candidato à iniciação */
+export type InitiationCandidateStatus =
+  | 'indicado'
+  | 'em_sindicancia'
+  | 'aprovado'
+  | 'reprovado'
+  | 'iniciado'
+
+/** Candidato indicado à iniciação na loja */
+export interface InitiationCandidate {
+  id: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  indicatedBy: string
+  indicationDate: string
+  status: InitiationCandidateStatus
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Definição de uma fase da sindicância (template da loja) */
+export interface SindicanciaPhaseDefinition {
+  id: string
+  name: string
+  order: number
+  description?: string | null
+  createdAt?: string
+}
+
+/** Status do andamento de uma fase para um candidato */
+export type CandidatePhaseStatus = 'pending' | 'in_progress' | 'completed' | 'rejected'
+
+/** Andamento de um candidato em uma fase da sindicância */
+export interface CandidatePhaseProgress {
+  id: string
+  candidateId: string
+  phaseDefinitionId: string
+  status: CandidatePhaseStatus
+  startedAt?: string | null
+  completedAt?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+  phaseDefinition?: SindicanciaPhaseDefinition
+}
+
 export interface Message {
   id: string
   subject: string

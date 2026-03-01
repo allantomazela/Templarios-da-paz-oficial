@@ -305,6 +305,120 @@ export type Database = {
           },
         ]
       }
+      initiation_candidates: {
+        Row: {
+          id: string
+          name: string
+          email: string | null
+          phone: string | null
+          indicated_by: string
+          indication_date: string
+          status: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email?: string | null
+          phone?: string | null
+          indicated_by: string
+          indication_date?: string
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string | null
+          phone?: string | null
+          indicated_by?: string
+          indication_date?: string
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sindicancia_phase_definitions: {
+        Row: {
+          id: string
+          name: string
+          order: number
+          description: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          order?: number
+          description?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          order?: number
+          description?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      candidate_phase_progress: {
+        Row: {
+          id: string
+          candidate_id: string
+          phase_definition_id: string
+          status: string
+          started_at: string | null
+          completed_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          candidate_id: string
+          phase_definition_id: string
+          status?: string
+          started_at?: string | null
+          completed_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          candidate_id?: string
+          phase_definition_id?: string
+          status?: string
+          started_at?: string | null
+          completed_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_phase_progress_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "initiation_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_phase_progress_phase_definition_id_fkey"
+            columns: ["phase_definition_id"]
+            isOneToOne: false
+            referencedRelation: "sindicancia_phase_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lodge_position_history: {
         Row: {
           created_at: string

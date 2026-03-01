@@ -17,26 +17,23 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'
+        cache: 'npm'
 
-    - name: 3. Habilitando pnpm (Corepack)
-      run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+    - name: 3. Instalando dependências
+      run: npm install
 
-    - name: 4. Instalando dependências
-      run: pnpm install --frozen-lockfile
-
-    - name: 5. Lint e testes
+    - name: 4. Lint e testes
       run: |
-        pnpm run lint
-        pnpm run test
+        npm run lint
+        npm run test
 
-    - name: 6. Buildando
+    - name: 5. Buildando
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      run: pnpm run build
+      run: npm run build
 
-    - name: 7. Enviando build para o servidor
+    - name: 6. Enviando build para o servidor
       env:
         SSH_KEY: ${{ secrets.SSH_KEY }}
         HOST: ${{ secrets.HOST }}

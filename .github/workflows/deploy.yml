@@ -13,14 +13,14 @@ jobs:
     - name: 1. Baixando código
       uses: actions/checkout@v4
 
-    - name: 2. Instalando pnpm
-      uses: pnpm/action-setup@v4
-
-    - name: 3. Configurando Node
+    - name: 2. Configurando Node
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'pnpm'
+
+    - name: 3. Habilitando pnpm (Corepack)
+      run: corepack enable && corepack prepare pnpm@10.18.1 --activate
 
     - name: 4. Instalando dependências
       run: pnpm install --frozen-lockfile

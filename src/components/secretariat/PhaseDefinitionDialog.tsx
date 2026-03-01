@@ -78,7 +78,10 @@ export function PhaseDefinitionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">
+          {phaseToEdit ? 'Editar fase' : 'Nova fase da sindicância'}
+        </DialogTitle>
         <FormHeader
           title={phaseToEdit ? 'Editar fase' : 'Nova fase da sindicância'}
           description={

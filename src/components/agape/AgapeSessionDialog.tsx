@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -72,7 +73,8 @@ export function AgapeSessionDialog({ open, onOpenChange }: AgapeSessionDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Nova Sessão de Ágape</DialogTitle>
         <FormHeader
           title="Nova Sessão de Ágape"
           description="Crie uma nova sessão de ágape para registrar os consumos dos irmãos."

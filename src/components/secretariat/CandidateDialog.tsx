@@ -111,7 +111,10 @@ export function CandidateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">
+          {candidateToEdit ? 'Editar candidato' : 'Novo candidato à iniciação'}
+        </DialogTitle>
         <FormHeader
           title={candidateToEdit ? 'Editar candidato' : 'Novo candidato à iniciação'}
           description={

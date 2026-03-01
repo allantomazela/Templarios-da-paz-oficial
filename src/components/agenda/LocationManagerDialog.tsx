@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Table,
@@ -97,7 +98,8 @@ export function LocationManagerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Gerenciar Espaços e Locais</DialogTitle>
         <FormHeader
           title="Gerenciar Espaços e Locais"
           description="Cadastre e edite os locais disponíveis para eventos da loja."

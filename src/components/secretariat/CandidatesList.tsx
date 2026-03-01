@@ -20,6 +20,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -39,7 +42,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, Loader2 } from 'lucide-react'
+import { Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, Loader2, RefreshCw } from 'lucide-react'
 import { CandidateDialog } from './CandidateDialog'
 import { CandidateDetail } from './CandidateDetail'
 import { PhaseDefinitionsManager } from './PhaseDefinitionsManager'
@@ -469,8 +472,8 @@ export function CandidatesList() {
                         onValueChange={(v) => updateStatusInList(c.id, v as InitiationCandidateStatus)}
                         disabled={updatingStatusId === c.id}
                       >
-                        <SelectTrigger className="w-[160px] h-8">
-                          <SelectValue />
+                        <SelectTrigger className="w-[160px] h-8" aria-label={`Alterar status de ${c.name}`}>
+                          <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
                           {(Object.keys(STATUS_LABELS) as InitiationCandidateStatus[]).map((s) => (
@@ -481,14 +484,14 @@ export function CandidatesList() {
                         </SelectContent>
                       </Select>
                       {updatingStatusId === c.id && (
-                        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                        <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Ações do candidato">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -497,6 +500,27 @@ export function CandidatesList() {
                           <Eye className="mr-2 h-4 w-4" />
                           Ver detalhes / Fases
                         </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Alterar status
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {(Object.keys(STATUS_LABELS) as InitiationCandidateStatus[]).map((s) => (
+                              <DropdownMenuItem
+                                key={s}
+                                onClick={() => updateStatusInList(c.id, s)}
+                                disabled={updatingStatusId === c.id}
+                              >
+                                {c.status === s ? (
+                                  <span className="font-medium">{STATUS_LABELS[s]} ✓</span>
+                                ) : (
+                                  STATUS_LABELS[s]
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                         <DropdownMenuItem onClick={() => openEdit(c)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar

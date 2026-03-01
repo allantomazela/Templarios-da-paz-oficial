@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -126,7 +127,10 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
+        <DialogTitle className="sr-only">
+          {item ? 'Editar Item do Cardápio' : 'Novo Item do Cardápio'}
+        </DialogTitle>
         <FormHeader
           title={item ? 'Editar Item do Cardápio' : 'Novo Item do Cardápio'}
           description={

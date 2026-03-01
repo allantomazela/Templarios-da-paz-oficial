@@ -20,7 +20,7 @@ jobs:
         cache: 'npm'
 
     - name: 3. Instalando dependências
-      run: npm install
+      run: npm install --legacy-peer-deps
 
     - name: 4. Lint e testes
       run: |

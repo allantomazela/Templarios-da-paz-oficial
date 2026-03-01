@@ -42,9 +42,16 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${USERNAME}@${HOST} "mkdir -p /var/www/templarios"
-        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key" \
-          dist/ \
-          ${USERNAME}@${HOST}:/var/www/templarios/
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${USERNAME}@${HOST} \
-          "chown -R www-data:www-data /var/www/templarios && echo '✅ Site atualizado!'"
+        SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ConnectionAttempts=3 -i ~/.ssh/deploy_key"
+        deploy() {
+          ssh $SSH_OPTS ${USERNAME}@${HOST} "mkdir -p /var/www/templarios"
+          rsync -avz --delete -e "ssh $SSH_OPTS" dist/ ${USERNAME}@${HOST}:/var/www/templarios/
+          ssh $SSH_OPTS ${USERNAME}@${HOST} "chown -R www-data:www-data /var/www/templarios && echo '✅ Site atualizado!'"
+        }
+        for i in 1 2 3; do
+          echo "Tentativa $i de 3..."
+          if deploy; then exit 0; fi
+          [ $i -lt 3 ] && echo "Falha na conexão, nova tentativa em 10s..." && sleep 10
+        done
+        echo "Deploy falhou após 3 tentativas."
+        exit 1

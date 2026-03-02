@@ -60,7 +60,10 @@ export function EventDetailsSheet({
   if (!event) return null
 
   const isMilestone =
-    event.type === 'Aniversário' || (event as any).type === 'Maçônico'
+    event.type === 'Aniversário' ||
+    (event as any).type === 'Maçônico' ||
+    (event as any).type === 'Feriado' ||
+    (event as any).type === 'Comemorativo'
 
   const locationDetails = locations.find((l) => l.id === event.locationId)
 
@@ -76,6 +79,10 @@ export function EventDetailsSheet({
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200'
       case 'Maçônico':
         return 'bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200'
+      case 'Feriado':
+        return 'bg-red-100 text-red-800 hover:bg-red-100 border-red-200'
+      case 'Comemorativo':
+        return 'bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200'
       default:
         return 'bg-secondary text-secondary-foreground'
     }

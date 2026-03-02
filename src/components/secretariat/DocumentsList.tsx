@@ -118,9 +118,10 @@ export function DocumentsList() {
         }
 
         const updatedDoc = mapDocumentFromDB(updatedRow)
-        setDocuments(
-          documents.map((d) => (d.id === selectedDoc.id ? updatedDoc : d)),
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === selectedDoc.id ? updatedDoc : d)),
         )
+        loadDocumentsExecute()
         return 'Metadados atualizados com sucesso.'
       } else {
         // Criar novo documento (o upload do arquivo é feito no DocumentDialog)
@@ -155,7 +156,8 @@ export function DocumentsList() {
         }
 
         const newDoc = mapDocumentFromDB(createdRow)
-        setDocuments([newDoc, ...documents])
+        setDocuments((prev) => [newDoc, ...prev])
+        loadDocumentsExecute()
         return 'Documento enviado com sucesso.'
       }
     },
@@ -167,9 +169,8 @@ export function DocumentsList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      // Buscar o documento para obter a URL do arquivo
       const doc = documents.find((d) => d.id === id)
-      
+
       const { error } = await supabaseAny
         .from('lodge_documents')
         .delete()
@@ -180,7 +181,9 @@ export function DocumentsList() {
         throw new Error('Falha ao remover o documento.')
       }
 
-      // Tentar deletar o arquivo do storage (opcional, não crítico se falhar)
+      setDocuments((prev) => prev.filter((d) => d.id !== id))
+      loadDocumentsExecute()
+
       if (doc?.url) {
         try {
           const filePath = doc.url.split('/').slice(-2).join('/') // Extrair path do storage
@@ -190,7 +193,6 @@ export function DocumentsList() {
         }
       }
 
-      setDocuments(documents.filter((d) => d.id !== id))
       return 'Documento excluído.'
     },
     {

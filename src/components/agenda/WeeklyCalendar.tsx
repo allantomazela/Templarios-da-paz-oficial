@@ -56,6 +56,10 @@ export function WeeklyCalendar({
         return 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border-yellow-200'
       case 'Maçônico':
         return 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200'
+      case 'Feriado':
+        return 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200'
+      case 'Comemorativo':
+        return 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'
       default:
         return 'bg-secondary text-secondary-foreground'
     }

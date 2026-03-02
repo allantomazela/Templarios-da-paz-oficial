@@ -175,6 +175,7 @@ export function CandidatesList() {
         status: r.status as CandidatePhaseProgress['status'],
         startedAt: (r.started_at as string) ?? null,
         completedAt: (r.completed_at as string) ?? null,
+        scheduledCheckDate: (r.scheduled_check_date as string) ?? null,
         notes: (r.notes as string) ?? null,
         createdAt: r.created_at as string,
         updatedAt: r.updated_at as string,

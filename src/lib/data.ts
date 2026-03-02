@@ -199,6 +199,8 @@ export interface CandidatePhaseProgress {
   status: CandidatePhaseStatus
   startedAt?: string | null
   completedAt?: string | null
+  /** Data prevista para a próxima verificação/checagem desta fase (YYYY-MM-DD) */
+  scheduledCheckDate?: string | null
   notes?: string | null
   createdAt: string
   updatedAt: string

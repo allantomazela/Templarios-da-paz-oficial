@@ -187,11 +187,10 @@ export function BrothersList() {
         }
 
         const updatedBrother = mapBrotherFromDB(updatedRow)
-        setBrothers(
-          brothers.map((b) =>
-            b.id === selectedBrother.id ? updatedBrother : b,
-          ),
+        setBrothers((prev) =>
+          prev.map((b) => (b.id === selectedBrother.id ? updatedBrother : b)),
         )
+        loadBrothersExecute()
         return 'Irmão atualizado com sucesso.'
       } else {
         // Criar novo
@@ -207,7 +206,8 @@ export function BrothersList() {
         }
 
         const newBrother = mapBrotherFromDB(createdRow)
-        setBrothers([...brothers, newBrother])
+        setBrothers((prev) => [newBrother, ...prev])
+        loadBrothersExecute()
         return 'Irmão adicionado com sucesso.'
       }
     },
@@ -234,11 +234,10 @@ export function BrothersList() {
         throw new Error('Falha ao alterar o status.')
       }
 
-      setBrothers(
-        brothers.map((b) =>
-          b.id === brother.id ? { ...b, status: newStatus } : b,
-        ),
+      setBrothers((prev) =>
+        prev.map((b) => (b.id === brother.id ? { ...b, status: newStatus } : b)),
       )
+      loadBrothersExecute()
       return `Status de ${brother.name} alterado para ${newStatus}.`
     },
     {

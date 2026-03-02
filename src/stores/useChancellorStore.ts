@@ -79,7 +79,7 @@ interface ChancellorState {
   markAlertAsReviewed: (brotherId: string) => void
 }
 
-export const useChancellorStore = create<ChancellorState>((set) => ({
+export const useChancellorStore = create<ChancellorState>((set, get) => ({
   sessionRecords: mockSessionRecords,
   attendanceRecords: mockAttendance,
   visitorAttendances: [],
@@ -184,6 +184,9 @@ export const useChancellorStore = create<ChancellorState>((set) => ({
 
         if (insertError) throw insertError
       }
+
+      // Atualizar estado da store após salvar para a UI refletir sem refresh
+      await get().fetchVisitorAttendances(sessionRecordId)
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Erro ao salvar visitantes da sessao', error)

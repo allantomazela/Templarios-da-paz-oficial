@@ -61,6 +61,7 @@ import { logError, devLog } from '@/lib/logger'
 import { Event } from '@/lib/data'
 import { cn } from '@/lib/utils'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { getBrazilianHolidaysAndComemorativos } from '@/lib/brazilian-holidays'
 
 export default function Agenda() {
   const { events, brothers, addEvent, updateEvent, deleteEvent } =
@@ -88,6 +89,7 @@ export default function Agenda() {
     meeting: true,
     birthday: true,
     masonic: true,
+    holidays: true,
   })
 
   // --- Data Processing ---
@@ -105,6 +107,16 @@ export default function Agenda() {
   }))
 
   const currentYear = getYear(currentDate)
+  const holidayItems = getBrazilianHolidaysAndComemorativos(currentYear)
+  const holidayEvents: CalendarEvent[] = holidayItems.map((h) => ({
+    id: `holiday-${h.date}-${h.title.replace(/\s/g, '-')}`,
+    title: h.title,
+    date: h.date,
+    time: undefined,
+    type: h.type,
+    description: h.description,
+    originalEvent: undefined,
+  }))
   const milestoneEvents: CalendarEvent[] = []
 
   brothers.forEach((brother) => {
@@ -153,11 +165,12 @@ export default function Agenda() {
     }
   })
 
-  const allEvents = [...standardEvents, ...milestoneEvents].filter((e) => {
+  const allEvents = [...standardEvents, ...milestoneEvents, ...holidayEvents].filter((e) => {
     if (e.type === 'Sessão' && !filters.session) return false
     if (e.type === 'Evento Social' && !filters.social) return false
     if (e.type === 'Reunião' && !filters.meeting) return false
     if (e.type === 'Outro' && !filters.meeting) return false
+    if ((e.type === 'Feriado' || e.type === 'Comemorativo') && !filters.holidays) return false
     return true
   })
 
@@ -181,6 +194,11 @@ export default function Agenda() {
   }
 
   const handleEventClick = (event: CalendarEvent) => {
+    if (event.type === 'Feriado' || event.type === 'Comemorativo') {
+      setSelectedEvent(event as unknown as Event)
+      setIsDetailsOpen(true)
+      return
+    }
     const fullEvent = event.originalEvent ? event.originalEvent : event
     setSelectedEvent(fullEvent)
     setIsDetailsOpen(true)
@@ -217,7 +235,7 @@ export default function Agenda() {
       }
       setIsEventDialogOpen(false)
     } catch (_error) {
-      logError('Error saving event', error)
+      logError('Error saving event', _error)
       toast({
         variant: 'destructive',
         title: 'Erro',
@@ -231,7 +249,8 @@ export default function Agenda() {
     if (
       event.id &&
       !event.id.startsWith('dob-') &&
-      !event.id.startsWith('init-')
+      !event.id.startsWith('init-') &&
+      !event.id.startsWith('holiday-')
     ) {
       setEventToEdit(event)
       setIsEventDialogOpen(true)
@@ -240,6 +259,7 @@ export default function Agenda() {
 
   const handleDeleteEvent = (id: string) => {
     try {
+      if (id.startsWith('holiday-')) return
       const isReal = events.some((e) => e.id === id)
       if (isReal) {
         deleteEvent(id)
@@ -285,6 +305,10 @@ export default function Agenda() {
         return 'bg-yellow-500'
       case 'Maçônico':
         return 'bg-purple-500'
+      case 'Feriado':
+        return 'bg-red-500'
+      case 'Comemorativo':
+        return 'bg-amber-500'
       default:
         return 'bg-primary'
     }
@@ -399,6 +423,16 @@ export default function Agenda() {
                     />
                     <Label htmlFor="f-mas">Maçônicos</Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="f-holidays"
+                      checked={filters.holidays}
+                      onCheckedChange={(c) =>
+                        setFilters((p) => ({ ...p, holidays: !!c }))
+                      }
+                    />
+                    <Label htmlFor="f-holidays">Feriados e comemorativos</Label>
+                  </div>
                 </div>
               </div>
             </PopoverContent>
@@ -482,7 +516,7 @@ export default function Agenda() {
                     >
                       <div className="flex flex-col items-center min-w-[3rem] pt-0.5">
                         <span className="text-sm font-bold font-mono">
-                          {event.time}
+                          {event.time ?? '—'}
                         </span>
                         <div
                           className={cn(

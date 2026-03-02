@@ -188,12 +188,12 @@ export function ContactMessagesList() {
       )
 
       if (selectedMessage?.id === messageId) {
-        setSelectedMessage({
-          ...selectedMessage,
-          status: newStatus as any,
-        })
+        setSelectedMessage((prev) =>
+          prev?.id === messageId ? { ...prev, status: newStatus as any } : prev,
+        )
       }
 
+      await loadMessages.execute()
       return 'Status atualizado com sucesso.'
     },
     {
@@ -348,6 +348,7 @@ export function ContactMessagesList() {
       setIsReplyOpen(false)
       replyForm.reset()
 
+      await loadMessages.execute()
       return 'Resposta enviada com sucesso!'
     },
     {
@@ -383,6 +384,7 @@ export function ContactMessagesList() {
       setIsCategoryOpen(false)
       categoryForm.reset()
 
+      await loadMessages.execute()
       return 'Categoria atualizada com sucesso.'
     },
     {

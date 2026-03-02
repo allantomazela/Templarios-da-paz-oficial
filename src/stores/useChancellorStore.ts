@@ -77,6 +77,19 @@ interface ChancellorState {
 
   // Alerts
   markAlertAsReviewed: (brotherId: string) => void
+
+  // Integração Supabase: sessão e presença para check-in por QR
+  ensureSessionRecordInSupabase: (
+    event: Event,
+    sessionRecord: SessionRecord,
+  ) => Promise<string>
+  fetchAttendanceFromSupabase: (
+    sessionRecordId: string,
+  ) => Promise<{ brotherId: string; status: string; justification: string | null; name: string }[]>
+  saveAttendanceToSupabase: (
+    sessionRecordId: string,
+    rows: { brotherId: string; status: string; justification?: string }[],
+  ) => Promise<void>
 }
 
 export const useChancellorStore = create<ChancellorState>((set, get) => ({
@@ -253,6 +266,109 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     set((state) => ({
       reviewedAlerts: [...state.reviewedAlerts, brotherId],
     })),
+
+  ensureSessionRecordInSupabase: async (event, sessionRecord) => {
+    try {
+      const { data: existing } = await supabase
+        .from('session_records')
+        .select('id')
+        .eq('id', sessionRecord.id)
+        .single()
+      if (existing) return existing.id
+
+      const { data: existingEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('date', event.date)
+        .eq('time', event.time)
+        .eq('title', event.title)
+        .maybeSingle()
+      let eventId = existingEvent?.id
+      if (!eventId) {
+        const { data: eventRow, error: eventErr } = await supabase
+          .from('events')
+          .insert({
+            title: event.title,
+            date: event.date,
+            time: event.time,
+            type: event.type,
+            location: event.location,
+            description: event.description || '',
+          })
+          .select('id')
+          .single()
+        if (eventErr) throw eventErr
+        eventId = eventRow.id
+      }
+
+      const { data: recordRow, error: recordErr } = await supabase
+        .from('session_records')
+        .insert({
+          event_id: eventId,
+          date: sessionRecord.date,
+          observations: sessionRecord.observations || '',
+          status: sessionRecord.status,
+        })
+        .select('id')
+        .single()
+      if (recordErr) throw recordErr
+      return recordRow.id
+    } catch (error) {
+      if (handleAuthError(error)) throw error
+      logError('ensureSessionRecordInSupabase', error)
+      throw error
+    }
+  },
+
+  fetchAttendanceFromSupabase: async (sessionRecordId) => {
+    try {
+      const { data: rows, error } = await supabase
+        .from('attendance')
+        .select('brother_id, status, justification')
+        .eq('session_record_id', sessionRecordId)
+      if (error) throw error
+      if (!rows?.length) return []
+      const ids = [...new Set(rows.map((r) => r.brother_id))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', ids)
+      const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name || '']))
+      return rows.map((r) => ({
+        brotherId: r.brother_id,
+        status: r.status,
+        justification: r.justification,
+        name: nameMap.get(r.brother_id) || r.brother_id,
+      }))
+    } catch (error) {
+      if (handleAuthError(error)) return []
+      logError('fetchAttendanceFromSupabase', error)
+      return []
+    }
+  },
+
+  saveAttendanceToSupabase: async (sessionRecordId, rows) => {
+    try {
+      if (rows.length === 0) return
+      const payload = rows.map((row) => ({
+        session_record_id: sessionRecordId,
+        brother_id: row.brotherId,
+        status: row.status,
+        justification: row.justification || null,
+        source: 'chancellor',
+      }))
+      const { error } = await supabase
+        .from('attendance')
+        .upsert(payload, {
+          onConflict: 'session_record_id,brother_id',
+        })
+      if (error) throw error
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('saveAttendanceToSupabase', error)
+      throw error
+    }
+  },
 }))
 
 export default useChancellorStore

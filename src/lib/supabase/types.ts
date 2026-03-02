@@ -204,6 +204,134 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          id: string
+          title: string
+          date: string
+          time: string
+          type: string
+          location: string
+          location_id: string | null
+          description: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          date: string
+          time: string
+          type?: string
+          location: string
+          location_id?: string | null
+          description?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          date?: string
+          time?: string
+          type?: string
+          location?: string
+          location_id?: string | null
+          description?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      session_records: {
+        Row: {
+          id: string
+          event_id: string
+          date: string
+          charity_collection: number
+          observations: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          date: string
+          charity_collection?: number
+          observations?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          date?: string
+          charity_collection?: number
+          observations?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_records_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance: {
+        Row: {
+          id: string
+          session_record_id: string
+          brother_id: string
+          status: string
+          justification: string | null
+          source: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          session_record_id: string
+          brother_id: string
+          status?: string
+          justification?: string | null
+          source?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_record_id?: string
+          brother_id?: string
+          status?: string
+          justification?: string | null
+          source?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_session_record_id_fkey"
+            columns: ["session_record_id"]
+            isOneToOne: false
+            referencedRelation: "session_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_brother_id_fkey"
+            columns: ["brother_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_messages: {
         Row: {
           content: string
@@ -704,6 +832,8 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          checkin_open_minutes_before: number | null
+          checkin_radius_meters: number | null
           contact_address: string | null
           contact_city: string | null
           contact_email: string | null
@@ -711,6 +841,8 @@ export type Database = {
           contact_zip: string | null
           created_at: string
           custom_sections: Json | null
+          temple_latitude: number | null
+          temple_longitude: number | null
           favicon_url: string | null
           font_family: string | null
           history_image_url: string | null
@@ -738,6 +870,8 @@ export type Database = {
           values_liberty: string | null
         }
         Insert: {
+          checkin_open_minutes_before?: number | null
+          checkin_radius_meters?: number | null
           contact_address?: string | null
           contact_city?: string | null
           contact_email?: string | null
@@ -745,6 +879,8 @@ export type Database = {
           contact_zip?: string | null
           created_at?: string
           custom_sections?: Json | null
+          temple_latitude?: number | null
+          temple_longitude?: number | null
           favicon_url?: string | null
           font_family?: string | null
           history_image_url?: string | null
@@ -772,6 +908,8 @@ export type Database = {
           values_liberty?: string | null
         }
         Update: {
+          checkin_open_minutes_before?: number | null
+          checkin_radius_meters?: number | null
           contact_address?: string | null
           contact_city?: string | null
           contact_email?: string | null
@@ -779,6 +917,8 @@ export type Database = {
           contact_zip?: string | null
           created_at?: string
           custom_sections?: Json | null
+          temple_latitude?: number | null
+          temple_longitude?: number | null
           favicon_url?: string | null
           font_family?: string | null
           history_image_url?: string | null

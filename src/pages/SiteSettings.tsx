@@ -9,6 +9,7 @@ import { ThemeSettings } from '@/components/settings/ThemeSettings'
 import { TypographySettings } from '@/components/settings/TypographySettings'
 import { LodgeInfoSettings } from '@/components/settings/LodgeInfoSettings'
 import { AgapePaymentSettings } from '@/components/settings/AgapePaymentSettings'
+import { CheckinSettings } from '@/components/settings/CheckinSettings'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import {
   LayoutTemplate,
@@ -20,6 +21,7 @@ import {
   History,
   Type,
   Building2,
+  QrCode,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -151,6 +153,11 @@ export default function SiteSettings() {
             <Users className="mr-2 h-4 w-4" /> Galeria de Veneráveis
           </TabsTrigger>
           {isAdmin && (
+            <TabsTrigger value="checkin">
+              <QrCode className="mr-2 h-4 w-4" /> Check-in por QR
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="history">
               <History className="mr-2 h-4 w-4" /> Histórico
             </TabsTrigger>
@@ -177,6 +184,9 @@ export default function SiteSettings() {
             </TabsContent>
             <TabsContent value="layout">
               <LayoutSettings />
+            </TabsContent>
+            <TabsContent value="checkin">
+              <CheckinSettings />
             </TabsContent>
             <TabsContent value="history">
               <Card>

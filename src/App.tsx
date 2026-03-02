@@ -41,6 +41,7 @@ const MyPayments = lazy(() => import('@/pages/MyPayments'))
 const Notices = lazy(() => import('@/pages/Notices'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const AccessDenied = lazy(() => import('@/pages/AccessDenied'))
+const CheckinPage = lazy(() => import('@/pages/CheckinPage'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -162,6 +163,7 @@ const App = () => (
             <Route path="/access-denied" element={<AccessDenied />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<TermsOfUse />} />
+            <Route path="/checkin/:sessionRecordId" element={<CheckinPage />} />
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />

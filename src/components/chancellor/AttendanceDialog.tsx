@@ -26,7 +26,7 @@ import {
 } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { format, parseISO } from 'date-fns'
-import { Check, X, FileText, Users } from 'lucide-react'
+import { Check, X, FileText, Users, QrCode, Download } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { VisitorCertificateDocument } from './VisitorCertificateDocument'
@@ -56,6 +56,9 @@ export function AttendanceDialog({
     bulkAddVisitorAttendance,
     fetchVisitorAttendances,
     saveVisitorAttendances,
+    ensureSessionRecordInSupabase,
+    fetchAttendanceFromSupabase,
+    saveAttendanceToSupabase,
   } = useChancellorStore()
   const { positions, fetchPositions } = useLodgePositionsStore()
   const certificateRef = useRef<HTMLDivElement>(null)
@@ -71,6 +74,19 @@ export function AttendanceDialog({
   const [visitorList, setVisitorList] = useState<VisitorAttendance[]>([])
   const [certificateVisitor, setCertificateVisitor] =
     useState<VisitorAttendance | null>(null)
+  const [showQrDialog, setShowQrDialog] = useState(false)
+  const [qrOnlyAttendances, setQrOnlyAttendances] = useState<
+    { brotherId: string; status: string; name: string }[]
+  >([])
+  const [qrSessionRecordId, setQrSessionRecordId] = useState<string | null>(null)
+
+  const checkInUrl =
+    typeof window !== 'undefined' && (qrSessionRecordId || existingSessionRecord?.id)
+      ? `${window.location.origin}/checkin/${qrSessionRecordId ?? existingSessionRecord?.id}`
+      : ''
+  const qrImageUrl =
+    checkInUrl &&
+    `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(checkInUrl)}`
 
   const venerableMaster =
     positions.find((p) => p.position_type === 'veneravel_mestre')?.user
@@ -122,7 +138,6 @@ export function AttendanceDialog({
       if (existingSessionRecord) {
         setObservations(existingSessionRecord.observations)
 
-        // Load existing attendances
         const existing = attendanceRecords.filter(
           (ar) => ar.sessionRecordId === existingSessionRecord.id,
         )
@@ -135,6 +150,33 @@ export function AttendanceDialog({
               justification: found ? found.justification || '' : '',
             }
           }),
+        )
+        setQrOnlyAttendances([])
+        void fetchAttendanceFromSupabase(existingSessionRecord.id).then(
+          (dbRows) => {
+            setAttendances((prev) =>
+              prev.map((p) => {
+                const fromDb = dbRows.find((r) => r.brotherId === p.brotherId)
+                return fromDb
+                  ? {
+                      ...p,
+                      status: fromDb.status as 'Presente' | 'Ausente' | 'Justificado',
+                      justification: fromDb.justification ?? '',
+                    }
+                  : p
+              }),
+            )
+            const brotherIds = new Set(brothers.map((b) => b.id))
+            setQrOnlyAttendances(
+              dbRows
+                .filter((r) => !brotherIds.has(r.brotherId))
+                .map((r) => ({
+                  brotherId: r.brotherId,
+                  status: r.status,
+                  name: r.name,
+                })),
+            )
+          },
         )
         void fetchVisitorAttendances(existingSessionRecord.id).then(
           (visitors) => {
@@ -151,9 +193,10 @@ export function AttendanceDialog({
           })),
         )
         setVisitorList([])
+        setQrOnlyAttendances([])
       }
     }
-  }, [open, existingSessionRecord, attendanceRecords, brothers, fetchVisitorAttendances])
+  }, [open, existingSessionRecord, attendanceRecords, brothers, fetchVisitorAttendances, fetchAttendanceFromSupabase])
 
   const handleStatusChange = (
     brotherId: string,
@@ -175,7 +218,7 @@ export function AttendanceDialog({
   const handleSaveInternal = async () => {
     if (!event) return
 
-    const recordId = existingSessionRecord
+    let recordId = existingSessionRecord
       ? existingSessionRecord.id
       : crypto.randomUUID()
 
@@ -183,7 +226,7 @@ export function AttendanceDialog({
       id: recordId,
       eventId: event.id,
       date: event.date,
-      charityCollection: 0, // Mantido para compatibilidade, mas não será mais editado aqui
+      charityCollection: 0,
       observations: observations,
       status: 'Finalizada',
     }
@@ -194,15 +237,33 @@ export function AttendanceDialog({
       addSessionRecord(sessionRecord)
     }
 
-    // Save Attendances
     const newAttendances: Attendance[] = attendances.map((a) => ({
-      id: crypto.randomUUID(), // In real app, reuse ID if updating
+      id: crypto.randomUUID(),
       sessionRecordId: recordId,
       brotherId: a.brotherId,
       status: a.status,
       justification: a.justification,
     }))
     bulkAddAttendance(newAttendances)
+
+    const isUuid = (s: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+    if (isUuid(recordId)) {
+      const rowsToSync = attendances
+        .filter((a) => isUuid(a.brotherId))
+        .map((a) => ({
+          brotherId: a.brotherId,
+          status: a.status,
+          justification: a.justification,
+        }))
+      if (rowsToSync.length > 0) {
+        try {
+          await saveAttendanceToSupabase(recordId, rowsToSync)
+        } catch {
+          // Ignora se ainda estiver usando lista de irmãos mock
+        }
+      }
+    }
 
     const newVisitorAttendances: VisitorAttendance[] = visitorList.map(
       (visitor) => ({
@@ -224,6 +285,7 @@ export function AttendanceDialog({
   const totalParticipants = presentCount + visitorCount
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Registro de Presença</DialogTitle>
@@ -257,6 +319,21 @@ export function AttendanceDialog({
               </span>
             </div>
           </div>
+
+          {qrOnlyAttendances.length > 0 && (
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+              <Label className="mb-2 block text-sm font-medium">
+                Check-in por QR (não constam na lista de irmãos)
+              </Label>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {qrOnlyAttendances.map((a) => (
+                  <li key={a.brotherId}>
+                    {a.name} — {a.status}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <Label className="mb-2 block">Lista de Presença</Label>
@@ -367,7 +444,30 @@ export function AttendanceDialog({
           </div>
         </div>
 
-        <DialogFooter className="mt-4 pt-4 border-t">
+        <DialogFooter className="mt-4 pt-4 border-t flex-wrap gap-2">
+          {existingSessionRecord && event && (
+            <Button
+              type="button"
+              variant="outline"
+              className="mr-auto"
+              onClick={async () => {
+                try {
+                  const dbId = await ensureSessionRecordInSupabase(
+                    event,
+                    existingSessionRecord,
+                  )
+                  setQrSessionRecordId(dbId)
+                  updateSessionRecord({ ...existingSessionRecord, id: dbId })
+                  setShowQrDialog(true)
+                } catch {
+                  setShowQrDialog(true)
+                }
+              }}
+            >
+              <QrCode className="mr-2 h-4 w-4" />
+              Gerar QR desta sessão
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -390,5 +490,35 @@ export function AttendanceDialog({
         )}
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogTitle>QR Code para check-in</DialogTitle>
+        <p className="text-sm text-muted-foreground">
+          Irmãos podem escanear este QR para registrar presença nesta sessão.
+        </p>
+        {qrImageUrl && (
+          <div className="flex flex-col items-center gap-3 py-2">
+            <img
+              src={qrImageUrl}
+              alt="QR Code check-in"
+              className="rounded border w-64 h-64 object-contain"
+            />
+            <a
+              href={qrImageUrl}
+              download="checkin-sessao-qr.png"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Baixar QR
+            </a>
+            <p className="text-xs text-muted-foreground break-all text-center">
+              {checkInUrl}
+            </p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

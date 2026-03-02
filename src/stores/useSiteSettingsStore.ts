@@ -80,6 +80,13 @@ export interface SiteSettingsState {
     pixName: string
     paymentType: 'monthly' | 'per_session'
   }
+  /** Configuração do templo para check-in por QR (geolocalização e janela de horário). */
+  templeCheckin: {
+    latitude: number | null
+    longitude: number | null
+    radiusMeters: number | null
+    openMinutesBefore: number | null
+  }
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
@@ -101,6 +108,9 @@ export interface SiteSettingsState {
   ) => Promise<void>
   updateAgapePaymentSettings: (
     data: Partial<SiteSettingsState['agapePix']>,
+  ) => Promise<void>
+  updateTempleCheckin: (
+    data: Partial<SiteSettingsState['templeCheckin']>,
   ) => Promise<void>
 
   fetchVenerables: () => Promise<void>
@@ -196,6 +206,12 @@ const mapSettingsFromDB = (data: any) => {
       textTransform: data.typography_text_transform || 'none',
       textDecoration: data.typography_text_decoration || 'none',
     },
+    templeCheckin: {
+      latitude: data.temple_latitude ?? null,
+      longitude: data.temple_longitude ?? null,
+      radiusMeters: data.checkin_radius_meters ?? null,
+      openMinutesBefore: data.checkin_open_minutes_before ?? null,
+    },
   }
 }
 
@@ -245,6 +261,12 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     pixKey: '',
     pixName: '',
     paymentType: 'monthly' as 'monthly' | 'per_session',
+  },
+  templeCheckin: {
+    latitude: null as number | null,
+    longitude: null as number | null,
+    radiusMeters: null as number | null,
+    openMinutesBefore: null as number | null,
   },
 
   fetchSettings: async (force = false) => {
@@ -511,6 +533,30 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating agape payment settings', error)
+      throw error
+    }
+  },
+
+  updateTempleCheckin: async (data) => {
+    try {
+      const updates: any = {}
+      if (data.latitude !== undefined) updates.temple_latitude = data.latitude
+      if (data.longitude !== undefined) updates.temple_longitude = data.longitude
+      if (data.radiusMeters !== undefined) updates.checkin_radius_meters = data.radiusMeters
+      if (data.openMinutesBefore !== undefined) updates.checkin_open_minutes_before = data.openMinutesBefore
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+      set((state) => ({
+        templeCheckin: { ...state.templeCheckin, ...data },
+      }))
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating temple check-in settings', error)
       throw error
     }
   },

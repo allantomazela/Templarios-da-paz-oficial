@@ -17,10 +17,10 @@ export async function compressImage(
       return
     }
 
-    // Add timeout for image loading
+    // Timeout para carregar/processar (conexões lentas ou imagens muito grandes)
     const timeoutId = setTimeout(() => {
-      reject(new Error('Timeout ao processar imagem. Tente com uma imagem menor.'))
-    }, 15000) // 15 seconds timeout
+      reject(new Error('Timeout ao processar imagem. Tente com uma imagem menor (máx. 5 MB).'))
+    }, 30000) // 30 segundos
 
     const img = new Image()
     const reader = new FileReader()
@@ -66,10 +66,10 @@ export async function compressImage(
       // Draw image
       ctx.drawImage(img, 0, 0, width, height)
 
-      // Convert to blob with timeout
+      // Timeout para conversão em blob (canvas grande pode demorar)
       const blobTimeout = setTimeout(() => {
-        reject(new Error('Timeout ao converter imagem'))
-      }, 5000)
+        reject(new Error('Timeout ao converter imagem. Tente uma foto menor.'))
+      }, 15000) // 15 segundos
 
       canvas.toBlob(
         (blob) => {

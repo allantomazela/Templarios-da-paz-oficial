@@ -110,7 +110,7 @@ export function BrothersList() {
       notes: brother.notes || null,
       spouse_name: brother.spouseName || null,
       spouse_dob: brother.spouseDob || null,
-      children: brother.children ? JSON.stringify(brother.children) : '[]',
+      children: Array.isArray(brother.children) ? brother.children : [],
       address_street: brother.addressStreet || null,
       address_number: brother.addressNumber || null,
       address_complement: brother.addressComplement || null,
@@ -250,9 +250,9 @@ export function BrothersList() {
     const result = await saveOperation.execute(data)
     if (result) {
       dialog.closeDialog()
-      // Recarregar lista após salvar
       loadBrothersExecute()
     }
+    return result
   }
 
   const toggleStatus = (brother: Brother) => {

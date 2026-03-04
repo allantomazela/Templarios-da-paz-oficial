@@ -14,6 +14,14 @@ export default defineConfig(({ mode }) => ({
   build: {
     minify: mode !== 'development',
     sourcemap: mode === 'development',
+    // Nomes estáveis para entry e CSS: evita 404 quando o servidor/deploy não publica assets com hash
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      },
+    },
   },
   plugins: [react()],
   define: {

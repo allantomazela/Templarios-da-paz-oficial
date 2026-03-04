@@ -115,7 +115,8 @@ interface BrotherDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   brotherToEdit: Brother | null
-  onSave: (data: BrotherFormValues) => void
+  /** Deve retornar Promise para o formulário manter loading até o fim do salvamento */
+  onSave: (data: BrotherFormValues) => void | Promise<void>
 }
 
 export function BrotherDialog({
@@ -140,9 +141,10 @@ export function BrotherDialog({
     bucket: 'site-assets',
     folder: 'brothers-photos',
     maxSize: 800,
+    maxFileSizeBytes: 5 * 1024 * 1024, // 5 MB — rejeita arquivos grandes antes do upload
     quality: 0.85,
     successMessage: 'Foto enviada com sucesso.',
-    errorMessage: 'Não foi possível enviar a foto. Tente novamente.',
+    errorMessage: 'Não foi possível enviar a foto. Use imagem de até 5 MB (JPG ou PNG) e tente novamente.',
   })
 
   const form = useForm<BrotherFormValues>({
@@ -350,7 +352,7 @@ export function BrotherDialog({
     form.setValue('addressZipcode', formatted)
   }
 
-  const handleSubmit = (data: BrotherFormValues) => {
+  const handleSubmit = async (data: BrotherFormValues) => {
     // Unformat values before saving
     const unformattedData = {
       ...data,
@@ -358,7 +360,7 @@ export function BrotherDialog({
       phone: unformatPhone(data.phone),
       addressZipcode: data.addressZipcode ? unformatCEP(data.addressZipcode) : undefined,
     }
-    onSave(unformattedData)
+    await onSave(unformattedData)
   }
 
   const brazilianStates = [

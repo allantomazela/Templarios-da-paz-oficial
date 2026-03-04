@@ -12,6 +12,7 @@ REVOKE EXECUTE ON FUNCTION public.get_period_totals(DATE, DATE) FROM authenticat
 
 -- ========== 2) AUDIT LOG: só o trigger (definer) pode inserir ==========
 DROP POLICY IF EXISTS "System can insert audit logs" ON public.financial_audit_log;
+DROP POLICY IF EXISTS "Allow audit insert by trigger definer only" ON public.financial_audit_log;
 
 -- Política: apenas o dono da função create_financial_audit_log pode inserir (trigger SECURITY DEFINER)
 CREATE POLICY "Allow audit insert by trigger definer only"

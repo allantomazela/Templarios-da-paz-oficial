@@ -160,12 +160,8 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         .order('month', { ascending: false })
 
       if (error) {
-        // Se a tabela não existir, não é um erro crítico
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          logError('Contributions table does not exist yet', error)
-          set({ contributions: [] })
-          return
-        }
+        logError('Error fetching contributions', error)
+        set({ contributions: [] })
         throw error
       }
 
@@ -265,15 +261,37 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
   // ========== TRANSACTION METHODS ==========
   addTransaction: async (t) => {
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : undefined
     try {
-      const dbData = mapTransactionToDB(t)
+      const dbData = {
+        ...mapTransactionToDB(t),
+        ...(idempotencyKey && { idempotency_key: idempotencyKey }),
+      }
       const { data, error } = await supabase
         .from('financial_transactions')
         .insert(dbData)
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        const pgErr = error as { code?: string }
+        if (pgErr.code === '23505' && idempotencyKey) {
+          const { data: existing } = await supabase
+            .from('financial_transactions')
+            .select('*')
+            .eq('idempotency_key', idempotencyKey)
+            .maybeSingle()
+          if (existing) {
+            const mapped = mapTransactionFromDB(existing)
+            set((state) => ({ transactions: [mapped, ...state.transactions] }))
+            return
+          }
+        }
+        throw error
+      }
 
       if (data) {
         const mapped = mapTransactionFromDB(data)
@@ -411,16 +429,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         .select()
         .single()
 
-      if (error) {
-        // Se a tabela não existir, não é um erro crítico
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          logError('Contributions table does not exist yet', error)
-          // Ainda atualiza o estado local para não quebrar a UI
-          set((state) => ({ contributions: [...state.contributions, c] }))
-          return
-        }
-        throw error
-      }
+      if (error) throw error
 
       if (data) {
         const mapped = mapContributionFromDB(data)
@@ -443,18 +452,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         .select()
         .single()
 
-      if (error) {
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          logError('Contributions table does not exist yet', error)
-          set((state) => ({
-            contributions: state.contributions.map((con) =>
-              con.id === c.id ? c : con,
-            ),
-          }))
-          return
-        }
-        throw error
-      }
+      if (error) throw error
 
       if (data) {
         const mapped = mapContributionFromDB(data)
@@ -478,16 +476,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         .delete()
         .eq('id', id)
 
-      if (error) {
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          logError('Contributions table does not exist yet', error)
-          set((state) => ({
-            contributions: state.contributions.filter((c) => c.id !== id),
-          }))
-          return
-        }
-        throw error
-      }
+      if (error) throw error
 
       set((state) => ({
         contributions: state.contributions.filter((c) => c.id !== id),

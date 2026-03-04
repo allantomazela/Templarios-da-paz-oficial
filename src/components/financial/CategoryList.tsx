@@ -147,22 +147,33 @@ export function CategoryList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      // Check if category is in use by transactions
-      const { data: transactions, error: checkError } = await supabaseAny
-        .from('financial_transactions')
-        .select('id')
-        .eq('category_id', id)
-        .limit(1)
+      // Buscar nome da categoria (financial_transactions usa category TEXT)
+      const { data: cat, error: catError } = await supabaseAny
+        .from('financial_categories')
+        .select('name')
+        .eq('id', id)
+        .maybeSingle()
 
-      if (checkError) throw checkError
+      if (catError || !cat?.name) {
+        if (catError) throw catError
+        // Categoria não existe, pode seguir com delete
+      } else {
+        const { data: transactions, error: checkError } = await supabaseAny
+          .from('financial_transactions')
+          .select('id')
+          .eq('category', cat.name)
+          .limit(1)
 
-      if (transactions && transactions.length > 0) {
-        toast({
-          title: 'Erro',
-          description: 'Não é possível excluir uma categoria que está em uso por transações.',
-          variant: 'destructive',
-        })
-        return
+        if (checkError) throw checkError
+
+        if (transactions && transactions.length > 0) {
+          toast({
+            title: 'Erro',
+            description: 'Não é possível excluir uma categoria que está em uso por transações.',
+            variant: 'destructive',
+          })
+          return
+        }
       }
 
       const { error } = await supabaseAny

@@ -46,14 +46,10 @@ interface TransactionFromDB {
   id: string
   date: string
   description: string
-  category_id: string
+  category: string
   type: 'Receita' | 'Despesa'
   amount: number
   account_id: string | null
-  financial_categories?: {
-    id: string
-    name: string
-  }
 }
 
 interface AccountFromDB {
@@ -76,19 +72,11 @@ export function FinancialOverview() {
     const loadData = async () => {
       setLoading(true)
       try {
-        // Load transactions with categories
+        // Load transactions (category é TEXT em financial_transactions)
         const { data: transactionsData, error: transactionsError } =
           await supabaseAny
             .from('financial_transactions')
-            .select(
-              `
-              *,
-              financial_categories!financial_transactions_category_id_fkey (
-                id,
-                name
-              )
-            `,
-            )
+            .select('*')
             .order('date', { ascending: false })
 
         if (transactionsError) throw transactionsError
@@ -98,16 +86,16 @@ export function FinancialOverview() {
             id: t.id,
             date: t.date,
             description: t.description,
-            category: t.financial_categories?.name || 'Sem categoria',
+            category: t.category || 'Sem categoria',
             type: t.type,
             amount: parseFloat(t.amount.toString()),
             accountId: t.account_id || undefined,
           }),
         )
 
-        // Load accounts
+        // Load accounts (tabela: financial_accounts)
         const { data: accountsData, error: accountsError } = await supabaseAny
-          .from('bank_accounts')
+          .from('financial_accounts')
           .select('*')
           .order('name')
 

@@ -60,14 +60,10 @@ interface TransactionFromDB {
   id: string
   date: string
   description: string
-  category_id: string
+  category: string
   type: 'Receita' | 'Despesa'
   amount: number
   account_id: string | null
-  financial_categories?: {
-    id: string
-    name: string
-  }
 }
 
 export function FinancialReports() {
@@ -85,15 +81,7 @@ export function FinancialReports() {
       try {
         const { data, error } = await supabaseAny
           .from('financial_transactions')
-          .select(
-            `
-            *,
-            financial_categories!financial_transactions_category_id_fkey (
-              id,
-              name
-            )
-          `,
-          )
+          .select('*')
           .order('date', { ascending: false })
 
         if (error) throw error
@@ -102,7 +90,7 @@ export function FinancialReports() {
           id: t.id,
           date: t.date,
           description: t.description,
-          category: t.financial_categories?.name || 'Sem categoria',
+          category: t.category || 'Sem categoria',
           type: t.type,
           amount: parseFloat(t.amount.toString()),
           accountId: t.account_id || undefined,

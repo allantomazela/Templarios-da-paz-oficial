@@ -79,6 +79,7 @@ export interface TransactionDB {
   type: 'Receita' | 'Despesa'
   amount: number
   account_id?: string | null
+  idempotency_key?: string | null
   created_by?: string | null
   created_at: string
   updated_at: string

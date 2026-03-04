@@ -110,9 +110,9 @@ export function TransactionDialog({
         }
         setLoadingCategories(false)
 
-        // Load accounts
+        // Load accounts (tabela: financial_accounts)
         const { data: accountsData, error: accountsError } = await supabaseAny
-          .from('bank_accounts')
+          .from('financial_accounts')
           .select('*')
           .order('name')
 
@@ -122,7 +122,7 @@ export function TransactionDialog({
               id: a.id,
               name: a.name,
               type: a.type as 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento',
-              initialBalance: 0,
+              initialBalance: typeof a.initial_balance === 'number' ? a.initial_balance : parseFloat(String(a.initial_balance ?? 0)),
             }),
           )
           setAccounts(mappedAccounts)

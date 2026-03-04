@@ -62,7 +62,7 @@ export function BankAccounts() {
     async () => {
       setLoading(true)
       const { data, error } = await supabaseAny
-        .from('bank_accounts')
+        .from('financial_accounts')
         .select('*')
         .order('name', { ascending: true })
 
@@ -101,7 +101,7 @@ export function BankAccounts() {
       if (selectedAccount) {
         // Update
         const { error } = await supabaseAny
-          .from('bank_accounts')
+          .from('financial_accounts')
           .update({
             name: data.name,
             type: data.type,
@@ -125,7 +125,7 @@ export function BankAccounts() {
         const randomColor = colors[Math.floor(Math.random() * colors.length)]
 
         const { error } = await supabaseAny
-          .from('bank_accounts')
+          .from('financial_accounts')
           .insert({
             name: data.name,
             type: data.type,
@@ -166,7 +166,7 @@ export function BankAccounts() {
       }
 
       const { error } = await supabaseAny
-        .from('bank_accounts')
+        .from('financial_accounts')
         .delete()
         .eq('id', id)
 

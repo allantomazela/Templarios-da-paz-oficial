@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,15 +32,11 @@ interface TransactionFromDB {
   id: string
   date: string
   description: string
-  category_id: string
+  category: string
   type: 'Receita' | 'Despesa'
   amount: number
   account_id: string | null
-  financial_categories?: {
-    id: string
-    name: string
-  }
-  bank_accounts?: {
+  financial_accounts?: {
     id: string
     name: string
   }
@@ -53,6 +49,7 @@ export function IncomeList() {
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
+  const createIdempotencyKeyRef = useRef<string | null>(null)
   const supabaseAny = supabase as any
 
   // Load incomes from Supabase
@@ -64,11 +61,7 @@ export function IncomeList() {
         .select(
           `
           *,
-          financial_categories!financial_transactions_category_id_fkey (
-            id,
-            name
-          ),
-          bank_accounts!financial_transactions_account_id_fkey (
+          financial_accounts!financial_transactions_account_id_fkey (
             id,
             name
           )
@@ -86,7 +79,7 @@ export function IncomeList() {
           id: t.id,
           date: t.date,
           description: t.description,
-          category: t.financial_categories?.name || 'Sem categoria',
+          category: t.category || 'Sem categoria',
           type: t.type,
           amount: parseFloat(t.amount.toString()),
           accountId: t.account_id || undefined,
@@ -96,8 +89,8 @@ export function IncomeList() {
       // Create account names map
       const namesMap: Record<string, string> = {}
       ;(data || []).forEach((t: TransactionFromDB) => {
-        if (t.bank_accounts?.name) {
-          namesMap[t.account_id || ''] = t.bank_accounts.name
+        if (t.financial_accounts?.name) {
+          namesMap[t.account_id || ''] = t.financial_accounts.name
         }
       })
       setAccountNames(namesMap)
@@ -138,14 +131,14 @@ export function IncomeList() {
       }
 
       if (selectedIncome) {
-        // Update
+        // Update (financial_transactions usa category TEXT)
         const { error } = await supabaseAny
           .from('financial_transactions')
           .update({
             description: data.description,
             amount: data.amount,
             date: data.date,
-            category_id: categoryData.id,
+            category: data.category,
             account_id: data.accountId || null,
           })
           .eq('id', selectedIncome.id)
@@ -155,22 +148,39 @@ export function IncomeList() {
         await loadIncomes.execute()
         return 'Receita atualizada com sucesso.'
       } else {
-        // Create
-        const { error } = await supabaseAny
-          .from('financial_transactions')
-          .insert({
-            description: data.description,
-            amount: data.amount,
-            date: data.date,
-            category_id: categoryData.id,
-            type: 'Receita',
-            account_id: data.accountId || null,
-          })
+        // Create com idempotência: mesma chave enquanto a operação estiver em andamento (evita duplo clique)
+        const idempotencyKey =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? createIdempotencyKeyRef.current ?? crypto.randomUUID()
+            : undefined
+        if (idempotencyKey) createIdempotencyKeyRef.current = idempotencyKey
+        try {
+          const { error } = await supabaseAny
+            .from('financial_transactions')
+            .insert({
+              description: data.description,
+              amount: data.amount,
+              date: data.date,
+              category: data.category,
+              type: 'Receita',
+              account_id: data.accountId || null,
+              ...(idempotencyKey && { idempotency_key: idempotencyKey }),
+            })
 
-        if (error) throw error
+          if (error) {
+            const pgErr = error as { code?: string }
+            if (pgErr.code === '23505' && idempotencyKey) {
+              await loadIncomes.execute()
+              return 'Receita já registrada (envio duplicado ignorado).'
+            }
+            throw error
+          }
 
-        await loadIncomes.execute()
-        return 'Receita registrada com sucesso.'
+          await loadIncomes.execute()
+          return 'Receita registrada com sucesso.'
+        } finally {
+          createIdempotencyKeyRef.current = null
+        }
       }
     },
     {

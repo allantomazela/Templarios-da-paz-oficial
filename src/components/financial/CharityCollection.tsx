@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -66,18 +66,10 @@ interface TransactionFromDB {
   id: string
   date: string
   description: string
-  category_id: string
+  category: string
   type: 'Receita' | 'Despesa'
   amount: number
   account_id: string | null
-  financial_categories?: {
-    id: string
-    name: string
-  }
-  bank_accounts?: {
-    id: string
-    name: string
-  }
 }
 
 interface AccountFromDB {
@@ -104,6 +96,7 @@ export function CharityCollection() {
   const [loading, setLoading] = useState(true)
   const dialog = useDialog()
   const [charityToEdit, setCharityToEdit] = useState<string | null>(null)
+  const createIdempotencyKeyRef = useRef<string | null>(null)
   const supabaseAny = supabase as any
 
   // Load charity transactions and accounts from Supabase
@@ -143,24 +136,13 @@ export function CharityCollection() {
         }
 
         if (categoryData) {
-          // Load transactions with this category
+          // Load transactions desta categoria (financial_transactions usa category TEXT)
+          const categoryName = 'Tronco de Beneficência'
           const { data: transactionsData, error: transactionsError } =
             await supabaseAny
               .from('financial_transactions')
-              .select(
-                `
-                *,
-                financial_categories!financial_transactions_category_id_fkey (
-                  id,
-                  name
-                ),
-                bank_accounts!financial_transactions_account_id_fkey (
-                  id,
-                  name
-                )
-              `,
-              )
-              .eq('category_id', categoryData.id)
+              .select('*')
+              .eq('category', categoryName)
               .eq('type', 'Receita')
               .order('date', { ascending: false })
 
@@ -171,7 +153,7 @@ export function CharityCollection() {
               id: t.id,
               date: t.date,
               description: t.description,
-              category: t.financial_categories?.name || 'Tronco de Beneficência',
+              category: t.category || categoryName,
               type: t.type,
               amount: parseFloat(t.amount.toString()),
               accountId: t.account_id || undefined,
@@ -183,7 +165,7 @@ export function CharityCollection() {
 
         // Load accounts
         const { data: accountsData, error: accountsError } = await supabaseAny
-          .from('bank_accounts')
+          .from('financial_accounts')
           .select('*')
           .order('name')
 
@@ -328,19 +310,36 @@ export function CharityCollection() {
 
         if (error) throw error
       } else {
-        // Create
-        const { error } = await supabaseAny
-          .from('financial_transactions')
-          .insert({
-            description,
-            amount: data.amount,
-            date: data.date,
-            category_id: categoryData.id,
-            type: 'Receita',
-            account_id: data.accountId || null,
-          })
+        // Create com idempotência: mesma chave enquanto a operação estiver em andamento (evita duplo clique)
+        const idempotencyKey =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? createIdempotencyKeyRef.current ?? crypto.randomUUID()
+            : undefined
+        if (idempotencyKey) createIdempotencyKeyRef.current = idempotencyKey
+        try {
+          const { error } = await supabaseAny
+            .from('financial_transactions')
+            .insert({
+              description,
+              amount: data.amount,
+              date: data.date,
+              category: 'Tronco de Beneficência',
+              type: 'Receita',
+              account_id: data.accountId || null,
+              ...(idempotencyKey && { idempotency_key: idempotencyKey }),
+            })
 
-        if (error) throw error
+          if (error) {
+            const pgErr = error as { code?: string }
+            if (pgErr.code === '23505' && idempotencyKey) {
+              await loadData.execute()
+              return 'Tronco já registrado (envio duplicado ignorado).'
+            }
+            throw error
+          }
+        } finally {
+          createIdempotencyKeyRef.current = null
+        }
       }
 
       // Update SessionRecord if exists

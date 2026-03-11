@@ -27,8 +27,16 @@ function haversineMeters(
   return R * c
 }
 
+/** Coordenadas padrão do Templo e raio (50m) para geofencing */
+const DEFAULT_TEMPLE_LAT = -22.8812604
+const DEFAULT_TEMPLE_LNG = -48.4554303
+const DEFAULT_RADIUS_METERS = 50
+const GEO_ERROR_MESSAGE =
+  'Você precisa estar fisicamente no Templo para assinar a presença.'
+
 interface CheckinBody {
-  sessionRecordId: string
+  sessionRecordId?: string
+  token?: string
   latitude?: number
   longitude?: number
 }
@@ -58,17 +66,7 @@ serve(async (req) => {
 
   try {
     const body = (await req.json()) as CheckinBody
-    const { sessionRecordId, latitude, longitude } = body
-
-    if (!sessionRecordId || typeof sessionRecordId !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'sessionRecordId é obrigatório' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
-    }
+    const { sessionRecordId: bodySessionId, token, latitude, longitude } = body
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -94,6 +92,47 @@ serve(async (req) => {
     }
 
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey)
+
+    let sessionRecordId: string
+
+    if (token && typeof token === 'string' && token.trim()) {
+      const { data: tokenRow, error: tokenError } = await serviceClient
+        .from('checkin_tokens')
+        .select('session_record_id, expires_at')
+        .eq('token', token.trim())
+        .single()
+
+      if (tokenError || !tokenRow) {
+        return new Response(
+          JSON.stringify({ error: 'Token do QR Code inválido ou expirado.' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      }
+      const expiresAt = new Date(tokenRow.expires_at)
+      if (expiresAt <= new Date()) {
+        return new Response(
+          JSON.stringify({ error: 'Token do QR Code expirado.' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      }
+      sessionRecordId = tokenRow.session_record_id
+    } else if (bodySessionId && typeof bodySessionId === 'string') {
+      sessionRecordId = bodySessionId
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Envie o token do QR Code ou o ID da sessão.' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
 
     const { data: sessionRecord, error: sessionError } = await serviceClient
       .from('session_records')
@@ -134,9 +173,14 @@ serve(async (req) => {
       .single()
 
     const openMinutes = settings?.checkin_open_minutes_before ?? 30
-    const templeLat = settings?.temple_latitude
-    const templeLng = settings?.temple_longitude
-    const radiusMeters = settings?.checkin_radius_meters
+    const templeLat =
+      settings?.temple_latitude != null ? settings.temple_latitude : DEFAULT_TEMPLE_LAT
+    const templeLng =
+      settings?.temple_longitude != null ? settings.temple_longitude : DEFAULT_TEMPLE_LNG
+    const radiusMeters =
+      settings?.checkin_radius_meters != null && settings.checkin_radius_meters > 0
+        ? settings.checkin_radius_meters
+        : DEFAULT_RADIUS_METERS
 
     const now = new Date()
     const sessionDate = new Date(event.date + 'T' + event.time)
@@ -154,35 +198,24 @@ serve(async (req) => {
       )
     }
 
-    if (
-      templeLat != null &&
-      templeLng != null &&
-      radiusMeters != null &&
-      radiusMeters > 0
-    ) {
-      if (latitude == null || longitude == null) {
-        return new Response(
-          JSON.stringify({
-            error: 'É necessário permitir a localização para fazer check-in neste templo.',
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          },
-        )
-      }
-      const distance = haversineMeters(latitude, longitude, templeLat, templeLng)
-      if (distance > radiusMeters) {
-        return new Response(
-          JSON.stringify({
-            error: `Você está a ${Math.round(distance)} m do templo. O check-in é permitido apenas dentro de ${radiusMeters} m.`,
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          },
-        )
-      }
+    if (latitude == null || longitude == null) {
+      return new Response(
+        JSON.stringify({ error: GEO_ERROR_MESSAGE }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+    const distance = haversineMeters(latitude, longitude, templeLat, templeLng)
+    if (distance > radiusMeters) {
+      return new Response(
+        JSON.stringify({ error: GEO_ERROR_MESSAGE }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
     }
 
     const { error: insertError } = await userClient.from('attendance').insert({

@@ -9,10 +9,12 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Event, SessionRecord } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
-import { CheckCircle, Clock, CalendarIcon, RefreshCw } from 'lucide-react'
+import { QRCheckinScanner } from './QRCheckinScanner'
+import { CheckCircle, Clock, CalendarIcon, RefreshCw, QrCode } from 'lucide-react'
 import { format, parseISO, isValid } from 'date-fns'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -28,6 +30,7 @@ export function AttendanceManager() {
     null,
   )
   const dialog = useDialog()
+  const scannerDialog = useDialog()
   // Debug: Log events count
   devLog(`AttendanceManager: Total de eventos no store: ${events.length}`)
 
@@ -91,8 +94,30 @@ export function AttendanceManager() {
     setSelectedEvent(null)
   }
 
+  const handleScannerSuccess = () => {
+    // Lista atualiza ao reabrir a sessão no diálogo
+  }
+
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <QrCode className="h-5 w-5" />
+            Registrar minha presença
+          </CardTitle>
+          <CardDescription>
+            Escaneie o QR Code exibido no Templo (dentro de 50 m) para assinar a presença, ou peça ao Chanceler para assinar o livro.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => scannerDialog.openDialog()}>
+            <QrCode className="mr-2 h-4 w-4" />
+            Escanear QR Code da sessão
+          </Button>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Controle de Presença</h3>
@@ -196,6 +221,12 @@ export function AttendanceManager() {
         event={selectedEvent}
         existingSessionRecord={selectedRecord}
         onSave={handleSave}
+      />
+
+      <QRCheckinScanner
+        open={scannerDialog.open}
+        onOpenChange={scannerDialog.onOpenChange}
+        onSuccess={handleScannerSuccess}
       />
     </div>
   )

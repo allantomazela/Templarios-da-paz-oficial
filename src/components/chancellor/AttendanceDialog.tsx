@@ -25,6 +25,7 @@ import {
   VisitorAttendance,
 } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
+import { supabase } from '@/lib/supabase/client'
 import { format, parseISO } from 'date-fns'
 import { Check, X, FileText, Users, QrCode, Download } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
@@ -79,14 +80,30 @@ export function AttendanceDialog({
     { brotherId: string; status: string; name: string }[]
   >([])
   const [qrSessionRecordId, setQrSessionRecordId] = useState<string | null>(null)
+  const [checkinToken, setCheckinToken] = useState<string | null>(null)
 
+  const sessionRecordId = qrSessionRecordId ?? existingSessionRecord?.id
   const checkInUrl =
-    typeof window !== 'undefined' && (qrSessionRecordId || existingSessionRecord?.id)
-      ? `${window.location.origin}/checkin/${qrSessionRecordId ?? existingSessionRecord?.id}`
+    typeof window !== 'undefined' && sessionRecordId
+      ? `${window.location.origin}/checkin/${sessionRecordId}`
       : ''
   const qrImageUrl =
-    checkInUrl &&
-    `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(checkInUrl)}`
+    checkinToken &&
+    `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(checkinToken)}`
+
+  useEffect(() => {
+    if (!open || !existingSessionRecord?.id) {
+      setCheckinToken(null)
+      return
+    }
+    const run = async () => {
+      const { data, error } = await supabase.rpc('get_or_create_checkin_token', {
+        p_session_record_id: existingSessionRecord.id,
+      })
+      if (!error && data) setCheckinToken(data)
+    }
+    run()
+  }, [open, existingSessionRecord?.id])
 
   const venerableMaster =
     positions.find((p) => p.position_type === 'veneravel_mestre')?.user
@@ -495,7 +512,7 @@ export function AttendanceDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogTitle>QR Code para check-in</DialogTitle>
         <p className="text-sm text-muted-foreground">
-          Irmãos podem escanear este QR para registrar presença nesta sessão.
+          Exiba este QR no Templo. Os irmãos escaneiam em Chancelaria → Presença → Escanear QR Code (é necessário estar a até 50 m do Templo).
         </p>
         {qrImageUrl && (
           <div className="flex flex-col items-center gap-3 py-2">
@@ -512,10 +529,15 @@ export function AttendanceDialog({
               <Download className="mr-2 h-4 w-4" />
               Baixar QR
             </a>
-            <p className="text-xs text-muted-foreground break-all text-center">
-              {checkInUrl}
-            </p>
+            {checkInUrl && (
+              <p className="text-xs text-muted-foreground break-all text-center">
+                Link alternativo: {checkInUrl}
+              </p>
+            )}
           </div>
+        )}
+        {sessionRecordId && !checkinToken && (
+          <p className="text-xs text-muted-foreground">Carregando token do QR...</p>
         )}
       </DialogContent>
     </Dialog>

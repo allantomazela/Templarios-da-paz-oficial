@@ -61,7 +61,8 @@ export default function CheckinPage() {
     }
 
     if (!navigator.geolocation) {
-      doCheckin()
+      setStatus('error')
+      setMessage('Você precisa estar fisicamente no Templo para assinar a presença.')
       return
     }
 
@@ -71,8 +72,8 @@ export default function CheckinPage() {
         doCheckin(pos.coords.latitude, pos.coords.longitude)
       },
       () => {
-        setMessage('Localização não permitida. Tentando check-in sem geolocalização...')
-        doCheckin()
+        setStatus('error')
+        setMessage('Você precisa estar fisicamente no Templo para assinar a presença.')
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     )

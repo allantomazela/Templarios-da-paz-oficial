@@ -26,7 +26,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRef } from 'react'
-import { useReactToPrint } from 'react-to-print'
 
 export function ChancellorOverview() {
   const qrCardRef = useRef<HTMLDivElement | null>(null)
@@ -151,13 +150,59 @@ export function ChancellorOverview() {
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
     effectiveTempleUrl,
   )}`
+  const handlePrintQR = () => {
+    if (typeof window === 'undefined') return
+    const printWindow = window.open('', '_blank', 'width=420,height=600')
+    if (!printWindow) return
 
-  const handlePrintQR = useReactToPrint({
-    // Versão 3.x do react-to-print usa `contentRef` como API principal.
-    // O `qrCardRef` está ligado ao Card que contém o QR fixo.
-    contentRef: qrCardRef,
-    documentTitle: 'QR_Checkin_Templo',
-  })
+    const html = `<!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charSet="UTF-8" />
+          <title>QR Check-in Templo</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 16px;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            .card {
+              border: 1px solid #000;
+              padding: 16px;
+              text-align: center;
+            }
+            img {
+              width: 256px;
+              height: 256px;
+            }
+            .url {
+              margin-top: 8px;
+              font-size: 11px;
+              word-break: break-all;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>QR fixo do Templo</h2>
+            <img src="${qrImageUrl}" alt="QR fixo do Templo" />
+            <div class="url">${effectiveTempleUrl}</div>
+          </div>
+        </body>
+      </html>`
+
+    printWindow.document.open()
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
+    printWindow.close()
+  }
 
   return (
     <div className="space-y-6">

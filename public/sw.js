@@ -1,11 +1,10 @@
 // Simple Service Worker for offline capabilities
 // IMPORTANTE: sempre que mudar a estratégia de cache, altere o CACHE_NAME
 // para forçar os navegadores a baixarem uma nova versão.
-const CACHE_NAME = 'templarios-cache-v7'
+const CACHE_NAME = 'templarios-cache-v8'
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.webmanifest',
   '/favicon.ico'
 ]
 
@@ -141,9 +140,18 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Estratégia network-first para navegações e index.html:
-  // sempre tentar buscar a versão mais recente do HTML na rede,
-  // caindo para o cache/offline apenas em caso de erro.
+  // Manifest: sempre network-first para não servir manifest antigo (ex.: icon-192)
+  const isManifest = urlStr.includes('manifest.webmanifest')
+  if (isManifest) {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match(event.request).then((cached) => cached || new Response('', { status: 503 }))
+      )
+    )
+    return
+  }
+
+  // Estratégia network-first para navegações e index.html
   const isNavigationRequest =
     event.request.mode === 'navigate' ||
     urlStr.endsWith('/index.html') ||

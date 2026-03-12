@@ -33,6 +33,7 @@ jobs:
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: npm run build
 
+    # dist/ contém index.html, assets/ e tudo que está em public/ (favicon, icon-192, icon-512, manifest, sw.js)
     - name: 6. Enviando build para o servidor
       env:
         SSH_KEY: ${{ secrets.SSH_KEY }}

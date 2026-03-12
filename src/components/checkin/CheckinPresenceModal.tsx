@@ -189,7 +189,11 @@ export function CheckinPresenceModal({
   useEffect(() => {
     if (step !== 'scanning' || !open || !gpsCoords) return
     let scanner: Html5Qrcode | null = null
+    let cancelled = false
     const run = async () => {
+      // Garantir que o div do scanner já está no DOM e visível antes de iniciar a câmera
+      await new Promise((r) => setTimeout(r, 100))
+      if (cancelled) return
       try {
         const cameras = await Html5Qrcode.getCameras()
         if (!cameras?.length) {
@@ -197,6 +201,8 @@ export function CheckinPresenceModal({
           setMessage('Nenhuma câmera encontrada.')
           return
         }
+        const el = document.getElementById(SCANNER_DIV_ID)
+        if (!el || cancelled) return
         scanner = new Html5Qrcode(SCANNER_DIV_ID)
         scannerRef.current = scanner
         await scanner.start(
@@ -214,12 +220,15 @@ export function CheckinPresenceModal({
           () => {},
         )
       } catch (err) {
-        setStep('error')
-        setMessage(err instanceof Error ? err.message : 'Não foi possível acessar a câmera.')
+        if (!cancelled) {
+          setStep('error')
+          setMessage(err instanceof Error ? err.message : 'Não foi possível acessar a câmera.')
+        }
       }
     }
     run()
     return () => {
+      cancelled = true
       if (scannerRef.current) {
         scannerRef.current.stop().catch(() => {})
         scannerRef.current.clear()
@@ -230,7 +239,10 @@ export function CheckinPresenceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+      <DialogContent
+        className={step === 'scanning' ? 'sm:max-w-lg' : 'sm:max-w-md'}
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>Registrar presença</DialogTitle>
           <DialogDescription>
@@ -340,10 +352,13 @@ export function CheckinPresenceModal({
 
           {step === 'scanning' && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">{message}</p>
+              <p className="text-sm text-muted-foreground">
+                {message || 'Aponte a câmera para o QR Code da sessão.'}
+              </p>
               <div
                 id={SCANNER_DIV_ID}
-                className="rounded-lg overflow-hidden bg-black min-h-[240px]"
+                className="rounded-lg overflow-hidden bg-black w-full min-h-[280px] aspect-[4/3] max-h-[50vh]"
+                style={{ minHeight: 280 }}
               />
             </div>
           )}

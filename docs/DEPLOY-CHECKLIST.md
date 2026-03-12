@@ -69,3 +69,9 @@ Se o site só abre em **www.templariosdapazoficial.com.br** e não em **templari
 1. **Nginx:** adicione o redirecionamento apex → www. Use o arquivo `docs/nginx-redirect-apex-to-www.conf` (copie o conteúdo para o servidor em `/etc/nginx/sites-available/` ou inclua no config do site). Depois: `sudo nginx -t && sudo systemctl reload nginx`.
 2. **DNS:** o domínio apex (templariosdapazoficial.com.br) deve apontar para o mesmo IP do servidor (registro A ou ALIAS), para o Nginx receber a requisição e aplicar o redirect.
 3. **SSL:** se usar HTTPS no www, configure certificado para o apex também (Let's Encrypt: `certbot -d templariosdapazoficial.com.br -d www.templariosdapazoficial.com.br`) para o redirect HTTPS→HTTPS funcionar.
+
+---
+
+## 6. Ícone ao instalar no celular (PWA)
+
+O manifest usa `public/icon-192.png` e `public/icon-512.png` para o ícone exibido ao “adicionar à tela inicial”. Para exibir o logo dos Templários, substitua esses arquivos por imagens do logo em 192×192 e 512×512 pixels (PNG). O favicon do site (Configurações → Logo/Favicon) continua sendo usado nas abas; o manifest é usado apenas na instalação.

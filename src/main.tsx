@@ -11,14 +11,16 @@ window.addEventListener('error', (event) => {
   const errorMessage = event.message || ''
   const errorSource = event.filename || ''
 
-  // Suppress common browser extension errors (e.g. "media:1" = extension script)
+  // Suppress common browser extension errors (e.g. "media:1", "content.js" = extension script)
   if (
     errorMessage.includes('A listener indicated an asynchronous response by returning true') ||
     errorMessage.includes('message channel closed before a response was received') ||
+    errorMessage.includes("Cannot read properties of undefined (reading 'hostname')") ||
     errorSource.includes('chrome-extension://') ||
     errorSource.includes('moz-extension://') ||
     errorSource.includes('safari-extension://') ||
     errorSource.includes('extension://') ||
+    errorSource.includes('content.js') ||
     errorSource.includes('settings:') ||
     errorSource === 'media' ||
     /^[a-z]+:\d+$/.test(errorSource) // e.g. "media:1", "ext:1"
@@ -45,7 +47,9 @@ window.addEventListener('unhandledrejection', (event) => {
   const isExtensionNoise =
     errorMessage.includes('A listener indicated an asynchronous response by returning true') ||
     errorMessage.includes('message channel closed before a response was received') ||
+    errorMessage.includes("Cannot read properties of undefined (reading 'hostname')") ||
     errorSource.includes('extension://') ||
+    errorSource.includes('content.js') ||
     errorSource.includes('settings') || // e.g. "settings:1" from extensions
     errorSource === 'media' ||
     /^[a-z]+:\d+$/.test(errorSource) // e.g. "media:1", "ext:1", "settings:1"
@@ -126,10 +130,11 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(<App />)
 
-// Limpar flag de chunk-reload após carregamento ok (permite novo reload após próximo deploy)
+// Limpar flags de reload após carregamento ok (permite novo reload após próximo deploy)
 setTimeout(() => {
   try {
     sessionStorage.removeItem('templarios-chunk-reload')
+    sessionStorage.removeItem('templarios-asset-reload')
   } catch {
     // ignore
   }

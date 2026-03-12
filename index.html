@@ -14,14 +14,29 @@
     <meta name="keywords" content="Templários da Paz" />
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/favicon.ico" />
-    <!-- Favicon will be dynamically updated by SeoManager component -->
-    <link rel="icon" type="image/png" href="/favicon.ico" />
+    <!-- Ícone ao instalar no dispositivo (fallback; SeoManager usa logo do site quando configurado) -->
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- Favicon fallback; SeoManager atualiza com logo do site quando configurado -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
   </head>
 
   <body>
     <div id="root"></div>
+    <!-- Recarrega a página quando o navegador tiver index.html em cache e os assets (JS/CSS) retornarem 404 (deploy novo) -->
+    <script>
+      (function () {
+        var key = 'templarios-asset-reload'
+        window.addEventListener('error', function (e) {
+          var t = e.target
+          if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && (t.src || t.href)) {
+            if (sessionStorage.getItem(key) !== '1') {
+              sessionStorage.setItem(key, '1')
+              window.location.replace(window.location.pathname + '?t=' + Date.now())
+            }
+          }
+        }, true)
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

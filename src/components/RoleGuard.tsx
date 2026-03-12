@@ -48,15 +48,17 @@ export function RoleGuard({
 
   // Robust Role Determination
   let userRole = user?.role || 'member'
-  const userStatus = user?.profile?.status || 'pending'
+  const userStatus = user?.profile?.status
+  const isBlockedStatus =
+    userStatus === 'blocked' || userStatus === 'in_memoriam'
 
   if (isMasterAdmin) {
     userRole = 'admin'
   }
 
-  // Status Check - Block access if not approved (even if role is theoretically correct in local state)
-  // Master Admin bypasses status check
-  if (!isMasterAdmin && userStatus !== 'approved') {
+  // Status Check - Block access apenas para usuários com status explicitamente bloqueado
+  // (ex.: 'blocked', 'in_memoriam'). Master Admin sempre ignora esse bloqueio.
+  if (!isMasterAdmin && isBlockedStatus) {
     return <Navigate to="/access-denied" replace />
   }
 

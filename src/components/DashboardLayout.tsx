@@ -92,9 +92,11 @@ export default function DashboardLayout() {
   }
 
   const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
-  const userStatus = user?.profile?.status || 'pending'
+  const userStatus = user?.profile?.status
+  const isBlockedStatus =
+    userStatus === 'blocked' || userStatus === 'in_memoriam'
 
-  if (!isMasterAdmin && userStatus !== 'approved') {
+  if (!isMasterAdmin && isBlockedStatus) {
     return <Navigate to="/access-denied" replace />
   }
 

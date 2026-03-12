@@ -34,3 +34,6 @@ coverage
 
 # Vitest
 .vitest
+
+# Supabase CLI temp
+supabase/.temp/

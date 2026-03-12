@@ -20,6 +20,7 @@ import {
   Wallet,
   Megaphone,
   UtensilsCrossed,
+  QrCode,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -35,9 +36,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { CheckinPresenceModal } from '@/components/checkin/CheckinPresenceModal'
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [checkinModalOpen, setCheckinModalOpen] = useState(false)
   const { user, signOut } = useAuthStore()
   const { logoUrl } = useSiteSettingsStore()
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
@@ -196,7 +199,19 @@ export function AppSidebar() {
         </Button>
       </div>
 
-      <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto no-scrollbar">
+      <div className="px-2 pb-2">
+        <Button
+          variant="default"
+          size={collapsed ? 'icon' : 'default'}
+          className="w-full"
+          onClick={() => setCheckinModalOpen(true)}
+        >
+          <QrCode className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="ml-2">Registrar presença</span>}
+        </Button>
+      </div>
+
+      <nav className="flex-1 py-4 px-2 space-y-2 overflow-y-auto no-scrollbar">
         {navItems.map((item) => {
           if (
             item.allowedRoles &&
@@ -291,6 +306,11 @@ export function AppSidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <CheckinPresenceModal
+        open={checkinModalOpen}
+        onOpenChange={setCheckinModalOpen}
+      />
     </div>
   )
 }

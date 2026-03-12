@@ -59,3 +59,13 @@ Depois: `sudo nginx -t && sudo systemctl reload nginx`.
 - **/assets/:** pode cachear com `max-age=31536000, immutable` (os nomes têm hash).
 
 Se após o deploy o site ainda der 404 em assets, limpar cache do navegador (ou testar em aba anônima) e, se houver, invalidar cache de CDN/proxy.
+
+---
+
+## 5. Domínio sem www (templariosdapazoficial.com.br) não abre
+
+Se o site só abre em **www.templariosdapazoficial.com.br** e não em **templariosdapazoficial.com.br**:
+
+1. **Nginx:** adicione o redirecionamento apex → www. Use o arquivo `docs/nginx-redirect-apex-to-www.conf` (copie o conteúdo para o servidor em `/etc/nginx/sites-available/` ou inclua no config do site). Depois: `sudo nginx -t && sudo systemctl reload nginx`.
+2. **DNS:** o domínio apex (templariosdapazoficial.com.br) deve apontar para o mesmo IP do servidor (registro A ou ALIAS), para o Nginx receber a requisição e aplicar o redirect.
+3. **SSL:** se usar HTTPS no www, configure certificado para o apex também (Let's Encrypt: `certbot -d templariosdapazoficial.com.br -d www.templariosdapazoficial.com.br`) para o redirect HTTPS→HTTPS funcionar.

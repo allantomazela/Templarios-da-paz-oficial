@@ -63,28 +63,15 @@ export function SeoManager() {
       shortcutIcon.href = faviconUrlWithCache
       document.head.appendChild(shortcutIcon)
 
-      // Create Apple Touch Icon (for iOS devices)
+      // Apple Touch Icon: não declarar sizes para evitar "Resource size is not correct"
+      // quando a imagem não for exatamente 180x180 (evita avisos no console)
       const appleTouchIcon = document.createElement('link')
       appleTouchIcon.rel = 'apple-touch-icon'
       appleTouchIcon.href = faviconUrlWithCache
-      appleTouchIcon.sizes = '180x180'
       document.head.appendChild(appleTouchIcon)
 
-      // Create larger icon for modern browsers and PWA
-      const largeIcon = document.createElement('link')
-      largeIcon.rel = 'icon'
-      largeIcon.type = 'image/png'
-      largeIcon.href = faviconUrlWithCache
-      largeIcon.sizes = '192x192'
-      document.head.appendChild(largeIcon)
-
-      // Create extra large icon for high DPI displays
-      const xlIcon = document.createElement('link')
-      xlIcon.rel = 'icon'
-      xlIcon.type = 'image/png'
-      xlIcon.href = faviconUrlWithCache
-      xlIcon.sizes = '512x512'
-      document.head.appendChild(xlIcon)
+      // Não injetar links 192x192/512x512 aqui: o tamanho real da imagem pode não bater
+      // e o navegador gera erro. O manifest.webmanifest usa só favicon 48x48.
     }
 
     // Update Open Graph Tags

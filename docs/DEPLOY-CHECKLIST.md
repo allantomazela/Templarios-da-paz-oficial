@@ -86,4 +86,4 @@ Para que **mobile e Chrome** sempre vejam a versão nova após cada deploy:
 
 ## 7. Ícone ao instalar no celular (PWA)
 
-O manifest usa `public/icon-192.png` e `public/icon-512.png` para o ícone exibido ao “adicionar à tela inicial”. Para exibir o logo dos Templários, substitua esses arquivos por imagens do logo em 192×192 e 512×512 pixels (PNG). O favicon do site (Configurações → Logo/Favicon) continua sendo usado nas abas; o manifest é usado apenas na instalação.
+O manifest usa apenas `favicon.png` (48×48) para evitar erro “Resource size is not correct”. O favicon do site (Configurações → Logo/Favicon) é usado nas abas e no ícone de instalação. Se quiser ícones maiores na instalação, crie PNGs exatamente 192×192 e 512×512, coloque em `public/icon-192.png` e `public/icon-512.png`, e adicione as entradas correspondentes em `public/manifest.webmanifest` (com `sizes` e `src` corretos).

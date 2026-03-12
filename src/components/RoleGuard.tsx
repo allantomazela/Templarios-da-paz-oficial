@@ -10,16 +10,69 @@ interface RoleGuardProps {
   requiredModule?: string // Módulo específico necessário (ex: 'secretariat', 'financial')
 }
 
+function RoleGuardInner({
+  user,
+  allowedRoles,
+  requiredModule,
+  children,
+}: RoleGuardProps & { user: NonNullable<ReturnType<typeof useAuthStore>['user']> }) {
+  const { hasPermission, getUserPermissions } = useLodgePositionsStore()
+
+  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
+  let userRole = user?.role || 'member'
+  const userStatus = user?.profile?.status
+  const isBlockedStatus =
+    userStatus === 'blocked' || userStatus === 'in_memoriam'
+
+  if (isMasterAdmin) {
+    userRole = 'admin'
+  }
+
+  if (!isMasterAdmin && isBlockedStatus) {
+    return <Navigate to="/access-denied" replace />
+  }
+
+  if (requiredModule && user?.id) {
+    if (userRole === 'member' && allowedRoles.includes('member')) {
+      // ok
+    } else {
+      const hasModuleAccess = hasPermission(user.id, requiredModule)
+      if (!hasModuleAccess && !isMasterAdmin) {
+        return <Navigate to="/access-denied" replace />
+      }
+    }
+  }
+
+  if (user?.id) {
+    const userPermissions = getUserPermissions(user.id)
+    const hasRoleAccess = allowedRoles.includes(userRole)
+    const hasPositionAccess =
+      userPermissions.includes('*') ||
+      userPermissions.some((perm) => allowedRoles.includes(perm))
+
+    if (isMasterAdmin) {
+      return <>{children}</>
+    }
+    if (!hasRoleAccess && !hasPositionAccess) {
+      return <Navigate to="/dashboard" replace />
+    }
+  } else {
+    if (!allowedRoles.includes(userRole)) {
+      return <Navigate to="/dashboard" replace />
+    }
+  }
+
+  return <>{children}</>
+}
+
 export function RoleGuard({
   children,
   allowedRoles,
   requiredModule,
 }: RoleGuardProps) {
   const { user, loading } = useAuthStore()
-  const { hasPermission, getUserPermissions } = useLodgePositionsStore()
   const [isTimeout, setIsTimeout] = useState(false)
 
-  // Fail-safe timeout for inner route guards (3s)
   useEffect(() => {
     let timer: NodeJS.Timeout
     if (loading) {
@@ -32,8 +85,6 @@ export function RoleGuard({
 
   if (loading) {
     if (isTimeout) {
-      // If loading is stuck in a sub-route guard, fallback to dashboard root
-      // where the main layout handles general auth state
       return <Navigate to="/dashboard" replace />
     }
     return (
@@ -43,64 +94,13 @@ export function RoleGuard({
     )
   }
 
-  // Master Admin bypass: always treat as 'admin' if email matches
-  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
-
-  // Robust Role Determination
-  let userRole = user?.role || 'member'
-  const userStatus = user?.profile?.status
-  const isBlockedStatus =
-    userStatus === 'blocked' || userStatus === 'in_memoriam'
-
-  if (isMasterAdmin) {
-    userRole = 'admin'
+  if (!user) {
+    return <Navigate to="/dashboard" replace />
   }
 
-  // Status Check - Block access apenas para usuários com status explicitamente bloqueado
-  // (ex.: 'blocked', 'in_memoriam'). Master Admin sempre ignora esse bloqueio.
-  if (!isMasterAdmin && isBlockedStatus) {
-    return <Navigate to="/access-denied" replace />
-  }
-
-  // Verificar acesso baseado em cargo (se requiredModule for especificado)
-  if (requiredModule && user?.id) {
-    // Se o usuário é member e member está em allowedRoles, permitir acesso
-    // (membros não precisam de cargo para acessar módulos básicos como agenda, library, media)
-    if (userRole === 'member' && allowedRoles.includes('member')) {
-      // Permitir acesso para membros sem verificar cargo
-      // Isso permite que membros acessem Agenda, Biblioteca e Mídia
-    } else {
-      // Para admin/editor, verificar cargo
-      const hasModuleAccess = hasPermission(user.id, requiredModule)
-      if (!hasModuleAccess && !isMasterAdmin) {
-        return <Navigate to="/access-denied" replace />
-      }
-    }
-  }
-
-  // Verificar permissões de cargo
-  if (user?.id) {
-    const userPermissions = getUserPermissions(user.id)
-    const hasRoleAccess = allowedRoles.includes(userRole)
-    const hasPositionAccess =
-      userPermissions.includes('*') ||
-      userPermissions.some((perm) => allowedRoles.includes(perm))
-
-    // Master Admin sempre tem acesso
-    if (isMasterAdmin) {
-      return <>{children}</>
-    }
-
-    // Verificar se tem acesso via role OU via cargo
-    if (!hasRoleAccess && !hasPositionAccess) {
-      return <Navigate to="/dashboard" replace />
-    }
-  } else {
-    // Se não tem user.id, verificar apenas por role
-    if (!allowedRoles.includes(userRole)) {
-      return <Navigate to="/dashboard" replace />
-    }
-  }
-
-  return <>{children}</>
+  return (
+    <RoleGuardInner user={user} allowedRoles={allowedRoles} requiredModule={requiredModule}>
+      {children}
+    </RoleGuardInner>
+  )
 }

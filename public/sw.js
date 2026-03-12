@@ -1,7 +1,7 @@
 // Simple Service Worker for offline capabilities
 // IMPORTANTE: sempre que mudar a estratégia de cache, altere o CACHE_NAME
 // para forçar os navegadores a baixarem uma nova versão.
-const CACHE_NAME = 'templarios-cache-v6'
+const CACHE_NAME = 'templarios-cache-v7'
 const urlsToCache = [
   '/',
   '/index.html',
@@ -196,15 +196,36 @@ self.addEventListener('fetch', (event) => {
     }
   }
 
+  // JS/CSS e assets: network-first para sempre pegar versão nova após deploy
+  // (evita bundle antigo no mobile e "não atualiza" no Chrome)
+  const isAsset = event.request.destination === 'script' ||
+                  event.request.destination === 'style' ||
+                  urlStr.includes('/assets/')
+  if (isAsset) {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(event.request)
+          return networkResponse
+        } catch (err) {
+          if ('caches' in self) {
+            const cached = await caches.match(event.request).catch(() => null)
+            if (cached) return cached
+          }
+          throw err
+        }
+      })()
+    )
+    return
+  }
+
   event.respondWith(
     (async () => {
       try {
         if (!('caches' in self)) {
-          // If CacheStorage is not available, just fetch from network
           return fetch(event.request)
         }
 
-        // Try to get from cache first
         const cachedResponse = await caches.match(event.request).catch((err) => {
           console.warn('Cache match failed:', err)
           return null
@@ -214,22 +235,14 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse
         }
 
-        // Cache miss - fetch from network
         try {
           return await fetch(event.request)
         } catch (err) {
-          // During development, if fetch fails, don't intercept - let browser handle it
           if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
-            // Re-throw to let browser handle the error naturally
             throw err
           }
-          
-          // For production, try to return offline page if available
           const offlinePage = await caches.match('/index.html').catch(() => null)
-          if (offlinePage) {
-            return offlinePage
-          }
-          // If no offline page, return error response
+          if (offlinePage) return offlinePage
           return new Response('Network error', {
             status: 503,
             statusText: 'Service Unavailable',
@@ -237,15 +250,10 @@ self.addEventListener('fetch', (event) => {
           })
         }
       } catch (error) {
-        // During development, if there's an error, don't intercept - let browser handle it
         if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
-          // Re-throw to let browser handle the error naturally
           throw error
         }
-        
-        // Only log errors for non-development requests
         console.error('Fetch handler error:', error)
-        // Return a basic error response instead of failing
         return new Response('Network error', {
           status: 503,
           statusText: 'Service Unavailable',

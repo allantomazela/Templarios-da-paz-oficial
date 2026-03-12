@@ -14,9 +14,9 @@ npm run build
 
 - Deve gerar a pasta `dist/` com:
   - `dist/index.html`
-  - `dist/assets/index-XXXXXXXX.js`
-  - `dist/assets/index-XXXXXXXX.css`
-  - outros chunks em `dist/assets/`
+  - `dist/assets/index.js` (e outros chunks; nomes estáveis — ver `vite.config.ts`)
+  - `dist/assets/*.css`
+  - `dist/sw.js`, `dist/manifest.webmanifest`, etc.
 
 Se `dist/assets/` estiver vazio ou não existir, o problema está no build (não no servidor).
 
@@ -53,10 +53,12 @@ Depois: `sudo nginx -t && sudo systemctl reload nginx`.
 
 ---
 
-## 4. Cache
+## 4. Cache (importante para mobile e Chrome verem atualizações)
 
-- **index.html:** não cachear (ou cache curto), para o usuário sempre receber o HTML novo com os hashes do deploy atual.
-- **/assets/:** pode cachear com `max-age=31536000, immutable` (os nomes têm hash).
+- **index.html:** sempre `Cache-Control: no-cache, no-store, must-revalidate`.
+- **/assets/:** com **nomes estáveis** (build atual), use `Cache-Control: no-cache, must-revalidate` para que após cada deploy o mobile/Chrome peguem o JS/CSS novo. Ver `docs/nginx-cache-headers.conf`.
+
+O Service Worker (`sw.js`) foi ajustado para usar **network-first** em JS/CSS; após o próximo deploy, usuários em mobile passarão a receber o bundle atualizado. Em cada deploy, o `sw.js` novo substitui o antigo e a versão do cache (CACHE_NAME) é incrementada quando necessário.
 
 Se após o deploy o site ainda der 404 em assets, limpar cache do navegador (ou testar em aba anônima) e, se houver, invalidar cache de CDN/proxy.
 
@@ -72,6 +74,16 @@ Se o site só abre em **www.templariosdapazoficial.com.br** e não em **templari
 
 ---
 
-## 6. Ícone ao instalar no celular (PWA)
+## 6. Próximo passo no servidor (Vultr/Nginx)
+
+Para que **mobile e Chrome** sempre vejam a versão nova após cada deploy:
+
+1. **Aplicar headers de cache** no Nginx conforme `docs/nginx-cache-headers.conf` (em especial `location = /index.html` e `location /assets/` com `no-cache, must-revalidate`).
+2. Fazer **deploy** deste repositório (incluindo o `sw.js` atualizado com network-first para JS/CSS).
+3. Usuários que já têm o site aberto podem precisar **recarregar uma vez** (ou fechar e reabrir a aba) para o novo Service Worker ativar; depois disso as atualizações passam a ser vistas normalmente.
+
+---
+
+## 7. Ícone ao instalar no celular (PWA)
 
 O manifest usa `public/icon-192.png` e `public/icon-512.png` para o ícone exibido ao “adicionar à tela inicial”. Para exibir o logo dos Templários, substitua esses arquivos por imagens do logo em 192×192 e 512×512 pixels (PNG). O favicon do site (Configurações → Logo/Favicon) continua sendo usado nas abas; o manifest é usado apenas na instalação.

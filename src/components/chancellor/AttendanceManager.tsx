@@ -21,9 +21,7 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { devLog } from '@/lib/logger'
 
 export function AttendanceManager() {
-  // Usar seletores específicos para garantir reatividade do Zustand
-  const events = useChancellorStore((state) => state.events)
-  const sessionRecords = useChancellorStore((state) => state.sessionRecords)
+  const { events, sessionRecords } = useChancellorStore()
   
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<SessionRecord | null>(

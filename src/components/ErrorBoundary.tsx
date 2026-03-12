@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { logError } from '@/lib/logger'
 
 const CHUNK_RELOAD_KEY = 'templarios-chunk-reload'
+const STORE_RELOAD_KEY = 'templarios-store-reload'
 
 function isChunkLoadError(error: Error): boolean {
   const msg = error?.message ?? ''
@@ -11,6 +12,12 @@ function isChunkLoadError(error: Error): boolean {
     msg.includes('Failed to fetch dynamically imported module') ||
     (msg.includes('Loading chunk') && msg.includes('failed'))
   )
+}
+
+/** Erro "X is not a function" em produção (ex.: Zustand/store minificado) - tenta um reload por cache. */
+function isStoreSelectorError(error: Error): boolean {
+  const msg = error?.message ?? ''
+  return typeof msg === 'string' && msg.includes('is not a function')
 }
 
 /** Recarrega a página com cache-bust para forçar novo index e chunks. */
@@ -48,24 +55,29 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logError('Uncaught error in ErrorBoundary', { error, errorInfo })
-    if (isChunkLoadError(error) && typeof sessionStorage !== 'undefined') {
-      if (sessionStorage.getItem(CHUNK_RELOAD_KEY) !== '1') {
-        reloadWithCacheBust()
-        return
-      }
+    if (typeof sessionStorage === 'undefined') return
+    if (isChunkLoadError(error) && sessionStorage.getItem(CHUNK_RELOAD_KEY) !== '1') {
+      reloadWithCacheBust()
+      return
+    }
+    if (isStoreSelectorError(error) && sessionStorage.getItem(STORE_RELOAD_KEY) !== '1') {
+      sessionStorage.setItem(STORE_RELOAD_KEY, '1')
+      reloadWithCacheBust()
     }
   }
 
   public render() {
     if (this.state.hasError && this.state.error) {
-      if (isChunkLoadError(this.state.error) && typeof sessionStorage !== 'undefined') {
-        if (sessionStorage.getItem(CHUNK_RELOAD_KEY) !== '1') {
-          return (
-            <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px] text-muted-foreground">
-              <p className="text-sm">Atualizando a página...</p>
-            </div>
-          )
-        }
+      const err = this.state.error
+      const shouldAutoReload =
+        (isChunkLoadError(err) && typeof sessionStorage !== 'undefined' && sessionStorage.getItem(CHUNK_RELOAD_KEY) !== '1') ||
+        (isStoreSelectorError(err) && typeof sessionStorage !== 'undefined' && sessionStorage.getItem(STORE_RELOAD_KEY) !== '1')
+      if (shouldAutoReload) {
+        return (
+          <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px] text-muted-foreground">
+            <p className="text-sm">Atualizando a página...</p>
+          </div>
+        )
       }
       return (
         <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-destructive/5 border-destructive/20 text-center h-full min-h-[200px]">

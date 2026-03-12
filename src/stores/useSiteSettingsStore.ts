@@ -39,6 +39,8 @@ export interface SiteSettingsState {
   faviconUrl: string
   siteTitle: string
   metaDescription: string
+  /** URL configurável para o QR fixo do Templo (se vazia, usamos window.location.origin + /checkin-templo). */
+  templeCheckinUrl?: string
   history: {
     title: string
     text: string
@@ -112,6 +114,8 @@ export interface SiteSettingsState {
   updateTempleCheckin: (
     data: Partial<SiteSettingsState['templeCheckin']>,
   ) => Promise<void>
+  /** Atualiza apenas a URL usada para o QR fixo do Templo. */
+  updateTempleCheckinUrl?: (url: string) => Promise<void>
 
   fetchVenerables: () => Promise<void>
   addVenerable: (venerable: Omit<Venerable, 'id'>) => Promise<void>
@@ -212,6 +216,7 @@ const mapSettingsFromDB = (data: any) => {
       radiusMeters: data.checkin_radius_meters ?? null,
       openMinutesBefore: data.checkin_open_minutes_before ?? null,
     },
+    templeCheckinUrl: data.checkin_temple_url || '',
   }
 }
 
@@ -221,6 +226,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   faviconUrl: '',
   siteTitle: '',
   metaDescription: 'Loja Maçônica Templários da Paz - Botucatu/SP',
+  templeCheckinUrl: '',
   history: {
     title: '',
     text: '',
@@ -557,6 +563,22 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating temple check-in settings', error)
+      throw error
+    }
+  },
+
+  updateTempleCheckinUrl: async (url) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ checkin_temple_url: url })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ templeCheckinUrl: url })
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating temple check-in URL', error)
       throw error
     }
   },

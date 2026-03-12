@@ -36,6 +36,16 @@ const checkinSchema = z.object({
     .union([z.string().regex(/^\d+$/, 'Apenas número inteiro'), z.literal('')])
     .optional()
     .default(''),
+  templeUrl: z
+    .union([
+      z
+        .string()
+        .url('Informe uma URL válida (ex.: https://app.sualoja.com/checkin-templo)')
+        .min(1, 'Informe uma URL válida'),
+      z.literal(''),
+    ])
+    .optional()
+    .default(''),
 })
 
 type CheckinFormValues = z.infer<typeof checkinSchema>
@@ -46,7 +56,8 @@ function formatCoord(value: number | null): string {
 }
 
 export function CheckinSettings() {
-  const { templeCheckin, updateTempleCheckin } = useSiteSettingsStore()
+  const { templeCheckin, templeCheckinUrl, updateTempleCheckin, updateTempleCheckinUrl } =
+    useSiteSettingsStore()
   const { toast } = useToast()
   const prevValuesRef = useRef<string>('')
 
@@ -58,6 +69,7 @@ export function CheckinSettings() {
       radiusMeters: templeCheckin.radiusMeters != null ? String(templeCheckin.radiusMeters) : '',
       openMinutesBefore:
         templeCheckin.openMinutesBefore != null ? String(templeCheckin.openMinutesBefore) : '',
+      templeUrl: templeCheckinUrl || '',
     },
   })
 
@@ -93,6 +105,11 @@ export function CheckinSettings() {
         radiusMeters: radius ?? undefined,
         openMinutesBefore: minutes ?? undefined,
       })
+      // Atualiza URL do QR fixo do Templo se o método existir; se campo vier vazio, salvamos vazio para voltar ao padrão (window.location.origin + /checkin-templo).
+      if (updateTempleCheckinUrl) {
+        const url = data.templeUrl?.trim() ?? ''
+        await updateTempleCheckinUrl(url)
+      }
       toast({
         title: 'Configurações salvas',
         description: 'As configurações de check-in por QR foram atualizadas.',
@@ -212,6 +229,30 @@ export function CheckinSettings() {
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="templeUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Endereço do QR fixo do Templo (opcional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://app.sualoja.com/checkin-templo"
+                      type="url"
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Se vazio, o sistema usa automaticamente o endereço atual do site com{' '}
+                    <code>/checkin-templo</code>. Use este campo apenas se precisar apontar o QR para
+                    outro domínio ou caminho.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>

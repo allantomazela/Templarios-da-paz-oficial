@@ -14,16 +14,22 @@ import {
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
+import { useSiteSettingsStore } from '@/stores/useSiteSettingsStore'
 import {
   Users,
   TrendingUp,
   HandCoins,
   AlertTriangle,
   Check,
+  QrCode,
+  Printer,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
 
 export function ChancellorOverview() {
+  const qrCardRef = useRef<HTMLDivElement | null>(null)
   const {
     sessionRecords,
     attendanceRecords,
@@ -31,6 +37,7 @@ export function ChancellorOverview() {
     reviewedAlerts,
     markAlertAsReviewed,
   } = useChancellorStore()
+  const { templeCheckinUrl } = useSiteSettingsStore()
 
   // Metrics
   const totalCharity = sessionRecords.reduce(
@@ -135,6 +142,21 @@ export function ChancellorOverview() {
     Mestre: { label: 'Mestre', color: 'hsl(var(--chart-3))' },
   }
 
+  const effectiveTempleUrl =
+    (templeCheckinUrl && templeCheckinUrl.trim()) ||
+    (typeof window !== 'undefined'
+      ? `${window.location.origin}/checkin-templo`
+      : '/checkin-templo')
+
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
+    effectiveTempleUrl,
+  )}`
+
+  const handlePrintQR = useReactToPrint({
+    contentRef: qrCardRef,
+    documentTitle: 'QR_Checkin_Templo',
+  })
+
   return (
     <div className="space-y-6">
       {/* Presence Notifications Widget */}
@@ -219,6 +241,62 @@ export function ChancellorOverview() {
             <div className="text-2xl font-bold">{degrees['Mestre'] || 0}</div>
             <p className="text-xs text-muted-foreground">
               De {brothers.length} irmãos ativos
+            </p>
+          </CardContent>
+        </Card>
+        <Card
+          className="hover:shadow-md transition-shadow md:col-span-1"
+          ref={qrCardRef}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <QrCode className="h-4 w-4 text-muted-foreground" />
+              QR fixo do Templo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Use este QR para imprimir e fixar no Templo. Ele sempre aponta para o fluxo de
+              check-in do Templo, respeitando geolocalização e a sessão aberta.
+            </p>
+            <div className="flex justify-center">
+              <img
+                src={qrImageUrl}
+                alt="QR fixo do Templo"
+                className="h-40 w-40 border border-border rounded-md bg-white p-2"
+              />
+            </div>
+            <div className="text-[11px] break-words text-muted-foreground border rounded-md p-2 bg-muted/50">
+              <span className="font-semibold">Endereço:</span>{' '}
+              <span>{effectiveTempleUrl}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(effectiveTempleUrl).catch(() => {})
+                  }
+                }}
+              >
+                Copiar link
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="flex-1"
+                onClick={() => handlePrintQR()}
+              >
+                <Printer className="h-4 w-4 mr-1.5" />
+                Imprimir
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Para alterar o endereço (ex.: outra Loja ou domínio), use{' '}
+              <span className="font-semibold">Configurações &gt; Check-in por QR Code</span>.
             </p>
           </CardContent>
         </Card>

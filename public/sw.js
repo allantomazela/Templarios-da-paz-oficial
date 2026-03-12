@@ -1,5 +1,7 @@
 // Simple Service Worker for offline capabilities
-const CACHE_NAME = 'templarios-cache-v5'
+// IMPORTANTE: sempre que mudar a estratégia de cache, altere o CACHE_NAME
+// para forçar os navegadores a baixarem uma nova versão.
+const CACHE_NAME = 'templarios-cache-v6'
 const urlsToCache = [
   '/',
   '/index.html',
@@ -130,13 +132,54 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // During development, don't intercept most requests to avoid issues
   const urlStr = event.request.url
   const isDevelopment = urlStr.includes('localhost') || urlStr.includes('127.0.0.1')
   
   // Ignore Vite HMR and development server requests
   if (shouldIgnoreRequest(event.request.url)) {
     // Let the request pass through to the network without interception
+    return
+  }
+
+  // Estratégia network-first para navegações e index.html:
+  // sempre tentar buscar a versão mais recente do HTML na rede,
+  // caindo para o cache/offline apenas em caso de erro.
+  const isNavigationRequest =
+    event.request.mode === 'navigate' ||
+    urlStr.endsWith('/index.html') ||
+    urlStr === self.location.origin + '/'
+
+  if (isNavigationRequest) {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(event.request)
+          // Atualiza o cache com o HTML mais recente (best-effort)
+          if ('caches' in self) {
+            try {
+              const cache = await caches.open(CACHE_NAME)
+              cache.put(event.request, networkResponse.clone()).catch(() => {})
+            } catch {
+              // ignore cache put errors
+            }
+          }
+          return networkResponse
+        } catch (err) {
+          // Falha de rede: tenta servir do cache
+          if ('caches' in self) {
+            const cached =
+              (await caches.match(event.request).catch(() => null)) ||
+              (await caches.match('/index.html').catch(() => null))
+            if (cached) return cached
+          }
+          return new Response('Network error', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'text/plain' },
+          })
+        }
+      })(),
+    )
     return
   }
   

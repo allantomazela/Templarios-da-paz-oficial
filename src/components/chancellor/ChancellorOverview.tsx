@@ -153,9 +153,9 @@ export function ChancellorOverview() {
   )}`
 
   const handlePrintQR = useReactToPrint({
-    // Versão atual do react-to-print (3.2.0) usa a propriedade `content`
-    // para indicar qual nó deve ser impresso.
-    content: () => qrCardRef.current,
+    // Versão 3.x do react-to-print usa `contentRef` como API principal.
+    // O `qrCardRef` está ligado ao Card que contém o QR fixo.
+    contentRef: qrCardRef,
     documentTitle: 'QR_Checkin_Templo',
   })
 

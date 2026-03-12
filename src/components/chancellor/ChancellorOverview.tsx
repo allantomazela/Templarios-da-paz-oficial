@@ -190,9 +190,29 @@ export function ChancellorOverview() {
         <body>
           <div class="card">
             <h2>QR fixo do Templo</h2>
-            <img src="${qrImageUrl}" alt="QR fixo do Templo" />
+            <img id="qr-img" src="${qrImageUrl}" alt="QR fixo do Templo" />
             <div class="url">${effectiveTempleUrl}</div>
           </div>
+          <script>
+            (function() {
+              function doPrint() {
+                try {
+                  window.focus();
+                  window.print();
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+              const img = document.getElementById('qr-img');
+              if (img && img.complete) {
+                setTimeout(doPrint, 100);
+              } else if (img) {
+                img.onload = function() { setTimeout(doPrint, 100); };
+              } else {
+                setTimeout(doPrint, 300);
+              }
+            })();
+          </script>
         </body>
       </html>`
 

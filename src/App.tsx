@@ -42,6 +42,7 @@ const Notices = lazy(() => import('@/pages/Notices'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const AccessDenied = lazy(() => import('@/pages/AccessDenied'))
 const CheckinPage = lazy(() => import('@/pages/CheckinPage'))
+const TempleCheckinPage = lazy(() => import('@/pages/TempleCheckinPage'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -163,7 +164,10 @@ const App = () => (
             <Route path="/access-denied" element={<AccessDenied />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<TermsOfUse />} />
+            {/* QR dinâmico por sessão (usado pelo Chanceler) */}
             <Route path="/checkin/:sessionRecordId" element={<CheckinPage />} />
+            {/* QR fixo do Templo: usa RPC para descobrir a sessão aberta agora */}
+            <Route path="/checkin-templo" element={<TempleCheckinPage />} />
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />

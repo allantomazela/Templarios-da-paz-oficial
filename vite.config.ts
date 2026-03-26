@@ -14,12 +14,13 @@ export default defineConfig(({ mode }) => ({
   build: {
     minify: mode !== 'development',
     sourcemap: mode === 'development',
-    // Nomes estáveis para entry e CSS: evita 404 quando o servidor/deploy não publica assets com hash
+    // Hash no nome dos assets: cada deploy gera URLs novas e evita JS antigo em cache
+    // (mistura HTML novo + bundle velho quebra o app; aba anônima “funciona” por não ter cache).
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/index.js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
   },

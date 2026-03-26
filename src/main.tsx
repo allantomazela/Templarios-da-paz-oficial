@@ -89,6 +89,9 @@ if ('serviceWorker' in navigator) {
       .then((registration) => {
         logDebug('Service Worker registered', registration.scope)
 
+        // Uma verificação imediata puxa sw.js novo após deploy (não só a cada 5 min)
+        registration.update().catch(() => {})
+
         // Check for updates periodically (reduced frequency to avoid errors)
         // Only check if registration is still active
         let updateInterval: NodeJS.Timeout | null = null

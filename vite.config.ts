@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => ({
     'process.env.NODE_ENV': JSON.stringify(mode ?? process.env.NODE_ENV ?? 'production'),
   },
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: [
       {
         find: '@',

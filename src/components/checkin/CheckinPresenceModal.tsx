@@ -72,10 +72,12 @@ export function CheckinPresenceModal({
 
   useEffect(() => {
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {})
-        scannerRef.current.clear()
+      const scanner = scannerRef.current
+      if (scanner?.isScanning) {
+        scanner.stop().catch(() => {})
+        scanner.clear()
       }
+      scannerRef.current = null
     }
   }, [])
 
@@ -210,12 +212,21 @@ export function CheckinPresenceModal({
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             if (!scanner) return
-            scanner.stop().then(() => {
-              scanner.clear()
-              scannerRef.current = null
+            if (scanner.isScanning) {
+              scanner.stop().then(() => {
+                scanner.clear()
+                scannerRef.current = null
+                setScannedToken(decodedText.trim())
+                setStep('confirm')
+              }).catch(() => {
+                scannerRef.current = null
+                setScannedToken(decodedText.trim())
+                setStep('confirm')
+              })
+            } else {
               setScannedToken(decodedText.trim())
               setStep('confirm')
-            })
+            }
           },
           () => {},
         )
@@ -229,11 +240,12 @@ export function CheckinPresenceModal({
     run()
     return () => {
       cancelled = true
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {})
-        scannerRef.current.clear()
-        scannerRef.current = null
+      const scanner = scannerRef.current
+      if (scanner?.isScanning) {
+        scanner.stop().catch(() => {})
+        scanner.clear()
       }
+      scannerRef.current = null
     }
   }, [step, open, gpsCoords])
 

@@ -138,7 +138,7 @@ export function AttendanceManager() {
         </div>
       </div>
 
-      <div className="rounded-md border bg-card">
+      <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -211,6 +211,62 @@ export function AttendanceManager() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {eventsWithStatus.length === 0 ? (
+          <div className="rounded-md border bg-card p-8 text-center">
+            <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+            <p className="mt-2 text-sm font-medium text-muted-foreground">
+              Nenhum evento agendado
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Crie eventos na Agenda ou em &quot;Agenda da Loja&quot; para registrar
+              presença.
+            </p>
+          </div>
+        ) : (
+          eventsWithStatus.map(({ event, record, status }) => (
+            <Card key={event.id} className="overflow-hidden">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium leading-tight">{event.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {event.type}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={status === 'Finalizada' ? 'default' : 'secondary'}
+                    className={status === 'Finalizada' ? 'bg-green-600 shrink-0' : 'shrink-0'}
+                  >
+                    {status}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CalendarIcon className="h-4 w-4" />
+                  {format(parseISO(event.date), 'dd/MM/yyyy')}
+                </div>
+                <Button
+                  className="w-full"
+                  size="sm"
+                  variant={status === 'Finalizada' ? 'outline' : 'default'}
+                  onClick={() => handleOpen(event, record)}
+                >
+                  {status === 'Finalizada' ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" /> Editar presença
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="mr-2 h-4 w-4" /> Registrar presença
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       <AttendanceDialog

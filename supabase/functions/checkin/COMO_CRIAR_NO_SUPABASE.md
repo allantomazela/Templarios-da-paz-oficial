@@ -1,5 +1,7 @@
 # Como criar a Edge Function "checkin" no Supabase (pelo Dashboard)
 
+**CORS:** A função aceita requisições de `https://templariosdapazoficial.com.br`, `https://www.templariosdapazoficial.com.br` e localhost. Se alterar `index.ts`, faça o deploy de novo para as mudanças (e CORS) valerem.
+
 Siga estes passos para publicar a função de check-in por QR **sem usar o terminal**.
 
 ---

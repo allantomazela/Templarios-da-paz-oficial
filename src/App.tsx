@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
+import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -148,16 +149,17 @@ const App = () => (
   <BrowserRouter
     future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
   >
-    <TooltipProvider>
-      <ThemeApplicator />
-      <SeoManager />
-      <RedirectHandler />
-      <PWAInstallPrompt />
-      <Toaster />
-      <Sonner />
-      <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <ThemeApplicator />
+        <SeoManager />
+        <RedirectHandler />
+        <PWAInstallPrompt />
+        <Toaster />
+        <Sonner />
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -268,10 +270,11 @@ const App = () => (
             </Route>
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </ErrorBoundary>
-    </TooltipProvider>
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
+      </TooltipProvider>
+    </ThemeProvider>
   </BrowserRouter>
 )
 

@@ -55,10 +55,12 @@ export function QRCheckinScanner({
 
   useEffect(() => {
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {})
-        scannerRef.current.clear()
+      const scanner = scannerRef.current
+      if (scanner?.isScanning) {
+        scanner.stop().catch(() => {})
+        scanner.clear()
       }
+      scannerRef.current = null
     }
   }, [])
 
@@ -117,8 +119,10 @@ export function QRCheckinScanner({
           async (decodedText) => {
             if (!gpsCoords || !scanner) return
             try {
-              await scanner.stop()
-              scanner.clear()
+              if (scanner.isScanning) {
+                await scanner.stop()
+                scanner.clear()
+              }
               scannerRef.current = null
               setMessage('Registrando presença...')
               const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
@@ -179,11 +183,12 @@ export function QRCheckinScanner({
     }
     run()
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {})
-        scannerRef.current.clear()
-        scannerRef.current = null
+      const scanner = scannerRef.current
+      if (scanner?.isScanning) {
+        scanner.stop().catch(() => {})
+        scanner.clear()
       }
+      scannerRef.current = null
     }
   }, [step, open, gpsCoords, onSuccess, toast])
 

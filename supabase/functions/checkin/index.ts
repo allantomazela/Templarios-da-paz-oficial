@@ -1,10 +1,22 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const ALLOWED_ORIGINS = [
+  'https://templariosdapazoficial.com.br',
+  'https://www.templariosdapazoficial.com.br',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+]
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  const allowOrigin =
+    origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+  }
 }
 
 /** Distância em metros entre dois pontos (fórmula de Haversine). */
@@ -42,14 +54,17 @@ interface CheckinBody {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('Origin')
+  const headers = corsHeaders(origin)
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 200, headers })
   }
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Método não permitido' }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
     })
   }
 
@@ -59,7 +74,7 @@ serve(async (req) => {
       JSON.stringify({ error: 'Não autorizado. Faça login para fazer check-in.' }),
       {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
       },
     )
   }
@@ -86,7 +101,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'Sessão inválida. Faça login novamente.' }),
         {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -107,7 +122,7 @@ serve(async (req) => {
           JSON.stringify({ error: 'Token do QR Code inválido ou expirado.' }),
           {
             status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
           },
         )
       }
@@ -117,7 +132,7 @@ serve(async (req) => {
           JSON.stringify({ error: 'Token do QR Code expirado.' }),
           {
             status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
           },
         )
       }
@@ -129,7 +144,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'Envie o token do QR Code ou o ID da sessão.' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -145,7 +160,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'Sessão não encontrada ou inválida.' }),
         {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -161,7 +176,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'Evento da sessão não encontrado.' }),
         {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -193,7 +208,7 @@ serve(async (req) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -203,7 +218,7 @@ serve(async (req) => {
         JSON.stringify({ error: GEO_ERROR_MESSAGE }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -213,7 +228,7 @@ serve(async (req) => {
         JSON.stringify({ error: GEO_ERROR_MESSAGE }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
@@ -231,7 +246,7 @@ serve(async (req) => {
           JSON.stringify({ error: 'Você já realizou check-in nesta sessão.' }),
           {
             status: 409,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
           },
         )
       }
@@ -245,7 +260,7 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
       },
     )
   } catch (err: unknown) {
@@ -256,7 +271,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
       },
     )
   }

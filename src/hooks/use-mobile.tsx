@@ -6,8 +6,14 @@ const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
 
 function subscribeMobile(onStoreChange: () => void) {
   const mql = window.matchMedia(QUERY)
-  mql.addEventListener('change', onStoreChange)
-  return () => mql.removeEventListener('change', onStoreChange)
+  const handler = () => onStoreChange()
+  if (typeof mql.addEventListener === 'function') {
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }
+  // Safari & WebViews antigos (MediaQueryList.addListener)
+  mql.addListener(handler)
+  return () => mql.removeListener(handler)
 }
 
 function getMobileSnapshot() {

@@ -1,7 +1,7 @@
 // Simple Service Worker for offline capabilities
 // IMPORTANTE: sempre que mudar a estratégia de cache, altere o CACHE_NAME
 // para forçar os navegadores a baixarem uma nova versão.
-const CACHE_NAME = 'templarios-cache-v8'
+const CACHE_NAME = 'templarios-cache-v9'
 const urlsToCache = [
   '/',
   '/index.html',

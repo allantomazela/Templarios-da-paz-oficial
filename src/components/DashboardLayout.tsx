@@ -2,7 +2,6 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -10,7 +9,6 @@ import { NotificationBanner } from '@/components/NotificationBanner'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, signOut } = useAuthStore()
-  const isMobile = useIsMobile()
   const location = useLocation()
   const [showTimeout, setShowTimeout] = useState(false)
 
@@ -102,12 +100,15 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      {!isMobile && <AppSidebar />}
+      {/* Sidebar apenas a partir de md; em telas estreitas o menu fica no Sheet do AppHeader */}
+      <div className="hidden h-screen shrink-0 md:flex">
+        <AppSidebar />
+      </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AppHeader />
 
-        <main className="flex-1 overflow-y-auto bg-background/95 p-4 sm:p-6 scroll-smooth">
+        <main className="flex-1 overflow-y-auto scroll-smooth bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:p-6">
           <div className="max-w-7xl mx-auto w-full animate-fade-in">
             <Outlet />
           </div>

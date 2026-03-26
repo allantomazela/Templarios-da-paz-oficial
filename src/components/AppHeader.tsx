@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { useLocation, Link } from 'react-router-dom'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { AppSidebar } from './AppSidebar'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { Badge } from '@/components/ui/badge'
 import {
   Popover,
@@ -19,7 +18,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 export function AppHeader() {
   const location = useLocation()
-  const isMobile = useIsMobile()
   const {
     notifications,
     unreadCount,
@@ -52,24 +50,27 @@ export function AppHeader() {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6">
-      <div className="flex items-center gap-4">
-        {isMobile && (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="p-0 w-[250px] border-r-sidebar-border bg-sidebar text-sidebar-foreground"
+    <header className="sticky top-0 z-10 flex min-h-16 shrink-0 items-center justify-between border-b border-border bg-background/50 px-4 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 md:hidden"
+              aria-label="Abrir menu de navegação"
             >
-              <AppSidebar />
-            </SheetContent>
-          </Sheet>
-        )}
-        <h1 className="text-xl font-bold text-foreground hidden sm:block">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            className="h-[100dvh] max-h-[100dvh] w-[min(100vw-1rem,280px)] border-r-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:max-w-sm"
+          >
+            <AppSidebar />
+          </SheetContent>
+        </Sheet>
+        <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">
           {getPageTitle()}
         </h1>
       </div>

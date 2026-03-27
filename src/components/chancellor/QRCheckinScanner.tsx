@@ -14,7 +14,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, MapPin, Camera, CheckCircle2, XCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { startHtml5QrcodeRearCamera } from '@/lib/qr-scanner-camera'
+import {
+  createResponsiveQrScanConfig,
+  startHtml5QrcodeRearCamera,
+  toFriendlyCameraError,
+} from '@/lib/qr-scanner-camera'
 
 const GEO_ERROR_MESSAGE =
   'Você precisa estar fisicamente no Templo para assinar a presença.'
@@ -99,17 +103,30 @@ export function QRCheckinScanner({
 
   useEffect(() => {
     if (step !== 'scanning' || !open || !gpsCoords) return
-    let scanner: Html5Qrcode | null = null
+    let cancelled = false
     const run = async () => {
+      await new Promise((r) => setTimeout(r, 150))
+      if (cancelled) return
       try {
-        scanner = new Html5Qrcode(SCANNER_DIV_ID)
+        const el = document.getElementById(SCANNER_DIV_ID)
+        if (!el) {
+          if (!cancelled) {
+            setStep('error')
+            setMessage(
+              'Não foi possível preparar a câmera. Feche o diálogo e tente de novo.',
+            )
+          }
+          return
+        }
+        if (el.clientWidth < 50) {
+          await new Promise<void>((r) => requestAnimationFrame(() => r()))
+        }
+        if (cancelled) return
+        const scanner = new Html5Qrcode(SCANNER_DIV_ID)
         scannerRef.current = scanner
         await startHtml5QrcodeRearCamera(
           scanner,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
+          createResponsiveQrScanConfig(10),
           async (decodedText) => {
             if (!gpsCoords || !scanner) return
             try {
@@ -171,12 +188,15 @@ export function QRCheckinScanner({
           () => {},
         )
       } catch (err) {
-        setStep('error')
-        setMessage(err instanceof Error ? err.message : 'Não foi possível acessar a câmera.')
+        if (!cancelled) {
+          setStep('error')
+          setMessage(toFriendlyCameraError(err))
+        }
       }
     }
     run()
     return () => {
+      cancelled = true
       const scanner = scannerRef.current
       if (scanner?.isScanning) {
         scanner.stop().catch(() => {})
@@ -242,7 +262,8 @@ export function QRCheckinScanner({
               <p className="text-sm text-muted-foreground">{message}</p>
               <div
                 id={SCANNER_DIV_ID}
-                className="rounded-lg overflow-hidden bg-black min-h-[240px]"
+                className="rounded-lg overflow-hidden bg-black w-full min-h-[280px] aspect-[4/3] max-h-[50vh]"
+                style={{ minHeight: 280 }}
               />
             </div>
           )}

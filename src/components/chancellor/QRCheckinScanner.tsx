@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, MapPin, Camera, CheckCircle2, XCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { startHtml5QrcodeRearCamera } from '@/lib/qr-scanner-camera'
 
 const GEO_ERROR_MESSAGE =
   'Você precisa estar fisicamente no Templo para assinar a presença.'
@@ -101,17 +102,10 @@ export function QRCheckinScanner({
     let scanner: Html5Qrcode | null = null
     const run = async () => {
       try {
-        const cameras = await Html5Qrcode.getCameras()
-        if (!cameras?.length) {
-          setStep('error')
-          setMessage('Nenhuma câmera encontrada.')
-          return
-        }
-        const cameraId = cameras[0].id
         scanner = new Html5Qrcode(SCANNER_DIV_ID)
         scannerRef.current = scanner
-        await scanner.start(
-          cameraId,
+        await startHtml5QrcodeRearCamera(
+          scanner,
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },

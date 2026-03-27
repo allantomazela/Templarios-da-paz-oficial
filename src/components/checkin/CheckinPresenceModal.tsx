@@ -16,6 +16,7 @@ import { Loader2, MapPin, Camera, CheckCircle2, XCircle, QrCode, User } from 'lu
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
+import { startHtml5QrcodeRearCamera } from '@/lib/qr-scanner-camera'
 
 const GEO_ERROR_MESSAGE =
   'Você precisa estar fisicamente no Templo para assinar a presença.'
@@ -197,18 +198,12 @@ export function CheckinPresenceModal({
       await new Promise((r) => setTimeout(r, 100))
       if (cancelled) return
       try {
-        const cameras = await Html5Qrcode.getCameras()
-        if (!cameras?.length) {
-          setStep('error')
-          setMessage('Nenhuma câmera encontrada.')
-          return
-        }
         const el = document.getElementById(SCANNER_DIV_ID)
         if (!el || cancelled) return
         scanner = new Html5Qrcode(SCANNER_DIV_ID)
         scannerRef.current = scanner
-        await scanner.start(
-          cameras[0].id,
+        await startHtml5QrcodeRearCamera(
+          scanner,
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             if (!scanner) return

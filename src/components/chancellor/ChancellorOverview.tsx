@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRef } from 'react'
+import QRCode from 'qrcode'
 
 export function ChancellorOverview() {
   const qrCardRef = useRef<HTMLDivElement | null>(null)
@@ -150,78 +151,93 @@ export function ChancellorOverview() {
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
     effectiveTempleUrl,
   )}`
-  const handlePrintQR = () => {
+
+  /** Gera PNG em base64 localmente para a janela de impressão (evita img externa ainda carregando + print() imediato no pai, que deixava o QR em branco). */
+  const handlePrintQR = async () => {
     if (typeof window === 'undefined') return
-    const printWindow = window.open('', '_blank', 'width=420,height=600')
+    let dataUrl: string
+    try {
+      dataUrl = await QRCode.toDataURL(effectiveTempleUrl, {
+        width: 256,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'M',
+      })
+    } catch {
+      return
+    }
+
+    const printWindow = window.open('', '_blank', 'width=480,height=640')
     if (!printWindow) return
 
+    const safeUrl = effectiveTempleUrl
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+
     const html = `<!DOCTYPE html>
-      <html lang="pt-BR">
-        <head>
-          <meta charSet="UTF-8" />
-          <title>QR Check-in Templo</title>
-          <style>
-            * { box-sizing: border-box; }
-            body {
-              margin: 0;
-              padding: 16px;
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-            }
-            .card {
-              border: 1px solid #000;
-              padding: 16px;
-              text-align: center;
-            }
-            img {
-              width: 256px;
-              height: 256px;
-            }
-            .url {
-              margin-top: 8px;
-              font-size: 11px;
-              word-break: break-all;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <h2>QR fixo do Templo</h2>
-            <img id="qr-img" src="${qrImageUrl}" alt="QR fixo do Templo" />
-            <div class="url">${effectiveTempleUrl}</div>
-          </div>
-          <script>
-            (function() {
-              function doPrint() {
-                try {
-                  window.focus();
-                  window.print();
-                } catch (e) {
-                  console.error(e);
-                }
-              }
-              const img = document.getElementById('qr-img');
-              if (img && img.complete) {
-                setTimeout(doPrint, 100);
-              } else if (img) {
-                img.onload = function() { setTimeout(doPrint, 100); };
-              } else {
-                setTimeout(doPrint, 300);
-              }
-            })();
-          </script>
-        </body>
-      </html>`
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>QR Check-in Templo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card {
+      border: 1px solid #000;
+      padding: 16px;
+      text-align: center;
+      max-width: 100%;
+    }
+    img { width: 256px; height: 256px; display: block; margin: 0 auto; }
+    .url { margin-top: 12px; font-size: 11px; word-break: break-all; text-align: left; }
+    @media print { body { padding: 8px; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 12px;font-size:18px;">QR fixo do Templo</h2>
+    <img id="qr-print-img" src="${dataUrl}" alt="QR fixo do Templo" width="256" height="256" />
+    <div class="url">${safeUrl}</div>
+  </div>
+  <script>
+    (function () {
+      function doPrint() {
+        try {
+          window.focus();
+          window.print();
+        } catch (e) {}
+      }
+      function schedulePrint() {
+        setTimeout(doPrint, 150);
+      }
+      var img = document.getElementById('qr-print-img');
+      window.addEventListener('afterprint', function () {
+        try { window.close(); } catch (e) {}
+      });
+      if (img && img.complete && img.naturalHeight > 0) {
+        schedulePrint();
+      } else if (img) {
+        img.onload = schedulePrint;
+        img.onerror = function () { window.close(); };
+      } else {
+        schedulePrint();
+      }
+    })();
+  </script>
+</body>
+</html>`
 
     printWindow.document.open()
     printWindow.document.write(html)
     printWindow.document.close()
-    printWindow.focus()
-    printWindow.print()
-    printWindow.close()
   }
 
   return (

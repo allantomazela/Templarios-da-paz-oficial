@@ -111,7 +111,7 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
         // 4. Scan Site Settings
         const { data: settings } = await supabase
           .from('site_settings')
-          .select('id, logo_url, favicon_url, history_image_url')
+          .select('id, logo_url, favicon_url, history_image_url, home_banner_url')
           .eq('id', 1)
           .single()
 
@@ -141,6 +141,15 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
               columnName: 'history_image_url',
               rowId: 1,
               currentUrl: settings.history_image_url,
+              status: 'pending',
+            })
+          if (settings.home_banner_url)
+            foundTasks.push({
+              id: 'settings-home-banner',
+              tableName: 'site_settings',
+              columnName: 'home_banner_url',
+              rowId: 1,
+              currentUrl: settings.home_banner_url,
               status: 'pending',
             })
         }

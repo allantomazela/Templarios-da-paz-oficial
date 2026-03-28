@@ -16,6 +16,7 @@ export default function Index() {
   const { isAuthenticated } = useAuthStore()
   const {
     logoUrl,
+    homeBannerUrl,
     history,
     values,
     contact,
@@ -237,10 +238,22 @@ export default function Index() {
         </div>
       </header>
 
-      <section
-        id="home"
-        className="relative mt-16 flex min-h-[calc(100vh-4rem)] scroll-mt-20 flex-col justify-center overflow-hidden"
-      >
+      <div id="home" className="scroll-mt-20 pt-16">
+        {homeBannerUrl ? (
+          <div className="relative w-full overflow-hidden border-b border-border/25 bg-muted/30">
+            <img
+              src={homeBannerUrl}
+              alt=""
+              className="h-auto w-full max-h-[min(40vh,380px)] object-cover object-center sm:max-h-[min(44vh,440px)]"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        ) : null}
+
+        <section
+          className="relative flex min-h-[calc(100vh-4rem)] flex-col justify-center overflow-hidden"
+        >
         <div className="pointer-events-none absolute inset-0 z-0">
           <img
             src="/placeholder.svg"
@@ -282,6 +295,7 @@ export default function Index() {
           </div>
         </div>
       </section>
+      </div>
 
       {/* Dynamic Sections */}
       {(() => {

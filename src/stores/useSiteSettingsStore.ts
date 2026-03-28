@@ -36,6 +36,8 @@ export interface CustomSection {
 export interface SiteSettingsState {
   loading: boolean
   logoUrl: string
+  /** Faixa larga opcional na home, logo abaixo do header (URL pública). */
+  homeBannerUrl: string
   faviconUrl: string
   siteTitle: string
   metaDescription: string
@@ -92,6 +94,7 @@ export interface SiteSettingsState {
 
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
+  updateHomeBanner: (url: string) => Promise<void>
   updateFavicon: (url: string) => Promise<void>
   updateSeo: (data: { title: string; description: string }) => Promise<void>
   updateHistory: (data: Partial<SiteSettingsState['history']>) => Promise<void>
@@ -154,6 +157,7 @@ const mapSettingsFromDB = (data: any) => {
 
   return {
     logoUrl: data.logo_url || '',
+    homeBannerUrl: data.home_banner_url || '',
     faviconUrl: data.favicon_url || '',
     siteTitle: data.site_title || 'Templários da Paz',
     metaDescription:
@@ -202,13 +206,13 @@ const mapSettingsFromDB = (data: any) => {
       fontSizeBase: data.typography_font_size_base || '16px',
       textColor: data.typography_text_color || '#ffffff',
       textColorMuted: data.typography_text_color_muted || '#94a3b8',
+      textTransform: data.typography_text_transform || 'none',
+      textDecoration: data.typography_text_decoration || 'none',
     },
     agapePix: {
       pixKey: data.agape_pix_key || '',
       pixName: data.agape_pix_name || '',
       paymentType: (data.agape_payment_type as 'monthly' | 'per_session') || 'monthly',
-      textTransform: data.typography_text_transform || 'none',
-      textDecoration: data.typography_text_decoration || 'none',
     },
     templeCheckin: {
       latitude: data.temple_latitude ?? null,
@@ -223,6 +227,7 @@ const mapSettingsFromDB = (data: any) => {
 export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   loading: false,
   logoUrl: '',
+  homeBannerUrl: '',
   faviconUrl: '',
   siteTitle: '',
   metaDescription: 'Loja Maçônica Templários da Paz - Botucatu/SP',
@@ -326,6 +331,22 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating logo', error)
+      throw error
+    }
+  },
+
+  updateHomeBanner: async (url) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ home_banner_url: url || null })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ homeBannerUrl: url })
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating home banner', error)
       throw error
     }
   },

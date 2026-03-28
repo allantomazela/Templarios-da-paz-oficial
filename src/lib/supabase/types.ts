@@ -848,6 +848,7 @@ export type Database = {
           history_image_url: string | null
           history_text: string | null
           history_title: string | null
+          home_banner_url: string | null
           id: number
           logo_url: string | null
           meta_description: string | null
@@ -886,6 +887,7 @@ export type Database = {
           history_image_url?: string | null
           history_text?: string | null
           history_title?: string | null
+          home_banner_url?: string | null
           id?: number
           logo_url?: string | null
           meta_description?: string | null
@@ -924,6 +926,7 @@ export type Database = {
           history_image_url?: string | null
           history_text?: string | null
           history_title?: string | null
+          home_banner_url?: string | null
           id?: number
           logo_url?: string | null
           meta_description?: string | null

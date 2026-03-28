@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoSettings } from '@/components/settings/LogoSettings'
+import { HomeBannerSettings } from '@/components/settings/HomeBannerSettings'
 import { SeoSettings } from '@/components/settings/SeoSettings'
 import { InstitutionalSettings } from '@/components/settings/InstitutionalSettings'
 import { VenerablesManager } from '@/components/settings/VenerablesManager'
@@ -173,6 +174,7 @@ export default function SiteSettings() {
             <TabsContent value="general">
               <div className="grid gap-6">
                 <LogoSettings />
+                <HomeBannerSettings />
                 <SeoSettings />
               </div>
             </TabsContent>

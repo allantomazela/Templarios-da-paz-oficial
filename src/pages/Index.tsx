@@ -103,11 +103,11 @@ export default function Index() {
   }
 
   const navLinkClass =
-    'text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200'
+    'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/70 hover:text-foreground'
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden font-sans">
-      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/30 bg-background/65 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/55">
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/40 bg-background/70 shadow-sm shadow-black/5 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-full items-center gap-4 px-4 md:px-6">
           <button
             type="button"
@@ -239,62 +239,92 @@ export default function Index() {
       </header>
 
       <div id="home" className="scroll-mt-20 pt-16">
+        {/* Faixa visual: imagem das configurações ou faixa gradiente padrão (sempre algo abaixo do header) */}
         {homeBannerUrl ? (
-          <div className="relative w-full overflow-hidden border-b border-border/25 bg-muted/30">
+          <div className="relative w-full overflow-hidden border-b border-border/30 bg-muted/20">
             <img
               src={homeBannerUrl}
               alt=""
-              className="h-auto w-full max-h-[min(40vh,380px)] object-cover object-center sm:max-h-[min(44vh,440px)]"
+              className="h-auto w-full max-h-[min(42vh,400px)] object-cover object-center sm:max-h-[min(48vh,480px)]"
               loading="eager"
               decoding="async"
             />
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"
+              aria-hidden
+            />
           </div>
-        ) : null}
+        ) : (
+          <div
+            className="relative h-40 w-full overflow-hidden border-b border-border/30 sm:h-48 md:h-56"
+            aria-hidden
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background to-secondary/20" />
+            <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/25 blur-3xl" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.25),transparent)]" />
+          </div>
+        )}
 
         <section
-          className="relative flex min-h-[calc(100vh-4rem)] flex-col justify-center overflow-hidden"
+          className={cn(
+            'relative flex flex-col justify-center overflow-hidden',
+            homeBannerUrl
+              ? 'min-h-[min(72vh,calc(100vh-5rem))] py-12 md:py-16'
+              : 'min-h-[calc(100vh-4rem-10rem)] py-14 md:min-h-[calc(100vh-4rem-12rem)] md:py-20',
+          )}
         >
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <img
-            src="/placeholder.svg"
-            alt=""
-            className="h-full w-full object-cover opacity-25 brightness-[0.45]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background" />
-        </div>
+          <div className="pointer-events-none absolute inset-0 z-0">
+            <img
+              src="/placeholder.svg"
+              alt=""
+              className="h-full w-full object-cover opacity-[0.12] brightness-[0.55]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/85 to-background" />
+            <div className="absolute left-1/2 top-1/3 h-[min(50vw,28rem)] w-[min(50vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
+          </div>
 
-        <div className="container relative z-10 grid flex-1 place-items-center px-4 py-12 md:px-6 md:py-16">
-          <div className="flex max-w-3xl flex-col items-center text-center md:max-w-4xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary md:text-sm">
-              Augusta e Respeitável Loja Simbólica
-            </p>
-            <h1 className="font-sans text-4xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
-              Templários da Paz
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
-              Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
-              {contact.city || 'Botucatu-SP'}. Uma irmandade de luz, tradição e serviço à comunidade.
-            </p>
-            <div className="mt-10 flex w-full max-w-md flex-col items-center gap-4 sm:max-w-none">
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => handleNavClick('quem-somos')}
-                className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg sm:w-auto sm:min-w-[240px]"
-              >
-                Conheça nossa história
-              </Button>
-              <button
-                type="button"
-                onClick={handleMemberAccess}
-                className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-              >
-                Acesso para membros
-              </button>
+          <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
+            <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
+              <div className="w-full rounded-2xl border border-border/50 bg-background/50 p-8 shadow-xl shadow-black/5 backdrop-blur-md md:p-12 md:backdrop-blur-lg">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.25em] text-primary md:text-sm">
+                  Augusta e Respeitável Loja Simbólica
+                </p>
+                <h1 className="bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text font-sans text-4xl font-bold leading-[1.08] tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-7xl">
+                  Templários da Paz
+                </h1>
+                <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
+                  Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
+                  <span className="font-medium text-foreground/90">
+                    {contact.city || 'Botucatu-SP'}
+                  </span>
+                  . Uma irmandade de luz, tradição e serviço à comunidade.
+                </p>
+                <div className="mt-10 flex w-full flex-col items-center gap-4">
+                  <Button
+                    type="button"
+                    size="lg"
+                    onClick={() => handleNavClick('quem-somos')}
+                    className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/25 sm:w-auto sm:min-w-[260px]"
+                  >
+                    Conheça nossa história
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={handleMemberAccess}
+                    className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                  >
+                    Acesso para membros
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       </div>
 
       {/* Dynamic Sections */}

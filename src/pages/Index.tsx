@@ -1,12 +1,6 @@
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import {
-  ShieldCheck,
-  ChevronRight,
-  Menu,
-  X,
-  Lock,
-} from 'lucide-react'
+import { ShieldCheck, Menu, X, Lock } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useState, useEffect, ReactNode } from 'react'
@@ -107,218 +101,184 @@ export default function Index() {
     masters: <VenerablesSection key="masters" venerables={venerables} />,
   }
 
+  const navLinkClass =
+    'text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200'
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl h-full py-2">
-            <div className="h-full aspect-square relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/20 p-0 shadow-sm">
+    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden font-sans">
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/30 bg-background/65 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/55">
+        <div className="container mx-auto flex h-full items-center gap-4 px-4 md:px-6">
+          <button
+            type="button"
+            onClick={() => handleNavClick('home')}
+            className="flex shrink-0 items-center gap-2.5 rounded-md py-1 text-left transition-opacity hover:opacity-90"
+            aria-label="Ir para o início"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-background/80 shadow-sm">
               {logoUrl ? (
                 <img
                   src={logoUrl}
-                  alt="Logo"
+                  alt=""
                   className="h-full w-full object-contain"
-                  style={{
-                    imageRendering: '-webkit-optimize-contrast',
-                  }}
+                  style={{ imageRendering: '-webkit-optimize-contrast' }}
                   loading="eager"
                   decoding="async"
                 />
               ) : (
-                <ShieldCheck className="h-2/3 w-2/3 text-primary" />
+                <ShieldCheck className="h-5 w-5 text-primary" aria-hidden />
               )}
             </div>
-            <span className="text-primary hidden sm:inline-block">
+            <span className="hidden font-semibold text-foreground sm:inline sm:max-w-[10rem] sm:truncate md:max-w-none">
               Templários da Paz
             </span>
-          </div>
+          </button>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            <button
-              onClick={() => handleNavClick('home')}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Início
+          <nav
+            className="hidden flex-1 items-center justify-center gap-6 lg:gap-10 md:flex"
+            aria-label="Principal"
+          >
+            <button type="button" onClick={() => handleNavClick('home')} className={navLinkClass}>
+              Home
             </button>
             <button
+              type="button"
               onClick={() => handleNavClick('quem-somos')}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              className={navLinkClass}
             >
-              Quem Somos
+              Sobre
             </button>
             <button
+              type="button"
               onClick={() => handleNavClick('pilares')}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              className={navLinkClass}
             >
-              Pilares
+              Serviços
             </button>
-            {sectionOrder.includes('venerables') && (
-              <button
-                onClick={() => handleNavClick('veneraveis')}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                Galeria dos Veneráveis
-              </button>
-            )}
-            {sectionOrder.includes('news') && (
-              <button
-                onClick={() => handleNavClick('noticias')}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                Notícias
-              </button>
-            )}
             <button
+              type="button"
               onClick={() => handleNavClick('contact')}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              className={navLinkClass}
             >
               Contato
             </button>
-            <Button onClick={handleMemberAccess} size="sm" className="ml-4">
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              onClick={handleMemberAccess}
+              size="sm"
+              variant="secondary"
+              className="hidden shadow-sm sm:inline-flex"
+            >
+              <Lock className="mr-2 h-4 w-4" />
+              Área do Membro
+            </Button>
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-md md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-expanded={isMobileMenuOpen}
+              aria-label={isMobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            'md:hidden fixed inset-x-0 top-16 z-40 border-b border-border/40 bg-background/90 backdrop-blur-xl shadow-lg transition-all duration-300 ease-in-out',
+            isMobileMenuOpen
+              ? 'translate-y-0 opacity-100'
+              : '-translate-y-2 opacity-0 pointer-events-none',
+          )}
+        >
+          <nav
+            className="container mx-auto flex flex-col gap-1 px-4 py-4"
+            aria-label="Menu mobile"
+          >
+            <button
+              type="button"
+              onClick={() => handleNavClick('home')}
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick('quem-somos')}
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+            >
+              Sobre
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick('pilares')}
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+            >
+              Serviços
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick('contact')}
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+            >
+              Contato
+            </button>
+            <Button onClick={handleMemberAccess} className="mt-3 w-full rounded-xl" size="lg">
               <Lock className="mr-2 h-4 w-4" />
               Área do Membro
             </Button>
           </nav>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            className="md:hidden"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Nav */}
-        <div
-          className={cn(
-            'md:hidden fixed inset-x-0 top-16 bg-background border-b shadow-lg transition-all duration-300 ease-in-out z-40',
-            isMobileMenuOpen
-              ? 'translate-y-0 opacity-100'
-              : '-translate-y-full opacity-0 pointer-events-none',
-          )}
-        >
-          <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            <button
-              onClick={() => handleNavClick('home')}
-              className="text-left text-sm font-medium py-2 border-b border-border/50"
-            >
-              Início
-            </button>
-            <button
-              onClick={() => handleNavClick('quem-somos')}
-              className="text-left text-sm font-medium py-2 border-b border-border/50"
-            >
-              Quem Somos
-            </button>
-            <button
-              onClick={() => handleNavClick('pilares')}
-              className="text-left text-sm font-medium py-2 border-b border-border/50"
-            >
-              Pilares
-            </button>
-            {sectionOrder.includes('venerables') && (
-              <button
-                onClick={() => handleNavClick('veneraveis')}
-                className="text-left text-sm font-medium py-2 border-b border-border/50"
-              >
-                Galeria dos Veneráveis
-              </button>
-            )}
-            {sectionOrder.includes('news') && (
-              <button
-                onClick={() => handleNavClick('noticias')}
-                className="text-left text-sm font-medium py-2 border-b border-border/50"
-              >
-                Notícias
-              </button>
-            )}
-            <button
-              onClick={() => handleNavClick('contact')}
-              className="text-left text-sm font-medium py-2 border-b border-border/50"
-            >
-              Contato
-            </button>
-            <Button onClick={handleMemberAccess} className="w-full mt-2">
-              <Lock className="mr-2 h-4 w-4" />
-              Acessar Sistema
-            </Button>
-          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
       <section
         id="home"
-        className="relative w-full py-20 md:py-32 lg:py-48 flex items-center justify-center overflow-hidden scroll-mt-20"
+        className="relative mt-16 flex min-h-[calc(100vh-4rem)] scroll-mt-20 flex-col justify-center overflow-hidden"
       >
-        <div className="absolute inset-0 z-0">
+        <div className="pointer-events-none absolute inset-0 z-0">
           <img
             src="/placeholder.svg"
-            alt="Salão do Templo"
-            className="w-full h-full object-cover opacity-20 filter brightness-50"
+            alt=""
+            className="h-full w-full object-cover opacity-25 brightness-[0.45]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background" />
         </div>
 
-        <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center space-y-8 animate-fade-in-up">
-          {/* Enhanced Logo Container - Optimized for Elegance and Proportion */}
-          <div className="relative mb-6 group animate-float">
-            {/* Soft Ambient Glow */}
-            <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary/30 via-primary/10 to-secondary/30 blur-2xl opacity-40 group-hover:opacity-70 transition duration-1000"></div>
-
-            {/* Main Container */}
-            <div className="relative bg-background/95 backdrop-blur-xl rounded-full shadow-2xl border-4 border-double border-primary/20 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden p-0 transition-all duration-500 hover:scale-105 hover:border-primary/40 hover:shadow-primary/10">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Brasão da ARLS Templários da Paz"
-                  className="w-full h-full object-contain drop-shadow-md transform transition-transform duration-700 group-hover:scale-110"
-                  style={{
-                    imageRendering: '-webkit-optimize-contrast',
-                  }}
-                  loading="eager"
-                  decoding="async"
-                />
-              ) : (
-                <ShieldCheck className="h-16 w-16 md:h-24 md:w-24 text-primary/80" />
-              )}
-            </div>
-          </div>
-
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-normal max-w-4xl relative z-20 leading-relaxed">
-            Augusta e Respeitável Loja Simbólica
-            <span className="text-primary block mt-4 drop-shadow-md text-shadow-sm">
+        <div className="container relative z-10 grid flex-1 place-items-center px-4 py-12 md:px-6 md:py-16">
+          <div className="flex max-w-3xl flex-col items-center text-center md:max-w-4xl">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary md:text-sm">
+              Augusta e Respeitável Loja Simbólica
+            </p>
+            <h1 className="font-sans text-4xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
               Templários da Paz
-            </span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-[700px] md:text-2xl mt-4 leading-relaxed">
-            Trabalhando pelo aperfeiçoamento moral, intelectual e social da
-            humanidade em {contact.city || 'Botucatu-SP'}.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button
-              size="lg"
-              onClick={() => handleNavClick('quem-somos')}
-              className="text-lg px-8 py-6 h-auto"
-            >
-              Conheça Nossa História
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleMemberAccess}
-              className="group text-lg px-8 py-6 h-auto"
-            >
-              Área Restrita
-              <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
+              Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
+              {contact.city || 'Botucatu-SP'}. Uma irmandade de luz, tradição e serviço à comunidade.
+            </p>
+            <div className="mt-10 flex w-full max-w-md flex-col items-center gap-4 sm:max-w-none">
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => handleNavClick('quem-somos')}
+                className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg sm:w-auto sm:min-w-[240px]"
+              >
+                Conheça nossa história
+              </Button>
+              <button
+                type="button"
+                onClick={handleMemberAccess}
+                className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+              >
+                Acesso para membros
+              </button>
+            </div>
           </div>
         </div>
       </section>

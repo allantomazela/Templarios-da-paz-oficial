@@ -29,7 +29,14 @@ export default {
       fontFamily: {
         sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
         display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
-        uncial: ['"Uncial Antiqua"', 'cursive'],
+        /** Tipos do século XVII — aspecto de documento / pergaminho impresso */
+        manuscript: ['"IM Fell English"', 'Georgia', 'Times New Roman', 'serif'],
+        manuscriptSc: [
+          '"IM Fell English SC"',
+          '"IM Fell English"',
+          'Georgia',
+          'serif',
+        ],
       },
       colors: {
         border: 'hsl(var(--border))',

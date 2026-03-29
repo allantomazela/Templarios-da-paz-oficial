@@ -291,14 +291,14 @@ export default function Index() {
           <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
             <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
               <div className="w-full rounded-2xl border border-border/50 bg-background/50 p-8 shadow-xl shadow-black/5 backdrop-blur-md md:p-12 md:backdrop-blur-lg">
-                <p className="mb-5 font-uncial text-base leading-snug text-primary sm:text-lg md:text-xl">
+                <p className="mb-5 font-manuscriptSc text-base leading-snug tracking-wide text-primary sm:text-lg md:text-xl">
                   Augusta e Respeitável Loja Simbólica
                 </p>
-                <h1 className="font-uncial text-4xl font-normal leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
+                <h1 className="font-manuscript text-4xl font-normal leading-tight tracking-tight text-foreground [text-shadow:0_1px_0_hsl(var(--background)/0.5),0_2px_12px_hsl(var(--foreground)/0.08)] sm:text-5xl md:text-6xl lg:text-7xl">
                   Templários da Paz 3969
                 </h1>
                 <p
-                  className="mt-5 font-uncial text-3xl text-primary sm:text-4xl md:text-5xl"
+                  className="mt-5 font-manuscript text-3xl text-primary sm:text-4xl md:text-5xl"
                   title="Três pontos maçônicos"
                   aria-label="Três pontos maçônicos"
                 >

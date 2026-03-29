@@ -182,8 +182,8 @@ export default function Index() {
             <Button
               onClick={handleMemberAccess}
               size="sm"
-              variant="secondary"
-              className="hidden shadow-sm sm:inline-flex"
+              variant="default"
+              className="hidden shadow-sm shadow-primary/20 sm:inline-flex"
             >
               <Lock className="mr-2 h-4 w-4" />
               Área do Membro
@@ -244,7 +244,12 @@ export default function Index() {
             >
               Contato
             </button>
-            <Button onClick={handleMemberAccess} className="mt-3 w-full rounded-xl" size="lg">
+            <Button
+              onClick={handleMemberAccess}
+              variant="default"
+              className="mt-3 w-full rounded-xl shadow-md shadow-primary/20"
+              size="lg"
+            >
               <Lock className="mr-2 h-4 w-4" />
               Área do Membro
             </Button>

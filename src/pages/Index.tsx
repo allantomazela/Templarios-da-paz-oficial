@@ -11,12 +11,14 @@ import { ValuesSection } from '@/components/home/ValuesSection'
 import { VenerablesSection } from '@/components/home/VenerablesSection'
 import { ContactSection } from '@/components/home/ContactSection'
 import { CustomSection } from '@/components/home/CustomSection'
+import { HERO_CARD_DEFAULT_BACKGROUND_URL } from '@/lib/hero-card-defaults'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
   const {
     logoUrl,
     homeBannerUrl,
+    heroCardBgUrl,
     history,
     values,
     contact,
@@ -290,43 +292,64 @@ export default function Index() {
 
           <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
             <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
-              <div className="w-full rounded-2xl border border-border/50 bg-background/50 p-8 shadow-xl shadow-black/5 backdrop-blur-md md:p-12 md:backdrop-blur-lg">
-                <p className="mb-5 font-medieval text-base leading-snug tracking-wide text-primary sm:text-lg md:text-xl">
-                  Augusta e Respeitável Loja Simbólica
-                </p>
-                <h1 className="font-medieval text-4xl font-normal leading-tight tracking-tight text-foreground [text-shadow:0_1px_0_hsl(var(--background)/0.5),0_2px_12px_hsl(var(--foreground)/0.08)] sm:text-5xl md:text-6xl lg:text-7xl">
-                  Templários da Paz 3969
-                </h1>
-                <p
-                  className="mt-5 font-medieval text-3xl text-primary sm:text-4xl md:text-5xl"
-                  title="Três pontos maçônicos"
-                  aria-label="Três pontos maçônicos"
-                >
-                  ∴
-                </p>
-                <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
-                  Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
-                  <span className="font-medium text-foreground/90">
-                    {contact.city || 'Botucatu-SP'}
-                  </span>
-                  . Uma irmandade de luz, tradição e serviço à comunidade.
-                </p>
-                <div className="mt-10 flex w-full flex-col items-center gap-4">
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={() => handleNavClick('quem-somos')}
-                    className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/25 sm:w-auto sm:min-w-[260px]"
+              <div className="relative w-full overflow-hidden rounded-2xl border border-border/50 shadow-xl shadow-black/15">
+                <img
+                  src={
+                    heroCardBgUrl?.trim()
+                      ? heroCardBgUrl.trim()
+                      : HERO_CARD_DEFAULT_BACKGROUND_URL
+                  }
+                  alt=""
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/92 via-background/78 to-background/92"
+                  aria-hidden
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 bg-primary/[0.06]"
+                  aria-hidden
+                />
+                <div className="relative z-10 p-8 md:p-12">
+                  <p className="mb-5 font-oldenglish text-base font-bold leading-snug tracking-wide text-primary sm:text-lg md:text-xl">
+                    Augusta e Respeitável Loja Simbólica
+                  </p>
+                  <h1 className="font-oldenglish text-4xl font-bold leading-tight tracking-tight text-foreground [text-shadow:0_1px_2px_hsl(var(--background)/0.9),0_2px_16px_hsl(var(--background)/0.75)] sm:text-5xl md:text-6xl lg:text-7xl">
+                    Templários da Paz 3969
+                  </h1>
+                  <p
+                    className="mt-5 font-oldenglish text-3xl font-bold text-primary [text-shadow:0_1px_2px_hsl(var(--background)/0.85)] sm:text-4xl md:text-5xl"
+                    title="Três pontos maçônicos"
+                    aria-label="Três pontos maçônicos"
                   >
-                    Conheça nossa história
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={handleMemberAccess}
-                    className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-                  >
-                    Acesso para membros
-                  </button>
+                    ∴
+                  </p>
+                  <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
+                    Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
+                    <span className="font-medium text-foreground/90">
+                      {contact.city || 'Botucatu-SP'}
+                    </span>
+                    . Uma irmandade de luz, tradição e serviço à comunidade.
+                  </p>
+                  <div className="mt-10 flex w-full flex-col items-center gap-4">
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={() => handleNavClick('quem-somos')}
+                      className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/25 sm:w-auto sm:min-w-[260px]"
+                    >
+                      Conheça nossa história
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={handleMemberAccess}
+                      className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                    >
+                      Acesso para membros
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

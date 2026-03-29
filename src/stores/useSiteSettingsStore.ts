@@ -38,6 +38,8 @@ export interface SiteSettingsState {
   logoUrl: string
   /** Faixa larga opcional na home, logo abaixo do header (URL pública). */
   homeBannerUrl: string
+  /** Fundo do card do hero (vazio = imagem padrão no código). */
+  heroCardBgUrl: string
   faviconUrl: string
   siteTitle: string
   metaDescription: string
@@ -95,6 +97,7 @@ export interface SiteSettingsState {
   fetchSettings: () => Promise<void>
   updateLogo: (url: string) => Promise<void>
   updateHomeBanner: (url: string) => Promise<void>
+  updateHeroCardBg: (url: string) => Promise<void>
   updateFavicon: (url: string) => Promise<void>
   updateSeo: (data: { title: string; description: string }) => Promise<void>
   updateHistory: (data: Partial<SiteSettingsState['history']>) => Promise<void>
@@ -158,6 +161,7 @@ const mapSettingsFromDB = (data: any) => {
   return {
     logoUrl: data.logo_url || '',
     homeBannerUrl: data.home_banner_url || '',
+    heroCardBgUrl: data.hero_card_bg_url || '',
     faviconUrl: data.favicon_url || '',
     siteTitle: data.site_title || 'Templários da Paz',
     metaDescription:
@@ -228,6 +232,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
   loading: false,
   logoUrl: '',
   homeBannerUrl: '',
+  heroCardBgUrl: '',
   faviconUrl: '',
   siteTitle: '',
   metaDescription: 'Loja Maçônica Templários da Paz - Botucatu/SP',
@@ -347,6 +352,22 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating home banner', error)
+      throw error
+    }
+  },
+
+  updateHeroCardBg: async (url) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update({ hero_card_bg_url: url || null })
+        .eq('id', 1)
+
+      if (error) throw error
+      set({ heroCardBgUrl: url })
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating hero card background', error)
       throw error
     }
   },

@@ -1,5 +1,5 @@
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { ShieldCheck } from 'lucide-react'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 
 interface FormHeaderProps {
   title: string
@@ -36,15 +36,12 @@ export function FormHeader({
         {/* Logo Container - compacto */}
         <div className="relative w-14 h-14 flex-shrink-0">
           <div className="relative w-full h-full flex items-center justify-center p-2 border-2 border-primary/30 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Logo da Loja"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <ShieldCheck className="w-9 h-9 text-primary/50" />
-            )}
+            <BrandLogoImg
+              logoUrl={logoUrl}
+              alt="Logo da Loja"
+              className="w-full h-full object-contain"
+              fallbackClassName="w-9 h-9 text-primary/50"
+            />
           </div>
         </div>
 

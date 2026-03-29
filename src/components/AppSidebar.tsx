@@ -23,6 +23,7 @@ import {
   QrCode,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -167,18 +168,15 @@ export function AppSidebar() {
     >
       <div className="h-16 flex items-center justify-center border-b border-sidebar-border relative">
         <div className="flex items-center gap-2 overflow-hidden px-2 h-full py-2">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Logo"
-              className={cn(
-                'rounded-full object-contain aspect-square shadow-sm bg-background border border-sidebar-border/20 p-1',
-                collapsed ? 'h-8 w-8' : 'h-10 w-10',
-              )}
-            />
-          ) : (
-            <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
-          )}
+          <BrandLogoImg
+            logoUrl={logoUrl}
+            alt="Logo"
+            className={cn(
+              'rounded-full object-contain aspect-square shadow-sm bg-background border border-sidebar-border/20 p-1',
+              collapsed ? 'h-8 w-8' : 'h-10 w-10',
+            )}
+            fallbackClassName="w-8 h-8 shrink-0"
+          />
           {!collapsed && (
             <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">
               Templários da Paz

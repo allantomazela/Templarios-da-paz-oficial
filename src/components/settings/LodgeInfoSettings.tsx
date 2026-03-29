@@ -22,7 +22,6 @@ import {
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
 import {
-  ShieldCheck,
   Image as ImageIcon,
   Loader2,
   Upload,
@@ -31,6 +30,7 @@ import {
   Phone,
   Mail,
 } from 'lucide-react'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { compressImage } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logError } from '@/lib/logger'
@@ -210,18 +210,13 @@ export function LodgeInfoSettings() {
                       <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/10 overflow-hidden relative p-4">
                         {isUploadingLogo ? (
                           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        ) : currentLogoUrl ? (
-                          <img
-                            src={currentLogoUrl}
-                            alt="Logo Preview"
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              e.currentTarget.src = ''
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
                         ) : (
-                          <ShieldCheck className="w-16 h-16 text-primary/50" />
+                          <BrandLogoImg
+                            logoUrl={currentLogoUrl}
+                            alt="Logo Preview"
+                            className="h-full w-full object-contain"
+                            fallbackClassName="w-16 h-16 text-primary/50"
+                          />
                         )}
                       </div>
                       <span className="text-xs text-muted-foreground">

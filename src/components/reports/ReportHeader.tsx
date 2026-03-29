@@ -1,5 +1,6 @@
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { ShieldCheck, MapPin } from 'lucide-react'
+import { MapPin } from 'lucide-react'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -25,15 +26,12 @@ export function ReportHeader({
         {/* Logo - menor */}
         <div className="flex-shrink-0">
           <div className="w-12 h-12 print:w-10 print:h-10 flex items-center justify-center border border-gray-300 print:border-black rounded">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Logo da Loja"
-                className="w-full h-full object-contain p-1"
-              />
-            ) : (
-              <ShieldCheck className="w-8 h-8 print:w-7 print:h-7 text-gray-400 print:text-black" />
-            )}
+            <BrandLogoImg
+              logoUrl={logoUrl}
+              alt="Logo da Loja"
+              className="w-full h-full object-contain p-1"
+              fallbackClassName="w-8 h-8 print:w-7 print:h-7 text-gray-400 print:text-black"
+            />
           </div>
         </div>
 

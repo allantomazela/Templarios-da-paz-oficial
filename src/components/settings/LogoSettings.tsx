@@ -11,17 +11,12 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
-import {
-  ShieldCheck,
-  Image as ImageIcon,
-  Loader2,
-  Upload,
-  Hexagon,
-} from 'lucide-react'
+import { Image as ImageIcon, Loader2, Upload, Hexagon } from 'lucide-react'
 import { compressImage } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logDebug, logError } from '@/lib/logger'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 
 export function LogoSettings() {
   const { logoUrl, faviconUrl, updateLogo, updateFavicon } =
@@ -197,18 +192,13 @@ export function LogoSettings() {
               <div className="w-32 h-32 border-2 border-dashed rounded-full flex items-center justify-center bg-muted/10 overflow-hidden relative group p-4 ring-2 ring-offset-2 ring-primary/10">
                 {isUploadingLogo ? (
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                ) : lUrl ? (
-                  <img
-                    src={lUrl}
-                    alt="Logo Preview"
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.src = ''
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
                 ) : (
-                  <ShieldCheck className="w-16 h-16 text-primary/50" />
+                  <BrandLogoImg
+                    logoUrl={lUrl}
+                    alt="Logo Preview"
+                    className="h-full w-full object-contain"
+                    fallbackClassName="w-16 h-16 text-primary/50"
+                  />
                 )}
               </div>
               <span className="text-xs text-muted-foreground">

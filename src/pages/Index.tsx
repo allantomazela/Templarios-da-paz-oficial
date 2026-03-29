@@ -1,6 +1,6 @@
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { ShieldCheck, Menu, X, Lock } from 'lucide-react'
+import { Menu, X, Lock } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useState, useEffect, ReactNode } from 'react'
@@ -12,6 +12,7 @@ import { VenerablesSection } from '@/components/home/VenerablesSection'
 import { ContactSection } from '@/components/home/ContactSection'
 import { CustomSection } from '@/components/home/CustomSection'
 import { HERO_CARD_DEFAULT_BACKGROUND_URL } from '@/lib/hero-card-defaults'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
@@ -129,20 +130,7 @@ export default function Index() {
             className="flex shrink-0 items-center gap-2.5 rounded-md py-1 text-left transition-opacity hover:opacity-90"
             aria-label="Ir para o início"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-background/80 shadow-sm">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt=""
-                  className="h-full w-full object-contain"
-                  style={{ imageRendering: '-webkit-optimize-contrast' }}
-                  loading="eager"
-                  decoding="async"
-                />
-              ) : (
-                <ShieldCheck className="h-5 w-5 text-primary" aria-hidden />
-              )}
-            </div>
+            <SiteLogoAvatar logoUrl={logoUrl} placement="header" />
             <span className="hidden font-semibold text-foreground sm:inline sm:max-w-[10rem] sm:truncate md:max-w-none">
               Templários da Paz
             </span>
@@ -437,22 +425,7 @@ export default function Index() {
       <footer className="py-8 bg-muted text-muted-foreground border-t">
         <div className="container px-4 md:px-6 text-center">
           <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
-            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/10 p-0 shadow-sm">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="h-full w-full object-contain"
-                  style={{
-                    imageRendering: '-webkit-optimize-contrast',
-                  }}
-                  loading="eager"
-                  decoding="async"
-                />
-              ) : (
-                <ShieldCheck className="h-5 w-5 text-primary" />
-              )}
-            </div>
+            <SiteLogoAvatar logoUrl={logoUrl} placement="footer" />
             <span>Templários da Paz</span>
           </div>
           <p className="text-sm mb-4">
@@ -476,6 +449,36 @@ export default function Index() {
           </p>
         </div>
       </footer>
+    </div>
+  )
+}
+
+interface SiteLogoAvatarProps {
+  logoUrl?: string | null
+  placement: 'header' | 'footer'
+}
+
+function SiteLogoAvatar({ logoUrl, placement }: SiteLogoAvatarProps) {
+  const isHeader = placement === 'header'
+
+  return (
+    <div
+      className={cn(
+        'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-gradient-to-b shadow-sm',
+        isHeader
+          ? 'h-10 w-10 border-border/40 from-primary/[0.09] to-background/95 p-[3px] shadow-black/[0.06] ring-1 ring-primary/15 sm:h-11 sm:w-11 sm:p-1'
+          : 'h-9 w-9 border-border/35 from-primary/[0.06] to-background/95 p-[3px] ring-1 ring-primary/10 sm:h-10 sm:w-10',
+      )}
+    >
+      <BrandLogoImg
+        logoUrl={logoUrl}
+        alt={isHeader ? 'Templários da Paz' : ''}
+        className="h-full w-full object-contain object-center"
+        fallbackClassName={isHeader ? 'h-5 w-5' : 'h-4 w-4'}
+        loading="eager"
+        decoding="async"
+        sizes={isHeader ? '(max-width: 640px) 40px, 44px' : '36px'}
+      />
     </div>
   )
 }

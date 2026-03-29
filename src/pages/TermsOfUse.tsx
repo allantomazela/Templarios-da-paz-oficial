@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { ShieldCheck, ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { useEffect } from 'react'
 
 export default function TermsOfUse() {
@@ -18,18 +19,14 @@ export default function TermsOfUse() {
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl">
             <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/20 p-0 shadow-sm">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="h-full w-full object-contain"
-                  style={{ imageRendering: '-webkit-optimize-contrast' }}
-                  loading="eager"
-                  decoding="async"
-                />
-              ) : (
-                <ShieldCheck className="h-5 w-5 text-primary" />
-              )}
+              <BrandLogoImg
+                logoUrl={logoUrl}
+                alt=""
+                className="h-full w-full object-contain"
+                fallbackClassName="h-5 w-5"
+                loading="eager"
+                decoding="async"
+              />
             </div>
             <span className="text-primary">Templários da Paz</span>
           </div>

@@ -1,7 +1,8 @@
-import { ShieldCheck, MapPin } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import type { Event, VisitorAttendance } from '@/lib/data'
 
 export function VisitorCertificateDocument({
@@ -21,20 +22,15 @@ export function VisitorCertificateDocument({
       {/* Cabeçalho com Logo e Informações */}
       <div className="text-center mb-8 print:mb-6 relative z-10">
         <div className="flex justify-center mb-6 print:mb-4">
-          {logoUrl ? (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-50 to-amber-100 print:from-transparent print:to-transparent rounded-full blur-sm print:blur-0" />
-              <img
-                src={logoUrl}
-                alt="Logo da Loja"
-                className="h-28 w-28 print:h-24 print:w-24 object-contain relative z-10 drop-shadow-lg print:drop-shadow-none"
-              />
-            </div>
-          ) : (
-            <div className="h-28 w-28 print:h-24 print:w-24 flex items-center justify-center border-4 border-black rounded-full bg-gradient-to-br from-amber-50 to-amber-100 print:from-white print:to-white shadow-lg print:shadow-none">
-              <ShieldCheck className="h-20 w-20 print:h-16 print:w-16 text-black" />
-            </div>
-          )}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-50 to-amber-100 print:from-transparent print:to-transparent rounded-full blur-sm print:blur-0" />
+            <BrandLogoImg
+              logoUrl={logoUrl}
+              alt="Logo da Loja"
+              className="relative z-10 h-28 w-28 print:h-24 print:w-24 object-contain drop-shadow-lg print:drop-shadow-none"
+              fallbackClassName="h-20 w-20 print:h-16 print:w-16 text-black"
+            />
+          </div>
         </div>
 
         <h1 className="text-3xl print:text-2xl font-bold text-black mb-2 print:mb-1 tracking-tight">

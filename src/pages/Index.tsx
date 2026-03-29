@@ -31,6 +31,18 @@ export default function Index() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [heroCardBgLoadFailed, setHeroCardBgLoadFailed] = useState(false)
+
+  const heroCardBgCustom = heroCardBgUrl?.trim() ?? ''
+
+  useEffect(() => {
+    setHeroCardBgLoadFailed(false)
+  }, [heroCardBgCustom])
+
+  const heroCardBgSrc =
+    heroCardBgCustom && !heroCardBgLoadFailed
+      ? heroCardBgCustom
+      : HERO_CARD_DEFAULT_BACKGROUND_URL
 
   useEffect(() => {
     fetchSettings()
@@ -292,27 +304,32 @@ export default function Index() {
 
           <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
             <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
-              <div className="relative w-full overflow-hidden rounded-2xl border border-border/50 shadow-xl shadow-black/15">
+              <div className="relative w-full min-h-[280px] overflow-hidden rounded-2xl border border-border/50 shadow-xl shadow-black/15">
                 <img
-                  src={
-                    heroCardBgUrl?.trim()
-                      ? heroCardBgUrl.trim()
-                      : HERO_CARD_DEFAULT_BACKGROUND_URL
-                  }
+                  src={heroCardBgSrc}
                   alt=""
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                  className="pointer-events-none absolute inset-0 h-full min-h-full w-full scale-105 object-cover opacity-[0.28] saturate-[0.75] contrast-[0.92]"
                   loading="eager"
                   decoding="async"
+                  onError={() => {
+                    if (heroCardBgCustom) setHeroCardBgLoadFailed(true)
+                  }}
                 />
                 <div
-                  className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/92 via-background/78 to-background/92"
+                  className="pointer-events-none absolute inset-0 bg-background/88"
                   aria-hidden
                 />
                 <div
-                  className="pointer-events-none absolute inset-0 bg-primary/[0.06]"
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background/95"
                   aria-hidden
                 />
-                <div className="relative z-10 p-8 md:p-12">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-primary/[0.04]"
+                  aria-hidden
+                />
+                <div className="relative z-10 p-6 sm:p-8 md:p-10">
+                  <div className="mx-auto max-w-2xl rounded-xl border border-border/40 bg-background/55 px-5 py-6 shadow-sm backdrop-blur-md sm:px-7 sm:py-8 md:backdrop-blur-lg">
                   <p className="mb-5 font-oldenglish text-base font-bold leading-snug tracking-wide text-primary sm:text-lg md:text-xl">
                     Augusta e Respeitável Loja Simbólica
                   </p>
@@ -349,6 +366,7 @@ export default function Index() {
                     >
                       Acesso para membros
                     </button>
+                  </div>
                   </div>
                 </div>
               </div>

@@ -174,7 +174,7 @@ export function AppSidebar() {
             className={cn(
               'origin-center rounded-full border border-sidebar-border/20 bg-background object-contain shadow-sm',
               'aspect-square p-px',
-              collapsed ? 'h-10 w-10 scale-[1.12]' : 'h-[52px] w-[52px] scale-[1.14]',
+              collapsed ? 'h-9 w-9 scale-[1.1]' : 'h-11 w-11 scale-[1.12] sm:h-12 sm:w-12',
             )}
             fallbackClassName="w-8 h-8 shrink-0 scale-100"
           />

@@ -34,13 +34,13 @@ export function FormHeader({
       {/* Top Section with Logo and Title */}
       <div className="flex items-start gap-4">
         {/* Logo Container - compacto */}
-        <div className="relative h-[4.5rem] w-[4.5rem] flex-shrink-0">
+        <div className="relative h-16 w-16 flex-shrink-0">
           <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-1 shadow-sm">
             <BrandLogoImg
               logoUrl={logoUrl}
               alt="Logo da Loja"
-              className="h-full w-full origin-center object-contain scale-[1.12]"
-              fallbackClassName="h-10 w-10 scale-100 text-primary/50"
+              className="h-full w-full origin-center object-contain scale-[1.08]"
+              fallbackClassName="h-9 w-9 scale-100 text-primary/50"
             />
           </div>
         </div>

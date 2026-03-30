@@ -127,11 +127,11 @@ export default function Index() {
           <button
             type="button"
             onClick={() => handleNavClick('home')}
-            className="flex shrink-0 items-center gap-2.5 rounded-md py-0 text-left transition-opacity hover:opacity-90"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-0 text-left transition-opacity hover:opacity-90 md:flex-initial md:gap-2.5"
             aria-label="Ir para o início"
           >
             <SiteLogoAvatar logoUrl={logoUrl} placement="header" />
-            <span className="hidden font-semibold text-foreground sm:inline sm:max-w-[10rem] sm:truncate md:max-w-none">
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground sm:flex-initial sm:text-base sm:max-w-[10rem] md:max-w-none">
               Templários da Paz
             </span>
           </button>
@@ -166,7 +166,7 @@ export default function Index() {
             </button>
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Button
               onClick={handleMemberAccess}
               size="sm"
@@ -466,21 +466,21 @@ function SiteLogoAvatar({ logoUrl, placement }: SiteLogoAvatarProps) {
       className={cn(
         'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-gradient-to-b shadow-sm',
         isHeader
-          ? 'h-[60px] w-[60px] border-border/40 from-primary/[0.09] to-background/95 p-px shadow-black/[0.06] ring-1 ring-primary/15 sm:h-16 sm:w-16'
-          : 'h-11 w-11 border-border/35 from-primary/[0.06] to-background/95 p-px ring-1 ring-primary/10 sm:h-12 sm:w-12',
+          ? 'h-[52px] w-[52px] border-border/40 from-primary/[0.09] to-background/95 p-px shadow-black/[0.06] ring-1 ring-primary/15 sm:h-14 sm:w-14'
+          : 'h-10 w-10 border-border/35 from-primary/[0.06] to-background/95 p-px ring-1 ring-primary/10 sm:h-11 sm:w-11',
       )}
     >
       <BrandLogoImg
         logoUrl={logoUrl}
-        alt={isHeader ? 'Templários da Paz' : ''}
+        alt=""
         className={cn(
           'h-full w-full origin-center object-contain object-center',
-          isHeader ? 'scale-[1.16] sm:scale-[1.14]' : 'scale-[1.1] sm:scale-[1.08]',
+          isHeader ? 'scale-[1.12] sm:scale-[1.1]' : 'scale-[1.08] sm:scale-[1.06]',
         )}
-        fallbackClassName={isHeader ? 'h-7 w-7 scale-100' : 'h-5 w-5 scale-100'}
+        fallbackClassName={isHeader ? 'h-6 w-6 scale-100' : 'h-4 w-4 scale-100'}
         loading="eager"
         decoding="async"
-        sizes={isHeader ? '(max-width: 640px) 60px, 64px' : '(max-width: 640px) 44px, 48px'}
+        sizes={isHeader ? '(max-width: 640px) 52px, 56px' : '(max-width: 640px) 40px, 44px'}
       />
     </div>
   )

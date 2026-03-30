@@ -17,20 +17,20 @@ export default function TermsOfUse() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl">
-            <div className="relative flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-full border border-border/20 bg-background p-px shadow-sm ring-1 ring-primary/10 sm:h-16 sm:w-16">
+          <div className="flex min-w-0 flex-1 items-center gap-2 font-bold text-primary text-base sm:text-xl">
+            <div className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/20 bg-background p-px shadow-sm ring-1 ring-primary/10 sm:h-14 sm:w-14">
               <BrandLogoImg
                 logoUrl={logoUrl}
                 alt=""
-                className="h-full w-full origin-center object-contain object-center scale-[1.16] sm:scale-[1.14]"
-                fallbackClassName="h-7 w-7 scale-100"
+                className="h-full w-full origin-center object-contain object-center scale-[1.12] sm:scale-[1.1]"
+                fallbackClassName="h-6 w-6 scale-100"
                 loading="eager"
                 decoding="async"
               />
             </div>
-            <span className="text-primary">Templários da Paz</span>
+            <span className="min-w-0 truncate">Templários da Paz</span>
           </div>
-          <Button variant="ghost" asChild>
+          <Button variant="ghost" asChild className="shrink-0">
             <Link to="/">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar

@@ -127,7 +127,7 @@ export default function Index() {
           <button
             type="button"
             onClick={() => handleNavClick('home')}
-            className="flex shrink-0 items-center gap-2.5 rounded-md py-1 text-left transition-opacity hover:opacity-90"
+            className="flex shrink-0 items-center gap-2.5 rounded-md py-0 text-left transition-opacity hover:opacity-90"
             aria-label="Ir para o início"
           >
             <SiteLogoAvatar logoUrl={logoUrl} placement="header" />
@@ -466,18 +466,21 @@ function SiteLogoAvatar({ logoUrl, placement }: SiteLogoAvatarProps) {
       className={cn(
         'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-gradient-to-b shadow-sm',
         isHeader
-          ? 'h-10 w-10 border-border/40 from-primary/[0.09] to-background/95 p-[3px] shadow-black/[0.06] ring-1 ring-primary/15 sm:h-11 sm:w-11 sm:p-1'
-          : 'h-9 w-9 border-border/35 from-primary/[0.06] to-background/95 p-[3px] ring-1 ring-primary/10 sm:h-10 sm:w-10',
+          ? 'h-[60px] w-[60px] border-border/40 from-primary/[0.09] to-background/95 p-px shadow-black/[0.06] ring-1 ring-primary/15 sm:h-16 sm:w-16'
+          : 'h-11 w-11 border-border/35 from-primary/[0.06] to-background/95 p-px ring-1 ring-primary/10 sm:h-12 sm:w-12',
       )}
     >
       <BrandLogoImg
         logoUrl={logoUrl}
         alt={isHeader ? 'Templários da Paz' : ''}
-        className="h-full w-full object-contain object-center"
-        fallbackClassName={isHeader ? 'h-5 w-5' : 'h-4 w-4'}
+        className={cn(
+          'h-full w-full origin-center object-contain object-center',
+          isHeader ? 'scale-[1.16] sm:scale-[1.14]' : 'scale-[1.1] sm:scale-[1.08]',
+        )}
+        fallbackClassName={isHeader ? 'h-7 w-7 scale-100' : 'h-5 w-5 scale-100'}
         loading="eager"
         decoding="async"
-        sizes={isHeader ? '(max-width: 640px) 40px, 44px' : '36px'}
+        sizes={isHeader ? '(max-width: 640px) 60px, 64px' : '(max-width: 640px) 44px, 48px'}
       />
     </div>
   )

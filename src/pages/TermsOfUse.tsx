@@ -18,12 +18,12 @@ export default function TermsOfUse() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl">
-            <div className="h-8 w-8 relative flex items-center justify-center rounded-full overflow-hidden bg-background border border-border/20 p-0 shadow-sm">
+            <div className="relative flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-full border border-border/20 bg-background p-px shadow-sm ring-1 ring-primary/10 sm:h-16 sm:w-16">
               <BrandLogoImg
                 logoUrl={logoUrl}
                 alt=""
-                className="h-full w-full object-contain"
-                fallbackClassName="h-5 w-5"
+                className="h-full w-full origin-center object-contain object-center scale-[1.16] sm:scale-[1.14]"
+                fallbackClassName="h-7 w-7 scale-100"
                 loading="eager"
                 decoding="async"
               />

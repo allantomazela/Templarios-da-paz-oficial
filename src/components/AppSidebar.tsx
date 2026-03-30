@@ -172,10 +172,11 @@ export function AppSidebar() {
             logoUrl={logoUrl}
             alt="Logo"
             className={cn(
-              'rounded-full object-contain aspect-square shadow-sm bg-background border border-sidebar-border/20 p-1',
-              collapsed ? 'h-8 w-8' : 'h-10 w-10',
+              'origin-center rounded-full border border-sidebar-border/20 bg-background object-contain shadow-sm',
+              'aspect-square p-px',
+              collapsed ? 'h-10 w-10 scale-[1.12]' : 'h-[52px] w-[52px] scale-[1.14]',
             )}
-            fallbackClassName="w-8 h-8 shrink-0"
+            fallbackClassName="w-8 h-8 shrink-0 scale-100"
           />
           {!collapsed && (
             <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">

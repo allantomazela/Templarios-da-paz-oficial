@@ -40,7 +40,6 @@ export function ContactSection({
   email,
   secondaryEmail,
   phone,
-  messageEmail,
 }: ContactSectionProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -82,32 +81,8 @@ export function ContactSection({
         throw insertError
       }
 
-      // Tentar enviar email via Edge Function (se disponível)
-      const recipientEmail = messageEmail || email
-      if (recipientEmail) {
-        try {
-          const { error: emailError } = await supabase.functions.invoke(
-            'send-contact-email',
-            {
-              body: {
-                to: recipientEmail,
-                from: data.email,
-                name: data.name,
-                message: data.message,
-                replyTo: data.email,
-              },
-            },
-          )
-
-          if (emailError) {
-            // Log do erro mas não falha a operação
-            console.warn('Erro ao enviar email (mensagem salva no banco):', emailError)
-          }
-        } catch (emailErr) {
-          // Edge Function pode não existir ainda, não é crítico
-          console.warn('Edge Function de email não disponível:', emailErr)
-        }
-      }
+      // Notificação por e-mail: usar gatilho/cron no Supabase ou fila segura;
+      // não invocar Edge Function a partir do cliente público (evita abuso e CORS).
 
       toast({
         title: 'Mensagem Enviada',

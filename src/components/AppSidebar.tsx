@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
+import { isMasterAdminEmail } from '@/config/master-admin'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import {
@@ -60,7 +61,7 @@ export function AppSidebar() {
   }
 
   const userRole = user?.role || 'member'
-  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
+  const isMasterAdmin = isMasterAdminEmail(user?.email)
   
   // Verificar permissões baseadas em cargo
   const userPermissions = user?.id ? getUserPermissions(user.id) : []

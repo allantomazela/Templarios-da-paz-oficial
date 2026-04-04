@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { sanitizePublicHtml } from '@/lib/sanitize-html'
 import { CustomSection as CustomSectionType } from '@/stores/useSiteSettingsStore'
 
 interface CustomSectionProps {
@@ -19,6 +20,7 @@ export function CustomSection({ section }: CustomSectionProps) {
   }
 
   const containerClasses = cn('py-16 px-4 md:px-6', !section.backgroundColor && 'bg-background')
+  const safeContent = sanitizePublicHtml(section.content || '')
 
   const renderContent = () => {
     switch (section.type) {
@@ -30,7 +32,7 @@ export function CustomSection({ section }: CustomSectionProps) {
             </h2>
             <div
               className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: section.content }}
+              dangerouslySetInnerHTML={{ __html: safeContent }}
             />
           </div>
         )
@@ -45,7 +47,7 @@ export function CustomSection({ section }: CustomSectionProps) {
                 </h2>
                 <div
                   className="prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: section.content }}
+                  dangerouslySetInnerHTML={{ __html: safeContent }}
                 />
               </div>
               {section.imageUrl && (
@@ -80,7 +82,7 @@ export function CustomSection({ section }: CustomSectionProps) {
                 </h2>
                 <div
                   className="prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: section.content }}
+                  dangerouslySetInnerHTML={{ __html: safeContent }}
                 />
               </div>
             </div>
@@ -105,7 +107,7 @@ export function CustomSection({ section }: CustomSectionProps) {
               </h2>
               <div
                 className="prose prose-lg max-w-4xl mx-auto"
-                dangerouslySetInnerHTML={{ __html: section.content }}
+                dangerouslySetInnerHTML={{ __html: safeContent }}
               />
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
   isAuthError as isAuthErrorUtil,
   clearSupabaseAuthStorage,
 } from '@/lib/auth-utils'
+import { isMasterAdminEmail } from '@/config/master-admin'
 
 export type UserStatus = 'pending' | 'approved' | 'blocked' | 'in_memoriam' | 'adormecido'
 
@@ -44,7 +45,6 @@ interface AuthState {
   clearSessionAndRedirectToLogin: () => void
 }
 
-const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
 const PROFILE_TIMEOUT_MS = 3000
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -127,7 +127,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           logWarning('Auth initialization warning: Profile fetch failed', error)
         }
 
-        const isMasterAdmin = session.user.email === MASTER_ADMIN_EMAIL
+        const isMasterAdmin = isMasterAdminEmail(session.user.email)
         let role = userProfile?.role || 'member'
         let status = userProfile?.status || 'pending'
 
@@ -198,7 +198,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               .single()
 
             const userProfile = profile as Profile
-            const isMasterAdmin = session.user.email === MASTER_ADMIN_EMAIL
+            const isMasterAdmin = isMasterAdminEmail(session.user.email)
 
             let role = userProfile?.role || 'member'
             let status = userProfile?.status || 'pending'
@@ -288,7 +288,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     if (data.session) {
-      const isMasterAdmin = data.session.user.email === MASTER_ADMIN_EMAIL
+      const isMasterAdmin = isMasterAdminEmail(data.session.user.email)
 
       set({
         session: data.session,

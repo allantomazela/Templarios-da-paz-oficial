@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
+import { isMasterAdminEmail } from '@/config/master-admin'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { Loader2 } from 'lucide-react'
 
@@ -18,7 +19,7 @@ function RoleGuardInner({
 }: RoleGuardProps & { user: NonNullable<ReturnType<typeof useAuthStore>['user']> }) {
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
 
-  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
+  const isMasterAdmin = isMasterAdminEmail(user?.email)
   let userRole = user?.role || 'member'
   const userStatus = user?.profile?.status
   const isBlockedStatus =

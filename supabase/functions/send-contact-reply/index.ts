@@ -1,11 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { corsHeaders } from '../_shared/cors.ts'
+import { requireAdminOrEditor } from '../_shared/auth.ts'
 
 interface ReplyRequest {
   to: string
@@ -16,11 +11,33 @@ interface ReplyRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
+  const origin = req.headers.get('Origin')
+  const headers = corsHeaders(origin, 'POST, OPTIONS')
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
+    return new Response(null, { status: 204, headers })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Método não permitido' }), {
+      status: 405,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+
+  const auth = await requireAdminOrEditor(
+    supabaseUrl,
+    supabaseAnonKey,
+    req.headers.get('Authorization'),
+  )
+
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.message }), {
+      status: auth.status,
+      headers: { ...headers, 'Content-Type': 'application/json' },
     })
   }
 
@@ -33,30 +50,14 @@ serve(async (req) => {
         JSON.stringify({ error: 'Campos obrigatórios faltando' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
 
-    // Preparar conteúdo do email
-    const emailBody = `
-Olá,
-
-Obrigado por entrar em contato conosco através do site.
-
-Sua mensagem original:
-${originalMessage}
-
-Nossa resposta:
-${replyText}
-
-Atenciosamente,
-Equipe Templários da Paz
-    `.trim()
-
-    // Opção 1: Usar Resend (recomendado - precisa de API key)
-    // Descomente e configure se tiver Resend API key
     /*
+    const emailBody = montar texto com originalMessage e replyText
+
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (RESEND_API_KEY) {
       const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -81,32 +82,32 @@ Equipe Templários da Paz
       return new Response(
         JSON.stringify({ success: true, message: 'Email enviado via Resend' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 200,
         },
       )
     }
     */
 
-    // Por enquanto, retornamos sucesso (a resposta já foi salva no banco)
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Resposta processada (email será enviado em breve)',
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       },
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao processar resposta:', error)
+    const message = error instanceof Error ? error.message : 'Erro inesperado.'
     return new Response(
       JSON.stringify({
-        error: error.message || 'Erro ao processar solicitação de resposta',
+        error: message || 'Erro ao processar solicitação de resposta',
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       },
     )

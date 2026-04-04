@@ -2,6 +2,7 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
+import { isMasterAdminEmail } from '@/config/master-admin'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -89,7 +90,7 @@ export default function DashboardLayout() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  const isMasterAdmin = user?.email === 'allantomazela@gmail.com'
+  const isMasterAdmin = isMasterAdminEmail(user?.email)
   const userStatus = user?.profile?.status
   const isBlockedStatus =
     userStatus === 'blocked' || userStatus === 'in_memoriam'

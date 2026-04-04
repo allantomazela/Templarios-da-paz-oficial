@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import useAuthStore from '@/stores/useAuthStore'
+import { isMasterAdminEmail } from '@/config/master-admin'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 
 /**
@@ -14,7 +15,7 @@ export function useAgapePermissions() {
     if (!user?.id) return false
 
     // Master Admin sempre tem acesso
-    const isMasterAdmin = user.email === 'allantomazela@gmail.com'
+    const isMasterAdmin = isMasterAdminEmail(user.email)
     if (isMasterAdmin) return true
 
     // Admin do sistema sempre tem acesso

@@ -1,13 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
+/**
+ * Notificação opcional de formulário de contato.
+ * A mensagem já é persistida em `contact_messages` pelo cliente público;
+ * este endpoint não deve usar service_role nem ser necessário para o fluxo principal.
+ *
+ * Uso futuro (ex.: Resend): preferir gatilho no banco ou fila, não dependência desta função a partir do site público.
+ */
 interface EmailRequest {
   to: string
   from: string
@@ -17,52 +17,37 @@ interface EmailRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
+  const origin = req.headers.get('Origin')
+  const headers = corsHeaders(origin, 'POST, OPTIONS')
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
+    return new Response(null, { status: 204, headers })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Método não permitido' }), {
+      status: 405,
+      headers: { ...headers, 'Content-Type': 'application/json' },
     })
   }
 
   try {
-    const { to, from, name, message, replyTo }: EmailRequest = await req.json()
+    const { to, from, name, message }: EmailRequest = await req.json()
 
     if (!to || !from || !name || !message) {
       return new Response(
         JSON.stringify({ error: 'Campos obrigatórios faltando' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
         },
       )
     }
 
-    // Criar cliente Supabase
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    )
-
-    // Preparar conteúdo do email
-    const emailSubject = `Nova Mensagem do Site - ${name}`
-    const emailBody = `
-Nova mensagem recebida através do formulário de contato do site:
-
-Nome: ${name}
-Email: ${from}
-Data: ${new Date().toLocaleString('pt-BR')}
-
-Mensagem:
-${message}
-
----
-Para responder, use o email: ${replyTo || from}
-    `.trim()
-
-    // Opção 1: Usar Resend (recomendado - precisa de API key)
-    // Descomente e configure se tiver Resend API key
     /*
+    const emailSubject = `Nova Mensagem do Site - ${name}`
+    const emailBody = `...` // montar com name, from, message, replyTo
+
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (RESEND_API_KEY) {
       const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -88,40 +73,33 @@ Para responder, use o email: ${replyTo || from}
       return new Response(
         JSON.stringify({ success: true, message: 'Email enviado via Resend' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 200,
         },
       )
     }
     */
 
-    // Opção 2: Usar Supabase Auth (envio básico via SMTP do Supabase)
-    // Nota: Supabase Auth tem limitações para envio de emails customizados
-    // Esta é uma implementação básica que pode precisar de ajustes
-
-    // Opção 3: Salvar no banco e notificar (fallback)
-    // A mensagem já foi salva no ContactSection, então apenas retornamos sucesso
-    // O email pode ser enviado via cron job ou webhook externo
-
-    // Por enquanto, retornamos sucesso (a mensagem já foi salva no banco)
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Mensagem processada (email será enviado em breve)',
+        message:
+          'Mensagem já registrada no sistema; envio por e-mail será tratado separadamente.',
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       },
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao processar email:', error)
+    const message = error instanceof Error ? error.message : 'Erro inesperado.'
     return new Response(
       JSON.stringify({
-        error: error.message || 'Erro ao processar solicitação de email',
+        error: message || 'Erro ao processar solicitação de email',
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       },
     )

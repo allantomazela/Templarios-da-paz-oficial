@@ -27,20 +27,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
-
-interface TransactionFromDB {
-  id: string
-  date: string
-  description: string
-  category: string
-  type: 'Receita' | 'Despesa'
-  amount: number
-  account_id: string | null
-  financial_accounts?: {
-    id: string
-    name: string
-  }
-}
+import { fetchTransactionsWithAccountNames } from '@/lib/financial-queries'
 
 export function ExpenseList() {
   const [expenses, setExpenses] = useState<Transaction[]>([])
@@ -58,44 +45,20 @@ export function ExpenseList() {
   const loadExpenses = useAsyncOperation(
     async () => {
       setLoading(true)
-      const { data, error } = await supabaseAny
-        .from('financial_transactions')
-        .select(
-          `
-          *,
-          financial_accounts!financial_transactions_account_id_fkey (
-            id,
-            name
-          )
-        `,
-        )
-        .eq('type', 'Despesa')
-        .order('date', { ascending: false })
+      const { transactions, accountNames: namesById } =
+        await fetchTransactionsWithAccountNames('Despesa')
 
-      if (error) {
-        throw new Error('Falha ao carregar despesas.')
-      }
+      const mapped: Transaction[] = transactions.map((t) => ({
+        id: t.id,
+        date: t.date,
+        description: t.description,
+        category: t.category || 'Sem categoria',
+        type: t.type,
+        amount: parseFloat(String(t.amount)),
+        accountId: t.account_id || undefined,
+      }))
 
-      const mapped: Transaction[] = (data || []).map(
-        (t: TransactionFromDB) => ({
-          id: t.id,
-          date: t.date,
-          description: t.description,
-          category: t.category || 'Sem categoria',
-          type: t.type,
-          amount: parseFloat(t.amount.toString()),
-          accountId: t.account_id || undefined,
-        }),
-      )
-
-      // Create account names map
-      const namesMap: Record<string, string> = {}
-      ;(data || []).forEach((t: TransactionFromDB) => {
-        if (t.financial_accounts?.name) {
-          namesMap[t.account_id || ''] = t.financial_accounts.name
-        }
-      })
-      setAccountNames(namesMap)
+      setAccountNames(namesById)
 
       setExpenses(mapped)
       setLoading(false)

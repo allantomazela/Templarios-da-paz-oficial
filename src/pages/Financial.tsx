@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FinancialOverview } from '@/components/financial/FinancialOverview'
 import { IncomeList } from '@/components/financial/IncomeList'
@@ -12,6 +13,8 @@ import { CashFlowReport } from '@/components/financial/CashFlowReport'
 import { CharityCollection } from '@/components/financial/CharityCollection'
 
 export default function Financial() {
+  const [activeTab, setActiveTab] = useState('overview')
+
   return (
     <div className="space-y-6">
       <div>
@@ -21,7 +24,11 @@ export default function Financial() {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <div className="flex items-center overflow-x-auto">
           <TabsList className="w-full justify-start md:w-auto">
             <TabsTrigger value="overview">Dashboard</TabsTrigger>
@@ -39,47 +46,47 @@ export default function Financial() {
         </div>
 
         <TabsContent value="overview">
-          <FinancialOverview />
+          {activeTab === 'overview' ? <FinancialOverview /> : null}
         </TabsContent>
 
         <TabsContent value="bank-accounts">
-          <BankAccounts />
+          {activeTab === 'bank-accounts' ? <BankAccounts /> : null}
         </TabsContent>
 
         <TabsContent value="cash-flow">
-          <CashFlowReport />
+          {activeTab === 'cash-flow' ? <CashFlowReport /> : null}
         </TabsContent>
 
         <TabsContent value="income">
-          <IncomeList />
+          {activeTab === 'income' ? <IncomeList /> : null}
         </TabsContent>
 
         <TabsContent value="expenses">
-          <ExpenseList />
+          {activeTab === 'expenses' ? <ExpenseList /> : null}
         </TabsContent>
 
         <TabsContent value="charity">
-          <CharityCollection />
+          {activeTab === 'charity' ? <CharityCollection /> : null}
         </TabsContent>
 
         <TabsContent value="contributions">
-          <ContributionsList />
+          {activeTab === 'contributions' ? <ContributionsList /> : null}
         </TabsContent>
 
         <TabsContent value="budgets">
-          <BudgetsAndGoals />
+          {activeTab === 'budgets' ? <BudgetsAndGoals /> : null}
         </TabsContent>
 
         <TabsContent value="reports">
-          <FinancialReports />
+          {activeTab === 'reports' ? <FinancialReports /> : null}
         </TabsContent>
 
         <TabsContent value="categories">
-          <CategoryList />
+          {activeTab === 'categories' ? <CategoryList /> : null}
         </TabsContent>
 
         <TabsContent value="settings">
-          <ReminderSettings />
+          {activeTab === 'settings' ? <ReminderSettings /> : null}
         </TabsContent>
       </Tabs>
     </div>

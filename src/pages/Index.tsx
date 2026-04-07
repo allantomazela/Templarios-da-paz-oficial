@@ -125,8 +125,8 @@ export default function Index() {
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-background font-sans text-foreground antialiased">
-      <header className="fixed left-0 right-0 top-0 z-50 h-16 border-b border-border/50 bg-background/75 shadow-sm shadow-black/[0.07] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65">
-        <div className="container mx-auto flex h-full items-center gap-3 px-4 md:gap-4 md:px-6">
+      <header className="fixed left-0 right-0 top-0 z-50 min-h-16 border-b border-border/50 bg-background/75 shadow-sm shadow-black/[0.07] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65">
+        <div className="container mx-auto flex min-h-16 items-center gap-3 px-4 py-2 md:gap-4 md:px-6 md:py-0">
           <button
             type="button"
             onClick={() => handleNavClick('home')}
@@ -138,8 +138,10 @@ export default function Index() {
               <span className="block truncate text-sm font-semibold leading-tight text-foreground sm:text-base">
                 Templários da Paz
               </span>
-              <span className="mt-0.5 hidden truncate text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:block sm:max-w-[14rem] md:max-w-none md:text-[11px]">
-                ARLS n.º 3969 · Oriente de Botucatu – SP
+              <span className="mt-0.5 block text-[9px] font-medium uppercase leading-snug tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:leading-tight sm:tracking-[0.14em] md:text-[11px]">
+                <span className="block sm:inline">ARLS n.º 3969</span>
+                <span className="hidden sm:inline"> · </span>
+                <span className="block sm:inline">Oriente de Botucatu – SP</span>
               </span>
             </div>
           </button>
@@ -202,7 +204,7 @@ export default function Index() {
 
         <div
           className={cn(
-            'md:hidden fixed inset-x-0 top-16 z-40 border-b border-border/40 bg-background/90 backdrop-blur-xl shadow-lg transition-all duration-300 ease-in-out',
+            'md:hidden absolute inset-x-0 top-full z-40 border-b border-border/40 bg-background/90 backdrop-blur-xl shadow-lg transition-all duration-300 ease-in-out',
             isMobileMenuOpen
               ? 'translate-y-0 opacity-100'
               : '-translate-y-2 opacity-0 pointer-events-none',
@@ -262,7 +264,7 @@ export default function Index() {
               <img
                 src={homeBannerUrl}
                 alt=""
-                className="h-auto w-full max-h-[min(42vh,400px)] object-cover object-center sm:max-h-[min(48vh,480px)]"
+                className="h-auto w-full max-h-[min(46vh,460px)] object-cover object-center"
                 loading="eager"
                 decoding="async"
               />
@@ -278,14 +280,20 @@ export default function Index() {
             </div>
           </div>
         ) : (
-          <div
-            className="relative h-40 w-full overflow-hidden border-b border-border/40 sm:h-48 md:h-56"
-            aria-hidden
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.22] via-background to-secondary/25" />
-            <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/18 blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/30 blur-3xl" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,hsl(var(--primary)/0.28),transparent)]" />
+          <div className="w-full border-b border-border/40 bg-muted/25">
+            <div className="container px-4 md:px-6">
+              <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-b-2xl shadow-md ring-1 ring-border/30">
+                <div
+                  className="relative h-40 w-full overflow-hidden sm:h-48 md:h-56"
+                  aria-hidden
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.22] via-background to-secondary/25" />
+                  <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/18 blur-3xl" />
+                  <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/30 blur-3xl" />
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,hsl(var(--primary)/0.28),transparent)]" />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -293,8 +301,8 @@ export default function Index() {
           className={cn(
             'relative flex flex-col justify-center overflow-hidden',
             homeBannerUrl
-              ? 'min-h-[min(72vh,calc(100vh-5rem))] py-12 md:py-16'
-              : 'min-h-[calc(100vh-4rem-10rem)] py-14 md:min-h-[calc(100vh-4rem-12rem)] md:py-20',
+              ? 'min-h-[min(70vh,calc(100vh-5.5rem))] py-10 sm:py-12 md:min-h-[min(72vh,calc(100vh-5rem))] md:py-16'
+              : 'min-h-[calc(100vh-4.5rem-10rem)] py-12 sm:py-14 md:min-h-[calc(100vh-4rem-12rem)] md:py-20',
           )}
         >
           <div className="pointer-events-none absolute inset-0 z-0">
@@ -309,7 +317,7 @@ export default function Index() {
 
           <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
             <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
-              <div className="relative w-full min-h-[280px] overflow-hidden rounded-3xl border border-primary/15 bg-card/30 shadow-2xl shadow-black/25 ring-1 ring-border/40">
+              <div className="relative w-full min-h-[min(52vh,320px)] overflow-hidden rounded-3xl border border-primary/15 bg-card/30 shadow-2xl shadow-black/25 ring-1 ring-border/40 sm:min-h-[280px] md:min-h-[300px]">
                 <img
                   src={heroCardBgSrc}
                   alt=""
@@ -333,32 +341,32 @@ export default function Index() {
                   className="pointer-events-none absolute inset-0 bg-primary/[0.035]"
                   aria-hidden
                 />
-                <div className="relative z-10 p-6 sm:p-8 md:p-11">
-                  <div className="mx-auto max-w-2xl rounded-2xl border border-primary/12 bg-background/50 px-5 py-7 shadow-inner backdrop-blur-md sm:px-8 sm:py-9 md:backdrop-blur-lg">
-                  <p className="mb-4 font-oldenglish text-base font-bold leading-snug tracking-wide text-primary sm:mb-5 sm:text-lg md:text-xl">
+                <div className="relative z-10 p-5 sm:p-8 md:p-11">
+                  <div className="mx-auto max-w-2xl rounded-2xl border border-primary/12 bg-background/50 px-4 py-6 shadow-inner backdrop-blur-md sm:px-8 sm:py-9 md:backdrop-blur-lg">
+                  <p className="mb-3 font-oldenglish text-base font-bold leading-snug tracking-wide text-primary sm:mb-5 sm:text-lg md:text-xl">
                     Augusta e Respeitável Loja Simbólica
                   </p>
-                  <h1 className="font-oldenglish text-4xl font-bold leading-[1.08] tracking-tight text-foreground [text-shadow:0_1px_2px_hsl(var(--background)/0.9),0_2px_20px_hsl(var(--background)/0.7)] sm:text-5xl md:text-6xl lg:text-7xl">
+                  <h1 className="font-oldenglish text-[clamp(1.75rem,6.5vw,2.25rem)] font-bold leading-[1.08] tracking-tight text-foreground [text-shadow:0_1px_2px_hsl(var(--background)/0.9),0_2px_20px_hsl(var(--background)/0.7)] sm:text-5xl md:text-6xl lg:text-7xl">
                     Templários da Paz 3969
                   </h1>
-                  <p className="mx-auto mt-4 max-w-md font-sans text-xs font-semibold uppercase leading-snug tracking-[0.18em] text-primary/85 sm:text-sm">
+                  <p className="mx-auto mt-3 max-w-md font-sans text-[11px] font-semibold uppercase leading-snug tracking-[0.16em] text-primary/85 sm:mt-4 sm:text-sm sm:tracking-[0.18em]">
                     Oriente de Botucatu — São Paulo — Brasil
                   </p>
                   <p
-                    className="mt-4 font-oldenglish text-3xl font-bold text-primary [text-shadow:0_1px_2px_hsl(var(--background)/0.85)] sm:mt-5 sm:text-4xl md:text-5xl"
+                    className="mt-3 font-oldenglish text-[clamp(1.75rem,5vw,1.875rem)] font-bold text-primary [text-shadow:0_1px_2px_hsl(var(--background)/0.85)] sm:mt-5 sm:text-4xl md:text-5xl"
                     title="Três pontos maçônicos"
                     aria-label="Três pontos maçônicos"
                   >
                     ∴
                   </p>
-                  <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
+                  <p className="mx-auto mt-5 max-w-xl text-pretty text-[0.9375rem] leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg md:text-xl">
                     Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
                     <span className="font-medium text-foreground/90">
                       {contact.city || 'Botucatu-SP'}
                     </span>
                     . Uma irmandade de luz, tradição e serviço à comunidade.
                   </p>
-                  <div className="mt-10 flex w-full flex-col items-center gap-4">
+                  <div className="mt-8 flex w-full flex-col items-center gap-3 sm:mt-10 sm:gap-4">
                     <Button
                       type="button"
                       size="lg"
@@ -438,7 +446,7 @@ export default function Index() {
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-gradient-to-b from-muted/90 to-muted py-10 text-muted-foreground md:py-12">
-        <div className="container px-4 text-center md:px-6">
+        <div className="container mx-auto max-w-4xl px-4 text-center md:px-6">
           <div className="mx-auto flex max-w-lg flex-col items-center gap-4">
             <SiteLogoAvatar logoUrl={logoUrl} placement="footer" />
             <div className="space-y-1">

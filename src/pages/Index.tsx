@@ -258,42 +258,32 @@ export default function Index() {
       <div id="home" className="scroll-mt-20 pt-16">
         {/* Faixa visual: imagem das configurações ou faixa gradiente padrão (sempre algo abaixo do header) */}
         {homeBannerUrl ? (
-          <div className="w-full border-b border-border/40 bg-muted/25">
-            <div className="container px-4 md:px-6">
-              <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-b-2xl shadow-md ring-1 ring-border/30">
-              <img
-                src={homeBannerUrl}
-                alt=""
-                className="h-auto w-full max-h-[min(46vh,460px)] object-cover object-center"
-                loading="eager"
-                decoding="async"
-              />
-              <div
-                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"
-                aria-hidden
-              />
-              </div>
-            </div>
+          <div className="relative w-full overflow-hidden border-b border-border/40">
+            <img
+              src={homeBannerUrl}
+              alt=""
+              className="h-auto w-full max-h-[min(32vh,260px)] object-cover object-center sm:max-h-[min(36vh,300px)] md:max-h-[min(38vh,320px)]"
+              loading="eager"
+              decoding="async"
+            />
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent sm:h-28"
+              aria-hidden
+            />
           </div>
         ) : (
-          <div className="w-full border-b border-border/40 bg-muted/25">
-            <div className="container px-4 md:px-6">
-              <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-b-2xl shadow-md ring-1 ring-border/30">
-                <div
-                  className="relative h-40 w-full overflow-hidden sm:h-48 md:h-56"
-                  aria-hidden
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.22] via-background to-secondary/25" />
-                  <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/18 blur-3xl" />
-                  <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/30 blur-3xl" />
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,hsl(var(--primary)/0.28),transparent)]" />
-                </div>
-              </div>
-            </div>
+          <div
+            className="relative h-32 w-full overflow-hidden border-b border-border/40 sm:h-36 md:h-40"
+            aria-hidden
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.22] via-background to-secondary/25" />
+            <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/18 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/30 blur-3xl" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,hsl(var(--primary)/0.28),transparent)]" />
           </div>
         )}
 

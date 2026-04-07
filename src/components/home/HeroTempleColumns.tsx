@@ -8,7 +8,7 @@ interface IllustratedTempleColumnProps {
 
 /**
  * Colunas ilustradas do pórtico: Boaz (B) e Jaquim (J).
- * Topo: globo terrestre, tondo com inicial dourada; letras em ouro no fuste.
+ * Topo: tondo com inicial dourada; letras em ouro no fuste.
  */
 export function IllustratedTempleColumn({
   variant,
@@ -19,8 +19,8 @@ export function IllustratedTempleColumn({
   const isBoaz = variant === 'boaz'
   const letter = isBoaz ? 'B' : 'J'
   const ariaLabel = isBoaz
-    ? 'Coluna Boaz — globo terrestre e inicial B em medalhão sobre o capitel'
-    : 'Coluna Jaquim — globo terrestre e inicial J em medalhão sobre o capitel'
+    ? 'Coluna Boaz — força e firmeza; inicial B em medalhão sobre o capitel'
+    : 'Coluna Jaquim — estabelecimento e solidez; inicial J em medalhão sobre o capitel'
 
   const fluteCenters = [40, 45.5, 51, 56.5, 62, 67.5, 73, 78.5]
 
@@ -105,16 +105,6 @@ export function IllustratedTempleColumn({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <radialGradient id={`${id}-earth`} cx="36%" cy="32%" r="68%">
-            <stop offset="0%" stopColor="hsl(200 62% 58%)" />
-            <stop offset="45%" stopColor="hsl(210 55% 42%)" />
-            <stop offset="100%" stopColor="hsl(222 48% 18%)" />
-          </radialGradient>
-          <linearGradient id={`${id}-earthHi`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="hsl(0 0% 100% / 0.4)" />
-            <stop offset="42%" stopColor="hsl(0 0% 100% / 0)" />
-            <stop offset="100%" stopColor="hsl(0 0% 0% / 0.2)" />
-          </linearGradient>
         </defs>
 
         {/* Base — degraus com frente mais clara (luz vinda da esquerda) */}
@@ -274,95 +264,17 @@ export function IllustratedTempleColumn({
           style={{ pointerEvents: 'none' }}
         />
 
-        {/* Globo terrestre (acima do capitel) */}
-        <g>
-          <circle
-            cx="60"
-            cy="21"
-            r="16.5"
-            fill={`url(#${id}-earth)`}
-            stroke="hsl(220 40% 16% / 0.65)"
-            strokeWidth="1"
-          />
-          {/* Massas continentais estilizadas */}
-          <ellipse
-            cx="54"
-            cy="19"
-            rx="6"
-            ry="4.5"
-            fill="hsl(132 38% 36% / 0.88)"
-            stroke="hsl(120 45% 22% / 0.35)"
-            strokeWidth="0.35"
-            transform="rotate(-18 54 19)"
-          />
-          <ellipse
-            cx="66"
-            cy="23"
-            rx="5"
-            ry="6"
-            fill="hsl(118 36% 34% / 0.82)"
-            stroke="hsl(110 40% 20% / 0.3)"
-            strokeWidth="0.3"
-            transform="rotate(12 66 23)"
-          />
-          <ellipse
-            cx="58"
-            cy="26"
-            rx="3.5"
-            ry="2.8"
-            fill="hsl(95 32% 38% / 0.75)"
-          />
-          {/* Paralelo e meridiano */}
-          <ellipse
-            cx="60"
-            cy="21"
-            rx="16"
-            ry="6.5"
-            fill="none"
-            stroke="hsl(0 0% 0% / 0.18)"
-            strokeWidth="0.55"
-          />
-          <path
-            d="M 44 21 Q 60 12 76 21"
-            fill="none"
-            stroke="hsl(0 0% 0% / 0.14)"
-            strokeWidth="0.5"
-          />
-          <path
-            d="M 60 5 Q 52 21 60 37 Q 68 21 60 5"
-            fill="none"
-            stroke="hsl(0 0% 0% / 0.12)"
-            strokeWidth="0.45"
-          />
-          <ellipse
-            cx="52"
-            cy="16"
-            rx="9"
-            ry="7"
-            fill={`url(#${id}-earthHi)`}
-            opacity="0.85"
-          />
-        </g>
-
-        {/* Pequeno suporte entre globo e medalhão */}
-        <path
-          d="M 56 37 L 58 44 L 62 44 L 64 37 Z"
-          fill="hsl(34 10% 48%)"
-          stroke="hsl(22 12% 22% / 0.45)"
-          strokeWidth="0.4"
-        />
-
         {/* Coroa de louro estilizada (atrás do tondo) */}
         <g opacity="0.85">
           <path
-            d="M 32 66 Q 38 56 44 60 Q 40 52 46 48 Q 42 58 48 62 Q 46 50 52 46 Q 50 56 54 60"
+            d="M 32 58 Q 38 48 44 52 Q 40 44 46 40 Q 42 50 48 54 Q 46 42 52 38 Q 50 48 54 52"
             fill="none"
             stroke="hsl(88 28% 32% / 0.85)"
             strokeWidth="1.8"
             strokeLinecap="round"
           />
           <path
-            d="M 88 66 Q 82 56 76 60 Q 80 52 74 48 Q 78 58 72 62 Q 74 50 68 46 Q 70 56 66 60"
+            d="M 88 58 Q 82 48 76 52 Q 80 44 74 40 Q 78 50 72 54 Q 74 42 68 38 Q 70 48 66 52"
             fill="none"
             stroke="hsl(88 28% 32% / 0.85)"
             strokeWidth="1.8"
@@ -373,33 +285,33 @@ export function IllustratedTempleColumn({
         {/* Tondo arquitetônico: moldura + campo + inicial dourada */}
         <circle
           cx="60"
-          cy="63"
-          r="28"
+          cy="54"
+          r="33"
           fill="none"
           stroke={`url(#${id}-frame)`}
-          strokeWidth="4.5"
+          strokeWidth="5"
         />
         <circle
           cx="60"
-          cy="63"
-          r="23.5"
+          cy="54"
+          r="27.5"
           fill={`url(#${id}-tondoField)`}
           stroke="hsl(22 14% 12% / 0.6)"
           strokeWidth="0.75"
         />
         <circle
           cx="60"
-          cy="63"
-          r="24.5"
+          cy="54"
+          r="29"
           fill="none"
           stroke="hsl(0 0% 100% / 0.08)"
           strokeWidth="0.8"
         />
         <text
           x="60"
-          y="75"
+          y="66"
           textAnchor="middle"
-          fontSize="30"
+          fontSize="34"
           fontFamily="Georgia, 'Times New Roman', serif"
           fontWeight="700"
           fill={`url(#${id}-gold)`}

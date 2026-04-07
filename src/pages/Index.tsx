@@ -121,22 +121,27 @@ export default function Index() {
   }
 
   const navLinkClass =
-    'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/70 hover:text-foreground'
+    'rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden font-sans">
-      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/40 bg-background/70 shadow-sm shadow-black/5 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-full items-center gap-4 px-4 md:px-6">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-background font-sans text-foreground antialiased">
+      <header className="fixed left-0 right-0 top-0 z-50 h-16 border-b border-border/50 bg-background/75 shadow-sm shadow-black/[0.07] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65">
+        <div className="container mx-auto flex h-full items-center gap-3 px-4 md:gap-4 md:px-6">
           <button
             type="button"
             onClick={() => handleNavClick('home')}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-0 text-left transition-opacity hover:opacity-90 md:flex-initial md:gap-2.5"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-0.5 text-left transition-opacity hover:opacity-90 md:flex-initial md:gap-3"
             aria-label="Ir para o início"
           >
             <SiteLogoAvatar logoUrl={logoUrl} placement="header" />
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground sm:flex-initial sm:text-base sm:max-w-[10rem] md:max-w-none">
-              Templários da Paz
-            </span>
+            <div className="min-w-0 flex-1 md:flex-initial">
+              <span className="block truncate text-sm font-semibold leading-tight text-foreground sm:text-base">
+                Templários da Paz
+              </span>
+              <span className="mt-0.5 hidden truncate text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:block sm:max-w-[14rem] md:max-w-none md:text-[11px]">
+                ARLS n.º 3969 · Oriente de Botucatu – SP
+              </span>
+            </div>
           </button>
 
           <nav
@@ -210,28 +215,28 @@ export default function Index() {
             <button
               type="button"
               onClick={() => handleNavClick('home')}
-              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Home
             </button>
             <button
               type="button"
               onClick={() => handleNavClick('quem-somos')}
-              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Sobre
             </button>
             <button
               type="button"
               onClick={() => handleNavClick('pilares')}
-              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Serviços
             </button>
             <button
               type="button"
               onClick={() => handleNavClick('contact')}
-              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80"
+              className="rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Contato
             </button>
@@ -251,32 +256,36 @@ export default function Index() {
       <div id="home" className="scroll-mt-20 pt-16">
         {/* Faixa visual: imagem das configurações ou faixa gradiente padrão (sempre algo abaixo do header) */}
         {homeBannerUrl ? (
-          <div className="relative w-full overflow-hidden border-b border-border/30 bg-muted/20">
-            <img
-              src={homeBannerUrl}
-              alt=""
-              className="h-auto w-full max-h-[min(42vh,400px)] object-cover object-center sm:max-h-[min(48vh,480px)]"
-              loading="eager"
-              decoding="async"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"
-              aria-hidden
-            />
+          <div className="w-full border-b border-border/40 bg-muted/25">
+            <div className="container px-4 md:px-6">
+              <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-b-2xl shadow-md ring-1 ring-border/30">
+              <img
+                src={homeBannerUrl}
+                alt=""
+                className="h-auto w-full max-h-[min(42vh,400px)] object-cover object-center sm:max-h-[min(48vh,480px)]"
+                loading="eager"
+                decoding="async"
+              />
+              <div
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"
+                aria-hidden
+              />
+              </div>
+            </div>
           </div>
         ) : (
           <div
-            className="relative h-40 w-full overflow-hidden border-b border-border/30 sm:h-48 md:h-56"
+            className="relative h-40 w-full overflow-hidden border-b border-border/40 sm:h-48 md:h-56"
             aria-hidden
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background to-secondary/20" />
-            <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/25 blur-3xl" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.25),transparent)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.22] via-background to-secondary/25" />
+            <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-primary/18 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-secondary/30 blur-3xl" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-15%,hsl(var(--primary)/0.28),transparent)]" />
           </div>
         )}
 
@@ -300,12 +309,12 @@ export default function Index() {
 
           <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
             <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
-              <div className="relative w-full min-h-[280px] overflow-hidden rounded-2xl border border-border/50 shadow-xl shadow-black/15">
+              <div className="relative w-full min-h-[280px] overflow-hidden rounded-3xl border border-primary/15 bg-card/30 shadow-2xl shadow-black/25 ring-1 ring-border/40">
                 <img
                   src={heroCardBgSrc}
                   alt=""
                   referrerPolicy="no-referrer"
-                  className="pointer-events-none absolute inset-0 h-full min-h-full w-full scale-105 object-cover opacity-[0.28] saturate-[0.75] contrast-[0.92]"
+                  className="pointer-events-none absolute inset-0 h-full min-h-full w-full scale-105 object-cover opacity-[0.26] saturate-[0.72] contrast-[0.9]"
                   loading="eager"
                   decoding="async"
                   onError={() => {
@@ -317,29 +326,32 @@ export default function Index() {
                   aria-hidden
                 />
                 <div
-                  className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background/95"
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/[0.97] via-background/90 to-background/[0.96]"
                   aria-hidden
                 />
                 <div
-                  className="pointer-events-none absolute inset-0 bg-primary/[0.04]"
+                  className="pointer-events-none absolute inset-0 bg-primary/[0.035]"
                   aria-hidden
                 />
-                <div className="relative z-10 p-6 sm:p-8 md:p-10">
-                  <div className="mx-auto max-w-2xl rounded-xl border border-border/40 bg-background/55 px-5 py-6 shadow-sm backdrop-blur-md sm:px-7 sm:py-8 md:backdrop-blur-lg">
-                  <p className="mb-5 font-oldenglish text-base font-bold leading-snug tracking-wide text-primary sm:text-lg md:text-xl">
+                <div className="relative z-10 p-6 sm:p-8 md:p-11">
+                  <div className="mx-auto max-w-2xl rounded-2xl border border-primary/12 bg-background/50 px-5 py-7 shadow-inner backdrop-blur-md sm:px-8 sm:py-9 md:backdrop-blur-lg">
+                  <p className="mb-4 font-oldenglish text-base font-bold leading-snug tracking-wide text-primary sm:mb-5 sm:text-lg md:text-xl">
                     Augusta e Respeitável Loja Simbólica
                   </p>
-                  <h1 className="font-oldenglish text-4xl font-bold leading-tight tracking-tight text-foreground [text-shadow:0_1px_2px_hsl(var(--background)/0.9),0_2px_16px_hsl(var(--background)/0.75)] sm:text-5xl md:text-6xl lg:text-7xl">
+                  <h1 className="font-oldenglish text-4xl font-bold leading-[1.08] tracking-tight text-foreground [text-shadow:0_1px_2px_hsl(var(--background)/0.9),0_2px_20px_hsl(var(--background)/0.7)] sm:text-5xl md:text-6xl lg:text-7xl">
                     Templários da Paz 3969
                   </h1>
+                  <p className="mx-auto mt-4 max-w-md font-sans text-xs font-semibold uppercase leading-snug tracking-[0.18em] text-primary/85 sm:text-sm">
+                    Oriente de Botucatu — São Paulo — Brasil
+                  </p>
                   <p
-                    className="mt-5 font-oldenglish text-3xl font-bold text-primary [text-shadow:0_1px_2px_hsl(var(--background)/0.85)] sm:text-4xl md:text-5xl"
+                    className="mt-4 font-oldenglish text-3xl font-bold text-primary [text-shadow:0_1px_2px_hsl(var(--background)/0.85)] sm:mt-5 sm:text-4xl md:text-5xl"
                     title="Três pontos maçônicos"
                     aria-label="Três pontos maçônicos"
                   >
                     ∴
                   </p>
-                  <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
+                  <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
                     Trabalhamos pelo aperfeiçoamento moral, intelectual e social da humanidade em{' '}
                     <span className="font-medium text-foreground/90">
                       {contact.city || 'Botucatu-SP'}
@@ -351,14 +363,14 @@ export default function Index() {
                       type="button"
                       size="lg"
                       onClick={() => handleNavClick('quem-somos')}
-                      className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/25 sm:w-auto sm:min-w-[260px]"
+                      className="h-14 w-full rounded-full px-10 text-base font-semibold shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/35 sm:w-auto sm:min-w-[260px]"
                     >
                       Conheça nossa história
                     </Button>
                     <button
                       type="button"
                       onClick={handleMemberAccess}
-                      className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                      className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
                     >
                       Acesso para membros
                     </button>
@@ -425,30 +437,55 @@ export default function Index() {
       })()}
 
       {/* Footer */}
-      <footer className="py-8 bg-muted text-muted-foreground border-t">
-        <div className="container px-4 md:px-6 text-center">
-          <div className="flex items-center justify-center gap-2 font-bold text-lg text-foreground mb-4">
+      <footer className="border-t border-border/50 bg-gradient-to-b from-muted/90 to-muted py-10 text-muted-foreground md:py-12">
+        <div className="container px-4 text-center md:px-6">
+          <div className="mx-auto flex max-w-lg flex-col items-center gap-4">
             <SiteLogoAvatar logoUrl={logoUrl} placement="footer" />
-            <span>Templários da Paz</span>
+            <div className="space-y-1">
+              <p className="text-lg font-semibold text-foreground">
+                Templários da Paz
+              </p>
+              <p className="text-sm font-medium text-primary/90">
+                ARLS n.º 3969 · R.·. L.·. S.·.
+              </p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                Oriente de Botucatu · São Paulo · Brasil
+              </p>
+            </div>
           </div>
-          <p className="text-sm mb-4">
-            © {new Date().getFullYear()} ARLS Templários da Paz. Todos os
+          <div
+            className="mx-auto my-8 h-px max-w-xs bg-gradient-to-r from-transparent via-border to-transparent"
+            aria-hidden
+          />
+          <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed">
+            © {new Date().getFullYear()} ARLS Templários da Paz n.º 3969. Todos os
             direitos reservados.
           </p>
-          <div className="flex justify-center gap-6 text-sm mb-4">
-            <Link to="/privacy" className="hover:text-primary transition-colors">
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm">
+            <Link
+              to="/privacy"
+              className="rounded-sm text-foreground/90 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
               Privacidade
             </Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">
+            <Link
+              to="/terms"
+              className="rounded-sm text-foreground/90 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
               Termos de Uso
             </Link>
-            <Link to="/login" className="hover:text-primary transition-colors">
+            <Link
+              to="/login"
+              className="rounded-sm text-foreground/90 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
               Área Restrita
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground/70 mt-4">
+          <p className="text-xs text-muted-foreground/75">
             Desenvolvido por{' '}
-            <span className="font-medium text-foreground">Allan Tomazela de Camargo</span>
+            <span className="font-medium text-foreground/90">
+              Allan Tomazela de Camargo
+            </span>
           </p>
         </div>
       </footer>

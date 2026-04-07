@@ -108,15 +108,22 @@ export function ContactSection({
   return (
     <section
       id="contact"
-      className="py-16 md:py-24 bg-primary text-primary-foreground scroll-mt-20"
+      className="relative scroll-mt-20 overflow-hidden border-t border-primary/20 bg-primary py-16 text-primary-foreground md:py-24"
     >
-      <div className="container px-4 md:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_80%_at_50%_-30%,rgba(255,255,255,0.14),transparent)]"
+        aria-hidden
+      />
+      <div className="container relative z-10 px-4 md:px-6">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-6 leading-snug">
+            <h2 className="mb-4 text-balance text-3xl font-bold leading-snug tracking-normal md:mb-6 md:text-4xl">
               Entre em Contato
             </h2>
-            <p className="text-primary-foreground/80 text-lg mb-8 max-w-[500px] leading-relaxed">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground/70">
+              ARLS Templários da Paz n.º 3969 · Botucatu-SP
+            </p>
+            <p className="mb-8 max-w-[500px] text-lg leading-relaxed text-primary-foreground/85">
               Interessado em saber mais sobre nossa ordem ou nossa loja? Estamos
               à disposição para esclarecer suas dúvidas.
             </p>
@@ -155,7 +162,7 @@ export function ContactSection({
             </div>
           </div>
 
-          <div className="bg-background text-foreground rounded-xl p-6 shadow-2xl">
+          <div className="rounded-2xl border border-white/10 bg-background p-6 text-foreground shadow-2xl ring-1 ring-black/5">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField

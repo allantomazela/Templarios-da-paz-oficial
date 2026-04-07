@@ -9,27 +9,27 @@ export function VenerablesSection({ venerables }: VenerablesSectionProps) {
   return (
     <section
       id="veneraveis"
-      className="py-16 md:py-24 bg-muted/20 scroll-mt-20"
+      className="scroll-mt-20 border-t border-border/25 bg-muted/20 py-16 md:py-24"
     >
       <div className="container px-4 md:px-6">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
+        <div className="mb-14 text-center md:mb-16">
+          <div className="mb-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary ring-1 ring-primary/15">
             <Award className="mr-2 h-4 w-4" /> Nossa Liderança
           </div>
-          <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-4 leading-snug">
+          <h2 className="mb-4 text-balance text-3xl font-bold leading-snug tracking-normal md:text-4xl">
             Galeria dos Veneráveis
           </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
+          <p className="mx-auto max-w-[700px] text-pretty text-lg leading-relaxed text-muted-foreground">
             Homenagem aos irmãos que lideraram nossa oficina com sabedoria e
             dedicação ao longo dos anos.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {venerables.map((master) => (
             <div
               key={master.id}
-              className="group relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group relative overflow-hidden rounded-xl border border-border/60 bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl"
             >
               <div className="aspect-[3/4] overflow-hidden bg-muted relative">
                 <img

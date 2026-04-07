@@ -28,16 +28,19 @@ export function NewsSection() {
   }, [fetchPublicNews])
 
   return (
-    <section id="noticias" className="py-16 md:py-24 bg-muted/10 scroll-mt-20">
+    <section
+      id="noticias"
+      className="scroll-mt-20 border-t border-border/25 bg-muted/15 py-16 md:py-24"
+    >
       <div className="container px-4 md:px-6">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
+        <div className="mb-12 text-center md:mb-14">
+          <div className="mb-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary ring-1 ring-primary/15">
             <Newspaper className="mr-2 h-4 w-4" /> Notícias e Eventos
           </div>
-          <h2 className="text-3xl font-bold tracking-normal md:text-4xl mb-4">
+          <h2 className="mb-4 text-balance text-3xl font-bold tracking-normal md:text-4xl">
             Acontece na Loja
           </h2>
-          <p className="text-muted-foreground text-lg max-w-[700px] mx-auto leading-relaxed">
+          <p className="mx-auto max-w-[700px] text-pretty text-lg leading-relaxed text-muted-foreground">
             Fique por dentro das últimas atividades e eventos da nossa oficina.
           </p>
         </div>

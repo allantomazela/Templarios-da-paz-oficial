@@ -43,22 +43,22 @@ export function HistorySection({ title, text, imageUrl }: HistorySectionProps) {
   return (
     <section
       id="quem-somos"
-      className="py-16 md:py-24 bg-muted/30 scroll-mt-20"
+      className="scroll-mt-20 border-t border-border/30 bg-muted/25 py-16 md:py-24"
     >
       <div className="container px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6 max-w-xl">
-            <div className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+        <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
+          <div className="max-w-xl space-y-6">
+            <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary ring-1 ring-primary/15">
               <History className="mr-2 h-4 w-4" /> Nossa História
             </div>
-            <h2 className="text-3xl font-bold tracking-normal md:text-4xl leading-snug">
+            <h2 className="text-balance text-3xl font-bold leading-snug tracking-normal md:text-4xl">
               {title}
             </h2>
-            <div className="text-lg text-muted-foreground leading-relaxed text-justify hyphens-auto">
+            <div className="hyphens-auto text-justify text-lg leading-relaxed text-muted-foreground">
               {formatHistoryText(text)}
             </div>
           </div>
-          <div className="relative aspect-video md:aspect-square overflow-hidden rounded-xl shadow-xl bg-muted/50 min-h-[200px] md:min-h-[320px]">
+          <div className="relative min-h-[200px] overflow-hidden rounded-2xl bg-muted/50 shadow-xl ring-1 ring-border/50 aspect-video md:aspect-square md:min-h-[320px]">
             <img
               src={resolvedImageUrl}
               alt="História da Loja"

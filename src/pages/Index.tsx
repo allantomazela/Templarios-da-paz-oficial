@@ -16,6 +16,7 @@ import {
   BrandLogoImg,
   BRAND_LOGO_INTRINSIC_SIZE,
 } from '@/components/brand/BrandLogoImg'
+import { IllustratedTempleColumn } from '@/components/home/HeroTempleColumns'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
@@ -305,9 +306,13 @@ export default function Index() {
             <div className="absolute left-1/2 top-1/3 h-[min(50vw,28rem)] w-[min(50vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
           </div>
 
-          <div className="container relative z-10 mx-auto grid flex-1 place-items-center px-4 md:px-6">
-            <div className="flex w-full max-w-3xl flex-col items-center text-center md:max-w-4xl">
-              <div className="relative w-full min-h-[min(52vh,320px)] overflow-hidden rounded-3xl border border-primary/15 bg-card/30 shadow-2xl shadow-black/25 ring-1 ring-border/40 sm:min-h-[280px] md:min-h-[300px]">
+          <div className="container relative z-10 mx-auto flex min-h-0 flex-1 items-center px-4 md:px-6">
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-y-6 lg:grid-cols-[auto_1fr_auto] lg:items-end lg:gap-x-4 lg:gap-y-0 xl:gap-x-6">
+              <div className="hidden min-w-0 justify-self-end lg:flex lg:pr-1 xl:pr-2">
+                <IllustratedTempleColumn variant="boaz" />
+              </div>
+              <div className="flex w-full max-w-3xl flex-col items-center justify-self-center text-center md:max-w-4xl">
+                <div className="relative w-full min-h-[min(52vh,320px)] overflow-hidden rounded-3xl border border-primary/15 bg-card/30 shadow-2xl shadow-black/25 ring-1 ring-border/40 sm:min-h-[280px] md:min-h-[300px]">
                 <img
                   src={heroCardBgSrc}
                   alt=""
@@ -375,6 +380,10 @@ export default function Index() {
                   </div>
                   </div>
                 </div>
+              </div>
+              </div>
+              <div className="hidden min-w-0 justify-self-start lg:flex lg:pl-1 xl:pl-2">
+                <IllustratedTempleColumn variant="jaquim" />
               </div>
             </div>
           </div>

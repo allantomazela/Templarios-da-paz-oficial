@@ -30,8 +30,11 @@ import {
   Phone,
   Mail,
 } from 'lucide-react'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
-import { compressImage } from '@/lib/image-utils'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
+import { compressLogoForUpload } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logError } from '@/lib/logger'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
@@ -98,7 +101,7 @@ export function LodgeInfoSettings() {
 
     setIsUploadingLogo(true)
     try {
-      const optimizedFile = await compressImage(file, 512)
+      const optimizedFile = await compressLogoForUpload(file)
       const publicUrl = await uploadToStorage(
         optimizedFile,
         'site-assets',
@@ -216,6 +219,9 @@ export function LodgeInfoSettings() {
                             alt="Logo Preview"
                             className="h-full w-full object-contain"
                             fallbackClassName="w-16 h-16 text-primary/50"
+                            width={BRAND_LOGO_INTRINSIC_SIZE}
+                            height={BRAND_LOGO_INTRINSIC_SIZE}
+                            sizes="128px"
                           />
                         )}
                       </div>
@@ -261,8 +267,10 @@ export function LodgeInfoSettings() {
                         </FormControl>
                         <FormMessage />
                         <p className="text-sm text-muted-foreground">
-                          URL da imagem ou faça upload de um arquivo. Recomendado
-                          formato PNG/SVG.
+                          URL da imagem ou upload. Para melhor nitidez (incluindo
+                          retina), use PNG ou SVG com fundo transparente; raster
+                          até cerca de 768–1024 px no maior lado (o sistema
+                          otimiza até 768 px e preserva transparência em PNG/WebP).
                         </p>
                       </div>
                     </div>

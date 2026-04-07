@@ -12,11 +12,14 @@ import { Label } from '@/components/ui/label'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
 import { Image as ImageIcon, Loader2, Upload, Hexagon } from 'lucide-react'
-import { compressImage } from '@/lib/image-utils'
+import { compressImage, compressLogoForUpload } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logDebug, logError } from '@/lib/logger'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 
 export function LogoSettings() {
   const { logoUrl, faviconUrl, updateLogo, updateFavicon } =
@@ -49,8 +52,7 @@ export function LogoSettings() {
 
     setIsUploadingLogo(true)
     try {
-      // Compress locally to speed up transfer
-      const optimizedFile = await compressImage(file, 512) // Optimize for logo size
+      const optimizedFile = await compressLogoForUpload(file)
 
       // Attempt robust upload with fallback
       const publicUrl = await uploadToStorage(
@@ -64,7 +66,7 @@ export function LogoSettings() {
         title: 'Upload Concluído',
         description: 'A imagem do logo foi carregada com sucesso.',
       })
-    } catch (_error) {
+    } catch (error) {
       logError('Error uploading logo', error)
       toast({
         variant: 'destructive',
@@ -182,8 +184,9 @@ export function LogoSettings() {
         <CardHeader>
           <CardTitle>Logo do Site</CardTitle>
           <CardDescription>
-            Exibido no cabeçalho e rodapé. Recomendado formato circular ou
-            quadrado (PNG/SVG).
+            Exibido no cabeçalho e rodapé. Prefira PNG com transparência ou SVG;
+            imagens raster até ~768 px no maior lado são otimizadas no upload com
+            boa qualidade para retina.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -198,6 +201,9 @@ export function LogoSettings() {
                     alt="Logo Preview"
                     className="h-full w-full object-contain"
                     fallbackClassName="w-16 h-16 text-primary/50"
+                    width={BRAND_LOGO_INTRINSIC_SIZE}
+                    height={BRAND_LOGO_INTRINSIC_SIZE}
+                    sizes="128px"
                   />
                 )}
               </div>

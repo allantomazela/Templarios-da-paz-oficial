@@ -2,7 +2,10 @@ import { MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 import type { Event, VisitorAttendance } from '@/lib/data'
 
 export function VisitorCertificateDocument({
@@ -29,6 +32,9 @@ export function VisitorCertificateDocument({
               alt="Logo da Loja"
               className="relative z-10 h-28 w-28 print:h-24 print:w-24 object-contain drop-shadow-lg print:drop-shadow-none"
               fallbackClassName="h-20 w-20 print:h-16 print:w-16 text-black"
+              width={BRAND_LOGO_INTRINSIC_SIZE}
+              height={BRAND_LOGO_INTRINSIC_SIZE}
+              sizes="(max-width: 640px) 112px, 96px"
             />
           </div>
         </div>

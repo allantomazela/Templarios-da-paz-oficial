@@ -92,3 +92,120 @@ export async function compressImage(
     reader.readAsDataURL(file)
   })
 }
+
+/** Lado máximo do logo após redimensionar (boa nitidez em retina com ~56px CSS no header). */
+export const LOGO_UPLOAD_MAX_SIDE = 768
+
+const LOGO_JPEG_QUALITY = 0.88
+
+/**
+ * Otimiza arquivo de logo para upload: até 768px no maior lado, JPEG com boa qualidade
+ * ou PNG quando a origem é PNG/WebP/GIF (preserva transparência). SVG é enviado sem alteração.
+ */
+export async function compressLogoForUpload(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) {
+    return file
+  }
+  if (file.type === 'image/svg+xml') {
+    return file
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(
+        new Error(
+          'Timeout ao processar o logo. Tente com uma imagem menor (máx. 5 MB).',
+        ),
+      )
+    }, 30000)
+
+    const img = new Image()
+    const reader = new FileReader()
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string
+    }
+
+    reader.onerror = () => {
+      clearTimeout(timeoutId)
+      reject(new Error('Erro ao ler arquivo de imagem'))
+    }
+
+    img.onerror = () => {
+      clearTimeout(timeoutId)
+      reject(
+        new Error(
+          'Erro ao carregar imagem. Verifique se o arquivo é uma imagem válida.',
+        ),
+      )
+    }
+
+    img.onload = () => {
+      clearTimeout(timeoutId)
+      let width = img.width
+      let height = img.height
+      const maxSide = Math.max(width, height)
+
+      if (maxSide > LOGO_UPLOAD_MAX_SIDE) {
+        const scale = LOGO_UPLOAD_MAX_SIDE / maxSide
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'))
+        return
+      }
+
+      if (
+        file.type === 'image/png' ||
+        file.type === 'image/webp' ||
+        file.type === 'image/gif'
+      ) {
+        ctx.clearRect(0, 0, width, height)
+      }
+      ctx.drawImage(img, 0, 0, width, height)
+
+      const usePng =
+        file.type === 'image/png' ||
+        file.type === 'image/webp' ||
+        file.type === 'image/gif'
+
+      const blobTimeout = setTimeout(() => {
+        reject(new Error('Timeout ao converter logo.'))
+      }, 15000)
+
+      const baseName =
+        file.name.replace(/\.[^.]+$/i, '').trim() || 'logo'
+      const mime: 'image/png' | 'image/jpeg' = usePng
+        ? 'image/png'
+        : 'image/jpeg'
+
+      canvas.toBlob(
+        (blob) => {
+          clearTimeout(blobTimeout)
+          if (!blob) {
+            reject(new Error('Falha ao processar o logo'))
+            return
+          }
+          const outName = usePng ? `${baseName}.png` : `${baseName}.jpg`
+          resolve(
+            new File([blob], outName, {
+              type: mime,
+              lastModified: Date.now(),
+            }),
+          )
+        },
+        mime,
+        usePng ? undefined : LOGO_JPEG_QUALITY,
+      )
+    }
+
+    reader.readAsDataURL(file)
+  })
+}

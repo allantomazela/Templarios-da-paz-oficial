@@ -3,6 +3,9 @@ import { ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolveSiteLogoUrl } from '@/lib/default-brand-assets'
 
+/** Dimensões intrínsecas recomendadas para raster (retina no header ~56px CSS). */
+export const BRAND_LOGO_INTRINSIC_SIZE = 512 as const
+
 interface BrandLogoImgProps {
   logoUrl?: string | null
   alt: string
@@ -12,6 +15,14 @@ interface BrandLogoImgProps {
   decoding?: 'async' | 'auto'
   sizes?: string
   style?: CSSProperties
+  /** Prioridade de fetch (ex.: `high` no logo acima da dobra / LCP). */
+  fetchPriority?: 'high' | 'low' | 'auto'
+  /**
+   * width/height HTML reduzem CLS e ajudam o browser a dimensionar antes do decode.
+   * Para logos raster, 512×512 é um bom padrão quando o CSS reduz a ~48–56px.
+   */
+  width?: number
+  height?: number
 }
 
 export function BrandLogoImg({
@@ -23,6 +34,9 @@ export function BrandLogoImg({
   decoding = 'async',
   sizes,
   style,
+  fetchPriority,
+  width,
+  height,
 }: BrandLogoImgProps) {
   const src = resolveSiteLogoUrl(logoUrl)
   const [failed, setFailed] = useState(false)
@@ -49,6 +63,9 @@ export function BrandLogoImg({
       decoding={decoding}
       sizes={sizes}
       style={style}
+      width={width}
+      height={height}
+      {...(fetchPriority ? { fetchPriority } : {})}
       onError={() => setFailed(true)}
     />
   )

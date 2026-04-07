@@ -2,7 +2,10 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 import { useEffect } from 'react'
 
 export default function TermsOfUse() {
@@ -26,6 +29,10 @@ export default function TermsOfUse() {
                 fallbackClassName="h-6 w-6 scale-100"
                 loading="eager"
                 decoding="async"
+                width={BRAND_LOGO_INTRINSIC_SIZE}
+                height={BRAND_LOGO_INTRINSIC_SIZE}
+                sizes="(max-width: 640px) 52px, 56px"
+                fetchPriority="high"
               />
             </div>
             <span className="min-w-0 truncate">Templários da Paz</span>

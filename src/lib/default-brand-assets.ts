@@ -1,4 +1,7 @@
-/** Logo circular padrão em `public/` quando `site_settings.logo_url` está vazio ou inválido após fallback visual. */
+/**
+ * Logo circular padrão em `public/` quando `site_settings.logo_url` está vazio.
+ * Para nitidez em retina, use PNG ~512–768 px (ou SVG) neste ficheiro.
+ */
 export const PUBLIC_DEFAULT_LOGO_URL = '/logo-loja-default.png' as const
 
 export function resolveSiteLogoUrl(logoUrl?: string | null): string {

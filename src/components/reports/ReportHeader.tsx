@@ -1,6 +1,9 @@
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { MapPin } from 'lucide-react'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -31,6 +34,9 @@ export function ReportHeader({
               alt="Logo da Loja"
               className="w-full h-full object-contain p-1"
               fallbackClassName="w-8 h-8 print:w-7 print:h-7 text-gray-400 print:text-black"
+              width={BRAND_LOGO_INTRINSIC_SIZE}
+              height={BRAND_LOGO_INTRINSIC_SIZE}
+              sizes="48px"
             />
           </div>
         </div>

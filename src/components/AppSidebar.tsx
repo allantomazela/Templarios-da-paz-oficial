@@ -23,7 +23,10 @@ import {
   QrCode,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
 import { isMasterAdminEmail } from '@/config/master-admin'
@@ -178,6 +181,10 @@ export function AppSidebar() {
               collapsed ? 'h-9 w-9 scale-[1.1]' : 'h-11 w-11 scale-[1.12] sm:h-12 sm:w-12',
             )}
             fallbackClassName="w-8 h-8 shrink-0 scale-100"
+            width={BRAND_LOGO_INTRINSIC_SIZE}
+            height={BRAND_LOGO_INTRINSIC_SIZE}
+            sizes={collapsed ? '36px' : '(max-width: 640px) 44px, 48px'}
+            fetchPriority="low"
           />
           {!collapsed && (
             <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">

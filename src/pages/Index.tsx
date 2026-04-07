@@ -12,7 +12,10 @@ import { VenerablesSection } from '@/components/home/VenerablesSection'
 import { ContactSection } from '@/components/home/ContactSection'
 import { CustomSection } from '@/components/home/CustomSection'
 import { HERO_CARD_DEFAULT_BACKGROUND_URL } from '@/lib/hero-card-defaults'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 
 export default function Index() {
   const { isAuthenticated } = useAuthStore()
@@ -481,6 +484,9 @@ function SiteLogoAvatar({ logoUrl, placement }: SiteLogoAvatarProps) {
         loading="eager"
         decoding="async"
         sizes={isHeader ? '(max-width: 640px) 52px, 56px' : '(max-width: 640px) 40px, 44px'}
+        width={BRAND_LOGO_INTRINSIC_SIZE}
+        height={BRAND_LOGO_INTRINSIC_SIZE}
+        fetchPriority={isHeader ? 'high' : 'low'}
       />
     </div>
   )

@@ -1,5 +1,8 @@
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
+import {
+  BrandLogoImg,
+  BRAND_LOGO_INTRINSIC_SIZE,
+} from '@/components/brand/BrandLogoImg'
 
 interface FormHeaderProps {
   title: string
@@ -41,6 +44,10 @@ export function FormHeader({
               alt="Logo da Loja"
               className="h-full w-full origin-center object-contain scale-[1.08]"
               fallbackClassName="h-9 w-9 scale-100 text-primary/50"
+              width={BRAND_LOGO_INTRINSIC_SIZE}
+              height={BRAND_LOGO_INTRINSIC_SIZE}
+              sizes="64px"
+              fetchPriority="low"
             />
           </div>
         </div>

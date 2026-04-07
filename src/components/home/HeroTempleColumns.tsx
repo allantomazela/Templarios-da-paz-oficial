@@ -7,8 +7,8 @@ interface IllustratedTempleColumnProps {
 }
 
 /**
- * Colunas ilustradas do pórtico: Boaz (B, norte/esquerda) e Jaquim (J, sul/direita).
- * Ornamento visual; significado ritualístico é complementar ao conteúdo institucional.
+ * Colunas ilustradas do pórtico: Boaz (B) e Jaquim (J).
+ * Ornamento visual; aria-label descreve o símbolo para leitores de tela.
  */
 export function IllustratedTempleColumn({
   variant,
@@ -17,219 +17,270 @@ export function IllustratedTempleColumn({
   const rawId = useId()
   const id = rawId.replace(/:/g, '')
   const isBoaz = variant === 'boaz'
-  const label = isBoaz ? 'Boaz' : 'Jaquim'
   const letter = isBoaz ? 'B' : 'J'
   const ariaLabel = isBoaz
     ? 'Coluna Boaz — força e firmeza, à esquerda do pórtico'
     : 'Coluna Jaquim — estabelecimento e solidez, à direita do pórtico'
 
+  const fluteXs = [41, 47.5, 54, 60.5, 67, 73.5, 80]
+
   return (
-    <figure
+    <div
+      role="img"
+      aria-label={ariaLabel}
       className={cn(
-        'flex w-full max-w-[7.5rem] flex-col items-center justify-end xl:max-w-[9rem]',
+        'flex w-full max-w-[7.5rem] items-end justify-center xl:max-w-[9rem]',
         className,
       )}
-      aria-label={ariaLabel}
     >
       <svg
-        viewBox="0 0 120 400"
-        className="h-[min(52vh,380px)] w-full max-w-[9rem] text-primary drop-shadow-sm xl:h-[min(55vh,420px)]"
-        role="img"
+        viewBox="0 0 120 420"
+        className="h-[min(52vh,400px)] w-full max-w-[9rem] drop-shadow-[0_4px_12px_hsl(var(--foreground)/0.08)] xl:h-[min(55vh,440px)]"
         aria-hidden
       >
         <defs>
-          <linearGradient
-            id={`${id}-shaft`}
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="0%"
-          >
-            <stop offset="0%" stopColor="hsl(var(--primary) / 0.35)" />
-            <stop offset="18%" stopColor="hsl(var(--primary) / 0.12)" />
-            <stop offset="50%" stopColor="hsl(var(--primary) / 0.22)" />
-            <stop offset="82%" stopColor="hsl(var(--primary) / 0.12)" />
-            <stop offset="100%" stopColor="hsl(var(--primary) / 0.38)" />
+          {/* Pedestal: pedra */}
+          <linearGradient id={`${id}-step1`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(30 8% 52%)" />
+            <stop offset="100%" stopColor="hsl(28 10% 38%)" />
           </linearGradient>
-          <linearGradient id={`${id}-base`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--muted) / 0.9)" />
-            <stop offset="100%" stopColor="hsl(var(--muted) / 0.45)" />
+          <linearGradient id={`${id}-step2`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(32 9% 58%)" />
+            <stop offset="100%" stopColor="hsl(30 10% 44%)" />
           </linearGradient>
-          <linearGradient
-            id={`${id}-capital`}
-            x1="0%"
-            y1="0%"
-            x2="0%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor="hsl(var(--primary) / 0.45)" />
-            <stop offset="100%" stopColor="hsl(var(--primary) / 0.2)" />
+          <linearGradient id={`${id}-step3`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(34 8% 64%)" />
+            <stop offset="100%" stopColor="hsl(32 9% 48%)" />
+          </linearGradient>
+          {/* Cilindro do fuste: luz à esquerda */}
+          <linearGradient id={`${id}-cylinder`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="hsl(35 6% 38%)" />
+            <stop offset="18%" stopColor="hsl(38 10% 72%)" />
+            <stop offset="42%" stopColor="hsl(36 8% 58%)" />
+            <stop offset="62%" stopColor="hsl(34 9% 52%)" />
+            <stop offset="82%" stopColor="hsl(32 8% 42%)" />
+            <stop offset="100%" stopColor="hsl(28 7% 32%)" />
+          </linearGradient>
+          {/* Canelura (reentrância) */}
+          <linearGradient id={`${id}-flute`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="hsl(28 10% 28% / 0.55)" />
+            <stop offset="50%" stopColor="hsl(32 8% 22% / 0.75)" />
+            <stop offset="100%" stopColor="hsl(28 10% 28% / 0.55)" />
+          </linearGradient>
+          {/* Capitel — mármore levemente mais claro */}
+          <linearGradient id={`${id}-echinus`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(40 12% 78%)" />
+            <stop offset="100%" stopColor="hsl(36 10% 58%)" />
+          </linearGradient>
+          <linearGradient id={`${id}-abacus`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(42 10% 82%)" />
+            <stop offset="100%" stopColor="hsl(38 11% 62%)" />
           </linearGradient>
           {isBoaz ? (
-            <radialGradient id={`${id}-globe`} cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="hsl(142 35% 42% / 0.85)" />
-              <stop offset="55%" stopColor="hsl(88 28% 32% / 0.75)" />
-              <stop offset="100%" stopColor="hsl(var(--primary) / 0.35)" />
+            <radialGradient id={`${id}-globe`} cx="38%" cy="32%" r="68%">
+              <stop offset="0%" stopColor="hsl(130 32% 48%)" />
+              <stop offset="45%" stopColor="hsl(95 28% 34%)" />
+              <stop offset="100%" stopColor="hsl(45 22% 28%)" />
             </radialGradient>
           ) : (
-            <radialGradient id={`${id}-globe`} cx="45%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="hsl(230 45% 58% / 0.9)" />
-              <stop offset="50%" stopColor="hsl(258 40% 38% / 0.75)" />
-              <stop offset="100%" stopColor="hsl(var(--primary) / 0.4)" />
+            <radialGradient id={`${id}-globe`} cx="42%" cy="28%" r="72%">
+              <stop offset="0%" stopColor="hsl(220 48% 62%)" />
+              <stop offset="40%" stopColor="hsl(245 40% 42%)" />
+              <stop offset="100%" stopColor="hsl(260 35% 24%)" />
             </radialGradient>
           )}
-          <filter id={`${id}-soft`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="b" />
-            <feOffset dx="0" dy="1" result="o" />
+          <linearGradient id={`${id}-globeHi`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="hsl(0 0% 100% / 0.35)" />
+            <stop offset="45%" stopColor="hsl(0 0% 100% / 0)" />
+            <stop offset="100%" stopColor="hsl(0 0% 0% / 0.15)" />
+          </linearGradient>
+          <filter id={`${id}-letterEmboss`} x="-15%" y="-15%" width="130%" height="130%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="0.8" result="b" />
+            <feOffset dx="0.6" dy="0.8" in="b" result="o" />
+            <feFlood floodColor="hsl(0 0% 0% / 0.35)" result="f" />
+            <feComposite in="f" in2="o" operator="in" result="s" />
             <feMerge>
-              <feMergeNode in="o" />
+              <feMergeNode in="s" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
         </defs>
 
-        {/* Base e plinto */}
+        {/* Base em degraus (de baixo para cima) */}
         <rect
-          x="8"
-          y="368"
-          width="104"
-          height="24"
-          rx="3"
-          fill={`url(#${id}-base)`}
-          stroke="hsl(var(--border) / 0.6)"
-          strokeWidth="1"
-        />
-        <rect
-          x="22"
-          y="338"
-          width="76"
-          height="32"
+          x="4"
+          y="398"
+          width="112"
+          height="20"
           rx="2"
-          fill="hsl(var(--muted) / 0.55)"
-          stroke="hsl(var(--border) / 0.5)"
+          fill={`url(#${id}-step1)`}
+          stroke="hsl(25 12% 22% / 0.45)"
           strokeWidth="0.75"
-        />
-
-        {/* Fuste com caneluras */}
-        <rect
-          x="34"
-          y="118"
-          width="52"
-          height="222"
-          fill={`url(#${id}-shaft)`}
-          stroke="hsl(var(--primary) / 0.25)"
-          strokeWidth="0.75"
-        />
-        {[40, 48, 56, 64, 72, 80].map((x) => (
-          <line
-            key={x}
-            x1={x}
-            y1="120"
-            x2={x}
-            y2="338"
-            stroke="hsl(var(--foreground) / 0.06)"
-            strokeWidth="1.25"
-          />
-        ))}
-
-        {/* Capitel */}
-        <path
-          d="M 24 118 L 34 118 L 38 102 L 82 102 L 86 118 L 96 118 L 90 94 L 30 94 Z"
-          fill={`url(#${id}-capital)`}
-          stroke="hsl(var(--primary) / 0.35)"
-          strokeWidth="0.75"
-        />
-        <rect
-          x="18"
-          y="88"
-          width="84"
-          height="10"
-          rx="1"
-          fill="hsl(var(--primary) / 0.28)"
-          stroke="hsl(var(--border) / 0.4)"
-          strokeWidth="0.5"
         />
         <rect
           x="12"
-          y="78"
+          y="378"
           width="96"
-          height="12"
+          height="20"
           rx="2"
-          fill="hsl(var(--muted) / 0.65)"
-          stroke="hsl(var(--border) / 0.45)"
-          strokeWidth="0.75"
+          fill={`url(#${id}-step2)`}
+          stroke="hsl(25 12% 22% / 0.4)"
+          strokeWidth="0.65"
+        />
+        <rect
+          x="20"
+          y="348"
+          width="80"
+          height="30"
+          rx="2"
+          fill={`url(#${id}-step3)`}
+          stroke="hsl(25 12% 22% / 0.35)"
+          strokeWidth="0.65"
+        />
+        {/* Toro entre plinto e fuste */}
+        <path
+          d="M 34 348 Q 60 338 86 348 L 86 344 Q 60 334 34 344 Z"
+          fill="hsl(36 9% 48%)"
+          stroke="hsl(25 10% 28% / 0.35)"
+          strokeWidth="0.5"
         />
 
-        {/* Esfera: terrestre (B) vs celeste (J) */}
+        {/* Fuste: volume cilíndrico */}
+        <rect
+          x="33"
+          y="132"
+          width="54"
+          height="216"
+          rx="2.5"
+          fill={`url(#${id}-cylinder)`}
+          stroke="hsl(25 12% 24% / 0.5)"
+          strokeWidth="0.85"
+        />
+        {/* Caneluras (7 sulcos verticais) */}
+        {fluteXs.map((cx) => (
+          <rect
+            key={cx}
+            x={cx - 1.15}
+            y="134"
+            width="2.3"
+            height="212"
+            rx="1"
+            fill={`url(#${id}-flute)`}
+            opacity="0.85"
+          />
+        ))}
+        {/* Reflexo na arista iluminada */}
+        <path
+          d="M 33 134 Q 33 132 35 132 L 37 132 L 37 346 L 35 346 Q 33 346 33 344 Z"
+          fill="hsl(42 15% 78% / 0.22)"
+          style={{ pointerEvents: 'none' }}
+        />
+
+        {/* Anel de filé abaixo do capitel */}
+        <rect
+          x="36"
+          y="124"
+          width="48"
+          height="5"
+          rx="0.5"
+          fill="hsl(38 10% 52%)"
+          stroke="hsl(25 10% 26% / 0.4)"
+          strokeWidth="0.4"
+        />
+        {/* Équino (trono do capitel dórico) */}
+        <path
+          d="M 28 124 C 28 118 36 112 60 112 C 84 112 92 118 92 124 L 90 128 C 88 122 72 118 60 118 C 48 118 32 122 30 128 Z"
+          fill={`url(#${id}-echinus)`}
+          stroke="hsl(28 10% 36% / 0.45)"
+          strokeWidth="0.75"
+        />
+        {/* Ábaco */}
+        <rect
+          x="18"
+          y="100"
+          width="84"
+          height="12"
+          rx="1"
+          fill={`url(#${id}-abacus)`}
+          stroke="hsl(28 10% 34% / 0.5)"
+          strokeWidth="0.85"
+        />
+        <line
+          x1="18"
+          y1="106"
+          x2="102"
+          y2="106"
+          stroke="hsl(0 0% 0% / 0.08)"
+          strokeWidth="0.5"
+        />
+
+        {/* Esfera com brilho direcional */}
         <circle
           cx="60"
-          cy="52"
-          r="30"
+          cy="58"
+          r="31"
           fill={`url(#${id}-globe)`}
-          stroke="hsl(var(--primary) / 0.4)"
-          strokeWidth="1.25"
-          filter={`url(#${id}-soft)`}
+          stroke="hsl(25 12% 22% / 0.55)"
+          strokeWidth="1.1"
         />
+        <ellipse
+          cx="51"
+          cy="47"
+          rx="17"
+          ry="13"
+          fill={`url(#${id}-globeHi)`}
+          opacity="0.88"
+        />
+
         {isBoaz ? (
           <>
             <ellipse
               cx="60"
-              cy="52"
-              rx="28"
-              ry="10"
+              cy="58"
+              rx="29"
+              ry="11"
               fill="none"
-              stroke="hsl(var(--foreground) / 0.15)"
-              strokeWidth="0.75"
+              stroke="hsl(0 0% 0% / 0.2)"
+              strokeWidth="0.65"
             />
             <path
-              d="M 32 52 Q 60 40 88 52"
+              d="M 34 56 Q 60 44 86 56"
               fill="none"
-              stroke="hsl(var(--foreground) / 0.12)"
-              strokeWidth="0.6"
+              stroke="hsl(0 0% 0% / 0.15)"
+              strokeWidth="0.55"
             />
           </>
         ) : (
           <>
             <path
-              d="M 60 28 L 62 36 L 70 36 L 64 41 L 66 49 L 60 44 L 54 49 L 56 41 L 50 36 L 58 36 Z"
-              fill="hsl(48 90% 72% / 0.95)"
-              stroke="hsl(48 70% 45% / 0.5)"
-              strokeWidth="0.4"
+              d="M 60 30 L 62.2 39 L 71 39 L 64.5 45 L 67 55 L 60 49 L 53 55 L 55.5 45 L 49 39 L 57.8 39 Z"
+              fill="hsl(48 92% 68%)"
+              stroke="hsl(42 80% 38% / 0.6)"
+              strokeWidth="0.45"
             />
-            <circle
-              cx="78"
-              cy="38"
-              r="1.2"
-              fill="hsl(var(--foreground) / 0.35)"
-            />
-            <circle
-              cx="44"
-              cy="44"
-              r="0.9"
-              fill="hsl(var(--foreground) / 0.25)"
-            />
+            <circle cx="82" cy="42" r="1.3" fill="hsl(0 0% 100% / 0.5)" />
+            <circle cx="40" cy="48" r="1" fill="hsl(0 0% 100% / 0.35)" />
+            <circle cx="72" cy="68" r="0.8" fill="hsl(0 0% 100% / 0.2)" />
           </>
         )}
 
-        {/* Letra no fuste */}
+        {/* Letra entalhada no fuste */}
         <text
           x="60"
-          y="248"
+          y="252"
           textAnchor="middle"
-          fontSize="56"
+          fontSize="52"
           fontFamily="Georgia, 'Times New Roman', serif"
           fontWeight="700"
-          fill="hsl(var(--primary) / 0.55)"
-          stroke="hsl(var(--background) / 0.4)"
-          strokeWidth="0.5"
+          fill="hsl(38 12% 42%)"
+          stroke="hsl(42 20% 88% / 0.35)"
+          strokeWidth="0.75"
+          filter={`url(#${id}-letterEmboss)`}
           style={{ paintOrder: 'stroke fill' }}
         >
           {letter}
         </text>
       </svg>
-      <figcaption className="mt-1 max-w-[9rem] text-center font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground xl:text-[11px]">
-        {label}
-      </figcaption>
-    </figure>
+    </div>
   )
 }

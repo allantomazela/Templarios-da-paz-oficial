@@ -7,7 +7,7 @@ interface IllustratedTempleColumnProps {
 }
 
 /**
- * Colunas ilustradas do pórtico: Boaz (B) e Jaquim (J).
+ * Colunas ilustradas do pórtico: Boaz (B) e Jaquim (J), com romã sobre o ábaco.
  * Ornamento visual; aria-label descreve o símbolo para leitores de tela.
  */
 export function IllustratedTempleColumn({
@@ -19,8 +19,8 @@ export function IllustratedTempleColumn({
   const isBoaz = variant === 'boaz'
   const letter = isBoaz ? 'B' : 'J'
   const ariaLabel = isBoaz
-    ? 'Coluna Boaz — força e firmeza, à esquerda do pórtico'
-    : 'Coluna Jaquim — estabelecimento e solidez, à direita do pórtico'
+    ? 'Coluna Boaz — força e firmeza; romã no topo do capitel'
+    : 'Coluna Jaquim — estabelecimento e solidez; romã no topo do capitel'
 
   const fluteXs = [41, 47.5, 54, 60.5, 67, 73.5, 80]
 
@@ -77,22 +77,26 @@ export function IllustratedTempleColumn({
             <stop offset="100%" stopColor="hsl(38 11% 62%)" />
           </linearGradient>
           {isBoaz ? (
-            <radialGradient id={`${id}-globe`} cx="38%" cy="32%" r="68%">
-              <stop offset="0%" stopColor="hsl(130 32% 48%)" />
-              <stop offset="45%" stopColor="hsl(95 28% 34%)" />
-              <stop offset="100%" stopColor="hsl(45 22% 28%)" />
+            <radialGradient id={`${id}-pom`} cx="38%" cy="35%" r="72%">
+              <stop offset="0%" stopColor="hsl(8 75% 52%)" />
+              <stop offset="42%" stopColor="hsl(355 72% 38%)" />
+              <stop offset="100%" stopColor="hsl(340 78% 18%)" />
             </radialGradient>
           ) : (
-            <radialGradient id={`${id}-globe`} cx="42%" cy="28%" r="72%">
-              <stop offset="0%" stopColor="hsl(220 48% 62%)" />
-              <stop offset="40%" stopColor="hsl(245 40% 42%)" />
-              <stop offset="100%" stopColor="hsl(260 35% 24%)" />
+            <radialGradient id={`${id}-pom`} cx="42%" cy="32%" r="74%">
+              <stop offset="0%" stopColor="hsl(330 62% 48%)" />
+              <stop offset="45%" stopColor="hsl(312 58% 34%)" />
+              <stop offset="100%" stopColor="hsl(285 55% 16%)" />
             </radialGradient>
           )}
-          <linearGradient id={`${id}-globeHi`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="hsl(0 0% 100% / 0.35)" />
-            <stop offset="45%" stopColor="hsl(0 0% 100% / 0)" />
-            <stop offset="100%" stopColor="hsl(0 0% 0% / 0.15)" />
+          <linearGradient id={`${id}-pomHi`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="hsl(0 0% 100% / 0.42)" />
+            <stop offset="38%" stopColor="hsl(0 0% 100% / 0)" />
+            <stop offset="100%" stopColor="hsl(0 0% 0% / 0.22)" />
+          </linearGradient>
+          <linearGradient id={`${id}-calyx`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(88 32% 44%)" />
+            <stop offset="100%" stopColor="hsl(42 38% 28%)" />
           </linearGradient>
           <filter id={`${id}-letterEmboss`} x="-15%" y="-15%" width="130%" height="130%">
             <feGaussianBlur in="SourceAlpha" stdDeviation="0.8" result="b" />
@@ -214,55 +218,52 @@ export function IllustratedTempleColumn({
           strokeWidth="0.5"
         />
 
-        {/* Esfera com brilho direcional */}
-        <circle
-          cx="60"
-          cy="58"
-          r="31"
-          fill={`url(#${id}-globe)`}
-          stroke="hsl(25 12% 22% / 0.55)"
-          strokeWidth="1.1"
-        />
-        <ellipse
-          cx="51"
-          cy="47"
-          rx="17"
-          ry="13"
-          fill={`url(#${id}-globeHi)`}
-          opacity="0.88"
-        />
-
-        {isBoaz ? (
-          <>
-            <ellipse
-              cx="60"
-              cy="58"
-              rx="29"
-              ry="11"
-              fill="none"
-              stroke="hsl(0 0% 0% / 0.2)"
-              strokeWidth="0.65"
+        {/* Romã no topo do capitel (corpo + cálice) */}
+        <g>
+          {/* Coroa / cálice — atrás do fruto */}
+          <path
+            d="M 44 40 L 49 22 L 54 36 L 60 14 L 66 36 L 71 22 L 76 40 L 72 42 L 60 38 L 48 42 Z"
+            fill={`url(#${id}-calyx)`}
+            stroke="hsl(35 45% 20% / 0.55)"
+            strokeWidth="0.65"
+          />
+          {/* Corpo da romã */}
+          <path
+            d="M 60 38 C 43 40 33 54 35 71 C 36 84 46 93 60 95 C 74 93 84 84 85 71 C 87 54 77 40 60 38 Z"
+            fill={`url(#${id}-pom)`}
+            stroke="hsl(25 70% 14% / 0.65)"
+            strokeWidth="1"
+          />
+          <ellipse
+            cx="50"
+            cy="54"
+            rx="16"
+            ry="20"
+            fill={`url(#${id}-pomHi)`}
+            opacity="0.9"
+          />
+          {/* Grãos sugeridos (silhueta clássica) */}
+          {[
+            [52, 72],
+            [58, 76],
+            [66, 72],
+            [56, 82],
+            [64, 82],
+            [60, 86],
+            [48, 78],
+            [72, 78],
+          ].map(([cx, cy], i) => (
+            <circle
+              key={i}
+              cx={cx}
+              cy={cy}
+              r="1.35"
+              fill="hsl(355 85% 18% / 0.55)"
+              stroke="hsl(0 0% 0% / 0.12)"
+              strokeWidth="0.2"
             />
-            <path
-              d="M 34 56 Q 60 44 86 56"
-              fill="none"
-              stroke="hsl(0 0% 0% / 0.15)"
-              strokeWidth="0.55"
-            />
-          </>
-        ) : (
-          <>
-            <path
-              d="M 60 30 L 62.2 39 L 71 39 L 64.5 45 L 67 55 L 60 49 L 53 55 L 55.5 45 L 49 39 L 57.8 39 Z"
-              fill="hsl(48 92% 68%)"
-              stroke="hsl(42 80% 38% / 0.6)"
-              strokeWidth="0.45"
-            />
-            <circle cx="82" cy="42" r="1.3" fill="hsl(0 0% 100% / 0.5)" />
-            <circle cx="40" cy="48" r="1" fill="hsl(0 0% 100% / 0.35)" />
-            <circle cx="72" cy="68" r="0.8" fill="hsl(0 0% 100% / 0.2)" />
-          </>
-        )}
+          ))}
+        </g>
 
         {/* Letra entalhada no fuste */}
         <text

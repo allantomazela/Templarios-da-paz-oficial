@@ -3,7 +3,14 @@ import { Bell, Search, Menu, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useLocation, Link } from 'react-router-dom'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
 import { AppSidebar } from './AppSidebar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -67,6 +74,12 @@ export function AppHeader() {
             side="left"
             className="h-[100dvh] max-h-[100dvh] w-[min(100vw-1rem,280px)] border-r-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:max-w-sm"
           >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Menu de navegação</SheetTitle>
+              <SheetDescription>
+                Painel da loja: acesse as seções pelo menu lateral.
+              </SheetDescription>
+            </SheetHeader>
             <AppSidebar />
           </SheetContent>
         </Sheet>

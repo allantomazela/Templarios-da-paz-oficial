@@ -43,8 +43,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { CheckinPresenceModal } from '@/components/checkin/CheckinPresenceModal'
 
-export function AppSidebar() {
+export interface AppSidebarProps {
+  /** No Sheet do header mobile: ocupa a largura, sempre com rótulos (evita colapso + conflito com .text-muted-foreground global). */
+  variant?: 'default' | 'mobileDrawer'
+}
+
+export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const isMobileDrawer = variant === 'mobileDrawer'
+  const effectiveCollapsed = isMobileDrawer ? false : collapsed
   const [checkinModalOpen, setCheckinModalOpen] = useState(false)
   const { user, signOut } = useAuthStore()
   const { logoUrl } = useSiteSettingsStore()
@@ -166,11 +173,13 @@ export function AppSidebar() {
   return (
     <div
       className={cn(
-        'flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ease-in-out relative z-20 no-print',
-        collapsed ? 'w-[70px]' : 'w-[250px]',
+        'flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ease-in-out relative z-20 no-print',
+        isMobileDrawer
+          ? 'h-full min-h-0 w-full flex-1'
+          : cn('h-screen', effectiveCollapsed ? 'w-[70px]' : 'w-[250px]'),
       )}
     >
-      <div className="h-16 flex items-center justify-center border-b border-sidebar-border relative">
+      <div className="h-16 flex shrink-0 items-center justify-center border-b border-sidebar-border relative">
         <div className="flex items-center gap-2 overflow-hidden px-2 h-full py-2">
           <BrandLogoImg
             logoUrl={logoUrl}
@@ -178,47 +187,49 @@ export function AppSidebar() {
             className={cn(
               'origin-center rounded-full border border-sidebar-border/20 bg-background object-contain shadow-sm',
               'aspect-square p-px',
-              collapsed ? 'h-9 w-9 scale-[1.1]' : 'h-11 w-11 scale-[1.12] sm:h-12 sm:w-12',
+              effectiveCollapsed ? 'h-9 w-9 scale-[1.1]' : 'h-11 w-11 scale-[1.12] sm:h-12 sm:w-12',
             )}
             fallbackClassName="w-8 h-8 shrink-0 scale-100"
             width={BRAND_LOGO_INTRINSIC_SIZE}
             height={BRAND_LOGO_INTRINSIC_SIZE}
-            sizes={collapsed ? '36px' : '(max-width: 640px) 44px, 48px'}
+            sizes={effectiveCollapsed ? '36px' : '(max-width: 640px) 44px, 48px'}
             fetchPriority="low"
           />
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <span className="font-bold text-lg whitespace-nowrap animate-fade-in text-primary">
               Templários da Paz
             </span>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute -right-3 top-6 h-6 w-6 rounded-full bg-sidebar-border border border-sidebar-accent text-sidebar-foreground hover:bg-sidebar-accent z-30"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-3 w-3" />
-          ) : (
-            <ChevronLeft className="h-3 w-3" />
-          )}
-        </Button>
+        {!isMobileDrawer && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute -right-3 top-6 h-6 w-6 rounded-full bg-sidebar-border border border-sidebar-accent text-sidebar-foreground hover:bg-sidebar-accent z-30"
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-3 w-3" />
+            ) : (
+              <ChevronLeft className="h-3 w-3" />
+            )}
+          </Button>
+        )}
       </div>
 
-      <div className="px-2 pb-2">
+      <div className="shrink-0 px-2 pb-2">
         <Button
           variant="default"
-          size={collapsed ? 'icon' : 'default'}
+          size={effectiveCollapsed ? 'icon' : 'default'}
           className="w-full"
           onClick={() => setCheckinModalOpen(true)}
         >
           <QrCode className="h-5 w-5 shrink-0" />
-          {!collapsed && <span className="ml-2">Registrar presença</span>}
+          {!effectiveCollapsed && <span className="ml-2">Registrar presença</span>}
         </Button>
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-2 overflow-y-auto no-scrollbar">
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 py-4 no-scrollbar">
         {navItems.map((item) => {
           if (
             item.allowedRoles &&
@@ -236,20 +247,23 @@ export function AppSidebar() {
                   'flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 group relative',
                   isActive && item.path !== '/'
                     ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'hover:bg-sidebar-accent hover:text-white text-muted-foreground',
-                  collapsed && 'justify-center px-0',
+                    : 'text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  effectiveCollapsed && 'justify-center px-0',
                 )
               }
             >
               <item.icon
-                className={cn('w-5 h-5 shrink-0', collapsed ? 'w-6 h-6' : '')}
+                className={cn(
+                  'w-5 h-5 shrink-0',
+                  effectiveCollapsed ? 'w-6 h-6' : '',
+                )}
               />
-              {!collapsed && (
+              {!effectiveCollapsed && (
                 <span className="font-medium text-sm whitespace-nowrap">
                   {item.name}
                 </span>
               )}
-              {collapsed && (
+              {effectiveCollapsed && (
                 <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap border border-border">
                   {item.name}
                 </div>
@@ -259,13 +273,13 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="shrink-0 border-t border-sidebar-border p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                'flex items-center gap-3 w-full outline-none group',
-                collapsed ? 'justify-center' : '',
+                'flex w-full items-center gap-3 outline-none group',
+                effectiveCollapsed ? 'justify-center' : '',
               )}
             >
               <Avatar className="h-9 w-9 border border-sidebar-accent transition-transform group-hover:scale-105">
@@ -279,12 +293,12 @@ export function AppSidebar() {
                   {user?.profile?.full_name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              {!collapsed && (
-                <div className="flex flex-col items-start text-left overflow-hidden">
-                  <span className="text-sm font-medium text-white truncate w-32">
+              {!effectiveCollapsed && (
+                <div className="flex flex-col items-start overflow-hidden text-left">
+                  <span className="w-32 truncate text-sm font-medium text-sidebar-foreground">
                     {user?.profile?.full_name || user?.email}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate w-32 capitalize">
+                  <span className="w-32 truncate text-xs capitalize text-sidebar-foreground/70">
                     {user?.role || 'Membro'}
                   </span>
                 </div>

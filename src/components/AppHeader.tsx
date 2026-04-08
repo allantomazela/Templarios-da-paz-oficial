@@ -72,15 +72,17 @@ export function AppHeader() {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="h-[100dvh] max-h-[100dvh] w-[min(100vw-1rem,280px)] border-r-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:max-w-sm"
+            className="flex h-[100dvh] max-h-[100dvh] w-[min(100vw-1rem,280px)] flex-col overflow-hidden border-r-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:max-w-sm"
           >
-            <SheetHeader className="sr-only">
+            <SheetHeader className="sr-only shrink-0">
               <SheetTitle>Menu de navegação</SheetTitle>
               <SheetDescription>
                 Painel da loja: acesse as seções pelo menu lateral.
               </SheetDescription>
             </SheetHeader>
-            <AppSidebar />
+            <div className="flex min-h-0 flex-1 flex-col">
+              <AppSidebar variant="mobileDrawer" />
+            </div>
           </SheetContent>
         </Sheet>
         <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">

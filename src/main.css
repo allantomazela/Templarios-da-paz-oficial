@@ -442,3 +442,8 @@ h6 {
 .text-muted-foreground {
   color: var(--typography-text-color-muted, #94a3b8) !important;
 }
+
+/* Sidebar: muted global com !important pode igualar o fundo e sumir o texto no menu */
+.bg-sidebar .text-muted-foreground {
+  color: hsl(var(--sidebar-foreground) / 0.78) !important;
+}

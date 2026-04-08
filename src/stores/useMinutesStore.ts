@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
 import { logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -45,12 +46,16 @@ interface MinutesState {
   signMinute: (minuteId: string, profileId: string) => Promise<void>
 }
 
+const minuteDetailFetchSeq = createRequestSequence()
+const fetchMinutesSeq = createRequestSequence()
+
 export const useMinutesStore = create<MinutesState>((set) => ({
   minutes: [],
   currentMinute: null,
   loading: false,
 
   fetchMinutes: async () => {
+    const id = fetchMinutesSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -59,17 +64,22 @@ export const useMinutesStore = create<MinutesState>((set) => ({
         .order('date', { ascending: false })
 
       if (error) throw error
-      set({ minutes: data as Minute[] })
+      if (fetchMinutesSeq.isCurrent(id)) {
+        set({ minutes: data as Minute[] })
+      }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching minutes:', error)
     } finally {
-      set({ loading: false })
+      if (fetchMinutesSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchMinuteDetails: async (id) => {
-    set({ loading: true })
+    const reqId = minuteDetailFetchSeq.next()
+    set({ loading: true, currentMinute: null })
     try {
       // Fetch minute details
       const { data: minuteData, error: minuteError } = await supabase
@@ -94,12 +104,16 @@ export const useMinutesStore = create<MinutesState>((set) => ({
         signatures: sigData as any,
       } as Minute
 
-      set({ currentMinute: fullMinute })
+      if (minuteDetailFetchSeq.isCurrent(reqId)) {
+        set({ currentMinute: fullMinute })
+      }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching minute details:', error)
     } finally {
-      set({ loading: false })
+      if (minuteDetailFetchSeq.isCurrent(reqId)) {
+        set({ loading: false })
+      }
     }
   },
 

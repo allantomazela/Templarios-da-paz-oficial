@@ -3,6 +3,9 @@ import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+import { createRequestSequence } from '@/lib/request-sequence'
+
+const notificationsFetchSeq = createRequestSequence()
 
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -38,6 +41,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
     unreadCount: 0,
 
     fetchNotifications: async () => {
+      const id = notificationsFetchSeq.next()
       set({ loading: true })
       try {
         const {
@@ -54,7 +58,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
 
         if (error) throw error
 
-        if (data) {
+        if (data && notificationsFetchSeq.isCurrent(id)) {
           const unread = data.filter((n: AppNotification) => !n.is_read).length
           set({ notifications: data, unreadCount: unread })
         }
@@ -62,7 +66,9 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
         if (handleAuthError(error)) return
         logError('Error fetching notifications:', error)
       } finally {
-        set({ loading: false })
+        if (notificationsFetchSeq.isCurrent(id)) {
+          set({ loading: false })
+        }
       }
     },
 

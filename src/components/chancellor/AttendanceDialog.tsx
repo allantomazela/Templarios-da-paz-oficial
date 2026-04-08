@@ -171,6 +171,7 @@ export function AttendanceDialog({
         setQrOnlyAttendances([])
         void fetchAttendanceFromSupabase(existingSessionRecord.id).then(
           (dbRows) => {
+            if (dbRows === null) return
             setAttendances((prev) =>
               prev.map((p) => {
                 const fromDb = dbRows.find((r) => r.brotherId === p.brotherId)
@@ -197,6 +198,7 @@ export function AttendanceDialog({
         )
         void fetchVisitorAttendances(existingSessionRecord.id).then(
           (visitors) => {
+            if (visitors === null) return
             setVisitorList(visitors)
           },
         )

@@ -20,6 +20,35 @@ import {
   mockNotifications,
 } from '@/lib/data'
 import { devLog, logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
+
+const visitorAttendancesSeqBySession = new Map<
+  string,
+  ReturnType<typeof createRequestSequence>
+>()
+
+function visitorSeqForSession(sessionRecordId: string) {
+  let g = visitorAttendancesSeqBySession.get(sessionRecordId)
+  if (!g) {
+    g = createRequestSequence()
+    visitorAttendancesSeqBySession.set(sessionRecordId, g)
+  }
+  return g
+}
+
+const attendanceFetchSeqBySession = new Map<
+  string,
+  ReturnType<typeof createRequestSequence>
+>()
+
+function attendanceSeqForSession(sessionRecordId: string) {
+  let g = attendanceFetchSeqBySession.get(sessionRecordId)
+  if (!g) {
+    g = createRequestSequence()
+    attendanceFetchSeqBySession.set(sessionRecordId, g)
+  }
+  return g
+}
 
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -48,7 +77,7 @@ interface ChancellorState {
   bulkAddVisitorAttendance: (records: VisitorAttendance[]) => void
   fetchVisitorAttendances: (
     sessionRecordId: string,
-  ) => Promise<VisitorAttendance[]>
+  ) => Promise<VisitorAttendance[] | null>
   saveVisitorAttendances: (
     sessionRecordId: string,
     visitors: VisitorAttendance[],
@@ -85,7 +114,15 @@ interface ChancellorState {
   ) => Promise<string>
   fetchAttendanceFromSupabase: (
     sessionRecordId: string,
-  ) => Promise<{ brotherId: string; status: string; justification: string | null; name: string }[]>
+  ) => Promise<
+    | {
+        brotherId: string
+        status: string
+        justification: string | null
+        name: string
+      }[]
+    | null
+  >
   saveAttendanceToSupabase: (
     sessionRecordId: string,
     rows: { brotherId: string; status: string; justification?: string }[],
@@ -151,6 +188,8 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     }),
 
   fetchVisitorAttendances: async (sessionRecordId) => {
+    const seq = visitorSeqForSession(sessionRecordId)
+    const reqId = seq.next()
     try {
       const { data, error } = await supabase
         .from('visitor_attendances')
@@ -161,17 +200,21 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       if (error) throw error
 
       const mapped = (data || []).map(mapVisitorAttendanceFromDb)
-      set((state) => ({
-        visitorAttendances: [
-          ...state.visitorAttendances.filter(
-            (visitor) => visitor.sessionRecordId !== sessionRecordId,
-          ),
-          ...mapped,
-        ],
-      }))
+      if (seq.isCurrent(reqId)) {
+        set((state) => ({
+          visitorAttendances: [
+            ...state.visitorAttendances.filter(
+              (visitor) => visitor.sessionRecordId !== sessionRecordId,
+            ),
+            ...mapped,
+          ],
+        }))
+      }
 
+      if (!seq.isCurrent(reqId)) return null
       return mapped
     } catch (error) {
+      if (handleAuthError(error)) return null
       logError('Erro ao buscar visitantes da sessao', error)
       return []
     }
@@ -321,27 +364,32 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
   },
 
   fetchAttendanceFromSupabase: async (sessionRecordId) => {
+    const seq = attendanceSeqForSession(sessionRecordId)
+    const reqId = seq.next()
     try {
       const { data: rows, error } = await supabase
         .from('attendance')
         .select('brother_id, status, justification')
         .eq('session_record_id', sessionRecordId)
       if (error) throw error
-      if (!rows?.length) return []
+      if (!rows?.length) {
+        return seq.isCurrent(reqId) ? [] : null
+      }
       const ids = [...new Set(rows.map((r) => r.brother_id))]
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name')
         .in('id', ids)
       const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name || '']))
-      return rows.map((r) => ({
+      const mapped = rows.map((r) => ({
         brotherId: r.brother_id,
         status: r.status,
         justification: r.justification,
         name: nameMap.get(r.brother_id) || r.brother_id,
       }))
+      return seq.isCurrent(reqId) ? mapped : null
     } catch (error) {
-      if (handleAuthError(error)) return []
+      if (handleAuthError(error)) return null
       logError('fetchAttendanceFromSupabase', error)
       return []
     }

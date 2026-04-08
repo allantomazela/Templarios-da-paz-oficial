@@ -2,8 +2,12 @@ import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
 import { uploadToStorage } from '@/lib/upload-utils'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+
+const imageScanSeq = createRequestSequence()
+const imageProcessSeq = createRequestSequence()
 
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -44,6 +48,7 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
       set({ tasks: [], scanning: false, processing: false, progress: 0 }),
 
     scanImages: async () => {
+      const scanId = imageScanSeq.next()
       set({ scanning: true, tasks: [], progress: 0 })
       const foundTasks: ImageTask[] = []
 
@@ -165,88 +170,98 @@ export const useImageOptimizationStore = create<ImageOptimizationState>(
             })
         }
 
-        set({ tasks: foundTasks })
+        if (imageScanSeq.isCurrent(scanId)) {
+          set({ tasks: foundTasks })
+        }
       } catch (error) {
         if (handleAuthError(error)) return
         logError('Scan failed:', error)
       } finally {
-        set({ scanning: false })
+        if (imageScanSeq.isCurrent(scanId)) {
+          set({ scanning: false })
+        }
       }
     },
 
     processAll: async () => {
+      const processId = imageProcessSeq.next()
       set({ processing: true })
-      const { tasks } = get()
-      const pendingTasks = tasks.filter((t) => t.status === 'pending')
-      let completed = 0
+      try {
+        const { tasks } = get()
+        const pendingTasks = tasks.filter((t) => t.status === 'pending')
+        let completed = 0
+        const total = Math.max(pendingTasks.length, 1)
 
-      for (const task of pendingTasks) {
-        try {
-          // Update status to processing
-          set((state) => ({
-            tasks: state.tasks.map((t) =>
-              t.id === task.id ? { ...t, status: 'processing' } : t,
-            ),
-          }))
+        for (const task of pendingTasks) {
+          try {
+            // Update status to processing
+            set((state) => ({
+              tasks: state.tasks.map((t) =>
+                t.id === task.id ? { ...t, status: 'processing' } : t,
+              ),
+            }))
 
-          // 1. Fetch Image
-          const response = await fetch(task.currentUrl)
-          if (!response.ok) throw new Error('Failed to fetch image')
+            // 1. Fetch Image
+            const response = await fetch(task.currentUrl)
+            if (!response.ok) throw new Error('Failed to fetch image')
 
-          const blob = await response.blob()
-          // Extract filename from URL or generate one
-          const urlParts = task.currentUrl.split('/')
-          const filename = urlParts[urlParts.length - 1] || 'image.jpg'
-          const file = new File([blob], filename, { type: blob.type })
+            const blob = await response.blob()
+            // Extract filename from URL or generate one
+            const urlParts = task.currentUrl.split('/')
+            const filename = urlParts[urlParts.length - 1] || 'image.jpg'
+            const file = new File([blob], filename, { type: blob.type })
 
-          // 2. Determine Bucket based on table (simplification)
-          // Based on upload-utils buckets: 'site-assets' seems universal in this project
-          const bucket = 'site-assets'
-          const folder =
-            task.tableName === 'profiles'
-              ? 'avatars'
-              : task.tableName === 'news_events'
-                ? 'news'
-                : task.tableName === 'venerables'
-                  ? 'venerables'
-                  : 'uploads'
+            // 2. Determine Bucket based on table (simplification)
+            // Based on upload-utils buckets: 'site-assets' seems universal in this project
+            const bucket = 'site-assets'
+            const folder =
+              task.tableName === 'profiles'
+                ? 'avatars'
+                : task.tableName === 'news_events'
+                  ? 'news'
+                  : task.tableName === 'venerables'
+                    ? 'venerables'
+                    : 'uploads'
 
-          // 3. Upload & Optimize
-          const newUrl = await uploadToStorage(file, bucket, folder)
+            // 3. Upload & Optimize
+            const newUrl = await uploadToStorage(file, bucket, folder)
 
-          // 4. Update Database
-          const { error: updateError } = await supabase
-            .from(task.tableName as any)
-            .update({ [task.columnName]: newUrl })
-            .eq('id', task.rowId)
+            // 4. Update Database
+            const { error: updateError } = await supabase
+              .from(task.tableName as any)
+              .update({ [task.columnName]: newUrl })
+              .eq('id', task.rowId)
 
-          if (updateError) throw updateError
+            if (updateError) throw updateError
 
-          // Success
-          set((state) => ({
-            tasks: state.tasks.map((t) =>
-              t.id === task.id
-                ? { ...t, status: 'completed', currentUrl: newUrl }
-                : t,
-            ),
-          }))
-        } catch (error: any) {
-          if (handleAuthError(error)) return
-          logError(`Error processing ${task.id}:`, error)
-          set((state) => ({
-            tasks: state.tasks.map((t) =>
-              t.id === task.id
-                ? { ...t, status: 'error', error: error.message }
-                : t,
-            ),
-          }))
-        } finally {
-          completed++
-          set({ progress: (completed / pendingTasks.length) * 100 })
+            // Success
+            set((state) => ({
+              tasks: state.tasks.map((t) =>
+                t.id === task.id
+                  ? { ...t, status: 'completed', currentUrl: newUrl }
+                  : t,
+              ),
+            }))
+          } catch (error: any) {
+            if (handleAuthError(error)) return
+            logError(`Error processing ${task.id}:`, error)
+            set((state) => ({
+              tasks: state.tasks.map((t) =>
+                t.id === task.id
+                  ? { ...t, status: 'error', error: error.message }
+                  : t,
+              ),
+            }))
+          } finally {
+            completed++
+            set({ progress: (completed / total) * 100 })
+          }
+        }
+      } finally {
+        if (imageProcessSeq.isCurrent(processId)) {
+          set({ processing: false })
         }
       }
-
-      set({ processing: false })
     },
   }),
 )

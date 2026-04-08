@@ -11,6 +11,7 @@ import {
 } from '@/lib/data'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -35,6 +36,18 @@ import {
   mapContributionFromDB,
   mapContributionToDB,
 } from '@/lib/financial-mappers'
+
+/** Evita que cada fetch individual ligue/desligue `loading` durante `fetchAll`. */
+let financialBulkFetchDepth = 0
+
+const financialSeq = {
+  transactions: createRequestSequence(),
+  categories: createRequestSequence(),
+  contributions: createRequestSequence(),
+  budgets: createRequestSequence(),
+  goals: createRequestSequence(),
+  accounts: createRequestSequence(),
+}
 
 interface FinancialState {
   transactions: Transaction[]
@@ -108,7 +121,9 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
   // ========== FETCH METHODS ==========
   fetchTransactions: async () => {
-    set({ loading: true })
+    const manageLoading = financialBulkFetchDepth === 0
+    const id = financialSeq.transactions.next()
+    if (manageLoading) set({ loading: true })
     try {
       const { data, error } = await supabase
         .from('financial_transactions')
@@ -117,19 +132,23 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && financialSeq.transactions.isCurrent(id)) {
         set({ transactions: data.map(mapTransactionFromDB) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching transactions:', error)
     } finally {
-      set({ loading: false })
+      if (manageLoading && financialSeq.transactions.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchCategories: async () => {
-    set({ loading: true })
+    const manageLoading = financialBulkFetchDepth === 0
+    const id = financialSeq.categories.next()
+    if (manageLoading) set({ loading: true })
     try {
       const { data, error } = await supabase
         .from('financial_categories')
@@ -138,19 +157,23 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && financialSeq.categories.isCurrent(id)) {
         set({ categories: data.map(mapCategoryFromDB) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching categories:', error)
     } finally {
-      set({ loading: false })
+      if (manageLoading && financialSeq.categories.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchContributions: async () => {
-    set({ loading: true })
+    const manageLoading = financialBulkFetchDepth === 0
+    const id = financialSeq.contributions.next()
+    if (manageLoading) set({ loading: true })
     try {
       // Verificar se a tabela contributions existe
       const { data, error } = await supabase
@@ -161,24 +184,32 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
       if (error) {
         logError('Error fetching contributions', error)
-        set({ contributions: [] })
+        if (financialSeq.contributions.isCurrent(id)) {
+          set({ contributions: [] })
+        }
         throw error
       }
 
-      if (data) {
+      if (data && financialSeq.contributions.isCurrent(id)) {
         set({ contributions: data.map(mapContributionFromDB) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching contributions:', error)
-      set({ contributions: [] })
+      if (financialSeq.contributions.isCurrent(id)) {
+        set({ contributions: [] })
+      }
     } finally {
-      set({ loading: false })
+      if (manageLoading && financialSeq.contributions.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchBudgets: async () => {
-    set({ loading: true })
+    const manageLoading = financialBulkFetchDepth === 0
+    const id = financialSeq.budgets.next()
+    if (manageLoading) set({ loading: true })
     try {
       const { data, error } = await supabase
         .from('financial_budgets')
@@ -187,19 +218,23 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && financialSeq.budgets.isCurrent(id)) {
         set({ budgets: data.map(mapBudgetFromDB) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching budgets:', error)
     } finally {
-      set({ loading: false })
+      if (manageLoading && financialSeq.budgets.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchGoals: async () => {
-    set({ loading: true })
+    const manageLoading = financialBulkFetchDepth === 0
+    const id = financialSeq.goals.next()
+    if (manageLoading) set({ loading: true })
     try {
       const { data, error } = await supabase
         .from('financial_goals')
@@ -208,19 +243,23 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && financialSeq.goals.isCurrent(id)) {
         set({ goals: data.map(mapFinancialGoalFromDB) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching goals:', error)
     } finally {
-      set({ loading: false })
+      if (manageLoading && financialSeq.goals.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchAccounts: async () => {
-    set({ loading: true })
+    const manageLoading = financialBulkFetchDepth === 0
+    const id = financialSeq.accounts.next()
+    if (manageLoading) set({ loading: true })
     try {
       const { data, error } = await supabase
         .from('financial_accounts')
@@ -229,18 +268,21 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && financialSeq.accounts.isCurrent(id)) {
         set({ accounts: data.map(mapBankAccountFromDB) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching accounts:', error)
     } finally {
-      set({ loading: false })
+      if (manageLoading && financialSeq.accounts.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchAll: async () => {
+    financialBulkFetchDepth += 1
     set({ loading: true })
     try {
       await Promise.all([
@@ -255,6 +297,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching all financial data:', error)
     } finally {
+      financialBulkFetchDepth -= 1
       set({ loading: false })
     }
   },

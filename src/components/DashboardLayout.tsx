@@ -111,7 +111,7 @@ export default function DashboardLayout() {
 
         <main className="flex-1 overflow-y-auto scroll-smooth bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:p-6">
           <div className="max-w-7xl mx-auto w-full animate-fade-in">
-            <Outlet key={location.pathname} />
+            <Outlet />
           </div>
 
           <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border mt-8">

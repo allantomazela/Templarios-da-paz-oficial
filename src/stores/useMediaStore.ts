@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -29,11 +30,14 @@ interface MediaState {
   deleteFile: (fileName: string) => Promise<void>
 }
 
+const fetchFilesSeq = createRequestSequence()
+
 export const useMediaStore = create<MediaState>((set) => ({
   files: [],
   loading: false,
 
   fetchFiles: async () => {
+    const id = fetchFilesSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase.storage
@@ -46,7 +50,7 @@ export const useMediaStore = create<MediaState>((set) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && fetchFilesSeq.isCurrent(id)) {
         const files = await Promise.all(
           data.map(async (file) => {
             const { data: urlData } = supabase.storage
@@ -64,12 +68,17 @@ export const useMediaStore = create<MediaState>((set) => ({
             }
           }),
         )
-        set({ files: files as MediaFile[] })
+        if (fetchFilesSeq.isCurrent(id)) {
+          set({ files: files as MediaFile[] })
+        }
       }
     } catch (error) {
+      if (handleAuthError(error)) return
       logError('Error fetching files:', error)
     } finally {
-      set({ loading: false })
+      if (fetchFilesSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 

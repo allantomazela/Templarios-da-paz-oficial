@@ -1,8 +1,15 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError, devLog } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+
+const agapeFetchSeq = {
+  sessions: createRequestSequence(),
+  menuItems: createRequestSequence(),
+  consumptions: createRequestSequence(),
+}
 
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -88,6 +95,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   loading: false,
 
   fetchSessions: async () => {
+    const reqId = agapeFetchSeq.sessions.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -97,12 +105,17 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (error) throw error
 
-      set({ sessions: data || [], loading: false })
-      devLog(`Agape: Carregadas ${data?.length || 0} sessões`)
+      if (agapeFetchSeq.sessions.isCurrent(reqId)) {
+        set({ sessions: data || [] })
+        devLog(`Agape: Carregadas ${data?.length || 0} sessões`)
+      }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching agape sessions', error)
-      set({ loading: false })
+    } finally {
+      if (agapeFetchSeq.sessions.isCurrent(reqId)) {
+        set({ loading: false })
+      }
     }
   },
 
@@ -124,13 +137,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (error) throw error
 
       await get().fetchSessions()
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error creating agape session', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
@@ -145,13 +158,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (error) throw error
 
       await get().fetchSessions()
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error updating agape session', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
@@ -164,6 +177,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   },
 
   fetchMenuItems: async () => {
+    const reqId = agapeFetchSeq.menuItems.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -174,12 +188,17 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (error) throw error
 
-      set({ menuItems: data || [], loading: false })
-      devLog(`Agape: Carregados ${data?.length || 0} itens do cardápio`)
+      if (agapeFetchSeq.menuItems.isCurrent(reqId)) {
+        set({ menuItems: data || [] })
+        devLog(`Agape: Carregados ${data?.length || 0} itens do cardápio`)
+      }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching menu items', error)
-      set({ loading: false })
+    } finally {
+      if (agapeFetchSeq.menuItems.isCurrent(reqId)) {
+        set({ loading: false })
+      }
     }
   },
 
@@ -195,13 +214,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (error) throw error
 
       await get().fetchMenuItems()
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error creating menu item', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
@@ -216,13 +235,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (error) throw error
 
       await get().fetchMenuItems()
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error updating menu item', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
@@ -237,17 +256,18 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (error) throw error
 
       await get().fetchMenuItems()
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error deleting menu item', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
   fetchConsumptions: async (sessionId) => {
+    const reqId = agapeFetchSeq.consumptions.next()
     set({ loading: true })
     try {
       let query = supabase
@@ -267,12 +287,17 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (error) throw error
 
-      set({ consumptions: data || [], loading: false })
-      devLog(`Agape: Carregados ${data?.length || 0} consumos`)
+      if (agapeFetchSeq.consumptions.isCurrent(reqId)) {
+        set({ consumptions: data || [] })
+        devLog(`Agape: Carregados ${data?.length || 0} consumos`)
+      }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching consumptions', error)
-      set({ loading: false })
+    } finally {
+      if (agapeFetchSeq.consumptions.isCurrent(reqId)) {
+        set({ loading: false })
+      }
     }
   },
 
@@ -297,7 +322,6 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       // Se não houver erro, sucesso
       if (!insertError && insertData) {
         await get().fetchConsumptions(consumption.session_id)
-        set({ loading: false })
         return { data: insertData, error: null }
       }
 
@@ -319,7 +343,6 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
         if (fetchError) {
           logError('Error fetching existing consumption', fetchError)
-          set({ loading: false })
           return { error: fetchError }
         }
 
@@ -340,24 +363,22 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
           if (updateError) {
             logError('Error updating consumption', updateError)
-            set({ loading: false })
             return { error: updateError }
           }
 
           await get().fetchConsumptions(consumption.session_id)
-          set({ loading: false })
           return { data: updateData, error: null }
         }
       }
 
       // Se chegou aqui, houve um erro não tratado
-      set({ loading: false })
       return { error: insertError }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error creating consumption', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
@@ -375,13 +396,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (consumption) {
         await get().fetchConsumptions(consumption.session_id)
       }
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error updating consumption', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 
@@ -400,13 +421,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (consumption) {
         await get().fetchConsumptions(consumption.session_id)
       }
-      set({ loading: false })
       return { error: null }
     } catch (error) {
-      if (handleAuthError(error)) return
+      if (handleAuthError(error)) return { error }
       logError('Error deleting consumption', error)
-      set({ loading: false })
       return { error }
+    } finally {
+      set({ loading: false })
     }
   },
 

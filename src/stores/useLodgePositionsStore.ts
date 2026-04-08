@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { devLog, logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -42,6 +43,8 @@ export interface LodgePositionHistory {
   created_at: string
 }
 
+const fetchPositionsSeq = createRequestSequence()
+
 interface LodgePositionsState {
   positions: LodgePosition[]
   history: LodgePositionHistory[]
@@ -68,6 +71,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
     loading: false,
 
     fetchPositions: async () => {
+      const id = fetchPositionsSeq.next()
       set({ loading: true })
       try {
         const { data, error } = await supabase
@@ -102,18 +106,23 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
               }
             })
 
-            set({ positions: positionsWithUsers || [], loading: false })
+            if (!fetchPositionsSeq.isCurrent(id)) return
+            set({ positions: positionsWithUsers || [] })
             devLog(`LodgePositions: Carregados ${positionsWithUsers?.length || 0} cargos`)
             return
           }
         }
 
-        // Se não há dados ou não há user_ids, apenas definir os dados vazios
-        set({ positions: data || [], loading: false })
+        if (!fetchPositionsSeq.isCurrent(id)) return
+        set({ positions: data || [] })
         devLog(`LodgePositions: Carregados ${data?.length || 0} cargos`)
       } catch (error) {
+        if (handleAuthError(error)) return
         logError('Error fetching positions', error)
-        set({ loading: false })
+      } finally {
+        if (fetchPositionsSeq.isCurrent(id)) {
+          set({ loading: false })
+        }
       }
     },
 
@@ -207,7 +216,10 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
         set({ loading: false })
         return { error: null }
       } catch (error) {
-        if (handleAuthError(error)) return
+        if (handleAuthError(error)) {
+          set({ loading: false })
+          return { error }
+        }
         logError('Error removing position', error)
         set({ loading: false })
         return { error }

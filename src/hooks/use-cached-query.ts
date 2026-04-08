@@ -67,6 +67,7 @@ export function useCachedQuery<T>(
       if (cached) {
         setData(cached)
         setError(null)
+        setIsLoading(false)
         return
       }
     }

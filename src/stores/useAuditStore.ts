@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -32,11 +33,14 @@ interface AuditState {
   fetchLogs: () => Promise<void>
 }
 
+const fetchLogsSeq = createRequestSequence()
+
 export const useAuditStore = create<AuditState>((set) => ({
   logs: [],
   loading: false,
 
   fetchLogs: async () => {
+    const id = fetchLogsSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -55,14 +59,16 @@ export const useAuditStore = create<AuditState>((set) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && fetchLogsSeq.isCurrent(id)) {
         set({ logs: data as unknown as AuditLog[] })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching audit logs:', error)
     } finally {
-      set({ loading: false })
+      if (fetchLogsSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 }))

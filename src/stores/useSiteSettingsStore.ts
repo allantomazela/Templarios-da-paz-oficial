@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+
+const siteSettingsFetchSeq = createRequestSequence()
+const venerablesFetchSeq = createRequestSequence()
 
 /** Se for erro de auth (ex.: refresh token inválido), redireciona ao login e retorna true. */
 function handleAuthError(error: unknown): boolean {
@@ -298,6 +302,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       return
     }
 
+    const id = siteSettingsFetchSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -312,15 +317,16 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         }
       }
 
-      if (data) {
-        set({ ...mapSettingsFromDB(data), loading: false })
-      } else {
-        set({ loading: false })
+      if (data && siteSettingsFetchSeq.isCurrent(id)) {
+        set({ ...mapSettingsFromDB(data) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching settings', error)
-      set({ loading: false })
+    } finally {
+      if (siteSettingsFetchSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
@@ -632,6 +638,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       return
     }
 
+    const id = venerablesFetchSeq.next()
     try {
       const { data, error } = await supabase
         .from('venerables')
@@ -641,7 +648,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && venerablesFetchSeq.isCurrent(id)) {
         const mappedVenerables = data.map((v: any) => ({
           id: v.id,
           name: v.name,

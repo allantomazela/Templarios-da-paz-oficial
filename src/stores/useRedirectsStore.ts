@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { logError } from '@/lib/logger'
 import { supabase } from '@/lib/supabase/client'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -29,11 +30,14 @@ interface RedirectsState {
   deleteRedirect: (id: string) => Promise<void>
 }
 
+const fetchRedirectsSeq = createRequestSequence()
+
 export const useRedirectsStore = create<RedirectsState>((set) => ({
   redirects: [],
   loading: false,
 
   fetchRedirects: async () => {
+    const id = fetchRedirectsSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -43,14 +47,16 @@ export const useRedirectsStore = create<RedirectsState>((set) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && fetchRedirectsSeq.isCurrent(id)) {
         set({ redirects: data })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching redirects:', error)
     } finally {
-      set({ loading: false })
+      if (fetchRedirectsSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 

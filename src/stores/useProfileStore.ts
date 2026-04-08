@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
 import { logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -53,12 +54,15 @@ const defaultPreferences: UserPreferences = {
   },
 }
 
+const profileFetchSeq = createRequestSequence()
+
 export const useProfileStore = create<ProfileState>((set, get) => ({
   profile: null,
   preferences: defaultPreferences,
   loading: false,
 
   fetchProfile: async (userId: string) => {
+    const id = profileFetchSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -68,6 +72,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         .single()
 
       if (error) throw error
+
+      if (!profileFetchSeq.isCurrent(id)) return
 
       if (data) {
         const profile: Profile = {
@@ -79,7 +85,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           masonic_degree: data.masonic_degree || undefined,
           avatar_url: data.avatar_url || undefined,
         }
-        set({ profile, loading: false })
+        set({ profile })
       }
     } catch (error) {
       if (isAuthError(error)) {
@@ -87,8 +93,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         return
       }
       logError('Error fetching profile', error)
-      set({ loading: false })
       throw error
+    } finally {
+      if (profileFetchSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 

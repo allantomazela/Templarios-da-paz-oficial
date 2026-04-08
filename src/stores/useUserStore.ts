@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { Profile } from './useAuthStore'
 import { logError } from '@/lib/logger'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -22,11 +23,14 @@ interface UserStoreState {
   updateUserDegree: (id: string, degree: string) => Promise<void>
 }
 
+const fetchUsersSeq = createRequestSequence()
+
 export const useUserStore = create<UserStoreState>((set) => ({
   users: [],
   loading: false,
 
   fetchUsers: async () => {
+    const id = fetchUsersSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -36,14 +40,16 @@ export const useUserStore = create<UserStoreState>((set) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && fetchUsersSeq.isCurrent(id)) {
         set({ users: data as Profile[] })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching users', error)
     } finally {
-      set({ loading: false })
+      if (fetchUsersSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 

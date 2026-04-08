@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 import { toErrorMessage, withTimeout } from '@/lib/async-utils'
+import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -55,11 +56,14 @@ const mapRowToNews = (row: any): NewsEvent => ({
   updatedAt: row.updated_at,
 })
 
+const newsFetchSeq = createRequestSequence()
+
 export const useNewsStore = create<NewsState>((set) => ({
   news: [],
   loading: false,
 
   fetchNews: async () => {
+    const id = newsFetchSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -71,18 +75,21 @@ export const useNewsStore = create<NewsState>((set) => ({
         throw new Error(toErrorMessage(error, 'Falha ao salvar a publicacao.'))
       }
 
-      if (data) {
+      if (data && newsFetchSeq.isCurrent(id)) {
         set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching news:', error)
     } finally {
-      set({ loading: false })
+      if (newsFetchSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 
   fetchPublicNews: async () => {
+    const id = newsFetchSeq.next()
     set({ loading: true })
     try {
       const { data, error } = await supabase
@@ -95,14 +102,16 @@ export const useNewsStore = create<NewsState>((set) => ({
 
       if (error) throw error
 
-      if (data) {
+      if (data && newsFetchSeq.isCurrent(id)) {
         set({ news: data.map(mapRowToNews) })
       }
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error fetching public news:', error)
     } finally {
-      set({ loading: false })
+      if (newsFetchSeq.isCurrent(id)) {
+        set({ loading: false })
+      }
     }
   },
 

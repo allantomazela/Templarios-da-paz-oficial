@@ -66,18 +66,10 @@ export default function SiteSettings() {
   }
 
   useEffect(() => {
-    // Fetch data only if not already loaded
     const loadData = async () => {
       try {
         setError(null)
-        // Verificar se já temos dados carregados
-        const hasData =
-          logoUrl || faviconUrl || (siteTitle && siteTitle !== '')
-        const hasVenerables = venerables.length > 0
-
-        if (!hasData || !hasVenerables) {
-          await Promise.all([fetchSettings(), fetchVenerables()])
-        }
+        await Promise.all([fetchSettings(true), fetchVenerables(true)])
         setIsInitialLoad(false)
       } catch (err) {
         logError('Error loading site settings', err)
@@ -87,7 +79,7 @@ export default function SiteSettings() {
     }
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty dependency array to run only once
+  }, [])
 
   // RoleGuard already handles permission check, but keep this as fallback
   if (!user) {

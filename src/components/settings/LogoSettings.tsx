@@ -42,7 +42,6 @@ export function LogoSettings() {
 
   useEffect(() => {
     setLUrl(logoUrl)
-    if (logoUrl) setLogoPreviewVersion(Date.now())
   }, [logoUrl])
 
   useEffect(() => {

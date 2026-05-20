@@ -50,8 +50,8 @@ export default function Index() {
       : HERO_CARD_DEFAULT_BACKGROUND_URL
 
   useEffect(() => {
-    fetchSettings()
-    fetchVenerables()
+    void fetchSettings(true)
+    void fetchVenerables(true)
   }, [fetchSettings, fetchVenerables])
 
   // Handle hash scrolling on mount or hash change

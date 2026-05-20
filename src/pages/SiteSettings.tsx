@@ -23,6 +23,7 @@ import {
   Type,
   Building2,
   QrCode,
+  RefreshCw,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -49,6 +50,20 @@ export default function SiteSettings() {
   } = useSiteSettingsStore()
   const [error, setError] = useState<string | null>(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefreshSettings = async () => {
+    setIsRefreshing(true)
+    setError(null)
+    try {
+      await Promise.all([fetchSettings(true), fetchVenerables(true)])
+    } catch (err) {
+      logError('Error refreshing site settings', err)
+      setError('Erro ao recarregar configurações. Tente novamente.')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     // Fetch data only if not already loaded
@@ -110,13 +125,30 @@ export default function SiteSettings() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">
-          Configurações do Site
-        </h2>
-        <p className="text-muted-foreground">
-          Gerencie o conteúdo público, identidade visual e SEO da plataforma.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Configurações do Site
+          </h2>
+          <p className="text-muted-foreground">
+            Gerencie o conteúdo público, identidade visual e SEO da plataforma.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshSettings}
+          disabled={isRefreshing || loading}
+          className="shrink-0"
+        >
+          {isRefreshing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Recarregar dados
+        </Button>
       </div>
 
       <Tabs

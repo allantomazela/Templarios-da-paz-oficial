@@ -64,6 +64,7 @@ export function LodgeInfoSettings() {
   const { toast } = useToast()
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [logoPreviewVersion, setLogoPreviewVersion] = useState(0)
 
   const form = useForm({
     resolver: zodResolver(lodgeInfoSchema),
@@ -108,6 +109,7 @@ export function LodgeInfoSettings() {
         'logos',
       )
       form.setValue('logoUrl', publicUrl, { shouldDirty: true })
+      setLogoPreviewVersion(Date.now())
       toast({
         title: 'Upload Concluído',
         description: 'A imagem do logo foi carregada com sucesso.',
@@ -136,6 +138,7 @@ export function LodgeInfoSettings() {
       // Update logo if changed
       if (data.logoUrl && data.logoUrl !== logoUrl) {
         await updateLogo(data.logoUrl)
+        setLogoPreviewVersion(Date.now())
       }
 
       // Update contact information
@@ -222,6 +225,9 @@ export function LodgeInfoSettings() {
                             width={BRAND_LOGO_INTRINSIC_SIZE}
                             height={BRAND_LOGO_INTRINSIC_SIZE}
                             sizes="128px"
+                            loading="eager"
+                            fetchPriority="high"
+                            cacheBustKey={logoPreviewVersion || undefined}
                           />
                         )}
                       </div>

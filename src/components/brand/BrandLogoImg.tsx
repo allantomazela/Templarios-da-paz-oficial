@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolveSiteLogoUrl } from '@/lib/default-brand-assets'
+import { appendCacheBust } from '@/lib/brand-image-url'
 
 /** Dimensões intrínsecas recomendadas para raster (retina no header ~56px CSS). */
 export const BRAND_LOGO_INTRINSIC_SIZE = 512 as const
@@ -23,6 +24,8 @@ interface BrandLogoImgProps {
    */
   width?: number
   height?: number
+  /** Força nova requisição da imagem (ex.: após upload). */
+  cacheBustKey?: string | number
 }
 
 export function BrandLogoImg({
@@ -37,8 +40,13 @@ export function BrandLogoImg({
   fetchPriority,
   width,
   height,
+  cacheBustKey,
 }: BrandLogoImgProps) {
-  const src = resolveSiteLogoUrl(logoUrl)
+  const resolved = resolveSiteLogoUrl(logoUrl)
+  const src =
+    cacheBustKey != null && resolved && !resolved.startsWith('/')
+      ? appendCacheBust(resolved, cacheBustKey)
+      : resolved
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {

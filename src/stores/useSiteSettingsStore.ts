@@ -8,6 +8,51 @@ import useAuthStore from '@/stores/useAuthStore'
 const siteSettingsFetchSeq = createRequestSequence()
 const venerablesFetchSeq = createRequestSequence()
 
+/** Colunas usadas por `mapSettingsFromDB` — evita `select('*')` na linha única de settings. */
+const SITE_SETTINGS_SELECT = [
+  'logo_url',
+  'home_banner_url',
+  'hero_card_bg_url',
+  'favicon_url',
+  'site_title',
+  'meta_description',
+  'history_title',
+  'history_text',
+  'history_image_url',
+  'values_liberty',
+  'values_equality',
+  'values_fraternity',
+  'contact_address',
+  'contact_city',
+  'contact_zip',
+  'contact_email',
+  'contact_secondary_email',
+  'contact_phone',
+  'contact_message_email',
+  'section_order',
+  'custom_sections',
+  'primary_color',
+  'secondary_color',
+  'font_family',
+  'typography_letter_spacing',
+  'typography_line_height',
+  'typography_font_weight_base',
+  'typography_font_weight_bold',
+  'typography_font_size_base',
+  'typography_text_color',
+  'typography_text_color_muted',
+  'typography_text_transform',
+  'typography_text_decoration',
+  'agape_pix_key',
+  'agape_pix_name',
+  'agape_payment_type',
+  'temple_latitude',
+  'temple_longitude',
+  'checkin_radius_meters',
+  'checkin_open_minutes_before',
+  'checkin_temple_url',
+].join(', ')
+
 /** Se for erro de auth (ex.: refresh token inválido), redireciona ao login e retorna true. */
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -98,7 +143,7 @@ export interface SiteSettingsState {
     openMinutesBefore: number | null
   }
 
-  fetchSettings: () => Promise<void>
+  fetchSettings: (force?: boolean, silent?: boolean) => Promise<void>
   updateLogo: (url: string) => Promise<void>
   updateHomeBanner: (url: string) => Promise<void>
   updateHeroCardBg: (url: string) => Promise<void>
@@ -127,7 +172,7 @@ export interface SiteSettingsState {
   /** Atualiza apenas a URL usada para o QR fixo do Templo. */
   updateTempleCheckinUrl?: (url: string) => Promise<void>
 
-  fetchVenerables: () => Promise<void>
+  fetchVenerables: (force?: boolean) => Promise<void>
   addVenerable: (venerable: Omit<Venerable, 'id'>) => Promise<void>
   updateVenerable: (venerable: Venerable) => Promise<void>
   deleteVenerable: (id: string) => Promise<void>
@@ -289,7 +334,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     openMinutesBefore: null as number | null,
   },
 
-  fetchSettings: async (force = false) => {
+  fetchSettings: async (force = false, silent = false) => {
     const state = get()
     // Se já temos dados carregados e não é forçado, não precisa buscar novamente
     // Verificamos se temos pelo menos um dado carregado (logo, favicon, ou siteTitle preenchido)
@@ -303,11 +348,13 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     }
 
     const id = siteSettingsFetchSeq.next()
-    set({ loading: true })
+    if (!silent) {
+      set({ loading: true })
+    }
     try {
       const { data, error } = await supabase
         .from('site_settings')
-        .select('*')
+        .select(SITE_SETTINGS_SELECT)
         .eq('id', 1)
         .single()
 
@@ -324,7 +371,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching settings', error)
     } finally {
-      if (siteSettingsFetchSeq.isCurrent(id)) {
+      if (siteSettingsFetchSeq.isCurrent(id) && !silent) {
         set({ loading: false })
       }
     }
@@ -339,6 +386,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       if (error) throw error
       set({ logoUrl: url })
+      void get().fetchSettings(true, true)
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating logo', error)
@@ -387,6 +435,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
       if (error) throw error
       set({ faviconUrl: url })
+      void get().fetchSettings(true, true)
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating favicon', error)
@@ -642,7 +691,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('venerables')
-        .select('*')
+        .select('id, name, period, image_url, mandate_order')
         .order('mandate_order', { ascending: false })
         .order('period', { ascending: false })
 

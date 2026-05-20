@@ -20,6 +20,7 @@ import {
   BrandLogoImg,
   BRAND_LOGO_INTRINSIC_SIZE,
 } from '@/components/brand/BrandLogoImg'
+import { appendCacheBust } from '@/lib/brand-image-url'
 
 export function LogoSettings() {
   const { logoUrl, faviconUrl, updateLogo, updateFavicon } =
@@ -31,6 +32,8 @@ export function LogoSettings() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [isUploadingFavicon, setIsUploadingFavicon] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
+  const [logoPreviewVersion, setLogoPreviewVersion] = useState(0)
+  const [faviconPreviewVersion, setFaviconPreviewVersion] = useState(0)
 
   const logoInputRef = useRef<HTMLInputElement>(null)
   const faviconInputRef = useRef<HTMLInputElement>(null)
@@ -39,11 +42,13 @@ export function LogoSettings() {
 
   useEffect(() => {
     setLUrl(logoUrl)
+    if (logoUrl) setLogoPreviewVersion(Date.now())
   }, [logoUrl])
 
   useEffect(() => {
     setFUrl(faviconUrl)
-    setFaviconError(false) // Reset error when URL changes
+    setFaviconError(false)
+    if (faviconUrl) setFaviconPreviewVersion(Date.now())
   }, [faviconUrl])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,6 +67,7 @@ export function LogoSettings() {
       )
 
       setLUrl(publicUrl)
+      setLogoPreviewVersion(Date.now())
       toast({
         title: 'Upload Concluído',
         description: 'A imagem do logo foi carregada com sucesso.',
@@ -117,11 +123,12 @@ export function LogoSettings() {
 
       clearTimeout(timeoutId)
       setFUrl(publicUrl)
+      setFaviconPreviewVersion(Date.now())
       toast({
         title: 'Upload Concluído',
         description: 'O favicon foi carregado com sucesso.',
       })
-    } catch (_error) {
+    } catch (error) {
       clearTimeout(timeoutId)
       logError('Erro no upload do favicon', error)
       toast({
@@ -143,6 +150,7 @@ export function LogoSettings() {
     setIsSavingLogo(true)
     try {
       await updateLogo(lUrl)
+      setLogoPreviewVersion(Date.now())
       toast({
         title: 'Logo Atualizado',
         description: 'O logo do site foi atualizado com sucesso.',
@@ -162,6 +170,7 @@ export function LogoSettings() {
     setIsSavingFavicon(true)
     try {
       await updateFavicon(fUrl)
+      setFaviconPreviewVersion(Date.now())
       toast({
         title: 'Favicon Atualizado',
         description: 'O ícone do navegador foi atualizado com sucesso.',
@@ -204,6 +213,9 @@ export function LogoSettings() {
                     width={BRAND_LOGO_INTRINSIC_SIZE}
                     height={BRAND_LOGO_INTRINSIC_SIZE}
                     sizes="128px"
+                    loading="eager"
+                    fetchPriority="high"
+                    cacheBustKey={logoPreviewVersion || undefined}
                   />
                 )}
               </div>
@@ -279,8 +291,14 @@ export function LogoSettings() {
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 ) : fUrl && !faviconError ? (
                   <img
-                    src={fUrl}
+                    src={
+                      faviconPreviewVersion > 0
+                        ? appendCacheBust(fUrl, faviconPreviewVersion)
+                        : fUrl
+                    }
                     alt="Favicon"
+                    loading="eager"
+                    decoding="async"
                     className="w-full h-full object-contain p-1"
                     onError={() => {
                       logError('Erro ao carregar favicon', { url: fUrl })

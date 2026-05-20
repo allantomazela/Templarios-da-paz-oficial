@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
-import { logError } from '@/lib/logger'
+import { logError, logWarning } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
@@ -52,6 +52,40 @@ const SITE_SETTINGS_SELECT = [
   'checkin_open_minutes_before',
   'checkin_temple_url',
 ].join(', ')
+
+/** PostgREST 400 quando alguma coluna do select ainda não existe no BD (migração pendente). */
+function shouldFallbackSiteSettingsSelect(error: {
+  code?: string
+  message?: string
+  status?: number
+}): boolean {
+  if (error.code === 'PGRST204') return true
+  const msg = (error.message ?? '').toLowerCase()
+  return (
+    error.status === 400 &&
+    (msg.includes('column') || msg.includes('schema cache'))
+  )
+}
+
+async function fetchSiteSettingsRow() {
+  const explicit = await supabase
+    .from('site_settings')
+    .select(SITE_SETTINGS_SELECT)
+    .eq('id', 1)
+    .single()
+
+  if (!explicit.error) return explicit
+
+  if (shouldFallbackSiteSettingsSelect(explicit.error)) {
+    logWarning(
+      'site_settings: colunas do select explícito ausentes no Supabase; usando select(*). Aplique as migrações pendentes (home_banner_url, hero_card_bg_url, checkin_temple_url, etc.).',
+      explicit.error,
+    )
+    return supabase.from('site_settings').select('*').eq('id', 1).single()
+  }
+
+  return explicit
+}
 
 /** Se for erro de auth (ex.: refresh token inválido), redireciona ao login e retorna true. */
 function handleAuthError(error: unknown): boolean {
@@ -352,11 +386,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       set({ loading: true })
     }
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select(SITE_SETTINGS_SELECT)
-        .eq('id', 1)
-        .single()
+      const { data, error } = await fetchSiteSettingsRow()
 
       if (error) {
         if (error.code !== 'PGRST116') {

@@ -45,6 +45,13 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { getSaveErrorMessage, isAuthError } from '@/lib/auth-utils'
+import {
+  canAccessDegree,
+  getAccessibleDegrees,
+  formatMasonicDegreeLabel,
+  type MasonicDegree,
+} from '@/lib/masonic-degree'
+import { useEffectiveMasonicDegree } from '@/hooks/use-effective-masonic-degree'
 
 interface LibraryItemFromDB {
   id: string
@@ -58,62 +65,6 @@ interface LibraryItemFromDB {
   uploaded_by: string | null
   created_at: string
   updated_at: string
-}
-
-type MasonicDegree = 'Aprendiz' | 'Companheiro' | 'Mestre'
-
-/**
- * Verifica se um usuário pode acessar material de um determinado grau
- * Regras:
- * - Grau I (Aprendiz): só acessa material de Grau I
- * - Grau II (Companheiro): acessa material de Grau I e Grau II
- * - Grau III (Mestre): acessa tudo
- */
-function canAccessDegree(
-  userDegree: MasonicDegree | undefined | null,
-  materialDegree: MasonicDegree,
-): boolean {
-  // Se não tem grau definido, não acessa nada
-  if (!userDegree) return false
-
-  // Mestre acessa tudo
-  if (userDegree === 'Mestre') return true
-
-  // Companheiro acessa Aprendiz e Companheiro
-  if (userDegree === 'Companheiro') {
-    return materialDegree === 'Aprendiz' || materialDegree === 'Companheiro'
-  }
-
-  // Aprendiz só acessa Aprendiz
-  if (userDegree === 'Aprendiz') {
-    return materialDegree === 'Aprendiz'
-  }
-
-  // Caso padrão: não acessa
-  return false
-}
-
-/**
- * Retorna os graus que o usuário pode acessar
- */
-function getAccessibleDegrees(
-  userDegree: MasonicDegree | undefined | null,
-): MasonicDegree[] {
-  if (!userDegree) return []
-
-  if (userDegree === 'Mestre') {
-    return ['Aprendiz', 'Companheiro', 'Mestre']
-  }
-
-  if (userDegree === 'Companheiro') {
-    return ['Aprendiz', 'Companheiro']
-  }
-
-  if (userDegree === 'Aprendiz') {
-    return ['Aprendiz']
-  }
-
-  return []
 }
 
 /** Apenas admin ou editor (Irmão Secretário) podem enviar PDFs. */
@@ -142,7 +93,8 @@ export default function LibraryPage() {
   const editFileInputRef = useRef<HTMLInputElement>(null)
   const supabaseAny = supabase as any
 
-  const userDegree = user?.profile?.masonic_degree as MasonicDegree | undefined
+  const { effectiveDegree: userDegree, loading: degreeLoading } =
+    useEffectiveMasonicDegree()
   const canUpload = canUploadLibrary(user?.role)
 
   // Load library items from Supabase
@@ -394,8 +346,7 @@ export default function LibraryPage() {
     return tabs
   }, [accessibleDegrees])
 
-  // Verificar se usuário não tem grau definido
-  const hasNoDegree = !userDegree
+  const hasNoDegree = !degreeLoading && !userDegree
 
   return (
     <div className="space-y-6">
@@ -427,13 +378,7 @@ export default function LibraryPage() {
           <AlertDescription>
             Você tem acesso aos materiais dos seguintes graus:{' '}
             <strong>
-              {accessibleDegrees
-                .map((d) => {
-                  if (d === 'Aprendiz') return 'Grau I'
-                  if (d === 'Companheiro') return 'Grau II'
-                  return 'Grau III'
-                })
-                .join(', ')}
+              {accessibleDegrees.map((d) => formatMasonicDegreeLabel(d)).join(', ')}
             </strong>
             . Materiais de outros graus não estão disponíveis para seu nível.
           </AlertDescription>
@@ -532,7 +477,7 @@ export default function LibraryPage() {
         </Card>
       )}
 
-      {loading ? (
+      {loading || degreeLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />

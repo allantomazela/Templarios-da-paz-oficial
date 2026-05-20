@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase/client'
+import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
 
 export function BrothersList() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -190,6 +191,7 @@ export function BrothersList() {
         setBrothers((prev) =>
           prev.map((b) => (b.id === selectedBrother.id ? updatedBrother : b)),
         )
+        await syncProfileMasonicDegreeFromBrother(data.email, data.degree)
         loadBrothersExecute()
         return 'Irmão atualizado com sucesso.'
       } else {
@@ -207,6 +209,7 @@ export function BrothersList() {
 
         const newBrother = mapBrotherFromDB(createdRow)
         setBrothers((prev) => [newBrother, ...prev])
+        await syncProfileMasonicDegreeFromBrother(data.email, data.degree)
         loadBrothersExecute()
         return 'Irmão adicionado com sucesso.'
       }

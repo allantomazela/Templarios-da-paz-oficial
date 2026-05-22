@@ -13,58 +13,11 @@ const UPLOAD_TIMEOUT_MS = 300000
  * @param folder The folder path within the bucket (default: 'uploads')
  * @returns Promise resolving to the public URL of the uploaded file
  */
-/**
- * Upload de foto de perfil via Edge Function (contorna RLS do Storage para membros).
- */
-export async function uploadAvatarToStorage(file: File): Promise<string> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session?.access_token) {
-    throw new Error('Faça login para enviar a foto de perfil.')
-  }
-
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const { data, error } = await supabase.functions.invoke('upload-avatar', {
-    body: formData,
-  })
-
-  if (error) {
-    logError('Avatar edge upload error', error)
-    throw new Error(
-      toErrorMessage(
-        error,
-        'Falha no upload da foto. Verifique se a função upload-avatar está publicada no Supabase.',
-      ),
-    )
-  }
-
-  const payload = data as { publicUrl?: string; error?: string } | null
-  if (!payload?.publicUrl) {
-    throw new Error(
-      payload?.error ||
-        'Falha no upload da foto. Verifique se a função upload-avatar está publicada no Supabase.',
-    )
-  }
-
-  return payload.publicUrl
-}
-
 export async function uploadToStorage(
   file: File,
   bucket: string = 'site-assets',
   folder: string = 'uploads',
 ): Promise<string> {
-  if (
-    bucket === 'site-assets' &&
-    (folder === 'avatars' || folder.startsWith('avatars/'))
-  ) {
-    return uploadAvatarToStorage(file)
-  }
-
   const fileExt = file.name.split('.').pop() || 'jpg'
   const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
   const filePath = `${folder}/${fileName}`

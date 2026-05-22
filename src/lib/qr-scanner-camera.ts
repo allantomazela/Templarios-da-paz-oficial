@@ -148,3 +148,58 @@ export async function startHtml5QrcodeRearCamera(
     throw new Error(toFriendlyCameraError(err))
   }
 }
+
+const stopLocks = new WeakMap<Html5Qrcode, Promise<void>>()
+
+function isBenignScannerShutdownError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return (
+    msg.includes('Cannot clear while scan is ongoing') ||
+    msg.includes('close it first') ||
+    msg.includes('already under transition') ||
+    msg.includes('Cannot transition to a new state')
+  )
+}
+
+/**
+ * Encerra a câmera e limpa o DOM do html5-qrcode na ordem correta (stop → clear).
+ * Evita erros ao fechar o diálogo ou após ler o QR.
+ */
+export async function stopHtml5QrcodeScanner(
+  scanner: Html5Qrcode | null | undefined,
+): Promise<void> {
+  if (!scanner) return
+
+  const existing = stopLocks.get(scanner)
+  if (existing) {
+    await existing
+    return
+  }
+
+  const stopTask = (async () => {
+    try {
+      if (scanner.isScanning) {
+        await scanner.stop()
+      }
+    } catch (err) {
+      if (!isBenignScannerShutdownError(err)) {
+        console.warn('[qr-scanner] stop:', err)
+      }
+    }
+
+    try {
+      scanner.clear()
+    } catch (err) {
+      if (!isBenignScannerShutdownError(err)) {
+        console.warn('[qr-scanner] clear:', err)
+      }
+    }
+  })()
+
+  stopLocks.set(scanner, stopTask)
+  try {
+    await stopTask
+  } finally {
+    stopLocks.delete(scanner)
+  }
+}

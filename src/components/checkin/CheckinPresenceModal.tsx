@@ -19,6 +19,7 @@ import useAuthStore from '@/stores/useAuthStore'
 import {
   createResponsiveQrScanConfig,
   startHtml5QrcodeRearCamera,
+  stopHtml5QrcodeScanner,
   toFriendlyCameraError,
 } from '@/lib/qr-scanner-camera'
 
@@ -52,39 +53,56 @@ export function CheckinPresenceModal({
   const [message, setMessage] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const processingScanRef = useRef(false)
   const { toast } = useToast()
 
   const fullName = brotherInfo?.fullName ?? user?.profile?.full_name ?? user?.user_metadata?.name ?? 'Irmão'
   const degree = brotherInfo?.degree ?? user?.profile?.masonic_degree ?? '—'
   const photoUrl = brotherInfo?.photoUrl ?? user?.profile?.avatar_url ?? null
 
-  const reset = useCallback(() => {
+  const stopScanner = useCallback(async () => {
+    const scanner = scannerRef.current
+    scannerRef.current = null
+    processingScanRef.current = false
+    await stopHtml5QrcodeScanner(scanner)
+  }, [])
+
+  const resetState = useCallback(() => {
     setStep('identity')
     setGpsCoords(null)
     setScannedToken(null)
     setMessage('')
     setLoading(false)
-    if (scannerRef.current?.isScanning) {
-      scannerRef.current.stop().catch(() => {})
-      scannerRef.current.clear()
-      scannerRef.current = null
-    }
+    processingScanRef.current = false
   }, [])
 
+  const reset = useCallback(async () => {
+    await stopScanner()
+    resetState()
+  }, [stopScanner, resetState])
+
   useEffect(() => {
-    if (!open) reset()
+    if (!open) {
+      void reset()
+    }
   }, [open, reset])
 
   useEffect(() => {
     return () => {
-      const scanner = scannerRef.current
-      if (scanner?.isScanning) {
-        scanner.stop().catch(() => {})
-        scanner.clear()
-      }
-      scannerRef.current = null
+      void stopScanner()
     }
-  }, [])
+  }, [stopScanner])
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        void reset().finally(() => onOpenChange(false))
+        return
+      }
+      onOpenChange(true)
+    },
+    [onOpenChange, reset],
+  )
 
   useEffect(() => {
     if (!open || !user?.id) return
@@ -195,42 +213,51 @@ export function CheckinPresenceModal({
 
   useEffect(() => {
     if (step !== 'scanning' || !open || !gpsCoords) return
-    let scanner: Html5Qrcode | null = null
     let cancelled = false
     const run = async () => {
-      // Garantir que o div do scanner já está no DOM e visível antes de iniciar a câmera
-      await new Promise((r) => setTimeout(r, 100))
+      await new Promise((r) => setTimeout(r, 150))
       if (cancelled) return
       try {
         const el = document.getElementById(SCANNER_DIV_ID)
-        if (!el || cancelled) return
-        scanner = new Html5Qrcode(SCANNER_DIV_ID)
+        if (!el) {
+          if (!cancelled) {
+            setStep('error')
+            setMessage(
+              'Não foi possível preparar a câmera. Feche o diálogo e tente de novo.',
+            )
+          }
+          return
+        }
+        if (el.clientWidth < 50) {
+          await new Promise<void>((r) => requestAnimationFrame(() => r()))
+        }
+        if (cancelled) return
+
+        await stopScanner()
+
+        const scanner = new Html5Qrcode(SCANNER_DIV_ID)
         scannerRef.current = scanner
+        processingScanRef.current = false
+
         await startHtml5QrcodeRearCamera(
           scanner,
           createResponsiveQrScanConfig(10),
-          (decodedText) => {
-            if (!scanner) return
-            if (scanner.isScanning) {
-              scanner.stop().then(() => {
-                scanner.clear()
-                scannerRef.current = null
-                setScannedToken(decodedText.trim())
-                setStep('confirm')
-              }).catch(() => {
-                scannerRef.current = null
-                setScannedToken(decodedText.trim())
-                setStep('confirm')
-              })
-            } else {
-              setScannedToken(decodedText.trim())
-              setStep('confirm')
-            }
+          async (decodedText) => {
+            if (processingScanRef.current) return
+            processingScanRef.current = true
+
+            const activeScanner = scannerRef.current
+            scannerRef.current = null
+            await stopHtml5QrcodeScanner(activeScanner)
+
+            setScannedToken(decodedText.trim())
+            setStep('confirm')
           },
           () => {},
         )
       } catch (err) {
         if (!cancelled) {
+          await stopScanner()
           setStep('error')
           setMessage(toFriendlyCameraError(err))
         }
@@ -239,17 +266,12 @@ export function CheckinPresenceModal({
     run()
     return () => {
       cancelled = true
-      const scanner = scannerRef.current
-      if (scanner?.isScanning) {
-        scanner.stop().catch(() => {})
-        scanner.clear()
-      }
-      scannerRef.current = null
+      void stopScanner()
     }
-  }, [step, open, gpsCoords])
+  }, [step, open, gpsCoords, stopScanner])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className={step === 'scanning' ? 'sm:max-w-lg' : 'sm:max-w-md'}
         aria-describedby={undefined}
@@ -386,15 +408,19 @@ export function CheckinPresenceModal({
               </Alert>
               <div className="flex gap-2">
                 {step === 'error' && (
-                  <Button variant="outline" onClick={() => setStep('identity')}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      void reset().then(() => setStep('identity'))
+                    }}
+                  >
                     Tentar novamente
                   </Button>
                 )}
                 <Button
                   className="flex-1"
                   onClick={() => {
-                    reset()
-                    onOpenChange(false)
+                    void reset().then(() => onOpenChange(false))
                   }}
                 >
                   Fechar

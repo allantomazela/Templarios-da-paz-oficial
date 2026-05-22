@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 import {
   createResponsiveQrScanConfig,
   startHtml5QrcodeRearCamera,
+  stopHtml5QrcodeScanner,
   toFriendlyCameraError,
 } from '@/lib/qr-scanner-camera'
 
@@ -40,34 +41,51 @@ export function QRCheckinScanner({
   const [message, setMessage] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const processingScanRef = useRef(false)
   const { toast } = useToast()
 
-  const reset = useCallback(() => {
+  const stopScanner = useCallback(async () => {
+    const scanner = scannerRef.current
+    scannerRef.current = null
+    processingScanRef.current = false
+    await stopHtml5QrcodeScanner(scanner)
+  }, [])
+
+  const resetState = useCallback(() => {
     setStep('gps')
     setGpsCoords(null)
     setMessage('')
     setLoading(false)
-    if (scannerRef.current?.isScanning) {
-      scannerRef.current.stop().catch(() => {})
-      scannerRef.current.clear()
-      scannerRef.current = null
-    }
+    processingScanRef.current = false
   }, [])
 
+  const reset = useCallback(async () => {
+    await stopScanner()
+    resetState()
+  }, [stopScanner, resetState])
+
   useEffect(() => {
-    if (!open) reset()
+    if (!open) {
+      void reset()
+    }
   }, [open, reset])
 
   useEffect(() => {
     return () => {
-      const scanner = scannerRef.current
-      if (scanner?.isScanning) {
-        scanner.stop().catch(() => {})
-        scanner.clear()
-      }
-      scannerRef.current = null
+      void stopScanner()
     }
-  }, [])
+  }, [stopScanner])
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        void reset().finally(() => onOpenChange(false))
+        return
+      }
+      onOpenChange(true)
+    },
+    [onOpenChange, reset],
+  )
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -122,25 +140,32 @@ export function QRCheckinScanner({
           await new Promise<void>((r) => requestAnimationFrame(() => r()))
         }
         if (cancelled) return
+
+        await stopScanner()
+
         const scanner = new Html5Qrcode(SCANNER_DIV_ID)
         scannerRef.current = scanner
+        processingScanRef.current = false
+
         await startHtml5QrcodeRearCamera(
           scanner,
           createResponsiveQrScanConfig(10),
           async (decodedText) => {
-            if (!gpsCoords || !scanner) return
+            if (!gpsCoords || processingScanRef.current) return
+            processingScanRef.current = true
+
+            const activeScanner = scannerRef.current
+            scannerRef.current = null
+            await stopHtml5QrcodeScanner(activeScanner)
+
+            setMessage('Registrando presença...')
             try {
-              if (scanner.isScanning) {
-                await scanner.stop()
-                scanner.clear()
-              }
-              scannerRef.current = null
-              setMessage('Registrando presença...')
               const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
               const { data: { session } } = await supabase.auth.getSession()
               if (!session?.access_token) {
                 setStep('error')
                 setMessage('Faça login para registrar presença.')
+                processingScanRef.current = false
                 return
               }
               const token = decodedText.trim()
@@ -165,6 +190,7 @@ export function QRCheckinScanner({
                   title: 'Erro no check-in',
                   description: data.error,
                 })
+                processingScanRef.current = false
                 return
               }
               setStep('success')
@@ -183,12 +209,14 @@ export function QRCheckinScanner({
                 title: 'Erro',
                 description: msg,
               })
+              processingScanRef.current = false
             }
           },
           () => {},
         )
       } catch (err) {
         if (!cancelled) {
+          await stopScanner()
           setStep('error')
           setMessage(toFriendlyCameraError(err))
         }
@@ -197,17 +225,12 @@ export function QRCheckinScanner({
     run()
     return () => {
       cancelled = true
-      const scanner = scannerRef.current
-      if (scanner?.isScanning) {
-        scanner.stop().catch(() => {})
-        scanner.clear()
-      }
-      scannerRef.current = null
+      void stopScanner()
     }
-  }, [step, open, gpsCoords, onSuccess, toast])
+  }, [step, open, gpsCoords, onSuccess, toast, stopScanner])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Check-in por QR Code</DialogTitle>
@@ -280,15 +303,19 @@ export function QRCheckinScanner({
               </Alert>
               <div className="flex gap-2">
                 {step === 'error' && (
-                  <Button variant="outline" onClick={() => setStep('gps')}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      void reset().then(() => setStep('gps'))
+                    }}
+                  >
                     Tentar novamente
                   </Button>
                 )}
                 <Button
                   className="flex-1"
                   onClick={() => {
-                    reset()
-                    onOpenChange(false)
+                    void reset().then(() => onOpenChange(false))
                   }}
                 >
                   Fechar

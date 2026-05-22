@@ -39,15 +39,7 @@ import { Button } from '@/components/ui/button'
 
 export default function SiteSettings() {
   const { user } = useAuthStore()
-  const {
-    fetchSettings,
-    fetchVenerables,
-    loading,
-    logoUrl,
-    faviconUrl,
-    siteTitle,
-    venerables,
-  } = useSiteSettingsStore()
+  const { fetchSettings, fetchVenerables, loading } = useSiteSettingsStore()
   const [error, setError] = useState<string | null>(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)

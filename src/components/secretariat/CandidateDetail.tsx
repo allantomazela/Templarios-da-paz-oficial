@@ -78,7 +78,7 @@ export function CandidateDetail({
 
   useEffect(() => {
     if (candidate) setLocalCandidateStatus(candidate.status)
-  }, [candidate?.id, candidate?.status])
+  }, [candidate])
 
   useEffect(() => {
     if (!open || !phaseProgress.length) return

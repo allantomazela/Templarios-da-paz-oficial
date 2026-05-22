@@ -213,6 +213,7 @@ export function CandidatesList() {
       loadCandidates.execute()
       loadPhaseDefinitions.execute()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -221,7 +222,12 @@ export function CandidatesList() {
         ensurePhaseProgressForCandidate.execute(selectedCandidate.id)
       })
     }
-  }, [selectedCandidate?.id, detailDialog.open])
+  }, [
+    selectedCandidate,
+    detailDialog.open,
+    loadPhaseProgress,
+    ensurePhaseProgressForCandidate,
+  ])
 
   const saveOperation = useAsyncOperation(
     async (data: {

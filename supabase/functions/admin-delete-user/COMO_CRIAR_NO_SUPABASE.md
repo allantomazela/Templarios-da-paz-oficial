@@ -7,7 +7,7 @@ Exclusão de usuários pelo painel **Admin → Gestão de Perfis** (somente pape
 Função publicada no projeto `hxncevpbwcearzxrstzj`:
 
 - **URL:** `https://hxncevpbwcearzxrstzj.supabase.co/functions/v1/admin-delete-user`
-- **Verify JWT:** habilitado
+- **Verify JWT (gateway):** desabilitado — a função valida admin via `requireAdmin()` (evita 401 com JWT assimétrico)
 - **Método:** `POST` com body `{ "userId": "<uuid>" }`
 
 ## Republicar (CLI ou Dashboard)

@@ -42,6 +42,7 @@ serve(async (req) => {
     supabaseUrl,
     supabaseAnonKey,
     req.headers.get('Authorization'),
+    serviceRoleKey,
   )
 
   if (!auth.ok) {

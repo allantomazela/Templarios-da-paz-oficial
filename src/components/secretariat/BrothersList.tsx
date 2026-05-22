@@ -33,6 +33,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase/client'
 import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
+import { mapBrotherFromDB } from '@/lib/brother-mappers'
 
 export function BrothersList() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -44,46 +45,6 @@ export function BrothersList() {
   const [selectedBrother, setSelectedBrother] = useState<Brother | null>(null)
   const supabaseAny = supabase as any
   const hasLoadedRef = useRef(false)
-
-  // Função para mapear dados do banco para o tipo Brother
-  const mapBrotherFromDB = (row: any): Brother => {
-    const children = row.children ? (Array.isArray(row.children) ? row.children : JSON.parse(row.children || '[]')) : []
-    return {
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      phone: row.phone,
-      cpf: row.cpf || undefined,
-      dob: row.dob || undefined,
-      photoUrl: row.photo_url || undefined,
-      degree: (row.degree as 'Aprendiz' | 'Companheiro' | 'Mestre') || 'Aprendiz',
-      role: (row.role as Brother['role']) || 'Irmão',
-      status: (row.status as 'Ativo' | 'Inativo') || 'Ativo',
-      initiationDate: row.initiation_date,
-      elevationDate: row.elevation_date || undefined,
-      exaltationDate: row.exaltation_date || undefined,
-      attendanceRate: row.attendance_rate || 0,
-      masonicRegistrationNumber: row.masonic_registration_number || undefined,
-      obedience: row.obedience || undefined,
-      originLodge: row.origin_lodge || undefined,
-      originLodgeNumber: row.origin_lodge_number || undefined,
-      currentLodgeNumber: row.current_lodge_number || undefined,
-      affiliationDate: row.affiliation_date || undefined,
-      regularStatus: row.regular_status || undefined,
-      notes: row.notes || undefined,
-      spouseName: row.spouse_name || undefined,
-      spouseDob: row.spouse_dob || undefined,
-      children: children || undefined,
-      addressStreet: row.address_street || undefined,
-      addressNumber: row.address_number || undefined,
-      addressComplement: row.address_complement || undefined,
-      addressNeighborhood: row.address_neighborhood || undefined,
-      addressCity: row.address_city || undefined,
-      addressState: row.address_state || undefined,
-      addressZipcode: row.address_zipcode || undefined,
-      address: row.address || undefined,
-    }
-  }
 
   // Função para mapear dados do Brother para o formato do banco
   const mapBrotherToDB = (brother: Partial<Brother>) => {

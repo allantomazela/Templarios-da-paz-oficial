@@ -11,14 +11,17 @@ import {
   Solid,
   Location,
   Notification,
-  mockSessionRecords,
-  mockAttendance,
-  mockBrothers,
-  mockEvents,
-  mockSolids,
-  mockLocations,
-  mockNotifications,
 } from '@/lib/data'
+import {
+  fetchChancellorAttendance,
+  fetchChancellorBrothers,
+  fetchChancellorEvents,
+  fetchChancellorSessionRecords,
+  eventToDbPayload,
+  loadLocationsFromStorage,
+  mapEventFromDB,
+  saveLocationsToStorage,
+} from '@/lib/chancellor-data'
 import { devLog, logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 
@@ -107,6 +110,10 @@ interface ChancellorState {
   // Alerts
   markAlertAsReviewed: (brotherId: string) => void
 
+  /** Carrega dados reais do Supabase (sem mocks). */
+  fetchChancellorData: () => Promise<void>
+  chancellorDataLoading: boolean
+
   // Integração Supabase: sessão e presença para check-in por QR
   ensureSessionRecordInSupabase: (
     event: Event,
@@ -130,15 +137,47 @@ interface ChancellorState {
 }
 
 export const useChancellorStore = create<ChancellorState>((set, get) => ({
-  sessionRecords: mockSessionRecords,
-  attendanceRecords: mockAttendance,
+  sessionRecords: [],
+  attendanceRecords: [],
   visitorAttendances: [],
-  brothers: mockBrothers,
-  events: mockEvents,
-  solids: mockSolids,
-  locations: mockLocations,
-  notifications: mockNotifications,
+  brothers: [],
+  events: [],
+  solids: [],
+  locations: loadLocationsFromStorage(),
+  notifications: [],
   reviewedAlerts: [],
+  chancellorDataLoading: false,
+
+  fetchChancellorData: async () => {
+    set({ chancellorDataLoading: true })
+    try {
+      const [events, sessionRecords, attendanceRecords, brothers] =
+        await Promise.all([
+          fetchChancellorEvents(),
+          fetchChancellorSessionRecords(),
+          fetchChancellorAttendance(),
+          fetchChancellorBrothers(),
+        ])
+      set({
+        events,
+        sessionRecords,
+        attendanceRecords,
+        brothers,
+        locations: loadLocationsFromStorage(),
+      })
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('fetchChancellorData', error)
+      set({
+        events: [],
+        sessionRecords: [],
+        attendanceRecords: [],
+        brothers: [],
+      })
+    } finally {
+      set({ chancellorDataLoading: false })
+    }
+  },
 
   addSessionRecord: (record) =>
     set((state) => ({ sessionRecords: [...state.sessionRecords, record] })),
@@ -257,19 +296,68 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     })),
 
   addEvent: (event) => {
-    devLog(`useChancellorStore: Adicionando evento - ID: ${event.id}, Título: ${event.title}, Data: ${event.date}`)
-    set((state) => {
-      const newEvents = [...state.events, event]
-      devLog(`useChancellorStore: Total de eventos após adicionar: ${newEvents.length}`)
-      return { events: newEvents }
-    })
+    devLog(
+      `useChancellorStore: Adicionando evento - ${event.title}, Data: ${event.date}`,
+    )
+    set((state) => ({ events: [...state.events, event] }))
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .insert(eventToDbPayload(event))
+          .select('*')
+          .single()
+
+        if (error) throw error
+        if (!data) return
+
+        const persisted = mapEventFromDB(data)
+        set((state) => ({
+          events: state.events.map((e) =>
+            e.id === event.id ? persisted : e,
+          ),
+        }))
+      } catch (error) {
+        if (handleAuthError(error)) return
+        logError('addEvent persist', error)
+        set((state) => ({
+          events: state.events.filter((e) => e.id !== event.id),
+        }))
+      }
+    })()
   },
-  updateEvent: (event) =>
+  updateEvent: (event) => {
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),
-    })),
-  deleteEvent: (id) =>
-    set((state) => ({ events: state.events.filter((e) => e.id !== id) })),
+    }))
+
+    void (async () => {
+      try {
+        const { error } = await supabase
+          .from('events')
+          .update(eventToDbPayload(event))
+          .eq('id', event.id)
+        if (error) throw error
+      } catch (error) {
+        if (handleAuthError(error)) return
+        logError('updateEvent persist', error)
+      }
+    })()
+  },
+  deleteEvent: (id) => {
+    set((state) => ({ events: state.events.filter((e) => e.id !== id) }))
+
+    void (async () => {
+      try {
+        const { error } = await supabase.from('events').delete().eq('id', id)
+        if (error) throw error
+      } catch (error) {
+        if (handleAuthError(error)) return
+        logError('deleteEvent persist', error)
+      }
+    })()
+  },
 
   addSolid: (solid) => set((state) => ({ solids: [...state.solids, solid] })),
   updateSolid: (solid) =>
@@ -280,17 +368,25 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     set((state) => ({ solids: state.solids.filter((s) => s.id !== id) })),
 
   addLocation: (location) =>
-    set((state) => ({ locations: [...state.locations, location] })),
+    set((state) => {
+      const locations = [...state.locations, location]
+      saveLocationsToStorage(locations)
+      return { locations }
+    }),
   updateLocation: (location) =>
-    set((state) => ({
-      locations: state.locations.map((l) =>
+    set((state) => {
+      const locations = state.locations.map((l) =>
         l.id === location.id ? location : l,
-      ),
-    })),
+      )
+      saveLocationsToStorage(locations)
+      return { locations }
+    }),
   deleteLocation: (id) =>
-    set((state) => ({
-      locations: state.locations.filter((l) => l.id !== id),
-    })),
+    set((state) => {
+      const locations = state.locations.filter((l) => l.id !== id)
+      saveLocationsToStorage(locations)
+      return { locations }
+    }),
 
   addNotification: (notification) =>
     set((state) => ({ notifications: [notification, ...state.notifications] })),

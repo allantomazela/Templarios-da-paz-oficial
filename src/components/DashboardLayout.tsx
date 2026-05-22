@@ -2,6 +2,7 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import useAuthStore from '@/stores/useAuthStore'
+import useChancellorStore from '@/stores/useChancellorStore'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -10,8 +11,15 @@ import { NotificationBanner } from '@/components/NotificationBanner'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, signOut } = useAuthStore()
+  const fetchChancellorData = useChancellorStore((s) => s.fetchChancellorData)
   const location = useLocation()
   const [showTimeout, setShowTimeout] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      void fetchChancellorData()
+    }
+  }, [isAuthenticated, user?.id, fetchChancellorData])
 
   // Resilient Timeout Logic: 3 seconds
   useEffect(() => {

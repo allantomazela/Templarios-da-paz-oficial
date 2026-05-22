@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Solid, mockBrothers } from '@/lib/data'
+import { Solid } from '@/lib/data'
+import useChancellorStore from '@/stores/useChancellorStore'
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ export function SolidDialog({
   solidToEdit,
   onSave,
 }: SolidDialogProps) {
+  const brothers = useChancellorStore((s) => s.brothers)
   const form = useForm<SolidFormValues>({
     resolver: zodResolver(solidSchema),
     defaultValues: {
@@ -183,7 +185,7 @@ export function SolidDialog({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">Anônimo / Nenhum</SelectItem>
-                      {mockBrothers.map((b) => (
+                      {brothers.map((b) => (
                         <SelectItem key={b.id} value={b.id}>
                           {b.name}
                         </SelectItem>

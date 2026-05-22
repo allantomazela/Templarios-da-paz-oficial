@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { Solid, mockBrothers } from '@/lib/data'
+import { Solid } from '@/lib/data'
 import { SolidDialog } from './SolidDialog'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +19,8 @@ import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 
 export function SolidsManager() {
-  const { solids, addSolid, updateSolid, deleteSolid } = useChancellorStore()
+  const { solids, brothers, addSolid, updateSolid, deleteSolid } =
+    useChancellorStore()
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedSolid, setSelectedSolid] = useState<Solid | null>(null)
@@ -78,7 +79,7 @@ export function SolidsManager() {
 
   const getBrotherName = (id?: string) => {
     if (!id) return 'Anônimo'
-    const brother = mockBrothers.find((b) => b.id === id)
+    const brother = brothers.find((b) => b.id === id)
     return brother ? brother.name : 'Desconhecido'
   }
 

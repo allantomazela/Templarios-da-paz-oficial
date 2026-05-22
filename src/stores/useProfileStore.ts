@@ -107,8 +107,15 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
     try {
       const updates: any = {}
+      const sessionRole = useAuthStore.getState().user?.role
+
       if (data.full_name !== undefined) updates.full_name = data.full_name
-      if (data.masonic_degree !== undefined) updates.masonic_degree = data.masonic_degree
+      if (
+        data.masonic_degree !== undefined &&
+        sessionRole !== 'member'
+      ) {
+        updates.masonic_degree = data.masonic_degree
+      }
       if (data.email !== undefined) updates.email = data.email
 
       const { error } = await supabase
@@ -129,8 +136,13 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         }
       }
 
+      const patch: Partial<Profile> = { ...data }
+      if (sessionRole === 'member') {
+        delete patch.masonic_degree
+      }
+
       set((state) => ({
-        profile: state.profile ? { ...state.profile, ...data } : null,
+        profile: state.profile ? { ...state.profile, ...patch } : null,
       }))
     } catch (error) {
       if (isAuthError(error)) {

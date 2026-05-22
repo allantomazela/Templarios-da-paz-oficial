@@ -22,7 +22,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { useProfileStore } from '@/stores/useProfileStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { useEffectiveMasonicDegree } from '@/hooks/use-effective-masonic-degree'
+import {
+  formatMasonicDegreeLabel,
+  normalizeMasonicDegree,
+} from '@/lib/masonic-degree'
 import {
   Card,
   CardContent,
@@ -58,6 +64,9 @@ const masonicDegrees = [
 
 export function ProfileInfo({ profile }: ProfileInfoProps) {
   const { updateProfile } = useProfileStore()
+  const sessionRole = useAuthStore((s) => s.user?.role)
+  const isMember = sessionRole === 'member'
+  const { effectiveDegree, loading: degreeLoading } = useEffectiveMasonicDegree()
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -88,13 +97,21 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
   }, [profile, form])
 
   const onSubmit = async (data: ProfileFormValues) => {
-    // Converter string vazia para undefined
-    const submitData = {
-      ...data,
-      masonic_degree: data.masonic_degree || undefined,
+    const submitData: ProfileFormValues = {
+      full_name: data.full_name,
+      email: data.email,
+    }
+    if (!isMember) {
+      submitData.masonic_degree = data.masonic_degree || undefined
     }
     await updateOperation.execute(submitData)
   }
+
+  const displayedDegree = effectiveDegree ?? profile.masonic_degree
+  const normalizedDisplay = normalizeMasonicDegree(displayedDegree)
+  const degreeDisplayLabel = normalizedDisplay
+    ? `${formatMasonicDegreeLabel(normalizedDisplay)} — ${normalizedDisplay}`
+    : displayedDegree || 'Não definido'
 
   return (
     <Card>
@@ -143,36 +160,58 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="masonic_degree"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Grau Maçônico</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(value || undefined)}
-                    value={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione seu grau" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {masonicDegrees.map((degree) => (
-                        <SelectItem key={degree} value={degree}>
-                          {degree}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Seu grau maçônico atual na loja.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isMember ? (
+              <FormItem>
+                <FormLabel>Grau Maçônico</FormLabel>
+                <FormControl>
+                  <Input
+                    readOnly
+                    disabled
+                    value={
+                      degreeLoading ? 'Carregando...' : degreeDisplayLabel
+                    }
+                    className="bg-muted cursor-not-allowed"
+                  />
+                </FormControl>
+                <FormDescription>
+                  O grau é definido pela Secretaria quando você é elevado ou
+                  exaltado. Não pode ser alterado nesta tela.
+                </FormDescription>
+              </FormItem>
+            ) : (
+              <FormField
+                control={form.control}
+                name="masonic_degree"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grau Maçônico</FormLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value || undefined)
+                      }
+                      value={field.value || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione seu grau" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masonicDegrees.map((degree) => (
+                          <SelectItem key={degree} value={degree}>
+                            {degree}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Grau maçônico no perfil (administração).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex justify-end">
               <Button

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Loader2, X, User } from 'lucide-react'
 import { useImageUpload } from '@/hooks/use-image-upload'
 import { useProfileStore } from '@/stores/useProfileStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import {
   Card,
@@ -21,13 +22,14 @@ interface AvatarUploadProps {
 
 export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) {
   const { updateAvatar } = useProfileStore()
+  const userId = useAuthStore((s) => s.user?.id)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     currentAvatarUrl || null,
   )
 
   const imageUpload = useImageUpload({
     bucket: 'site-assets',
-    folder: 'avatars',
+    folder: userId ? `avatars/${userId}` : 'avatars',
     maxSize: 512,
     quality: 0.85,
     successMessage: 'Avatar atualizado com sucesso.',

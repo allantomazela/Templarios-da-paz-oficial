@@ -2,13 +2,19 @@
 
 Exclusão de usuários pelo painel **Admin → Gestão de Perfis** (somente papel `admin`).
 
-## Publicar no Supabase
+## Status em produção
 
-1. Dashboard → **Edge Functions** → **Create function**
-2. Nome: `admin-delete-user`
-3. Cole o conteúdo de `index.ts` (e garanta que `_shared/auth.ts` e `_shared/cors.ts` existem no projeto)
-4. Deploy
-5. Em **Settings** da função, habilite **Verify JWT** (recomendado)
+Função publicada no projeto `hxncevpbwcearzxrstzj`:
+
+- **URL:** `https://hxncevpbwcearzxrstzj.supabase.co/functions/v1/admin-delete-user`
+- **Verify JWT:** habilitado
+- **Método:** `POST` com body `{ "userId": "<uuid>" }`
+
+## Republicar (CLI ou Dashboard)
+
+1. Dashboard → **Edge Functions** → `admin-delete-user` → editar/deploy  
+   **ou** Supabase CLI: `npx supabase functions deploy admin-delete-user --project-ref hxncevpbwcearzxrstzj`
+2. Inclua `index.ts` e os arquivos em `supabase/functions/_shared/` (`auth.ts`, `cors.ts`).
 
 A função usa `SUPABASE_SERVICE_ROLE_KEY` (já injetada automaticamente no ambiente Supabase).
 

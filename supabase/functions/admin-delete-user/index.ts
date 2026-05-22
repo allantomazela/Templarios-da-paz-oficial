@@ -14,7 +14,7 @@ serve(async (req) => {
   const headers = corsHeaders(origin, 'POST, OPTIONS')
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers })
+    return new Response(null, { status: 204, headers })
   }
 
   if (req.method !== 'POST') {

@@ -1,28 +1,47 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
-export async function deleteUserAsAdmin(userId: string): Promise<void> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+async function parseFunctionErrorMessage(
+  error: unknown,
+  fallback: string,
+): Promise<string> {
+  if (error instanceof FunctionsHttpError && error.context) {
+    try {
+      const body = (await error.context.json()) as { error?: string }
+      if (body?.error) return body.error
+    } catch {
+      // ignore parse errors
+    }
+  }
+  if (error instanceof Error && error.message) return error.message
+  return fallback
+}
 
-  if (!session?.access_token) {
+export async function deleteUserAsAdmin(userId: string): Promise<void> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
     throw new Error('Faça login como administrador para continuar.')
   }
 
-  const res = await fetch(`${supabaseUrl}/functions/v1/admin-delete-user`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ userId }),
+  const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+    body: { userId },
   })
 
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
+  if (error) {
     throw new Error(
-      (data as { error?: string }).error || 'Não foi possível excluir o usuário.',
+      await parseFunctionErrorMessage(
+        error,
+        'Não foi possível excluir o usuário. Verifique se está logado como administrador.',
+      ),
     )
+  }
+
+  const payload = data as { error?: string; success?: boolean } | null
+  if (payload?.error) {
+    throw new Error(payload.error)
   }
 }

@@ -50,3 +50,31 @@ export async function requireAdminOrEditor(
 
   return { ok: true, user, userClient }
 }
+
+/**
+ * Valida Bearer JWT (qualquer usuário autenticado).
+ */
+export async function requireAuthenticatedUser(
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authHeader: string | null,
+): Promise<AuthedUserClient> {
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { ok: false, status: 401, message: 'Não autorizado.' }
+  }
+
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+
+  const {
+    data: { user },
+    error: userError,
+  } = await userClient.auth.getUser()
+
+  if (userError || !user) {
+    return { ok: false, status: 401, message: 'Sessão inválida.' }
+  }
+
+  return { ok: true, user, userClient }
+}

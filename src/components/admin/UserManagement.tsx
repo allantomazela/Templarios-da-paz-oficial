@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -452,13 +451,11 @@ export function UserManagement() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
-              onClick={(e) => {
-                e.preventDefault()
-                void handleConfirmDelete()
-              }}
+              onClick={() => void handleConfirmDelete()}
             >
               {deleting ? (
                 <>
@@ -468,7 +465,7 @@ export function UserManagement() {
               ) : (
                 'Excluir'
               )}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

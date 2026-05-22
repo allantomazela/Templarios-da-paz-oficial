@@ -1,15 +1,11 @@
 import { supabase } from '@/lib/supabase/client'
+import { withTimeout } from '@/lib/async-utils'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
+const DELETE_TIMEOUT_MS = 25_000
 
 async function getAccessToken(): Promise<string> {
-  const { data: refreshed, error: refreshError } =
-    await supabase.auth.refreshSession()
-
-  const token = refreshed?.session?.access_token
-  if (!refreshError && token) return token
-
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.access_token) return session.access_token
 
@@ -28,7 +24,7 @@ async function getAccessToken(): Promise<string> {
 export async function deleteUserAsAdmin(userId: string): Promise<void> {
   const accessToken = await getAccessToken()
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-delete-user`, {
+  const fetchPromise = fetch(`${SUPABASE_URL}/functions/v1/admin-delete-user`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -37,6 +33,12 @@ export async function deleteUserAsAdmin(userId: string): Promise<void> {
     },
     body: JSON.stringify({ userId }),
   })
+
+  const res = await withTimeout(
+    fetchPromise,
+    DELETE_TIMEOUT_MS,
+    'A exclusão demorou demais. Verifique sua conexão e tente novamente.',
+  )
 
   const data = (await res.json().catch(() => ({}))) as {
     error?: string

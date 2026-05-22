@@ -14,6 +14,11 @@ function handleAuthError(error: unknown): boolean {
   return false
 }
 
+export type UserProfileUpdate = Pick<
+  Profile,
+  'full_name' | 'email' | 'role' | 'status' | 'masonic_degree'
+>
+
 interface UserStoreState {
   users: Profile[]
   loading: boolean
@@ -21,6 +26,8 @@ interface UserStoreState {
   updateUserStatus: (id: string, status: Profile['status']) => Promise<void>
   updateUserRole: (id: string, role: Profile['role']) => Promise<void>
   updateUserDegree: (id: string, degree: string) => Promise<void>
+  updateUserProfile: (id: string, updates: UserProfileUpdate) => Promise<void>
+  removeUserFromList: (id: string) => void
 }
 
 const fetchUsersSeq = createRequestSequence()
@@ -126,6 +133,45 @@ export const useUserStore = create<UserStoreState>((set) => ({
       logError('Error updating user degree:', error)
       throw error
     }
+  },
+
+  updateUserProfile: async (id, updates) => {
+    try {
+      const payload = {
+        full_name: updates.full_name.trim(),
+        email: updates.email?.trim() || null,
+        role: updates.role,
+        status: updates.status,
+        masonic_degree: updates.masonic_degree,
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        set((state) => ({
+          users: state.users.map((u) =>
+            u.id === id ? { ...u, ...(data as Profile) } : u,
+          ),
+        }))
+      }
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating user profile:', error)
+      throw error
+    }
+  },
+
+  removeUserFromList: (id) => {
+    set((state) => ({
+      users: state.users.filter((u) => u.id !== id),
+    }))
   },
 }))
 

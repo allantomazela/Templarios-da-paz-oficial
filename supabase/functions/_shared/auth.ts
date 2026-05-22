@@ -78,3 +78,41 @@ export async function requireAuthenticatedUser(
 
   return { ok: true, user, userClient }
 }
+
+/**
+ * Valida Bearer JWT e exige papel admin (RPC is_admin).
+ */
+export async function requireAdmin(
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authHeader: string | null,
+): Promise<AuthedUserClient> {
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { ok: false, status: 401, message: 'Não autorizado.' }
+  }
+
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+
+  const {
+    data: { user },
+    error: userError,
+  } = await userClient.auth.getUser()
+
+  if (userError || !user) {
+    return { ok: false, status: 401, message: 'Sessão inválida.' }
+  }
+
+  const { data: allowed, error: rpcError } = await userClient.rpc('is_admin')
+
+  if (rpcError || !allowed) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'Apenas administradores podem executar esta ação.',
+    }
+  }
+
+  return { ok: true, user, userClient }
+}

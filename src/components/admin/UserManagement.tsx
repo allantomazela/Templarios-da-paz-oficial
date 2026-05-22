@@ -17,6 +17,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -27,6 +37,10 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import useUserStore from '@/stores/useUserStore'
+import useAuthStore from '@/stores/useAuthStore'
+import { deleteUserAsAdmin } from '@/lib/admin-user-api'
+import { isMasterAdminEmail } from '@/config/master-admin'
+import { UserEditDialog } from '@/components/admin/UserEditDialog'
 import {
   MoreHorizontal,
   Search,
@@ -38,22 +52,46 @@ import {
   Flower2,
   Moon,
   UserX,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
+
+function roleLabel(role: Profile['role']) {
+  switch (role) {
+    case 'admin':
+      return 'Administrador'
+    case 'editor':
+      return 'Editor'
+    default:
+      return 'Membro'
+  }
+}
+
+function degreeLabel(degree?: string) {
+  return degree || 'Aprendiz'
+}
 
 export function UserManagement() {
   const {
     users,
     fetchUsers,
     updateUserStatus,
-    updateUserRole,
-    updateUserDegree,
+    updateUserProfile,
+    removeUserFromList,
     loading,
   } = useUserStore()
+  const { user: currentUser } = useAuthStore()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [editUser, setEditUser] = useState<Profile | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const isSystemAdmin =
+    currentUser?.role === 'admin' || isMasterAdminEmail(currentUser?.email)
 
   useEffect(() => {
     fetchUsers()
@@ -69,21 +107,29 @@ export function UserManagement() {
     return matchesSearch && matchesStatus && matchesRole
   })
 
+  const canDeleteUser = (user: Profile) => {
+    if (!isSystemAdmin) return false
+    if (user.id === currentUser?.id) return false
+    if (isMasterAdminEmail(user.email)) return false
+    return true
+  }
+
   const handleStatusChange = async (
     user: Profile,
     newStatus: Profile['status'],
   ) => {
+    if (!isSystemAdmin) return
     try {
       await updateUserStatus(user.id, newStatus)
       toast({
         title: 'Status Atualizado',
         description: `O status de ${user.full_name} foi alterado para ${newStatus}.`,
       })
-      // Recarregar lista de usuários para garantir sincronização
       fetchUsers()
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Não foi possível atualizar o status.'
-      const errorDetails = error?.details || error?.hint || ''
+    } catch (error: unknown) {
+      const err = error as { message?: string; details?: string; hint?: string }
+      const errorMessage = err?.message || 'Não foi possível atualizar o status.'
+      const errorDetails = err?.details || err?.hint || ''
 
       toast({
         variant: 'destructive',
@@ -95,35 +141,48 @@ export function UserManagement() {
     }
   }
 
-  const handleRoleChange = async (user: Profile, newRole: Profile['role']) => {
+  const handleSaveProfile = async (
+    id: string,
+    updates: Parameters<typeof updateUserProfile>[1],
+  ) => {
     try {
-      await updateUserRole(user.id, newRole)
+      await updateUserProfile(id, updates)
       toast({
-        title: 'Permissão Atualizada',
-        description: `A função de ${user.full_name} foi alterada para ${newRole}.`,
+        title: 'Usuário atualizado',
+        description: 'As alterações foram salvas com sucesso.',
       })
-    } catch (_error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi possível atualizar a permissão.',
+        description: 'Não foi possível salvar as alterações do usuário.',
       })
+      throw new Error('update failed')
     }
   }
 
-  const handleDegreeChange = async (user: Profile, newDegree: string) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
     try {
-      await updateUserDegree(user.id, newDegree)
+      await deleteUserAsAdmin(deleteTarget.id)
+      removeUserFromList(deleteTarget.id)
       toast({
-        title: 'Grau Atualizado',
-        description: `O grau de ${user.full_name} foi alterado para ${newDegree}.`,
+        title: 'Usuário excluído',
+        description: `${deleteTarget.full_name} foi removido do sistema.`,
       })
-    } catch (_error) {
+      setDeleteTarget(null)
+    } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Não foi possível atualizar o grau.',
+        title: 'Erro ao excluir',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível excluir o usuário. Verifique se a Edge Function admin-delete-user está publicada.',
       })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -159,6 +218,14 @@ export function UserManagement() {
       default:
         return <Badge variant="outline">{status}</Badge>
     }
+  }
+
+  if (!isSystemAdmin) {
+    return (
+      <p className="text-sm text-muted-foreground py-8 text-center">
+        Apenas administradores do sistema podem gerenciar usuários.
+      </p>
+    )
   }
 
   if (loading && users.length === 0) {
@@ -243,103 +310,117 @@ export function UserManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Select
-                      defaultValue={user.masonic_degree || 'Aprendiz'}
-                      onValueChange={(val) => handleDegreeChange(user, val)}
-                    >
-                      <SelectTrigger className="h-8 w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Aprendiz">Aprendiz</SelectItem>
-                        <SelectItem value="Companheiro">Companheiro</SelectItem>
-                        <SelectItem value="Mestre">Mestre</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Badge variant="outline">{degreeLabel(user.masonic_degree)}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        defaultValue={user.role}
-                        onValueChange={(val) =>
-                          handleRoleChange(user, val as any)
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-[130px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="member">Membro</SelectItem>
-                          <SelectItem value="editor">Editor</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Badge variant="secondary">{roleLabel(user.role)}</Badge>
                   </TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acesso</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {user.status === 'pending' && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user, 'approved')}
-                            className="text-green-600 focus:text-green-600 focus:bg-green-50"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" /> Aprovar
-                            Cadastro
+                    <div className="flex justify-end items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => setEditUser(user)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        Editar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="h-8"
+                        disabled={!canDeleteUser(user)}
+                        onClick={() => setDeleteTarget(user)}
+                        title={
+                          user.id === currentUser?.id
+                            ? 'Você não pode excluir sua própria conta'
+                            : isMasterAdminEmail(user.email)
+                              ? 'Administrador principal não pode ser excluído'
+                              : 'Excluir usuário'
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditUser(user)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Editar perfil
                           </DropdownMenuItem>
-                        )}
-                        {user.status === 'blocked' && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user, 'approved')}
-                          >
-                            <Shield className="mr-2 h-4 w-4" /> Desbloquear
-                          </DropdownMenuItem>
-                        )}
-                        {user.status !== 'blocked' && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user, 'blocked')}
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                          >
-                            <Ban className="mr-2 h-4 w-4" /> Bloquear Acesso
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Status na Loja</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {user.status !== 'in_memoriam' && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user, 'in_memoriam')}
-                            className="text-gray-600"
-                          >
-                            <Flower2 className="mr-2 h-4 w-4" /> Marcar In Memoriam
-                          </DropdownMenuItem>
-                        )}
-                        {user.status !== 'adormecido' && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user, 'adormecido')}
-                            className="text-slate-600"
-                          >
-                            <Moon className="mr-2 h-4 w-4" /> Marcar Adormecido
-                          </DropdownMenuItem>
-                        )}
-                        {(user.status === 'in_memoriam' || user.status === 'adormecido') && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusChange(user, 'approved')}
-                            className="text-green-600"
-                          >
-                            <UserX className="mr-2 h-4 w-4" /> Reativar como Aprovado
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          {canDeleteUser(user) && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                              onClick={() => setDeleteTarget(user)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Excluir usuário
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Acesso</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {user.status === 'pending' && (
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user, 'approved')}
+                              className="text-green-600 focus:text-green-600 focus:bg-green-50"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" /> Aprovar
+                              Cadastro
+                            </DropdownMenuItem>
+                          )}
+                          {user.status === 'blocked' && (
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user, 'approved')}
+                            >
+                              <Shield className="mr-2 h-4 w-4" /> Desbloquear
+                            </DropdownMenuItem>
+                          )}
+                          {user.status !== 'blocked' && (
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user, 'blocked')}
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                              <Ban className="mr-2 h-4 w-4" /> Bloquear Acesso
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Status na Loja</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {user.status !== 'in_memoriam' && (
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user, 'in_memoriam')}
+                              className="text-gray-600"
+                            >
+                              <Flower2 className="mr-2 h-4 w-4" /> Marcar In Memoriam
+                            </DropdownMenuItem>
+                          )}
+                          {user.status !== 'adormecido' && (
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user, 'adormecido')}
+                              className="text-slate-600"
+                            >
+                              <Moon className="mr-2 h-4 w-4" /> Marcar Adormecido
+                            </DropdownMenuItem>
+                          )}
+                          {(user.status === 'in_memoriam' ||
+                            user.status === 'adormecido') && (
+                            <DropdownMenuItem
+                              onClick={() => handleStatusChange(user, 'approved')}
+                              className="text-green-600"
+                            >
+                              <UserX className="mr-2 h-4 w-4" /> Reativar como Aprovado
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -347,6 +428,50 @@ export function UserManagement() {
           </TableBody>
         </Table>
       </div>
+
+      <UserEditDialog
+        open={!!editUser}
+        onOpenChange={(open) => !open && setEditUser(null)}
+        user={editUser}
+        onSave={handleSaveProfile}
+      />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove permanentemente a conta de{' '}
+              <strong>{deleteTarget?.full_name}</strong> (
+              {deleteTarget?.email || 'sem e-mail'}), incluindo login e perfil.
+              Não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault()
+                void handleConfirmDelete()
+              }}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

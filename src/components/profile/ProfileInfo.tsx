@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -37,13 +37,16 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-const profileSchema = z.object({
+const baseProfileSchema = z.object({
   full_name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
+})
+
+const adminProfileSchema = baseProfileSchema.extend({
   masonic_degree: z.string().optional(),
 })
 
-type ProfileFormValues = z.infer<typeof profileSchema>
+type ProfileFormValues = z.infer<typeof adminProfileSchema>
 
 interface ProfileInfoProps {
   profile: {
@@ -65,17 +68,52 @@ const masonicDegrees = [
 export function ProfileInfo({ profile }: ProfileInfoProps) {
   const { updateProfile } = useProfileStore()
   const sessionRole = useAuthStore((s) => s.user?.role)
+  const authEmail = useAuthStore((s) => s.user?.email)
   const isMember = sessionRole === 'member'
   const { effectiveDegree, loading: degreeLoading } = useEffectiveMasonicDegree()
 
+  const profileSchema = isMember ? baseProfileSchema : adminProfileSchema
+
+  const initialValues = useMemo(
+    () => ({
+      full_name: profile.full_name || '',
+      email: profile.email || authEmail || '',
+      ...(isMember
+        ? {}
+        : { masonic_degree: profile.masonic_degree || undefined }),
+    }),
+    [
+      profile.full_name,
+      profile.email,
+      profile.masonic_degree,
+      authEmail,
+      isMember,
+    ],
+  )
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      full_name: profile.full_name || '',
-      email: profile.email || '',
-      masonic_degree: profile.masonic_degree || undefined,
-    },
+    defaultValues: initialValues,
+    mode: 'onChange',
   })
+
+  /** Só re-sincroniza quando dados do servidor mudam (não quando só o avatar muda). */
+  const profileFormSyncKey = useMemo(
+    () =>
+      [
+        profile.id,
+        profile.full_name,
+        profile.email ?? '',
+        isMember ? '' : (profile.masonic_degree ?? ''),
+      ].join('|'),
+    [
+      profile.id,
+      profile.full_name,
+      profile.email,
+      profile.masonic_degree,
+      isMember,
+    ],
+  )
 
   const updateOperation = useAsyncOperation(
     async (data: ProfileFormValues) => {
@@ -89,12 +127,8 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
   )
 
   useEffect(() => {
-    form.reset({
-      full_name: profile.full_name || '',
-      email: profile.email || '',
-      masonic_degree: profile.masonic_degree || undefined,
-    })
-  }, [profile, form])
+    form.reset(initialValues)
+  }, [profileFormSyncKey, form, initialValues])
 
   const onSubmit = async (data: ProfileFormValues) => {
     const submitData: ProfileFormValues = {
@@ -104,8 +138,24 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
     if (!isMember) {
       submitData.masonic_degree = data.masonic_degree || undefined
     }
-    await updateOperation.execute(submitData)
+    const result = await updateOperation.execute(submitData)
+    if (result !== null) {
+      form.reset(
+        isMember
+          ? { full_name: data.full_name, email: data.email }
+          : {
+              full_name: data.full_name,
+              email: data.email,
+              masonic_degree: data.masonic_degree || undefined,
+            },
+      )
+    }
   }
+
+  const canSave =
+    form.formState.isDirty &&
+    form.formState.isValid &&
+    !updateOperation.loading
 
   const displayedDegree = effectiveDegree ?? profile.masonic_degree
   const normalizedDisplay = normalizeMasonicDegree(displayedDegree)
@@ -214,11 +264,8 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
             )}
 
             <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={updateOperation.isLoading || !form.formState.isDirty}
-              >
-                {updateOperation.isLoading && (
+              <Button type="submit" disabled={!canSave}>
+                {updateOperation.loading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Salvar Alterações

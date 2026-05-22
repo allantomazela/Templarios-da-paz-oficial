@@ -111,7 +111,7 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
                 accept="image/*"
                 ref={imageUpload.inputRef}
                 onChange={handleFileChange}
-                disabled={imageUpload.isUploading || updateOperation.isLoading}
+                disabled={imageUpload.isUploading || updateOperation.loading}
                 className="cursor-pointer"
               />
             </div>
@@ -123,7 +123,7 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
               </div>
             )}
 
-            {updateOperation.isLoading && (
+            {updateOperation.loading && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Atualizando perfil...
@@ -136,7 +136,7 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
                 variant="outline"
                 size="sm"
                 onClick={handleRemoveAvatar}
-                disabled={updateOperation.isLoading}
+                disabled={updateOperation.loading}
               >
                 <X className="mr-2 h-4 w-4" />
                 Remover Foto

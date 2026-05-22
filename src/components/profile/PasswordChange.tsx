@@ -206,9 +206,9 @@ export function PasswordChange() {
             <div className="flex justify-end">
               <Button
                 type="submit"
-                disabled={updateOperation.isLoading || !form.formState.isDirty}
+                disabled={updateOperation.loading || !form.formState.isDirty}
               >
-                {updateOperation.isLoading && (
+                {updateOperation.loading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Alterar Senha

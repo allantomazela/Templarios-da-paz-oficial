@@ -8,22 +8,13 @@ import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
-
-interface Payment {
-  id: string
-  type: 'monthly' | 'charity'
-  description: string
-  amount: number
-  status: 'paid' | 'pending' | 'overdue'
-  dueDate: string
-  paymentDate?: string
-  month?: number
-  year?: number
-}
+import {
+  fetchMemberPayments,
+  type MemberPayment as Payment,
+} from '@/lib/member-payments'
 
 export default function MyPayments() {
   const [payments, setPayments] = useState<Payment[]>([])
-  const supabaseAny = supabase as any
 
   const loadPayments = useAsyncOperation(
     async () => {
@@ -37,90 +28,7 @@ export default function MyPayments() {
       }
 
 
-      const mappedPayments: Payment[] = []
-
-      // Tentar buscar mensalidades (contribuições) se a tabela existir
-      const { data: contributions, error: contributionsError } = await supabaseAny
-        .from('contributions')
-        .select('*')
-        .eq('brother_id', user.id)
-        .order('year', { ascending: false })
-        .order('month', { ascending: false })
-
-      // Tratar erro 404 (tabela não existe) como normal, não como erro crítico
-      if (contributionsError) {
-        const errorCode = (contributionsError as any)?.code || ''
-        const errorMessage = contributionsError.message || ''
-        
-        // Se for erro 404 ou PGRST116 (tabela não existe), ignorar silenciosamente
-        if (errorCode === 'PGRST116' || errorMessage.includes('404') || errorMessage.includes('relation') || errorMessage.includes('does not exist')) {
-          // Tabela não existe ainda, continuar sem erros
-          console.log('Tabela contributions não encontrada - migração ainda não aplicada')
-        } else {
-          // Outro tipo de erro, logar mas não quebrar
-          console.warn('Erro ao buscar contributions:', contributionsError)
-        }
-      } else if (contributions) {
-        contributions.forEach((cont: any) => {
-          const dueDate = new Date(cont.year, cont.month - 1, 10) // Vencimento dia 10
-          const today = new Date()
-          const isOverdue = today > dueDate && cont.status !== 'Pago'
-
-          mappedPayments.push({
-            id: cont.id,
-            type: 'monthly',
-            description: `Mensalidade ${cont.month}/${cont.year}`,
-            amount: cont.amount || 0,
-            status: cont.status === 'Pago' ? 'paid' : isOverdue ? 'overdue' : 'pending',
-            dueDate: format(dueDate, 'yyyy-MM-dd'),
-            paymentDate: cont.payment_date ? format(new Date(cont.payment_date), 'yyyy-MM-dd') : undefined,
-            month: cont.month,
-            year: cont.year,
-          })
-        })
-      }
-
-      // Tentar buscar doações ao tronco de beneficência se a tabela existir
-      const { data: charity, error: charityError } = await supabaseAny
-        .from('charity_donations')
-        .select('*')
-        .eq('brother_id', user.id)
-        .order('created_at', { ascending: false })
-
-      // Tratar erro 404 (tabela não existe) como normal, não como erro crítico
-      if (charityError) {
-        const errorCode = (charityError as any)?.code || ''
-        const errorMessage = charityError.message || ''
-        
-        // Se for erro 404 ou PGRST116 (tabela não existe), ignorar silenciosamente
-        if (errorCode === 'PGRST116' || errorMessage.includes('404') || errorMessage.includes('relation') || errorMessage.includes('does not exist')) {
-          // Tabela não existe ainda, continuar sem erros
-          console.log('Tabela charity_donations não encontrada - migração ainda não aplicada')
-        } else {
-          // Outro tipo de erro, logar mas não quebrar
-          console.warn('Erro ao buscar charity_donations:', charityError)
-        }
-      } else if (charity) {
-        charity.forEach((donation: any) => {
-          mappedPayments.push({
-            id: donation.id,
-            type: 'charity',
-            description: donation.description || 'Doação ao Tronco de Beneficência',
-            amount: donation.amount || 0,
-            status: 'paid', // Doações são sempre pagas
-            dueDate: format(new Date(donation.created_at), 'yyyy-MM-dd'),
-            paymentDate: format(new Date(donation.created_at), 'yyyy-MM-dd'),
-          })
-        })
-      }
-
-      // Ordenar por data de vencimento (mais recentes primeiro)
-      mappedPayments.sort((a, b) => {
-        const dateA = new Date(a.dueDate).getTime()
-        const dateB = new Date(b.dueDate).getTime()
-        return dateB - dateA
-      })
-
+      const mappedPayments = await fetchMemberPayments(user.id)
       setPayments(mappedPayments)
       return null
     },

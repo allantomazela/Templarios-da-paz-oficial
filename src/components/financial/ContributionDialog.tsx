@@ -84,7 +84,7 @@ export function ContributionDialog({
       brotherId: '',
       month: MONTHS[new Date().getMonth()],
       year: new Date().getFullYear(),
-      amount: 150.0,
+      amount: 0,
       status: 'Pendente',
       paymentDate: '',
     },

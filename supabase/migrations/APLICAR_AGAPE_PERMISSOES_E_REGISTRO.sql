@@ -1,0 +1,3 @@
+-- Aplicar no SQL Editor do Supabase (projeto hxncevpbwcearzxrstzj).
+-- Copie e execute o conteúdo completo do arquivo:
+-- supabase/migrations/20260519100000_agape_recorded_by_and_permissions.sql

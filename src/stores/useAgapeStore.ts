@@ -49,10 +49,15 @@ export interface AgapeConsumption {
   unit_price: number
   total_amount: number
   notes: string | null
+  recorded_by: string | null
   created_at: string
   updated_at: string
   menu_item?: AgapeMenuItem
   brother?: {
+    id: string
+    full_name: string | null
+  }
+  recorded_by_profile?: {
     id: string
     full_name: string | null
   }
@@ -275,7 +280,8 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
         .select(`
           *,
           menu_item:agape_menu_items(*),
-          brother:profiles!agape_consumptions_brother_id_fkey(id, full_name)
+          brother:profiles!agape_consumptions_brother_id_fkey(id, full_name),
+          recorded_by_profile:profiles!agape_consumptions_recorded_by_fkey(id, full_name)
         `)
         .order('created_at', { ascending: false })
 
@@ -307,7 +313,10 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
 
-      const brotherId = consumption.brother_id || user.id
+      const brotherId = consumption.brother_id ?? user.id
+      if (!brotherId) {
+        return { error: new Error('Selecione o irmão para registrar o consumo.') }
+      }
 
       // Primeiro, tentar inserir diretamente
       const { data: insertData, error: insertError } = await supabase
@@ -315,6 +324,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
         .insert({
           ...consumption,
           brother_id: brotherId,
+          recorded_by: user.id,
         })
         .select()
         .single()
@@ -356,6 +366,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
             .update({
               quantity: newQuantity,
               total_amount: newTotalAmount,
+              recorded_by: user.id,
             })
             .eq('id', existingData.id)
             .select()

@@ -7,6 +7,8 @@ import {
   clearSupabaseAuthStorage,
 } from '@/lib/auth-utils'
 import { isMasterAdminEmail } from '@/config/master-admin'
+import { getAppOrigin } from '@/lib/app-origin'
+import { sendUserEmail } from '@/lib/user-email-api'
 
 export type UserStatus = 'pending' | 'approved' | 'blocked' | 'in_memoriam' | 'adormecido'
 
@@ -290,35 +292,42 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (data.session) {
       const isMasterAdmin = isMasterAdminEmail(data.session.user.email)
 
-      set({
-        session: data.session,
-        user: {
-          ...data.session.user,
-          role: isMasterAdmin ? 'admin' : 'member',
-          profile: {
-            id: data.session.user.id,
-            full_name: data.session.user.user_metadata?.name || 'Usuário',
-            role: isMasterAdmin ? 'admin' : 'member',
-            status: isMasterAdmin ? 'approved' : 'pending',
-          },
-        },
-        isAuthenticated: true,
-        loading: true,
-      })
-
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.session.user.id)
         .single()
 
-      const userProfile = profile as Profile
+      const userProfile = profile as Profile | null
       let role = userProfile?.role || 'member'
       let status = userProfile?.status || 'pending'
 
       if (isMasterAdmin) {
         role = 'admin'
         status = 'approved'
+      }
+
+      if (
+        !isMasterAdmin &&
+        (status === 'pending' ||
+          status === 'blocked' ||
+          status === 'in_memoriam' ||
+          status === 'adormecido')
+      ) {
+        await supabase.auth.signOut()
+        set({
+          session: null,
+          user: null,
+          isAuthenticated: false,
+          loading: false,
+        })
+        const message =
+          status === 'pending'
+            ? 'Sua conta ainda aguarda aprovação da diretoria ou da administração.'
+            : 'Sua conta está bloqueada. Entre em contato com a administração da loja.'
+        return {
+          error: { message, code: status === 'pending' ? 'pending_approval' : 'blocked' },
+        }
       }
 
       set({
@@ -329,8 +338,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           profile: userProfile || {
             id: data.session.user.id,
             full_name: data.session.user.user_metadata?.name || 'Usuário',
-            role: role as any,
-            status: status as any,
+            email: data.session.user.email,
+            role: role as Profile['role'],
+            status: status as Profile['status'],
           },
         },
         isAuthenticated: true,
@@ -345,7 +355,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signUp: async (email, password, name, degree) => {
     set({ loading: true })
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -356,6 +366,24 @@ export const useAuthStore = create<AuthState>((set) => ({
         },
       },
     })
+
+    if (!error && data.user) {
+      if (data.session) {
+        await sendUserEmail({
+          type: 'signup_pending',
+          email,
+          fullName: name,
+        })
+      } else {
+        void sendUserEmail({
+          type: 'signup_pending',
+          email,
+          fullName: name,
+        })
+      }
+      await supabase.auth.signOut()
+    }
+
     set({ loading: false })
     return { error }
   },
@@ -388,7 +416,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   sendPasswordResetEmail: async (email: string) => {
     set({ loading: true })
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/reset-password',
+      redirectTo: `${getAppOrigin()}/reset-password`,
     })
     set({ loading: false })
     return { error }

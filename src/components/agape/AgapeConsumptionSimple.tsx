@@ -187,7 +187,8 @@ export function AgapeConsumptionSimple() {
             Registrar Consumo no Ágape
           </CardTitle>
           <CardDescription>
-            Selecione a sessão de ágape e registre seus consumos.
+            Selecione a sessão aberta e registre apenas os seus consumos. Cada
+            lançamento fica registrado em seu nome.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -313,6 +314,7 @@ export function AgapeConsumptionSimple() {
                           <TableHead>Quantidade</TableHead>
                           <TableHead className="text-right">Preço Unit.</TableHead>
                           <TableHead className="text-right">Total</TableHead>
+                          <TableHead>Registrado por</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -327,6 +329,12 @@ export function AgapeConsumptionSimple() {
                             </TableCell>
                             <TableCell className="text-right font-medium">
                               R$ {consumption.total_amount.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {consumption.recorded_by === user?.id
+                                ? 'Você'
+                                : consumption.recorded_by_profile?.full_name ||
+                                  '—'}
                             </TableCell>
                           </TableRow>
                         ))}

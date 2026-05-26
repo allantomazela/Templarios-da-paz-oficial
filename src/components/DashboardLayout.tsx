@@ -103,6 +103,10 @@ export default function DashboardLayout() {
   const isBlockedStatus =
     userStatus === 'blocked' || userStatus === 'in_memoriam'
 
+  if (!isMasterAdmin && userStatus === 'pending') {
+    return <Navigate to="/access-denied" replace />
+  }
+
   if (!isMasterAdmin && isBlockedStatus) {
     return <Navigate to="/access-denied" replace />
   }

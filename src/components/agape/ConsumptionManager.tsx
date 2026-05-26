@@ -314,6 +314,7 @@ export function ConsumptionManager({
                   <TableHead>Quantidade</TableHead>
                   <TableHead>Preço Unit.</TableHead>
                   <TableHead>Total</TableHead>
+                  <TableHead>Registrado por</TableHead>
                   {session?.status === 'open' && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -321,7 +322,7 @@ export function ConsumptionManager({
                 {sessionConsumptions.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={session?.status === 'open' ? 6 : 5}
+                      colSpan={session?.status === 'open' ? 7 : 6}
                       className="text-center text-muted-foreground"
                     >
                       Nenhum consumo registrado ainda.
@@ -348,6 +349,9 @@ export function ConsumptionManager({
                           style: 'currency',
                           currency: 'BRL',
                         }).format(consumption.total_amount)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {consumption.recorded_by_profile?.full_name || '—'}
                       </TableCell>
                       {session?.status === 'open' && (
                         <TableCell className="text-right">

@@ -22,13 +22,14 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
 import { ShieldCheck, Loader2, Lock } from 'lucide-react'
 
 const resetSchema = z
   .object({
     password: z
       .string()
-      .min(6, { message: 'A senha deve ter no mínimo 6 caracteres' }),
+      .min(8, { message: 'A senha deve ter no mínimo 8 caracteres' }),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -38,6 +39,7 @@ const resetSchema = z
 
 export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
   const { updatePassword, isAuthenticated, initialize } = useAuthStore()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -47,18 +49,53 @@ export default function ResetPassword() {
     defaultValues: { password: '', confirmPassword: '' },
   })
 
-  // Ensure session is initialized to capture the recovery token context
   useEffect(() => {
-    initialize()
-  }, [initialize])
+    let cancelled = false
+
+    async function prepareRecoverySession() {
+      await initialize()
+
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          toast({
+            variant: 'destructive',
+            title: 'Link inválido ou expirado',
+            description:
+              'Solicite novamente a recuperação de senha na tela de login.',
+          })
+        }
+      }
+
+      const hash = window.location.hash
+      if (hash.includes('type=recovery') || hash.includes('access_token')) {
+        const { data } = await supabase.auth.getSession()
+        if (!data.session) {
+          await new Promise((r) => setTimeout(r, 500))
+        }
+      }
+
+      if (!cancelled) {
+        setSessionReady(true)
+      }
+    }
+
+    prepareRecoverySession()
+    return () => {
+      cancelled = true
+    }
+  }, [initialize, toast])
 
   const onSubmit = async (data: z.infer<typeof resetSchema>) => {
-    if (!isAuthenticated) {
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session && !isAuthenticated) {
       toast({
         variant: 'destructive',
-        title: 'Sessão Inválida',
+        title: 'Sessão inválida',
         description:
-          'Não foi possível validar sua sessão. Tente solicitar a redefinição novamente.',
+          'Abra o link do e-mail novamente ou solicite uma nova recuperação de senha.',
       })
       return
     }
@@ -74,13 +111,22 @@ export default function ResetPassword() {
         description: error.message || 'Falha ao redefinir a senha.',
       })
     } else {
+      await supabase.auth.signOut()
       toast({
-        title: 'Senha Alterada',
+        title: 'Senha alterada',
         description:
-          'Sua senha foi atualizada com sucesso. Você será redirecionado.',
+          'Sua senha foi atualizada. Faça login com a nova senha (após aprovação da conta, se ainda pendente).',
       })
       setTimeout(() => navigate('/login'), 2000)
     }
+  }
+
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (

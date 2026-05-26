@@ -11,12 +11,27 @@ export type LodgePositionType =
   | 'tesoureiro'
   | 'mestre_banquete'
 
+/** Cargos da diretoria (podem registrar consumos no ágape) */
+export const DIRECTORATE_POSITION_TYPES: LodgePositionType[] = [
+  'veneravel_mestre',
+  'secretario',
+  'chanceler',
+  'tesoureiro',
+  'orador',
+]
+
+export function isDirectoratePosition(
+  position: LodgePositionType | null,
+): boolean {
+  return position !== null && DIRECTORATE_POSITION_TYPES.includes(position)
+}
+
 /** Mapeamento de permissões por cargo */
 export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {
   veneravel_mestre: ['*'],
-  secretario: ['secretariat', 'agenda', 'library'],
-  chanceler: ['chancellor', 'agenda'],
-  tesoureiro: ['financial'],
-  orador: ['reports'],
+  secretario: ['secretariat', 'agenda', 'library', 'agape'],
+  chanceler: ['chancellor', 'agenda', 'agape'],
+  tesoureiro: ['financial', 'agape'],
+  orador: ['reports', 'agape'],
   mestre_banquete: ['agenda', 'events', 'agape'],
 }

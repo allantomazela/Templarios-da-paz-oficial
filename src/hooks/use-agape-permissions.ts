@@ -2,45 +2,57 @@ import { useMemo } from 'react'
 import useAuthStore from '@/stores/useAuthStore'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import { isDirectoratePosition } from '@/constants/lodgePositions'
 
 /**
- * Hook para verificar permissões do módulo de ágape
- * Retorna se o usuário tem permissão de administração (pode gerenciar sessões, cardápio, etc.)
+ * Permissões do módulo Ágape:
+ * - isAgapeController: Mestre de Banquete, VM, admin (sessões, cardápio, relatórios)
+ * - canRecordConsumption: controlador + diretoria + editor (lançar consumo dos irmãos)
+ * - canRegisterOwnConsumption: irmão comum registra apenas o próprio consumo
  */
 export function useAgapePermissions() {
   const { user } = useAuthStore()
-  const { hasPermission, getUserCurrentPosition } = useLodgePositionsStore()
+  const { getUserCurrentPosition } = useLodgePositionsStore()
 
-  const isAgapeAdmin = useMemo(() => {
-    if (!user?.id) return false
+  return useMemo(() => {
+    if (!user?.id) {
+      return {
+        isAgapeController: false,
+        canRecordConsumption: false,
+        canManageSessions: false,
+        canManageMenu: false,
+        canViewReports: false,
+        canRegisterOwnConsumption: false,
+        canViewOwnConsumptions: false,
+        currentPosition: null as ReturnType<
+          typeof getUserCurrentPosition
+        >,
+      }
+    }
 
-    // Master Admin sempre tem acesso
     const isMasterAdmin = isMasterAdminEmail(user.email)
-    if (isMasterAdmin) return true
-
-    // Admin do sistema sempre tem acesso
-    if (user.role === 'admin') return true
-
-    // Verificar se tem cargo que dá acesso ao ágape
     const currentPosition = getUserCurrentPosition(user.id)
-    
-    // Venerável Mestre tem acesso total
-    if (currentPosition === 'veneravel_mestre') return true
-    
-    // Mestre de Banquete tem acesso de administração
-    if (currentPosition === 'mestre_banquete') return true
 
-    // Verificar permissão de módulo (para outros cargos que possam ter acesso)
-    if (hasPermission(user.id, 'agape')) return true
+    const isAgapeController =
+      isMasterAdmin ||
+      user.role === 'admin' ||
+      currentPosition === 'mestre_banquete' ||
+      currentPosition === 'veneravel_mestre'
 
-    return false
-  }, [user, hasPermission, getUserCurrentPosition])
+    const canRecordConsumption =
+      isAgapeController ||
+      user.role === 'editor' ||
+      isDirectoratePosition(currentPosition)
 
-  return {
-    isAgapeAdmin,
-    canManageSessions: isAgapeAdmin,
-    canManageMenu: isAgapeAdmin,
-    canViewReports: isAgapeAdmin,
-    canAddConsumption: true, // Todos os membros podem adicionar consumos
-  }
+    return {
+      isAgapeController,
+      canRecordConsumption,
+      canManageSessions: isAgapeController,
+      canManageMenu: isAgapeController,
+      canViewReports: isAgapeController,
+      canRegisterOwnConsumption: true,
+      canViewOwnConsumptions: true,
+      currentPosition,
+    }
+  }, [user, getUserCurrentPosition])
 }

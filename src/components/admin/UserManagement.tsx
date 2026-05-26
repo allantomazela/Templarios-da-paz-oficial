@@ -55,6 +55,8 @@ import {
   Trash2,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
+import { useCanApproveUsers } from '@/hooks/use-can-approve-users'
+import { sendUserEmail } from '@/lib/user-email-api'
 
 function roleLabel(role: Profile['role']) {
   switch (role) {
@@ -91,6 +93,7 @@ export function UserManagement() {
 
   const isSystemAdmin =
     currentUser?.role === 'admin' || isMasterAdminEmail(currentUser?.email)
+  const canApproveUsers = useCanApproveUsers()
 
   useEffect(() => {
     fetchUsers()
@@ -117,9 +120,25 @@ export function UserManagement() {
     user: Profile,
     newStatus: Profile['status'],
   ) => {
-    if (!isSystemAdmin) return
+    if (!canApproveUsers) return
     try {
       await updateUserStatus(user.id, newStatus)
+      if (newStatus === 'approved' && user.email) {
+        const mail = await sendUserEmail({
+          type: 'account_approved',
+          email: user.email,
+          fullName: user.full_name || 'Irmão',
+        })
+        if (!mail.ok && !mail.skipped) {
+          toast({
+            variant: 'destructive',
+            title: 'Aprovado, mas e-mail falhou',
+            description:
+              mail.error ||
+              'O usuário foi aprovado, porém o e-mail de liberação não foi enviado.',
+          })
+        }
+      }
       toast({
         title: 'Status Atualizado',
         description: `O status de ${user.full_name} foi alterado para ${newStatus}.`,
@@ -219,10 +238,11 @@ export function UserManagement() {
     }
   }
 
-  if (!isSystemAdmin) {
+  if (!canApproveUsers) {
     return (
       <p className="text-sm text-muted-foreground py-8 text-center">
-        Apenas administradores do sistema podem gerenciar usuários.
+        Apenas administradores do sistema ou membros da diretoria podem
+        aprovar cadastros de usuários.
       </p>
     )
   }
@@ -317,16 +337,19 @@ export function UserManagement() {
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8"
-                        onClick={() => setEditUser(user)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 mr-1" />
-                        Editar
-                      </Button>
+                      {isSystemAdmin && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => setEditUser(user)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Editar
+                        </Button>
+                      )}
+                      {isSystemAdmin && (
                       <Button
                         type="button"
                         variant="destructive"
@@ -344,6 +367,7 @@ export function UserManagement() {
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -351,9 +375,11 @@ export function UserManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditUser(user)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Editar perfil
-                          </DropdownMenuItem>
+                          {isSystemAdmin && (
+                            <DropdownMenuItem onClick={() => setEditUser(user)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Editar perfil
+                            </DropdownMenuItem>
+                          )}
                           {canDeleteUser(user) && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -381,7 +407,7 @@ export function UserManagement() {
                               <Shield className="mr-2 h-4 w-4" /> Desbloquear
                             </DropdownMenuItem>
                           )}
-                          {user.status !== 'blocked' && (
+                          {isSystemAdmin && user.status !== 'blocked' && (
                             <DropdownMenuItem
                               onClick={() => handleStatusChange(user, 'blocked')}
                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -389,6 +415,8 @@ export function UserManagement() {
                               <Ban className="mr-2 h-4 w-4" /> Bloquear Acesso
                             </DropdownMenuItem>
                           )}
+                          {isSystemAdmin && (
+                          <>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Status na Loja</DropdownMenuLabel>
                           <DropdownMenuSeparator />
@@ -416,6 +444,8 @@ export function UserManagement() {
                             >
                               <UserX className="mr-2 h-4 w-4" /> Reativar como Aprovado
                             </DropdownMenuItem>
+                          )}
+                          </>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>

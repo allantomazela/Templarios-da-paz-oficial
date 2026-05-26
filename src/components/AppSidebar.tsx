@@ -98,10 +98,11 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
     canAccessModule('library') ||
     isMasterAdmin
 
-  const canSeeAgape = 
-    ['admin', 'editor', 'member'].includes(userRole) || 
+  const canSeeAgape =
+    ['admin', 'editor', 'member'].includes(userRole) ||
     canAccessModule('agape') ||
     isMasterAdmin
+  // Todos os membros aprovados podem consultar; lançamento é Mestre de Banquete + diretoria
 
   const canSeeMedia = 
     ['admin', 'editor', 'member'].includes(userRole) || 

@@ -99,6 +99,12 @@ export function AuthCard() {
 
   const getErrorMessage = (error: any) => {
     const msg = (error?.message || error?.toString() || '').toLowerCase()
+    if (error?.code === 'pending_approval') {
+      return 'Sua conta ainda aguarda aprovação da diretoria ou da administração da loja.'
+    }
+    if (error?.code === 'blocked') {
+      return 'Sua conta está bloqueada. Entre em contato com a administração.'
+    }
     if (
       msg.includes('invalid login credentials') ||
       msg.includes('invalid_credentials')
@@ -109,7 +115,7 @@ export function AuthCard() {
       return 'Usuário não encontrado.'
     }
     if (msg.includes('email not confirmed')) {
-      return 'E-mail não confirmado. Verifique sua caixa de entrada.'
+      return 'Sua conta ainda não foi liberada. Aguarde a aprovação ou verifique seu e-mail.'
     }
     return 'Ocorreu um erro ao tentar entrar. Por favor, tente novamente mais tarde.'
   }
@@ -175,9 +181,9 @@ export function AuthCard() {
         })
       } else {
         toast({
-          title: 'Cadastro Realizado',
+          title: 'Cadastro realizado',
           description:
-            'Sua conta foi criada e está aguardando aprovação da secretaria. Você será notificado por email.',
+            'Enviamos um e-mail de confirmação. Sua conta aguarda aprovação da diretoria ou da administração — você só poderá entrar após a liberação.',
         })
         registerForm.reset()
       }

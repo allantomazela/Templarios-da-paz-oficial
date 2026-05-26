@@ -6,11 +6,12 @@ import { AgapeSessionsList } from '@/components/agape/AgapeSessionsList'
 import { MenuItemsList } from '@/components/agape/MenuItemsList'
 import { MonthlyReports } from '@/components/agape/MonthlyReports'
 import { AgapeConsumptionSimple } from '@/components/agape/AgapeConsumptionSimple'
+import { AgapeRecordPanel } from '@/components/agape/AgapeRecordPanel'
 import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
 export default function Agape() {
   const { fetchSessions, fetchMenuItems, fetchConsumptions } = useAgapeStore()
-  const { isAgapeAdmin } = useAgapePermissions()
+  const { isAgapeController, canRecordConsumption } = useAgapePermissions()
 
   useEffect(() => {
     fetchSessions()
@@ -18,57 +19,78 @@ export default function Agape() {
     fetchConsumptions()
   }, [fetchSessions, fetchMenuItems, fetchConsumptions])
 
-  // Se não for admin, mostrar apenas a interface simplificada para inserir consumos
-  if (!isAgapeAdmin) {
+  if (isAgapeController) {
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Ágape</h2>
           <p className="text-muted-foreground">
-            Registre seus consumos nas sessões de ágape abertas.
+            Controle do ágape pelo Mestre de Banquete: sessões, cardápio,
+            lançamento de consumos e relatórios. Cada lançamento registra quem
+            realizou a inserção.
           </p>
         </div>
-        <AgapeConsumptionSimple />
+
+        <Tabs defaultValue="overview" className="space-y-4">
+          <div className="flex items-center overflow-x-auto">
+            <TabsList className="w-full justify-start md:w-auto">
+              <TabsTrigger value="overview">Dashboard</TabsTrigger>
+              <TabsTrigger value="sessions">Sessões</TabsTrigger>
+              <TabsTrigger value="menu">Cardápio</TabsTrigger>
+              <TabsTrigger value="record">Registrar consumos</TabsTrigger>
+              <TabsTrigger value="reports">Relatórios Mensais</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="overview">
+            <AgapeOverview />
+          </TabsContent>
+
+          <TabsContent value="sessions">
+            <AgapeSessionsList />
+          </TabsContent>
+
+          <TabsContent value="menu">
+            <MenuItemsList />
+          </TabsContent>
+
+          <TabsContent value="record">
+            <AgapeRecordPanel />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <MonthlyReports />
+          </TabsContent>
+        </Tabs>
       </div>
     )
   }
 
-  // Interface completa para administradores
+  if (canRecordConsumption) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Ágape</h2>
+          <p className="text-muted-foreground">
+            Registre os consumos dos irmãos nas sessões abertas. O controle das
+            sessões e do cardápio é do Mestre de Banquete.
+          </p>
+        </div>
+        <AgapeRecordPanel />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Ágape</h2>
         <p className="text-muted-foreground">
-          Gestão de sessões de ágape, cardápio e consumo dos irmãos.
+          Registre seus consumos nas sessões abertas. A diretoria e o Mestre de
+          Banquete também podem lançar em seu nome.
         </p>
       </div>
-
-      <Tabs defaultValue="overview" className="space-y-4">
-        <div className="flex items-center overflow-x-auto">
-          <TabsList className="w-full justify-start md:w-auto">
-            <TabsTrigger value="overview">Dashboard</TabsTrigger>
-            <TabsTrigger value="sessions">Sessões</TabsTrigger>
-            <TabsTrigger value="menu">Cardápio</TabsTrigger>
-            <TabsTrigger value="reports">Relatórios Mensais</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="overview">
-          <AgapeOverview />
-        </TabsContent>
-
-        <TabsContent value="sessions">
-          <AgapeSessionsList />
-        </TabsContent>
-
-        <TabsContent value="menu">
-          <MenuItemsList />
-        </TabsContent>
-
-        <TabsContent value="reports">
-          <MonthlyReports />
-        </TabsContent>
-      </Tabs>
+      <AgapeConsumptionSimple />
     </div>
   )
 }

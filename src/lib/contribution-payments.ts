@@ -205,22 +205,44 @@ export function buildMensalidadeDescription(
   return `Mensalidade - ${name} (${String(month).padStart(2, '0')}/${year})`
 }
 
-async function ensureMensalidadeCategory(supabaseAny: ReturnType<typeof supabase> & object) {
-  const { data } = await supabaseAny
+async function resolveMensalidadeCategoryId(
+  supabaseAny: ReturnType<typeof supabase> & object,
+): Promise<string> {
+  const { data, error: fetchError } = await supabaseAny
     .from('financial_categories')
     .select('id')
     .eq('name', MENSALIDADE_CATEGORY)
     .eq('type', 'Receita')
     .maybeSingle()
 
-  if (data) return
+  if (fetchError) throw fetchError
+  if (data?.id) return data.id as string
 
-  await supabaseAny.from('financial_categories').insert({
-    name: MENSALIDADE_CATEGORY,
-    type: 'Receita',
-    description: 'Contribuições mensais dos irmãos',
-    color: '#16a34a',
-  })
+  const { data: created, error: insertError } = await supabaseAny
+    .from('financial_categories')
+    .insert({
+      name: MENSALIDADE_CATEGORY,
+      type: 'Receita',
+      description: 'Contribuições mensais dos irmãos',
+      color: '#16a34a',
+    })
+    .select('id')
+    .single()
+
+  if (insertError) throw insertError
+  return created.id as string
+}
+
+function formatSupabaseError(error: unknown): Error {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String((error as { message: string }).message)
+    const details =
+      'details' in error && (error as { details?: string }).details
+        ? ` (${(error as { details?: string }).details})`
+        : ''
+    return new Error(`${message}${details}`)
+  }
+  return error instanceof Error ? error : new Error('Erro ao salvar mensalidade.')
 }
 
 async function syncFinancialTransaction(
@@ -261,7 +283,7 @@ async function syncFinancialTransaction(
   const paymentDate =
     params.paymentDate || new Date().toISOString().slice(0, 10)
 
-  await ensureMensalidadeCategory(supabaseAny)
+  const categoryId = await resolveMensalidadeCategoryId(supabaseAny)
 
   const description = buildMensalidadeDescription(
     params.brotherName,
@@ -273,6 +295,7 @@ async function syncFinancialTransaction(
     date: paymentDate,
     description,
     category: MENSALIDADE_CATEGORY,
+    category_id: categoryId,
     type: 'Receita' as const,
     amount: params.amount,
     account_id: params.accountId,
@@ -495,17 +518,22 @@ export async function saveContribution(
 
   if (error) throw error
 
-  await syncFinancialTransaction(supabaseAny, {
-    contributionId: created.id,
-    brotherName,
-    month,
-    year: data.year,
-    amount: data.amount,
-    status: data.status,
-    paymentDate: basePayload.payment_date ?? undefined,
-    accountId: data.accountId,
-    existingTransactionId: created.transaction_id,
-  })
+  try {
+    await syncFinancialTransaction(supabaseAny, {
+      contributionId: created.id,
+      brotherName,
+      month,
+      year: data.year,
+      amount: data.amount,
+      status: data.status,
+      paymentDate: basePayload.payment_date ?? undefined,
+      accountId: data.accountId,
+      existingTransactionId: created.transaction_id,
+    })
+  } catch (syncError) {
+    await supabaseAny.from('contributions').delete().eq('id', created.id)
+    throw formatSupabaseError(syncError)
+  }
 }
 
 export async function deleteContribution(contribution: Contribution): Promise<void> {

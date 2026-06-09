@@ -3,11 +3,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FinancialOverview } from '@/components/financial/FinancialOverview'
 import { IncomeList } from '@/components/financial/IncomeList'
 import { ExpenseList } from '@/components/financial/ExpenseList'
-import { ContributionsList } from '@/components/financial/ContributionsList'
+import { MembershipPayments } from '@/components/financial/MembershipPayments'
 import { FinancialReports } from '@/components/financial/FinancialReports'
 import { CategoryList } from '@/components/financial/CategoryList'
 import { BudgetsAndGoals } from '@/components/financial/BudgetsAndGoals'
 import { ReminderSettings } from '@/components/financial/ReminderSettings'
+import { MembershipFeeSettings } from '@/components/financial/MembershipFeeSettings'
 import { BankAccounts } from '@/components/financial/BankAccounts'
 import { CashFlowReport } from '@/components/financial/CashFlowReport'
 import { CharityCollection } from '@/components/financial/CharityCollection'
@@ -37,7 +38,7 @@ export default function Financial() {
             <TabsTrigger value="income">Receitas</TabsTrigger>
             <TabsTrigger value="expenses">Despesas</TabsTrigger>
             <TabsTrigger value="charity">Tronco de Beneficência</TabsTrigger>
-            <TabsTrigger value="contributions">Contribuições</TabsTrigger>
+            <TabsTrigger value="contributions">Mensalidades</TabsTrigger>
             <TabsTrigger value="budgets">Metas e Orçamentos</TabsTrigger>
             <TabsTrigger value="reports">Outros Relatórios</TabsTrigger>
             <TabsTrigger value="categories">Categorias</TabsTrigger>
@@ -70,7 +71,7 @@ export default function Financial() {
         </TabsContent>
 
         <TabsContent value="contributions">
-          {activeTab === 'contributions' ? <ContributionsList /> : null}
+          {activeTab === 'contributions' ? <MembershipPayments /> : null}
         </TabsContent>
 
         <TabsContent value="budgets">
@@ -86,7 +87,12 @@ export default function Financial() {
         </TabsContent>
 
         <TabsContent value="settings">
-          {activeTab === 'settings' ? <ReminderSettings /> : null}
+          {activeTab === 'settings' ? (
+            <div className="space-y-6">
+              <MembershipFeeSettings />
+              <ReminderSettings />
+            </div>
+          ) : null}
         </TabsContent>
       </Tabs>
     </div>

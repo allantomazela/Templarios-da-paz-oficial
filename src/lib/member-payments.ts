@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-
+import {
+  DEFAULT_MEMBERSHIP_DUE_DAY,
+  fetchMembershipFeeSettings,
+} from '@/lib/contribution-payments'
 export interface MemberPayment {
   id: string
   type: 'monthly' | 'charity'
@@ -30,6 +33,13 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
   const supabaseAny = supabase as any
   const mappedPayments: MemberPayment[] = []
 
+  let dueDay = DEFAULT_MEMBERSHIP_DUE_DAY
+  try {
+    const settings = await fetchMembershipFeeSettings()
+    dueDay = settings.dueDay
+  } catch {
+    // mantém padrão
+  }
   const { data: contributions, error: contributionsError } = await supabaseAny
     .from('contributions')
     .select('*')
@@ -50,7 +60,7 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
       status?: string
       payment_date?: string | null
     }) => {
-      const dueDate = new Date(cont.year, cont.month - 1, 10)
+      const dueDate = new Date(cont.year, cont.month - 1, dueDay)
       const today = new Date()
       const isOverdue = today > dueDate && cont.status !== 'Pago'
 
@@ -178,7 +188,10 @@ export function buildMemberFinancialSummary(
   } else if (current?.status === 'paid') {
     const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1
     const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear
-    nextDueLabel = `Próximo vencimento: 10/${String(nextMonth).padStart(2, '0')}/${nextYear}`
+    const dayFromDue = current.dueDate
+      ? new Date(current.dueDate).getDate()
+      : DEFAULT_MEMBERSHIP_DUE_DAY
+    nextDueLabel = `Próximo vencimento: ${String(dayFromDue).padStart(2, '0')}/${String(nextMonth).padStart(2, '0')}/${nextYear}`
   }
 
   return {

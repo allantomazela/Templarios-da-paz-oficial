@@ -9,6 +9,8 @@ export interface Brother {
   name: string
   email: string
   phone: string
+  /** Conta em profiles vinculada (mensalidades / login) */
+  profileId?: string
   degree: 'Aprendiz' | 'Companheiro' | 'Mestre'
   role:
     | 'VenerÃ¡vel Mestre'
@@ -130,11 +132,15 @@ export interface Transaction {
 export interface Contribution {
   id: string
   brotherId: string
+  brotherName?: string
   month: string
   year: number
   amount: number
   status: 'Pago' | 'Pendente' | 'Atrasado'
   paymentDate?: string
+  accountId?: string
+  transactionId?: string
+  notes?: string
 }
 
 export interface LibraryItem {

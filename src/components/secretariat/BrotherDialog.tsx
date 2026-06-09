@@ -44,6 +44,12 @@ import {
 } from '@/lib/format-utils'
 import { fetchCEPData } from '@/lib/cep-utils'
 import { useToast } from '@/hooks/use-toast'
+import {
+  BROTHER_PROFILE_AUTO,
+  BROTHER_PROFILE_NONE,
+  fetchApprovedProfilesForLink,
+  profileLinkLabel,
+} from '@/lib/brother-profile-link'
 
 // Schema for a single child
 const childSchema = z.object({
@@ -107,6 +113,9 @@ const brotherSchema = z.object({
 
   // Legacy address
   address: z.string().optional(),
+
+  /** Conta no sistema (profiles) — mensalidades e login */
+  profileId: z.string().optional(),
 })
 
 type BrotherFormValues = z.infer<typeof brotherSchema>
@@ -127,6 +136,10 @@ export function BrotherDialog({
 }: BrotherDialogProps) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isLoadingCEP, setIsLoadingCEP] = useState(false)
+  const [approvedProfiles, setApprovedProfiles] = useState<
+    { id: string; full_name: string | null; email: string | null }[]
+  >([])
+  const [loadingProfiles, setLoadingProfiles] = useState(false)
   const photoBlobRef = useRef<string | null>(null)
   const { toast } = useToast()
 
@@ -179,8 +192,18 @@ export function BrotherDialog({
       addressState: '',
       addressZipcode: '',
       address: '',
+      profileId: BROTHER_PROFILE_AUTO,
     },
   })
+
+  useEffect(() => {
+    if (!open) return
+    setLoadingProfiles(true)
+    fetchApprovedProfilesForLink()
+      .then(setApprovedProfiles)
+      .catch(() => setApprovedProfiles([]))
+      .finally(() => setLoadingProfiles(false))
+  }, [open])
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -227,6 +250,7 @@ export function BrotherDialog({
         addressState: brotherToEdit.addressState || '',
         addressZipcode: brotherToEdit.addressZipcode || '',
         address: brotherToEdit.address || '',
+        profileId: brotherToEdit.profileId || BROTHER_PROFILE_AUTO,
       })
 
       if (brotherToEdit.photoUrl) {
@@ -267,6 +291,7 @@ export function BrotherDialog({
         addressState: '',
         addressZipcode: '',
         address: '',
+        profileId: BROTHER_PROFILE_AUTO,
       })
       setPhotoPreview(null)
       imageUpload.reset()
@@ -471,6 +496,50 @@ export function BrotherDialog({
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="profileId"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Conta no sistema (mensalidades)</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || BROTHER_PROFILE_AUTO}
+                        disabled={loadingProfiles}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                loadingProfiles
+                                  ? 'Carregando contas...'
+                                  : 'Selecione o vínculo'
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={BROTHER_PROFILE_AUTO}>
+                            Vincular automaticamente pelo e-mail
+                          </SelectItem>
+                          <SelectItem value={BROTHER_PROFILE_NONE}>
+                            Sem vínculo com conta
+                          </SelectItem>
+                          {approvedProfiles.map((profile) => (
+                            <SelectItem key={profile.id} value={profile.id}>
+                              {profileLinkLabel(profile)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Usado para mensalidades na tesouraria e histórico na
+                        secretaria.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

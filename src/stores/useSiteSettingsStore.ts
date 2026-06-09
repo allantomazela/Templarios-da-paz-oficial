@@ -92,6 +92,10 @@ export interface SiteSettingsState {
     pixName: string
     paymentType: 'monthly' | 'per_session'
   }
+  membershipFee: {
+    defaultAmount: number
+    dueDay: number
+  }
   /** Configuração do templo para check-in por QR (geolocalização e janela de horário). */
   templeCheckin: {
     latitude: number | null
@@ -122,6 +126,9 @@ export interface SiteSettingsState {
   ) => Promise<void>
   updateAgapePaymentSettings: (
     data: Partial<SiteSettingsState['agapePix']>,
+  ) => Promise<void>
+  updateMembershipFeeSettings: (
+    data: Partial<SiteSettingsState['membershipFee']>,
   ) => Promise<void>
   updateTempleCheckin: (
     data: Partial<SiteSettingsState['templeCheckin']>,
@@ -224,6 +231,10 @@ const mapSettingsFromDB = (data: any) => {
       pixName: data.agape_pix_name || '',
       paymentType: (data.agape_payment_type as 'monthly' | 'per_session') || 'monthly',
     },
+    membershipFee: {
+      defaultAmount: Number(data.membership_fee_amount) || 150,
+      dueDay: Number(data.membership_fee_due_day) || 10,
+    },
     templeCheckin: {
       latitude: data.temple_latitude ?? null,
       longitude: data.temple_longitude ?? null,
@@ -284,6 +295,10 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     pixKey: '',
     pixName: '',
     paymentType: 'monthly' as 'monthly' | 'per_session',
+  },
+  membershipFee: {
+    defaultAmount: 150,
+    dueDay: 10,
   },
   templeCheckin: {
     latitude: null as number | null,
@@ -587,6 +602,32 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating agape payment settings', error)
+      throw error
+    }
+  },
+
+  updateMembershipFeeSettings: async (data) => {
+    try {
+      const updates: Record<string, number> = {}
+      if (data.defaultAmount !== undefined) {
+        updates.membership_fee_amount = data.defaultAmount
+      }
+      if (data.dueDay !== undefined) {
+        updates.membership_fee_due_day = data.dueDay
+      }
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+      set((state) => ({
+        membershipFee: { ...state.membershipFee, ...data },
+      }))
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating membership fee settings', error)
       throw error
     }
   },

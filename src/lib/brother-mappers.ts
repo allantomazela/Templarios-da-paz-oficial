@@ -16,6 +16,7 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
     cpf: row.cpf ? String(row.cpf) : undefined,
     dob: row.dob ? String(row.dob) : undefined,
     photoUrl: row.photo_url ? String(row.photo_url) : undefined,
+    profileId: row.profile_id ? String(row.profile_id) : undefined,
     degree: (row.degree as Brother['degree']) || 'Aprendiz',
     role: (row.role as Brother['role']) || 'Irmão',
     status: (row.status as Brother['status']) || 'Ativo',

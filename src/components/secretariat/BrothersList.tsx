@@ -34,6 +34,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase/client'
 import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
 import { mapBrotherFromDB } from '@/lib/brother-mappers'
+import { resolveBrotherProfileIdForSave } from '@/lib/brother-profile-link'
 
 export function BrothersList() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -129,7 +130,14 @@ export function BrothersList() {
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
-      const dbData = mapBrotherToDB(data)
+      const profileId = await resolveBrotherProfileIdForSave(
+        data.email,
+        data.profileId,
+      )
+      const dbData = {
+        ...mapBrotherToDB(data),
+        profile_id: profileId,
+      }
       
       if (selectedBrother) {
         // Atualizar

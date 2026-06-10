@@ -415,11 +415,11 @@ export function MembershipPayments() {
               />
             </div>
             <Button
-              variant="outline"
               onClick={() => openNew(selectedBrotherId)}
               disabled={!selectedBrotherId}
+              className="shrink-0 bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/25 transition-all hover:bg-emerald-700 hover:shadow-md disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:ring-0"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <User className="mr-2 h-4 w-4" />
               Lançar para este irmão
             </Button>
           </div>

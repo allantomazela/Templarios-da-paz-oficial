@@ -18,6 +18,15 @@ export function formatCurrencyBRL(
   return brlFormatter.format(num)
 }
 
+/** Data local de hoje no formato yyyy-MM-dd (inputs type="date"). */
+export function todayLocalISODate(): string {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 /**
  * Formats a CPF string (removes non-digits and applies mask)
  * @param value - The CPF value (with or without formatting)

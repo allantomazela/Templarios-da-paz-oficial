@@ -45,6 +45,7 @@ import {
 import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
 import { MembershipFeeQuickSettings } from '@/components/financial/MembershipFeeQuickSettings'
 import { formatCurrencyBRL } from '@/lib/member-payments'
+import { todayLocalISODate } from '@/lib/format-utils'
 import { cn } from '@/lib/utils'
 
 const contributionSchema = z
@@ -107,7 +108,7 @@ export function ContributionDialog({
       year: new Date().getFullYear(),
       amount: defaultAmount,
       status: 'Pago',
-      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentDate: todayLocalISODate(),
       accountId: '',
       notes: '',
     },
@@ -150,8 +151,7 @@ export function ContributionDialog({
         amount: contributionToEdit.amount,
         status: contributionToEdit.status,
         paymentDate:
-          contributionToEdit.paymentDate ||
-          new Date().toISOString().slice(0, 10),
+          contributionToEdit.paymentDate || todayLocalISODate(),
         accountId: contributionToEdit.accountId || '',
         notes: contributionToEdit.notes || '',
       })
@@ -162,7 +162,7 @@ export function ContributionDialog({
         year: new Date().getFullYear(),
         amount: defaultAmount,
         status: 'Pago',
-        paymentDate: new Date().toISOString().slice(0, 10),
+        paymentDate: todayLocalISODate(),
         accountId: '',
         notes: '',
       })
@@ -170,10 +170,15 @@ export function ContributionDialog({
   }, [contributionToEdit, defaultBrotherId, defaultAmount, form, open])
 
   useEffect(() => {
-    if (watchStatus === 'Pago' && !form.getValues('paymentDate')) {
-      form.setValue('paymentDate', new Date().toISOString().slice(0, 10))
+    if (watchStatus !== 'Pago') return
+    if (contributionToEdit) {
+      if (!form.getValues('paymentDate')) {
+        form.setValue('paymentDate', todayLocalISODate())
+      }
+      return
     }
-  }, [watchStatus, form])
+    form.setValue('paymentDate', todayLocalISODate())
+  }, [watchStatus, contributionToEdit, form])
 
   const dialogTitle = contributionToEdit
     ? 'Editar mensalidade'

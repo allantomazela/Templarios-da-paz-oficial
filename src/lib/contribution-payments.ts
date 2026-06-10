@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { toError, isDuplicateKeyError } from '@/lib/async-utils'
+import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
@@ -292,7 +293,7 @@ async function syncFinancialTransaction(
   }
 
   const paymentDate =
-    params.paymentDate || new Date().toISOString().slice(0, 10)
+    params.paymentDate || todayLocalISODate()
 
   const categoryId = await resolveMensalidadeCategoryId(supabaseAny)
 
@@ -493,7 +494,7 @@ export async function saveContribution(
     status: data.status,
     payment_date:
       data.status === 'Pago'
-        ? data.paymentDate || new Date().toISOString().slice(0, 10)
+        ? data.paymentDate || todayLocalISODate()
         : null,
     account_id: data.status === 'Pago' ? data.accountId ?? null : null,
     notes: data.notes?.trim() || null,

@@ -16,6 +16,7 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { BudgetDialog } from './BudgetDialog'
 import { GoalDialog } from './GoalDialog'
 import { format } from 'date-fns'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 
 interface BudgetFromDB {
   id: string
@@ -483,11 +484,11 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
                   <CardContent>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-muted-foreground">
-                        {budget.type === 'Receita' ? 'Arrecadado' : 'Gasto'}: R${' '}
-                        {current.toFixed(2)}
+                        {budget.type === 'Receita' ? 'Arrecadado' : 'Gasto'}:{' '}
+                        {formatCurrencyBRL(current)}
                       </span>
                       <span className="font-medium">
-                        Meta: R$ {budget.amount.toFixed(2)}
+                        Meta: {formatCurrencyBRL(budget.amount)}
                       </span>
                     </div>
                     <Progress
@@ -557,10 +558,10 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
                   <CardContent>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-muted-foreground">
-                        Atual: R$ {current.toFixed(2)}
+                        Atual: {formatCurrencyBRL(current)}
                       </span>
                       <span className="font-medium">
-                        Alvo: R$ {goal.targetAmount.toFixed(2)}
+                        Alvo: {formatCurrencyBRL(goal.targetAmount)}
                       </span>
                     </div>
                     <Progress value={percentage} className="h-2 bg-secondary" />

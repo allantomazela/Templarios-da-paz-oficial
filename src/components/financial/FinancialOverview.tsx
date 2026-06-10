@@ -16,6 +16,7 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -289,7 +290,7 @@ export function FinancialOverview() {
                 globalBalance >= 0 ? 'text-primary' : 'text-destructive',
               )}
             >
-              R$ {globalBalance.toFixed(2)}
+              {formatCurrencyBRL(globalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
               Total em todas as contas
@@ -305,7 +306,7 @@ export function FinancialOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">
-              R$ {totalIncome.toFixed(2)}
+              {formatCurrencyBRL(totalIncome)}
             </div>
             <p className="text-xs text-muted-foreground">Entradas filtradas</p>
           </CardContent>
@@ -319,7 +320,7 @@ export function FinancialOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-500">
-              R$ {totalExpense.toFixed(2)}
+              {formatCurrencyBRL(totalExpense)}
             </div>
             <p className="text-xs text-muted-foreground">Saídas filtradas</p>
           </CardContent>
@@ -343,7 +344,7 @@ export function FinancialOverview() {
                 periodResult >= 0 ? 'text-green-600' : 'text-red-600',
               )}
             >
-              R$ {periodResult.toFixed(2)}
+              {formatCurrencyBRL(periodResult)}
             </div>
             <p className="text-xs text-muted-foreground">
               Balanço do período selecionado
@@ -370,7 +371,13 @@ export function FinancialOverview() {
                   tickMargin={10}
                   axisLine={false}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) => formatCurrencyBRL(Number(value))}
+                    />
+                  }
+                />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar dataKey="receita" fill="var(--color-receita)" radius={4} />
                 <Bar dataKey="despesa" fill="var(--color-despesa)" radius={4} />
@@ -388,7 +395,14 @@ export function FinancialOverview() {
           <CardContent>
             <ChartContainer config={{}} className="h-[300px] w-full mx-auto">
               <PieChart>
-                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      hideLabel
+                      formatter={(value) => formatCurrencyBRL(Number(value))}
+                    />
+                  }
+                />
                 <Pie
                   data={expenseCategoryData}
                   dataKey="value"

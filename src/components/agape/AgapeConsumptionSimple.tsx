@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Loader2, CheckCircle2, Calendar } from 'lucide-react'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { useToast } from '@/hooks/use-toast'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import useAuthStore from '@/stores/useAuthStore'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -251,7 +252,7 @@ export function AgapeConsumptionSimple() {
                     <SelectContent>
                       {activeMenuItems.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
-                          {item.name} - R$ {item.price.toFixed(2)}
+                          {item.name} - {formatCurrencyBRL(item.price)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -287,12 +288,11 @@ export function AgapeConsumptionSimple() {
               {selectedMenuItem && (
                 <div className="rounded-lg border p-3 bg-muted/30">
                   <p className="text-sm text-muted-foreground">
-                    Total: R${' '}
-                    {(
-                      activeMenuItems.find((m) => m.id === selectedMenuItem)
-                        ?.price || 0
-                    ) *
-                      quantity}
+                    Total:{' '}
+                    {formatCurrencyBRL(
+                      (activeMenuItems.find((m) => m.id === selectedMenuItem)
+                        ?.price || 0) * quantity,
+                    )}
                   </p>
                 </div>
               )}
@@ -302,7 +302,7 @@ export function AgapeConsumptionSimple() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Meus Consumos</h3>
                     <Badge variant="secondary" className="text-lg">
-                      Total: R$ {totalMyConsumption.toFixed(2)}
+                      Total: {formatCurrencyBRL(totalMyConsumption)}
                     </Badge>
                   </div>
 
@@ -325,10 +325,10 @@ export function AgapeConsumptionSimple() {
                             </TableCell>
                             <TableCell>{consumption.quantity}</TableCell>
                             <TableCell className="text-right">
-                              R$ {consumption.unit_price.toFixed(2)}
+                              {formatCurrencyBRL(consumption.unit_price)}
                             </TableCell>
                             <TableCell className="text-right font-medium">
-                              R$ {consumption.total_amount.toFixed(2)}
+                              {formatCurrencyBRL(consumption.total_amount)}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {consumption.recorded_by === user?.id

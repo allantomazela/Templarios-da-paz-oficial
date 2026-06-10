@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { MenuItemDialog } from './MenuItemDialog'
 import { useDialog } from '@/hooks/use-dialog'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import { AgapeMenuItem } from '@/stores/useAgapeStore'
 
@@ -98,10 +99,7 @@ export function MenuItemsList() {
                     <TableCell>{item.description || '-'}</TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(item.price)}
+                      {formatCurrencyBRL(item.price)}
                     </TableCell>
                     <TableCell>
                       {item.is_active ? (

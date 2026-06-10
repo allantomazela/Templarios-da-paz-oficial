@@ -13,6 +13,7 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Solid } from '@/lib/data'
 import { SolidDialog } from './SolidDialog'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { useDialog } from '@/hooks/use-dialog'
@@ -114,7 +115,7 @@ export function SolidsManager() {
           <div key={cat} className="border rounded-md p-3 bg-secondary/10">
             <span className="text-xs text-muted-foreground block">{cat}</span>
             <span className="text-lg font-bold text-primary">
-              R$ {amount.toFixed(2)}
+              {formatCurrencyBRL(amount)}
             </span>
           </div>
         ))}
@@ -153,7 +154,7 @@ export function SolidsManager() {
                   </TableCell>
                   <TableCell>{getBrotherName(solid.brotherId)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">
-                    R$ {solid.amount.toFixed(2)}
+                    {formatCurrencyBRL(solid.amount)}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button

@@ -5,6 +5,7 @@ import { Download, QrCode } from 'lucide-react'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
   Table,
@@ -187,16 +188,10 @@ export function AgapePaymentReport({
                         {consumption.quantity}
                       </TableCell>
                       <TableCell className="text-right">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(consumption.amount / consumption.quantity)}
+                        {formatCurrencyBRL(consumption.amount / consumption.quantity)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(consumption.amount)}
+                        {formatCurrencyBRL(consumption.amount)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -209,10 +204,7 @@ export function AgapePaymentReport({
               <div className="border-2 border-primary rounded-lg p-6 bg-primary/5">
                 <h4 className="text-lg font-bold mb-4">Valor Total</h4>
                 <p className="text-3xl font-bold text-primary">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(totalAmount)}
+                  {formatCurrencyBRL(totalAmount)}
                 </p>
                 <div className="mt-4 space-y-2 text-sm">
                   <p>
@@ -237,10 +229,7 @@ export function AgapePaymentReport({
                       <p className="break-all">{pixKey}</p>
                       <p className="font-semibold mt-2 mb-1">Valor:</p>
                       <p className="text-lg font-bold text-primary">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(totalAmount)}
+                        {formatCurrencyBRL(totalAmount)}
                       </p>
                     </div>
                   </div>

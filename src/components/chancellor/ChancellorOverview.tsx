@@ -15,6 +15,7 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useSiteSettingsStore } from '@/stores/useSiteSettingsStore'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   Users,
   TrendingUp,
@@ -308,7 +309,7 @@ export function ChancellorOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {totalCharity.toFixed(2)}
+              {formatCurrencyBRL(totalCharity)}
             </div>
             <p className="text-xs text-muted-foreground">Total arrecadado</p>
           </CardContent>

@@ -28,6 +28,7 @@ import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
 import { fetchTransactionsWithAccountNames } from '@/lib/financial-queries'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 
 export function IncomeList() {
   const [incomes, setIncomes] = useState<Transaction[]>([])
@@ -263,7 +264,7 @@ export function IncomeList() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono text-green-600">
-                    R$ {income.amount.toFixed(2)}
+                    {formatCurrencyBRL(income.amount)}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
@@ -310,7 +311,7 @@ export function IncomeList() {
                   <div className="space-y-1">
                     <h4 className="font-medium">{income.description}</h4>
                     <span className="text-lg font-bold text-green-600">
-                      R$ {income.amount.toFixed(2)}
+                      {formatCurrencyBRL(income.amount)}
                     </span>
                   </div>
                   <div className="flex gap-1">

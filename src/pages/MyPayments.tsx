@@ -12,6 +12,7 @@ import {
   fetchMemberPayments,
   type MemberPayment as Payment,
 } from '@/lib/member-payments'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 
 export default function MyPayments() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -99,12 +100,11 @@ export default function MyPayments() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              R${' '}
-              {payments
-                .filter((p) => p.status === 'paid')
-                .reduce((sum, p) => sum + p.amount, 0)
-                .toFixed(2)
-                .replace('.', ',')}
+              {formatCurrencyBRL(
+                payments
+                  .filter((p) => p.status === 'paid')
+                  .reduce((sum, p) => sum + p.amount, 0),
+              )}
             </div>
           </CardContent>
         </Card>
@@ -115,11 +115,9 @@ export default function MyPayments() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
-              R${' '}
-              {pendingPayments
-                .reduce((sum, p) => sum + p.amount, 0)
-                .toFixed(2)
-                .replace('.', ',')}
+              {formatCurrencyBRL(
+                pendingPayments.reduce((sum, p) => sum + p.amount, 0),
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {pendingPayments.length} pagamento(s)
@@ -133,11 +131,9 @@ export default function MyPayments() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R${' '}
-              {charityPayments
-                .reduce((sum, p) => sum + p.amount, 0)
-                .toFixed(2)
-                .replace('.', ',')}
+              {formatCurrencyBRL(
+                charityPayments.reduce((sum, p) => sum + p.amount, 0),
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {charityPayments.length} doação(ões)
@@ -193,7 +189,7 @@ export default function MyPayments() {
                           })}
                         </TableCell>
                         <TableCell className="font-mono">
-                          R$ {payment.amount.toFixed(2).replace('.', ',')}
+                          {formatCurrencyBRL(payment.amount)}
                         </TableCell>
                         <TableCell>{getStatusBadge(payment.status)}</TableCell>
                         <TableCell>
@@ -244,7 +240,7 @@ export default function MyPayments() {
                           })}
                         </TableCell>
                         <TableCell className="font-mono">
-                          R$ {payment.amount.toFixed(2).replace('.', ',')}
+                          {formatCurrencyBRL(payment.amount)}
                         </TableCell>
                         <TableCell>{getStatusBadge(payment.status)}</TableCell>
                       </TableRow>

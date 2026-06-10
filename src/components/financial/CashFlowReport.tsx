@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { Transaction } from '@/lib/data'
 
 interface TransactionFromDB {
@@ -185,7 +186,7 @@ export function CashFlowReport() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-700">
-              R$ {totalIncome.toFixed(2)}
+              {formatCurrencyBRL(totalIncome)}
             </div>
           </CardContent>
         </Card>
@@ -197,7 +198,7 @@ export function CashFlowReport() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-700">
-              R$ {totalExpense.toFixed(2)}
+              {formatCurrencyBRL(totalExpense)}
             </div>
           </CardContent>
         </Card>
@@ -217,7 +218,7 @@ export function CashFlowReport() {
             <div
               className={`text-2xl font-bold ${netCashFlow >= 0 ? 'text-blue-700' : 'text-orange-700'}`}
             >
-              R$ {netCashFlow.toFixed(2)}
+              {formatCurrencyBRL(netCashFlow)}
             </div>
           </CardContent>
         </Card>
@@ -244,7 +245,7 @@ export function CashFlowReport() {
                   <TableRow key={cat}>
                     <TableCell>{cat}</TableCell>
                     <TableCell className="text-right text-green-600 font-medium">
-                      R$ {val.toFixed(2)}
+                      {formatCurrencyBRL(val)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -272,7 +273,7 @@ export function CashFlowReport() {
                   <TableRow key={cat}>
                     <TableCell>{cat}</TableCell>
                     <TableCell className="text-right text-red-600 font-medium">
-                      R$ {val.toFixed(2)}
+                      {formatCurrencyBRL(val)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -298,7 +299,7 @@ export function CashFlowReport() {
               Total Entradas
             </p>
             <p className="text-2xl font-bold text-green-700">
-              R$ {totalIncome.toFixed(2)}
+              {formatCurrencyBRL(totalIncome)}
             </p>
           </div>
           <div className="text-center border-x">
@@ -306,7 +307,7 @@ export function CashFlowReport() {
               Total Saídas
             </p>
             <p className="text-2xl font-bold text-red-700">
-              R$ {totalExpense.toFixed(2)}
+              {formatCurrencyBRL(totalExpense)}
             </p>
           </div>
           <div className="text-center">
@@ -316,7 +317,7 @@ export function CashFlowReport() {
             <p
               className={`text-2xl font-bold ${netCashFlow >= 0 ? 'text-blue-700' : 'text-red-700'}`}
             >
-              R$ {netCashFlow.toFixed(2)}
+              {formatCurrencyBRL(netCashFlow)}
             </p>
           </div>
         </div>
@@ -332,7 +333,7 @@ export function CashFlowReport() {
                       {cat}
                     </TableCell>
                     <TableCell className="py-2 pr-0 text-right text-black">
-                      R$ {val.toFixed(2)}
+                      {formatCurrencyBRL(val)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -349,7 +350,7 @@ export function CashFlowReport() {
                       {cat}
                     </TableCell>
                     <TableCell className="py-2 pr-0 text-right text-black">
-                      R$ {val.toFixed(2)}
+                      {formatCurrencyBRL(val)}
                     </TableCell>
                   </TableRow>
                 ))}

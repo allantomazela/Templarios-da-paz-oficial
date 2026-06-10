@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { logError } from '@/lib/logger'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   Dialog,
   DialogContent,
@@ -244,10 +245,7 @@ export function ConsumptionManager({
                 <SelectContent>
                   {activeMenuItems.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.name} - {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(item.price)}
+                      {item.name} - {formatCurrencyBRL(item.price)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -290,10 +288,7 @@ export function ConsumptionManager({
               <div>
                 <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-2xl font-bold">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(sessionTotal.total_amount)}
+                  {formatCurrencyBRL(sessionTotal.total_amount)}
                 </p>
               </div>
             </div>
@@ -339,16 +334,10 @@ export function ConsumptionManager({
                       </TableCell>
                       <TableCell>{consumption.quantity}</TableCell>
                       <TableCell>
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(consumption.unit_price)}
+                        {formatCurrencyBRL(consumption.unit_price)}
                       </TableCell>
                       <TableCell>
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(consumption.total_amount)}
+                        {formatCurrencyBRL(consumption.total_amount)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {consumption.recorded_by_profile?.full_name || '—'}

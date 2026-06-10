@@ -17,6 +17,7 @@ import { format } from 'date-fns'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 
 interface ContributionFromDB {
   id: string
@@ -263,7 +264,7 @@ export function ContributionsList() {
                       {contribution.month}/{contribution.year}
                     </TableCell>
                     <TableCell className="font-mono">
-                      R$ {contribution.amount.toFixed(2).replace('.', ',')}
+                      {formatCurrencyBRL(contribution.amount)}
                     </TableCell>
                     <TableCell>
                       <Badge

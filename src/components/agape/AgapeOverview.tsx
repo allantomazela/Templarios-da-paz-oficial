@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { Calendar, UtensilsCrossed, Users, DollarSign, Loader2 } from 'lucide-react'
 
 export function AgapeOverview() {
@@ -76,10 +77,7 @@ export function AgapeOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(totalAmount)}
+              {formatCurrencyBRL(totalAmount)}
             </div>
             <p className="text-xs text-muted-foreground">
               em consumos registrados

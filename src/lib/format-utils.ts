@@ -2,6 +2,22 @@
  * Utility functions for formatting Brazilian documents and data
  */
 
+const brlFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+})
+
+/**
+ * Formata valor monetário no padrão brasileiro (ex.: R$ 290,00).
+ */
+export function formatCurrencyBRL(
+  value: number | string | null | undefined,
+): string {
+  const num = typeof value === 'string' ? Number(value) : value
+  if (num == null || Number.isNaN(num)) return 'R$ 0,00'
+  return brlFormatter.format(num)
+}
+
 /**
  * Formats a CPF string (removes non-digits and applies mask)
  * @param value - The CPF value (with or without formatting)

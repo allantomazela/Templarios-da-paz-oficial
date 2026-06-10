@@ -13,6 +13,7 @@ import { useAgapeStore } from '@/stores/useAgapeStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   Table,
   TableBody,
@@ -157,7 +158,7 @@ export function AgapeMyConsumptions() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Itens registrados</h3>
                   <Badge variant="secondary" className="text-lg">
-                    Total: R$ {totalMyConsumption.toFixed(2)}
+                    Total: {formatCurrencyBRL(totalMyConsumption)}
                   </Badge>
                 </div>
                 <div className="rounded-md border">
@@ -178,7 +179,7 @@ export function AgapeMyConsumptions() {
                           </TableCell>
                           <TableCell>{consumption.quantity}</TableCell>
                           <TableCell className="text-right font-medium">
-                            R$ {consumption.total_amount.toFixed(2)}
+                            {formatCurrencyBRL(consumption.total_amount)}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {consumption.recorded_by_profile?.full_name ||

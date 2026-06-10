@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 
 interface BankAccountFromDB {
   id: string
@@ -300,10 +301,10 @@ export function BankAccounts() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    R$ {balance.toFixed(2)}
+                    {formatCurrencyBRL(balance)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Saldo Inicial: R$ {account.initialBalance.toFixed(2)}
+                    Saldo Inicial: {formatCurrencyBRL(account.initialBalance)}
                   </p>
                 </CardContent>
               </Card>

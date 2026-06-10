@@ -204,9 +204,4 @@ export function buildMemberFinancialSummary(
   }
 }
 
-export function formatCurrencyBRL(value: number): string {
-  return value.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  })
-}
+export { formatCurrencyBRL } from '@/lib/format-utils'

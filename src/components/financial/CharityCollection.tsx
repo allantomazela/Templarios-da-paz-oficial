@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, parseISO, startOfToday, isAfter, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   Card,
   CardContent,
@@ -483,10 +484,7 @@ export function CharityCollection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {totalCharity.toLocaleString('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              })}
+              {formatCurrencyBRL(totalCharity)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {charityTransactions.length} registro
@@ -502,11 +500,8 @@ export function CharityCollection() {
           <CardContent>
             <div className="text-2xl font-bold">
               {charityTransactions.length > 0
-                ? (totalCharity / charityTransactions.length).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })
-                : 'R$ 0,00'}
+                ? formatCurrencyBRL(totalCharity / charityTransactions.length)
+                : formatCurrencyBRL(0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Valor médio coletado
@@ -520,24 +515,22 @@ export function CharityCollection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {charityTransactions
-                .filter((t) => {
-                  try {
-                    const transDate = parseISO(t.date)
-                    const now = new Date()
-                    return (
-                      transDate.getMonth() === now.getMonth() &&
-                      transDate.getFullYear() === now.getFullYear()
-                    )
-                  } catch {
-                    return false
-                  }
-                })
-                .reduce((sum, t) => sum + t.amount, 0)
-                .toLocaleString('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                })}
+                {formatCurrencyBRL(
+                charityTransactions
+                  .filter((t) => {
+                    try {
+                      const transDate = parseISO(t.date)
+                      const now = new Date()
+                      return (
+                        transDate.getMonth() === now.getMonth() &&
+                        transDate.getFullYear() === now.getFullYear()
+                      )
+                    } catch {
+                      return false
+                    }
+                  })
+                  .reduce((sum, t) => sum + t.amount, 0),
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Coletado no mês atual
@@ -613,10 +606,7 @@ export function CharityCollection() {
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-green-600">
-                          {transaction.amount.toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                          })}
+                          {formatCurrencyBRL(transaction.amount)}
                         </span>
                       </TableCell>
                       <TableCell>

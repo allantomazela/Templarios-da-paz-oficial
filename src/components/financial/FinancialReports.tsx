@@ -54,6 +54,7 @@ import {
   subMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { Transaction } from '@/lib/data'
 
 interface TransactionFromDB {
@@ -338,7 +339,14 @@ export function FinancialReports() {
                   className="mx-auto aspect-square max-h-[300px]"
                 >
                   <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          hideLabel
+                          formatter={(value) => formatCurrencyBRL(Number(value))}
+                        />
+                      }
+                    />
                     <Pie
                       data={incomeByCategory}
                       dataKey="amount"
@@ -384,7 +392,14 @@ export function FinancialReports() {
                   className="mx-auto aspect-square max-h-[300px]"
                 >
                   <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          hideLabel
+                          formatter={(value) => formatCurrencyBRL(Number(value))}
+                        />
+                      }
+                    />
                     <Pie
                       data={expenseByCategory}
                       dataKey="amount"
@@ -420,10 +435,7 @@ export function FinancialReports() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(
+                {formatCurrencyBRL(
                   incomeByCategory.reduce((sum, item) => sum + item.amount, 0),
                 )}
               </div>
@@ -441,10 +453,7 @@ export function FinancialReports() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(
+                {formatCurrencyBRL(
                   expenseByCategory.reduce((sum, item) => sum + item.amount, 0),
                 )}
               </div>
@@ -471,10 +480,7 @@ export function FinancialReports() {
                     : 'text-red-600'
                 }`}
               >
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(
+                {formatCurrencyBRL(
                   incomeByCategory.reduce((sum, item) => sum + item.amount, 0) -
                     expenseByCategory.reduce(
                       (sum, item) => sum + item.amount,

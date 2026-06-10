@@ -12,6 +12,7 @@ import {
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import { Download, Loader2, FileText } from 'lucide-react'
 import {
   Table,
@@ -293,10 +294,7 @@ export function MonthlyReports() {
               <div>
                 <p className="text-sm text-muted-foreground">Valor Total</p>
                 <p className="text-2xl font-bold">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(totalAmount)}
+                  {formatCurrencyBRL(totalAmount)}
                 </p>
               </div>
             </div>
@@ -335,10 +333,7 @@ export function MonthlyReports() {
               Valor Total
             </p>
             <p className="text-lg print:text-base font-bold text-black">
-              {new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(totalAmount)}
+              {formatCurrencyBRL(totalAmount)}
             </p>
           </div>
         </div>
@@ -371,10 +366,7 @@ export function MonthlyReports() {
                     {data.totalItems}
                   </TableCell>
                   <TableCell className="text-right text-black font-medium text-xs print:text-[10px] py-1 print:py-0.5">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    }).format(data.totalAmount)}
+                    {formatCurrencyBRL(data.totalAmount)}
                   </TableCell>
                 </TableRow>
               ))}

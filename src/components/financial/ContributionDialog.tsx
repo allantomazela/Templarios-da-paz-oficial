@@ -35,7 +35,17 @@ import {
   fetchApprovedBrothers,
   fetchBankAccounts,
   type ContributionFormData,
+  type MembershipFeeSettings,
 } from '@/lib/contribution-payments'
+import {
+  CONTRIBUTION_PAYMENT_METHODS,
+  getPaymentMethodFromNotes,
+  setPaymentMethodInNotes,
+} from '@/lib/contribution-payment-methods'
+import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
+import { MembershipFeeQuickSettings } from '@/components/financial/MembershipFeeQuickSettings'
+import { formatCurrencyBRL } from '@/lib/member-payments'
+import { cn } from '@/lib/utils'
 
 const contributionSchema = z
   .object({
@@ -66,6 +76,8 @@ interface ContributionDialogProps {
   contributionToEdit: Contribution | null
   defaultBrotherId?: string
   defaultAmount?: number
+  feeSettings?: MembershipFeeSettings
+  onUpdateFeeSettings?: (settings: MembershipFeeSettings) => Promise<void>
   onSave: (data: ContributionFormData) => void
 }
 
@@ -75,6 +87,8 @@ export function ContributionDialog({
   contributionToEdit,
   defaultBrotherId,
   defaultAmount = 150,
+  feeSettings,
+  onUpdateFeeSettings,
   onSave,
 }: ContributionDialogProps) {
   const [brothers, setBrothers] = useState<
@@ -98,6 +112,8 @@ export function ContributionDialog({
   })
 
   const watchStatus = form.watch('status')
+  const watchNotes = form.watch('notes')
+  const selectedPaymentMethod = getPaymentMethodFromNotes(watchNotes)
 
   useEffect(() => {
     if (!open) return
@@ -172,15 +188,34 @@ export function ContributionDialog({
     })
   }
 
+  const handlePaymentMethodSelect = (method: (typeof CONTRIBUTION_PAYMENT_METHODS)[number]) => {
+    form.setValue('notes', setPaymentMethodInNotes(form.getValues('notes'), method), {
+      shouldDirty: true,
+    })
+  }
+
+  const applyDefaultAmount = () => {
+    form.setValue('amount', defaultAmount, { shouldDirty: true })
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" aria-describedby={undefined}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
           title={dialogTitle}
           description={dialogDescription}
           icon={<Wallet className="h-5 w-5" />}
         />
+
+        {feeSettings && onUpdateFeeSettings && !contributionToEdit && (
+          <MembershipFeeQuickSettings
+            compact
+            settings={feeSettings}
+            onSave={onUpdateFeeSettings}
+          />
+        )}
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
@@ -192,30 +227,19 @@ export function ContributionDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Irmão</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!!contributionToEdit || loadingOptions}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loadingOptions
-                              ? 'Carregando irmãos...'
-                              : 'Selecione o irmão'
-                          }
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {brothers.map((brother) => (
-                        <SelectItem key={brother.id} value={brother.id}>
-                          {brother.full_name || 'Sem nome'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <BrotherSearchCombobox
+                      brothers={brothers}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={!!contributionToEdit}
+                      loading={loadingOptions}
+                      placeholder="Buscar e selecionar irmão"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Digite o nome para filtrar a lista de irmãos.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -274,6 +298,17 @@ export function ContributionDialog({
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
+                    <FormDescription className="flex flex-wrap items-center gap-1">
+                      <span>Padrão: {formatCurrencyBRL(defaultAmount)}</span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs"
+                        onClick={applyDefaultAmount}
+                      >
+                        Aplicar
+                      </Button>
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -363,10 +398,37 @@ export function ContributionDialog({
                   <FormControl>
                     <Textarea
                       rows={2}
-                      placeholder="Ex.: PIX, comprovante, acordo..."
+                      placeholder="Complementos: comprovante, acordo, observações..."
                       {...field}
                     />
                   </FormControl>
+                  <div className="space-y-2 pt-1">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Forma de pagamento
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {CONTRIBUTION_PAYMENT_METHODS.map((method) => (
+                        <Button
+                          key={method}
+                          type="button"
+                          size="sm"
+                          variant={
+                            selectedPaymentMethod === method
+                              ? 'default'
+                              : 'outline'
+                          }
+                          className={cn(
+                            'h-8 text-xs',
+                            selectedPaymentMethod === method &&
+                              'ring-2 ring-primary ring-offset-1',
+                          )}
+                          onClick={() => handlePaymentMethodSelect(method)}
+                        >
+                          {method}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

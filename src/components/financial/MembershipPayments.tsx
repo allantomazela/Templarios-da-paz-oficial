@@ -40,6 +40,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ContributionDialog } from './ContributionDialog'
+import { BrotherSearchCombobox } from './BrotherSearchCombobox'
+import { MembershipFeeQuickSettings } from './MembershipFeeQuickSettings'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { format } from 'date-fns'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -175,6 +178,9 @@ function ContributionsTable({
 }
 
 export function MembershipPayments() {
+  const updateMembershipFeeSettings = useSiteSettingsStore(
+    (s) => s.updateMembershipFeeSettings,
+  )
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [approvedBrothers, setApprovedBrothers] = useState<
@@ -326,6 +332,14 @@ export function MembershipPayments() {
     dialog.openDialog()
   }
 
+  const handleUpdateFeeSettings = async (next: {
+    defaultAmount: number
+    dueDay: number
+  }) => {
+    await updateMembershipFeeSettings(next)
+    setFeeSettings(next)
+  }
+
   const handleSave = async (data: ContributionFormData) => {
     const result = await saveOperation.execute(data)
     if (result) dialog.closeDialog()
@@ -367,6 +381,12 @@ export function MembershipPayments() {
         </div>
       </div>
 
+      <MembershipFeeQuickSettings
+        compact
+        settings={feeSettings}
+        onSave={handleUpdateFeeSettings}
+      />
+
       <Tabs value={viewTab} onValueChange={setViewTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="by-member">
@@ -383,21 +403,12 @@ export function MembershipPayments() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="flex-1 max-w-md space-y-2">
               <label className="text-sm font-medium">Selecionar irmão</label>
-              <Select
+              <BrotherSearchCombobox
+                brothers={approvedBrothers}
                 value={selectedBrotherId}
-                onValueChange={setSelectedBrotherId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha o irmão" />
-                </SelectTrigger>
-                <SelectContent>
-                  {summaries.map((s) => (
-                    <SelectItem key={s.brotherId} value={s.brotherId}>
-                      {s.brotherName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={setSelectedBrotherId}
+                placeholder="Buscar irmão por nome..."
+              />
             </div>
             <Button
               variant="outline"
@@ -527,6 +538,8 @@ export function MembershipPayments() {
         contributionToEdit={selectedContribution}
         defaultBrotherId={selectedBrotherId}
         defaultAmount={feeSettings.defaultAmount}
+        feeSettings={feeSettings}
+        onUpdateFeeSettings={handleUpdateFeeSettings}
         onSave={handleSave}
       />
 

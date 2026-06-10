@@ -402,10 +402,11 @@ export function CharityCollection() {
       }
     } else {
       setCharityToEdit(null)
+      const defaultCashAccount = accounts.find((a) => a.type === 'Caixa')
       form.reset({
         eventId: '',
         amount: 0,
-        accountId: accounts.length > 0 ? accounts[0].id : '',
+        accountId: defaultCashAccount?.id ?? '',
         date: format(new Date(), 'yyyy-MM-dd'),
         description: '',
       })
@@ -669,7 +670,8 @@ export function CharityCollection() {
                           form.setValue('date', selectedEvent.date)
                         }
                       }}
-                      value={field.value}
+                      value={field.value || undefined}
+                      disabled={availableEvents.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -678,9 +680,9 @@ export function CharityCollection() {
                       </FormControl>
                       <SelectContent>
                         {availableEvents.length === 0 ? (
-                          <SelectItem value="" disabled>
+                          <p className="px-2 py-6 text-center text-sm text-muted-foreground">
                             Nenhum evento disponível
-                          </SelectItem>
+                          </p>
                         ) : (
                           availableEvents.map((event) => (
                             <SelectItem key={event.id} value={event.id}>
@@ -733,7 +735,11 @@ export function CharityCollection() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Conta</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                      disabled={cashAccounts.length === 0}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a conta" />
@@ -741,9 +747,9 @@ export function CharityCollection() {
                       </FormControl>
                       <SelectContent>
                         {cashAccounts.length === 0 ? (
-                          <SelectItem value="" disabled>
+                          <p className="px-2 py-6 text-center text-sm text-muted-foreground">
                             Nenhuma conta do tipo Caixa disponível
-                          </SelectItem>
+                          </p>
                         ) : (
                           cashAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>

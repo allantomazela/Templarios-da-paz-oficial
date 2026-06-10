@@ -29,6 +29,7 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
 import { fetchTransactionsWithAccountNames } from '@/lib/financial-queries'
 import { formatCurrencyBRL } from '@/lib/format-utils'
+import useFinancialStore, { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 
 export function IncomeList() {
   const [incomes, setIncomes] = useState<Transaction[]>([])
@@ -39,6 +40,7 @@ export function IncomeList() {
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
   const supabaseAny = supabase as any
+  const dataRevision = useFinancialStore((s) => s.dataRevision)
 
   // Load incomes from Supabase
   const loadIncomes = useAsyncOperation(
@@ -72,13 +74,18 @@ export function IncomeList() {
   useEffect(() => {
     loadIncomes.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [dataRevision])
 
   const filteredIncomes = incomes.filter(
     (income) =>
       income.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       income.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+  const refreshIncomes = async () => {
+    await loadIncomes.execute()
+    notifyFinancialDataChanged()
+  }
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
@@ -109,7 +116,7 @@ export function IncomeList() {
 
         if (error) throw error
 
-        await loadIncomes.execute()
+        await refreshIncomes()
         return 'Receita atualizada com sucesso.'
       } else {
         // Create com idempotência: mesma chave enquanto a operação estiver em andamento (evita duplo clique)
@@ -134,13 +141,13 @@ export function IncomeList() {
           if (error) {
             const pgErr = error as { code?: string }
             if (pgErr.code === '23505' && idempotencyKey) {
-              await loadIncomes.execute()
+              await refreshIncomes()
               return 'Receita já registrada (envio duplicado ignorado).'
             }
             throw error
           }
 
-          await loadIncomes.execute()
+          await refreshIncomes()
           return 'Receita registrada com sucesso.'
         } finally {
           createIdempotencyKeyRef.current = null
@@ -162,7 +169,7 @@ export function IncomeList() {
 
       if (error) throw error
 
-      await loadIncomes.execute()
+      await refreshIncomes()
       return 'Receita removida.'
     },
     {

@@ -29,6 +29,7 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
 import { fetchTransactionsWithAccountNames } from '@/lib/financial-queries'
 import { formatCurrencyBRL } from '@/lib/format-utils'
+import useFinancialStore, { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 
 export function ExpenseList() {
   const [expenses, setExpenses] = useState<Transaction[]>([])
@@ -41,6 +42,7 @@ export function ExpenseList() {
   )
   const createIdempotencyKeyRef = useRef<string | null>(null)
   const supabaseAny = supabase as any
+  const dataRevision = useFinancialStore((s) => s.dataRevision)
 
   // Load expenses from Supabase
   const loadExpenses = useAsyncOperation(
@@ -74,13 +76,18 @@ export function ExpenseList() {
   useEffect(() => {
     loadExpenses.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [dataRevision])
 
   const filteredExpenses = expenses.filter(
     (expense) =>
       expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+  const refreshExpenses = async () => {
+    await loadExpenses.execute()
+    notifyFinancialDataChanged()
+  }
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
@@ -111,7 +118,7 @@ export function ExpenseList() {
 
         if (error) throw error
 
-        await loadExpenses.execute()
+        await refreshExpenses()
         return 'Despesa atualizada com sucesso.'
       } else {
         // Create com idempotência: mesma chave enquanto a operação estiver em andamento (evita duplo clique)
@@ -136,13 +143,13 @@ export function ExpenseList() {
           if (error) {
             const pgErr = error as { code?: string }
             if (pgErr.code === '23505' && idempotencyKey) {
-              await loadExpenses.execute()
+              await refreshExpenses()
               return 'Despesa já registrada (envio duplicado ignorado).'
             }
             throw error
           }
 
-          await loadExpenses.execute()
+          await refreshExpenses()
           return 'Despesa registrada com sucesso.'
         } finally {
           createIdempotencyKeyRef.current = null
@@ -164,7 +171,7 @@ export function ExpenseList() {
 
       if (error) throw error
 
-      await loadExpenses.execute()
+      await refreshExpenses()
       return 'Despesa removida.'
     },
     {

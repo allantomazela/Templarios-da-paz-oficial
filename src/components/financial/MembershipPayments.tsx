@@ -60,6 +60,7 @@ import {
   type ContributionFormData,
 } from '@/lib/contribution-payments'
 import { formatCurrencyBRL } from '@/lib/member-payments'
+import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 
 function statusBadge(status: Contribution['status']) {
   if (status === 'Pago') {
@@ -277,6 +278,7 @@ export function MembershipPayments() {
       )
 
       await loadData.execute()
+      notifyFinancialDataChanged()
       return selectedContribution
         ? 'Mensalidade atualizada com sucesso.'
         : 'Mensalidade registrada com sucesso.'
@@ -291,6 +293,7 @@ export function MembershipPayments() {
     async (contribution: Contribution) => {
       await deleteContribution(contribution)
       await loadData.execute()
+      notifyFinancialDataChanged()
       return 'Mensalidade removida.'
     },
     {
@@ -311,6 +314,7 @@ export function MembershipPayments() {
         feeSettings.defaultAmount,
       )
       await loadData.execute()
+      notifyFinancialDataChanged()
       setGenerateOpen(false)
       return `${result.created} mensalidade(s) criada(s). ${result.skipped} irmão(s) já tinham lançamento para ${generateMonth}/${generateYear}.`
     },

@@ -59,6 +59,9 @@ interface FinancialState {
   reminderSettings: ReminderSettings
   reminderLogs: ReminderLog[]
   loading: boolean
+  /** Incrementado quando transações/contas mudam (ex.: mensalidade paga). */
+  dataRevision: number
+  notifyFinancialDataChanged: () => void
 
   // Fetch methods
   fetchTransactions: () => Promise<void>
@@ -118,6 +121,9 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   },
   reminderLogs: [],
   loading: false,
+  dataRevision: 0,
+  notifyFinancialDataChanged: () =>
+    set((state) => ({ dataRevision: state.dataRevision + 1 })),
 
   // ========== FETCH METHODS ==========
   fetchTransactions: async () => {
@@ -739,3 +745,8 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 }))
 
 export default useFinancialStore
+
+/** Dispara recarga de saldos/dashboard/receitas após alterações na tesouraria. */
+export function notifyFinancialDataChanged() {
+  useFinancialStore.getState().notifyFinancialDataChanged()
+}

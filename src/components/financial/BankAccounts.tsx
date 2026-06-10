@@ -34,20 +34,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatCurrencyBRL } from '@/lib/format-utils'
-
-interface BankAccountFromDB {
-  id: string
-  name: string
-  type: 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento'
-  initial_balance: number
-  color: string | null
-  created_at: string
-  updated_at: string
-}
+import { fetchAccountsWithBalances, type BankAccountWithBalance } from '@/lib/financial-balances'
+import useFinancialStore from '@/stores/useFinancialStore'
 
 export function BankAccounts() {
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [accounts, setAccounts] = useState<BankAccountWithBalance[]>([])
   const [loading, setLoading] = useState(true)
+  const dataRevision = useFinancialStore((s) => s.dataRevision)
   const dialog = useDialog()
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(
     null,
@@ -62,24 +55,8 @@ export function BankAccounts() {
   const loadAccounts = useAsyncOperation(
     async () => {
       setLoading(true)
-      const { data, error } = await supabaseAny
-        .from('financial_accounts')
-        .select('*')
-        .order('name', { ascending: true })
-
-      if (error) {
-        throw new Error('Falha ao carregar contas.')
-      }
-
-      const mapped: BankAccount[] = (data || []).map((a: BankAccountFromDB) => ({
-        id: a.id,
-        name: a.name,
-        type: a.type,
-        initialBalance: parseFloat(a.initial_balance.toString()),
-        color: a.color || undefined,
-      }))
-
-      setAccounts(mapped)
+      const withBalances = await fetchAccountsWithBalances()
+      setAccounts(withBalances)
       setLoading(false)
       return null
     },
@@ -92,10 +69,7 @@ export function BankAccounts() {
   useEffect(() => {
     loadAccounts.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // TODO: Calculate balance from transactions when financial_transactions is integrated
-  // For now, we show initial balance only
+  }, [dataRevision])
 
   const saveOperation = useAsyncOperation(
     async (data: any) => {
@@ -113,6 +87,7 @@ export function BankAccounts() {
         if (error) throw error
 
         await loadAccounts.execute()
+        useFinancialStore.getState().notifyFinancialDataChanged()
         return 'Conta atualizada com sucesso.'
       } else {
         // Create - generate random color if not provided
@@ -137,6 +112,7 @@ export function BankAccounts() {
         if (error) throw error
 
         await loadAccounts.execute()
+        useFinancialStore.getState().notifyFinancialDataChanged()
         return 'Conta criada com sucesso.'
       }
     },
@@ -174,6 +150,7 @@ export function BankAccounts() {
       if (error) throw error
 
       await loadAccounts.execute()
+      useFinancialStore.getState().notifyFinancialDataChanged()
       return 'Conta removida.'
     },
     {
@@ -262,7 +239,7 @@ export function BankAccounts() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => {
-            const balance = account.initialBalance // Will be updated when transactions are integrated
+            const balance = account.currentBalance
             return (
               <Card
                 key={account.id}
@@ -304,7 +281,7 @@ export function BankAccounts() {
                     {formatCurrencyBRL(balance)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Saldo Inicial: {formatCurrencyBRL(account.initialBalance)}
+                    Saldo inicial: {formatCurrencyBRL(account.initialBalance)}
                   </p>
                 </CardContent>
               </Card>

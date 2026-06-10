@@ -17,8 +17,13 @@ import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrencyBRL } from '@/lib/format-utils'
-import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import useFinancialStore from '@/stores/useFinancialStore'
+import {
+  computeAccountBalance,
+  computeGlobalBalance,
+  fetchFinancialAccountsAndTransactions,
+} from '@/lib/financial-balances'
 import {
   Select,
   SelectContent,
@@ -43,76 +48,23 @@ const chartConfig = {
   despesa: { label: 'Despesas', color: 'hsl(var(--destructive))' },
 }
 
-interface TransactionFromDB {
-  id: string
-  date: string
-  description: string
-  category: string
-  type: 'Receita' | 'Despesa'
-  amount: number
-  account_id: string | null
-}
-
-interface AccountFromDB {
-  id: string
-  name: string
-  type: string
-  initial_balance: number
-}
-
 export function FinancialOverview() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('current_year')
-  const supabaseAny = supabase as any
+  const dataRevision = useFinancialStore((s) => s.dataRevision)
   const { toast } = useToast()
 
-  // Load transactions and accounts from Supabase
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
       try {
-        // Load transactions (category é TEXT em financial_transactions)
-        const { data: transactionsData, error: transactionsError } =
-          await supabaseAny
-            .from('financial_transactions')
-            .select('*')
-            .order('date', { ascending: false })
+        const { accounts: accountsData, transactions: transactionsData } =
+          await fetchFinancialAccountsAndTransactions()
 
-        if (transactionsError) throw transactionsError
-
-        const mappedTransactions: Transaction[] = (transactionsData || []).map(
-          (t: TransactionFromDB) => ({
-            id: t.id,
-            date: t.date,
-            description: t.description,
-            category: t.category || 'Sem categoria',
-            type: t.type,
-            amount: parseFloat(t.amount.toString()),
-            accountId: t.account_id || undefined,
-          }),
-        )
-
-        // Load accounts (tabela: financial_accounts)
-        const { data: accountsData, error: accountsError } = await supabaseAny
-          .from('financial_accounts')
-          .select('*')
-          .order('name')
-
-        if (accountsError) throw accountsError
-
-        const mappedAccounts: BankAccount[] = (accountsData || []).map(
-          (a: AccountFromDB) => ({
-            id: a.id,
-            name: a.name,
-            type: a.type as 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento',
-            initialBalance: parseFloat(a.initial_balance.toString()),
-          }),
-        )
-
-        setTransactions(mappedTransactions)
-        setAccounts(mappedAccounts)
+        setTransactions(transactionsData)
+        setAccounts(accountsData)
       } catch (error) {
         console.error('Error loading financial data:', error)
         toast({
@@ -126,7 +78,7 @@ export function FinancialOverview() {
     }
 
     loadData()
-  }, [supabaseAny, toast])
+  }, [dataRevision, toast])
 
   // Date Filtering
   const getDateRange = () => {
@@ -158,19 +110,7 @@ export function FinancialOverview() {
     .filter((t) => t.type === 'Despesa')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
-  // Global Balance (All time)
-  const globalBalance = accounts.reduce((acc, account) => {
-    const accountTransactions = transactions.filter(
-      (t) => t.accountId === account.id,
-    )
-    const inc = accountTransactions
-      .filter((t) => t.type === 'Receita')
-      .reduce((sum, t) => sum + t.amount, 0)
-    const exp = accountTransactions
-      .filter((t) => t.type === 'Despesa')
-      .reduce((sum, t) => sum + t.amount, 0)
-    return acc + account.initialBalance + inc - exp
-  }, 0)
+  const globalBalance = computeGlobalBalance(accounts, transactions)
 
   const periodResult = totalIncome - totalExpense
 
@@ -214,14 +154,8 @@ export function FinancialOverview() {
       fill: `hsl(var(--chart-${(index % 5) + 1}))`,
     }))
 
-  // Alerts Check
   const lowBalanceAccounts = accounts.filter((acc) => {
-    const bal = transactions
-      .filter((t) => t.accountId === acc.id)
-      .reduce(
-        (s, t) => s + (t.type === 'Receita' ? t.amount : -t.amount),
-        acc.initialBalance,
-      )
+    const bal = computeAccountBalance(acc.initialBalance, acc.id, transactions)
     return bal < 100 // Example threshold
   })
 

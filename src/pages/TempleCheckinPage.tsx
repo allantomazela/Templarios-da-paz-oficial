@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
+import { fetchOpenSessionForCheckin } from '@/lib/checkin-session'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, XCircle, Loader2, MapPin, LogIn, QrCode } from 'lucide-react'
@@ -8,13 +9,6 @@ import { CheckCircle2, XCircle, Loader2, MapPin, LogIn, QrCode } from 'lucide-re
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
 type Status = 'idle' | 'loading' | 'success' | 'error' | 'login_required'
-
-interface OpenSessionResult {
-  session_record_id: string
-  event_id: string
-  event_date: string
-  event_time: string
-}
 
 export default function TempleCheckinPage() {
   const [status, setStatus] = useState<Status>('idle')
@@ -38,27 +32,16 @@ export default function TempleCheckinPage() {
 
     const doCheckin = async (lat?: number, lng?: number) => {
       try {
-        // 1) Descobrir automaticamente qual sessão está aberta para check-in agora
-        const { data, error } = await supabase.rpc<OpenSessionResult>(
-          'get_open_session_for_checkin',
-        )
+        const { session: openSession, error: sessionError } =
+          await fetchOpenSessionForCheckin()
 
-        if (error) {
+        if (sessionError) {
           setStatus('error')
-          setMessage(
-            error.message ||
-              'Não foi possível identificar uma sessão aberta para check-in neste momento.',
-          )
+          setMessage(sessionError)
           return
         }
 
-        if (!data) {
-          setStatus('error')
-          setMessage('Não há sessão aberta para check-in neste momento.')
-          return
-        }
-
-        const sessionRecordId = (data as any).session_record_id as string
+        const sessionRecordId = openSession?.session_record_id
         if (!sessionRecordId) {
           setStatus('error')
           setMessage('Não há sessão aberta para check-in neste momento.')

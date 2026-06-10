@@ -319,6 +319,7 @@ export function ContributionsList() {
         onOpenChange={dialog.onOpenChange}
         contributionToEdit={selectedContribution}
         onSave={handleSave}
+        saving={saveOperation.loading}
       />
     </div>
   )

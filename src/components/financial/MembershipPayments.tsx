@@ -541,6 +541,7 @@ export function MembershipPayments() {
         feeSettings={feeSettings}
         onUpdateFeeSettings={handleUpdateFeeSettings}
         onSave={handleSave}
+        saving={saveOperation.loading}
       />
 
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>

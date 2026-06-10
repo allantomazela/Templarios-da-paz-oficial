@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FormHeader } from '@/components/ui/form-header'
-import { Wallet } from 'lucide-react'
+import { Wallet, Loader2 } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -79,6 +79,7 @@ interface ContributionDialogProps {
   feeSettings?: MembershipFeeSettings
   onUpdateFeeSettings?: (settings: MembershipFeeSettings) => Promise<void>
   onSave: (data: ContributionFormData) => void
+  saving?: boolean
 }
 
 export function ContributionDialog({
@@ -90,6 +91,7 @@ export function ContributionDialog({
   feeSettings,
   onUpdateFeeSettings,
   onSave,
+  saving = false,
 }: ContributionDialogProps) {
   const [brothers, setBrothers] = useState<
     { id: string; full_name: string | null }[]
@@ -199,7 +201,13 @@ export function ContributionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (saving) return
+        onOpenChange(next)
+      }}
+    >
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
@@ -439,10 +447,20 @@ export function ContributionDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={saving}
               >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar</Button>
+              <Button type="submit" disabled={saving || loadingOptions}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

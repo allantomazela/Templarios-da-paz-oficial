@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { logError } from '@/lib/logger'
+import { toError } from '@/lib/async-utils'
 
 interface UseAsyncOperationOptions {
   /** Mensagem de sucesso customizada */
@@ -127,7 +128,7 @@ export function useAsyncOperation<T = unknown>(
 
         return result
       } catch (err) {
-        const errorObj = err instanceof Error ? err : new Error(String(err))
+        const errorObj = toError(err, errorMessage)
         logError('Async operation error', errorObj)
         setError(errorObj)
 

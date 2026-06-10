@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import { toError, isDuplicateKeyError } from '@/lib/async-utils'
 import type { Contribution } from '@/lib/data'
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
@@ -234,15 +235,25 @@ async function resolveMensalidadeCategoryId(
 }
 
 function formatSupabaseError(error: unknown): Error {
-  if (error && typeof error === 'object' && 'message' in error) {
-    const message = String((error as { message: string }).message)
-    const details =
-      'details' in error && (error as { details?: string }).details
-        ? ` (${(error as { details?: string }).details})`
-        : ''
-    return new Error(`${message}${details}`)
-  }
-  return error instanceof Error ? error : new Error('Erro ao salvar mensalidade.')
+  return toError(error, 'Erro ao salvar mensalidade.')
+}
+
+async function findExistingContribution(
+  supabaseAny: ReturnType<typeof supabase> & object,
+  brotherId: string,
+  month: number,
+  year: number,
+): Promise<{ id: string; transaction_id: string | null } | null> {
+  const { data, error } = await supabaseAny
+    .from('contributions')
+    .select('id, transaction_id')
+    .eq('brother_id', brotherId)
+    .eq('month', month)
+    .eq('year', year)
+    .maybeSingle()
+
+  if (error) throw formatSupabaseError(error)
+  return data ?? null
 }
 
 async function syncFinancialTransaction(
@@ -489,15 +500,12 @@ export async function saveContribution(
     recorded_by: user?.id ?? null,
   }
 
-  if (options?.contributionId) {
-    const { error } = await supabaseAny
-      .from('contributions')
-      .update(basePayload)
-      .eq('id', options.contributionId)
-    if (error) throw error
-
+  const persistAndSync = async (
+    contributionId: string,
+    existingTransactionId?: string | null,
+  ) => {
     await syncFinancialTransaction(supabaseAny, {
-      contributionId: options.contributionId,
+      contributionId,
       brotherName,
       month,
       year: data.year,
@@ -505,8 +513,36 @@ export async function saveContribution(
       status: data.status,
       paymentDate: basePayload.payment_date ?? undefined,
       accountId: data.accountId,
-      existingTransactionId: options.existingTransactionId,
+      existingTransactionId,
     })
+  }
+
+  if (options?.contributionId) {
+    const { error } = await supabaseAny
+      .from('contributions')
+      .update(basePayload)
+      .eq('id', options.contributionId)
+    if (error) throw formatSupabaseError(error)
+
+    await persistAndSync(options.contributionId, options.existingTransactionId)
+    return
+  }
+
+  const existing = await findExistingContribution(
+    supabaseAny,
+    data.brotherId,
+    month,
+    data.year,
+  )
+
+  if (existing) {
+    const { error } = await supabaseAny
+      .from('contributions')
+      .update(basePayload)
+      .eq('id', existing.id)
+    if (error) throw formatSupabaseError(error)
+
+    await persistAndSync(existing.id, existing.transaction_id)
     return
   }
 
@@ -516,20 +552,29 @@ export async function saveContribution(
     .select('id, transaction_id')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (isDuplicateKeyError(error)) {
+      const raced = await findExistingContribution(
+        supabaseAny,
+        data.brotherId,
+        month,
+        data.year,
+      )
+      if (raced) {
+        const { error: updateError } = await supabaseAny
+          .from('contributions')
+          .update(basePayload)
+          .eq('id', raced.id)
+        if (updateError) throw formatSupabaseError(updateError)
+        await persistAndSync(raced.id, raced.transaction_id)
+        return
+      }
+    }
+    throw formatSupabaseError(error)
+  }
 
   try {
-    await syncFinancialTransaction(supabaseAny, {
-      contributionId: created.id,
-      brotherName,
-      month,
-      year: data.year,
-      amount: data.amount,
-      status: data.status,
-      paymentDate: basePayload.payment_date ?? undefined,
-      accountId: data.accountId,
-      existingTransactionId: created.transaction_id,
-    })
+    await persistAndSync(created.id, created.transaction_id)
   } catch (syncError) {
     await supabaseAny.from('contributions').delete().eq('id', created.id)
     throw formatSupabaseError(syncError)

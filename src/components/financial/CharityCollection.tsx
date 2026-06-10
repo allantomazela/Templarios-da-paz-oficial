@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { format, parseISO, startOfToday, isAfter, isSameDay } from 'date-fns'
+import { format, parseISO, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
@@ -39,6 +39,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -50,6 +51,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import useChancellorStore from '@/stores/useChancellorStore'
+import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { supabase } from '@/lib/supabase/client'
 import {
   Plus,
@@ -79,13 +81,30 @@ interface AccountFromDB {
   type: string
 }
 
-const charitySchema = z.object({
-  eventId: z.string().min(1, 'Selecione um evento'),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-  accountId: z.string().min(1, 'Selecione uma conta'),
-  date: z.string().min(1, 'Data é obrigatória'),
-  description: z.string().optional(),
-})
+const MANUAL_SESSION_VALUE = '__manual__'
+
+const charitySchema = z
+  .object({
+    eventId: z.string().optional(),
+    sessionTitle: z.string().optional(),
+    amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+    accountId: z.string().min(1, 'Selecione uma conta'),
+    date: z.string().min(1, 'Data é obrigatória'),
+    description: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasLinkedEvent =
+      !!data.eventId &&
+      data.eventId !== MANUAL_SESSION_VALUE &&
+      data.eventId.trim() !== ''
+    if (!hasLinkedEvent && !data.sessionTitle?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe o título ou referência da sessão',
+        path: ['sessionTitle'],
+      })
+    }
+  })
 
 type CharityFormValues = z.infer<typeof charitySchema>
 
@@ -202,13 +221,15 @@ export function CharityCollection() {
 
   useEffect(() => {
     loadData.execute()
+    useChancellorStore.getState().fetchChancellorData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const form = useForm<CharityFormValues>({
     resolver: zodResolver(charitySchema),
     defaultValues: {
-      eventId: '',
+      eventId: MANUAL_SESSION_VALUE,
+      sessionTitle: '',
       amount: 0,
       accountId: '',
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -216,28 +237,29 @@ export function CharityCollection() {
     },
   })
 
-  // Filtrar eventos futuros ou do dia atual para seleção
-  const availableEvents = useMemo(() => {
-    const today = startOfToday()
-    return events
-      .filter((event) => {
-        try {
-          const eventDate = parseISO(event.date)
-          return isAfter(eventDate, today) || isSameDay(eventDate, today)
-        } catch {
-          return false
-        }
-      })
-      .sort((a, b) => {
-        try {
-          const dateA = parseISO(a.date)
-          const dateB = parseISO(b.date)
-          return dateA.getTime() - dateB.getTime()
-        } catch {
-          return 0
-        }
-      })
+  const watchEventId = form.watch('eventId')
+  const isManualSession =
+    !watchEventId ||
+    watchEventId === MANUAL_SESSION_VALUE ||
+    watchEventId.trim() === ''
+
+  const selectableEvents = useMemo(() => {
+    return [...events].sort((a, b) => {
+      try {
+        const dateA = parseISO(a.date)
+        const dateB = parseISO(b.date)
+        return dateB.getTime() - dateA.getTime()
+      } catch {
+        return 0
+      }
+    })
   }, [events])
+
+  const selectableAccounts = useMemo(() => {
+    const caixa = accounts.filter((a) => a.type === 'Caixa')
+    const others = accounts.filter((a) => a.type !== 'Caixa')
+    return [...caixa, ...others]
+  }, [accounts])
 
   // charityTransactions is already loaded from Supabase
 
@@ -260,8 +282,15 @@ export function CharityCollection() {
 
   const saveOperation = useAsyncOperation(
     async (data: CharityFormValues) => {
-      const event = events.find((e) => e.id === data.eventId)
-      if (!event) throw new Error('Evento não encontrado')
+      const hasLinkedEvent =
+        !!data.eventId &&
+        data.eventId !== MANUAL_SESSION_VALUE &&
+        data.eventId.trim() !== ''
+      const event = hasLinkedEvent
+        ? events.find((e) => e.id === data.eventId)
+        : undefined
+      const sessionLabel = event?.title ?? data.sessionTitle?.trim()
+      if (!sessionLabel) throw new Error('Informe a sessão ou selecione um evento.')
 
       // Find or create category
       let { data: categoryData, error: categoryError } = await supabaseAny
@@ -294,8 +323,8 @@ export function CharityCollection() {
       }
 
       const description =
-        data.description ||
-        `Tronco de Beneficência - ${event.title} - ${format(parseISO(data.date), 'dd/MM/yyyy', { locale: ptBR })}`
+        data.description?.trim() ||
+        `Tronco de Beneficência - ${sessionLabel} - ${format(parseISO(data.date), 'dd/MM/yyyy', { locale: ptBR })}`
 
       if (charityToEdit) {
         // Update
@@ -343,16 +372,18 @@ export function CharityCollection() {
         }
       }
 
-      // Update SessionRecord if exists
-      const sessionRecord = sessionRecords.find((sr) => sr.eventId === data.eventId)
-      if (sessionRecord) {
-        useChancellorStore.getState().updateSessionRecord({
-          ...sessionRecord,
-          charityCollection: data.amount,
-        })
+      if (event) {
+        const sessionRecord = sessionRecords.find((sr) => sr.eventId === event.id)
+        if (sessionRecord) {
+          useChancellorStore.getState().updateSessionRecord({
+            ...sessionRecord,
+            charityCollection: data.amount,
+          })
+        }
       }
 
       await loadData.execute()
+      notifyFinancialDataChanged()
       return charityToEdit ? 'Tronco atualizado com sucesso.' : 'Tronco registrado com sucesso.'
     },
     {
@@ -371,6 +402,7 @@ export function CharityCollection() {
       if (error) throw error
 
       await loadData.execute()
+      notifyFinancialDataChanged()
       return 'Registro removido com sucesso.'
     },
     {
@@ -392,8 +424,16 @@ export function CharityCollection() {
             return false
           }
         })
+        const sessionTitle =
+          event?.title ||
+          transaction.description
+            .replace(/^Tronco de Beneficência\s*-\s*/i, '')
+            .replace(/\s*-\s*\d{2}\/\d{2}\/\d{4}$/, '')
+            .trim()
+
         form.reset({
-          eventId: event?.id || '',
+          eventId: event?.id ?? MANUAL_SESSION_VALUE,
+          sessionTitle: event ? event.title : sessionTitle,
           amount: transaction.amount,
           accountId: transaction.accountId || '',
           date: transaction.date,
@@ -402,11 +442,13 @@ export function CharityCollection() {
       }
     } else {
       setCharityToEdit(null)
-      const defaultCashAccount = accounts.find((a) => a.type === 'Caixa')
+      const defaultAccount =
+        accounts.find((a) => a.type === 'Caixa') ?? accounts[0]
       form.reset({
-        eventId: '',
+        eventId: MANUAL_SESSION_VALUE,
+        sessionTitle: '',
         amount: 0,
-        accountId: defaultCashAccount?.id ?? '',
+        accountId: defaultAccount?.id ?? '',
         date: format(new Date(), 'yyyy-MM-dd'),
         description: '',
       })
@@ -447,9 +489,6 @@ export function CharityCollection() {
       </div>
     )
   }
-
-  // Filtrar apenas contas do tipo Caixa para tronco
-  const cashAccounts = accounts.filter((a) => a.type === 'Caixa')
 
   return (
     <div className="space-y-6">
@@ -642,7 +681,7 @@ export function CharityCollection() {
 
       {/* Dialog de Registro */}
       <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {charityToEdit ? 'Editar Registro de Tronco' : 'Registrar Tronco'}
@@ -660,31 +699,37 @@ export function CharityCollection() {
                 name="eventId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Evento/Sessão</FormLabel>
+                    <FormLabel>Vincular a evento (opcional)</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(value)
-                        // Atualizar data automaticamente quando evento for selecionado
+                        if (value === MANUAL_SESSION_VALUE) {
+                          form.setValue('sessionTitle', '')
+                          return
+                        }
                         const selectedEvent = events.find((e) => e.id === value)
                         if (selectedEvent) {
+                          form.setValue('sessionTitle', selectedEvent.title)
                           form.setValue('date', selectedEvent.date)
                         }
                       }}
-                      value={field.value || undefined}
-                      disabled={availableEvents.length === 0}
+                      value={field.value || MANUAL_SESSION_VALUE}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione o evento" />
+                          <SelectValue placeholder="Selecione ou informe manualmente" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableEvents.length === 0 ? (
-                          <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            Nenhum evento disponível
+                        <SelectItem value={MANUAL_SESSION_VALUE}>
+                          Sessão manual (informar detalhes abaixo)
+                        </SelectItem>
+                        {selectableEvents.length === 0 ? (
+                          <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                            Nenhum evento cadastrado na agenda — use sessão manual.
                           </p>
                         ) : (
-                          availableEvents.map((event) => (
+                          selectableEvents.map((event) => (
                             <SelectItem key={event.id} value={event.id}>
                               <div>
                                 <div className="font-medium">{event.title}</div>
@@ -701,7 +746,36 @@ export function CharityCollection() {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Selecione o evento ou sessão relacionado ao tronco.
+                      Vincule à agenda ou escolha sessão manual para preencher os
+                      detalhes você mesmo.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="sessionTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {isManualSession
+                        ? 'Título / referência da sessão'
+                        : 'Sessão selecionada'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex.: Sessão ordinária de junho"
+                        {...field}
+                        value={field.value || ''}
+                        readOnly={!isManualSession}
+                        className={!isManualSession ? 'bg-muted' : undefined}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {isManualSession
+                        ? 'Descreva a sessão ou evento ao qual o tronco se refere.'
+                        : 'Preenchido automaticamente pelo evento da agenda.'}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -738,7 +812,6 @@ export function CharityCollection() {
                     <Select
                       onValueChange={field.onChange}
                       value={field.value || undefined}
-                      disabled={cashAccounts.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -746,12 +819,12 @@ export function CharityCollection() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {cashAccounts.length === 0 ? (
+                        {selectableAccounts.length === 0 ? (
                           <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            Nenhuma conta do tipo Caixa disponível
+                            Cadastre uma conta em Contas Bancárias para continuar.
                           </p>
                         ) : (
-                          cashAccounts.map((account) => (
+                          selectableAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.name} ({account.type})
                             </SelectItem>
@@ -760,7 +833,7 @@ export function CharityCollection() {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Conta onde o valor será registrado (recomendado: Caixa).
+                      Conta onde o valor será registrado (Caixa é recomendado).
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -787,16 +860,18 @@ export function CharityCollection() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
+                    <FormLabel>Detalhes da sessão (opcional)</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Observações adicionais..."
+                      <Textarea
+                        rows={3}
+                        placeholder="Observações, participantes, deliberações ou outros detalhes..."
                         {...field}
                         value={field.value || ''}
                       />
                     </FormControl>
                     <FormDescription>
-                      Informações adicionais sobre o registro.
+                      Complemente com informações que ajudem a identificar o
+                      registro no histórico.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

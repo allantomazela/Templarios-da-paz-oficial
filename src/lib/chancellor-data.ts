@@ -7,6 +7,7 @@ import type {
   Brother,
   Location,
 } from '@/lib/data'
+import { sanitizeLocationIdForDb } from '@/lib/event-locations'
 
 const LOCATIONS_STORAGE_KEY = 'chancellor_locations'
 
@@ -132,12 +133,13 @@ export async function fetchChancellorBrothers(): Promise<Brother[]> {
 
 export function eventToDbPayload(event: Event) {
   return {
+    id: event.id,
     title: event.title,
     date: event.date,
     time: event.time,
     type: event.type,
     location: event.location,
-    location_id: event.locationId ?? null,
+    location_id: sanitizeLocationIdForDb(event.locationId),
     description: event.description || '',
   }
 }

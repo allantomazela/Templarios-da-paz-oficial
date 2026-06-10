@@ -216,25 +216,57 @@ export default function Agenda() {
     setIsEventDialogOpen(true)
   }
 
-  const handleSaveEvent = (data: any) => {
+  const handleSaveEvent = async (data: any) => {
     try {
+      const eventPayload = {
+        title: data.title,
+        date: data.date,
+        time: data.time,
+        type: data.type,
+        location: data.location,
+        locationId: data.locationId,
+        description: data.description,
+        attendees: data.attendees ?? 0,
+        reminders: data.reminders,
+        timeline: data.timeline,
+      }
+
       if (eventToEdit) {
-        updateEvent({ ...eventToEdit, ...data })
-        devLog('Agenda: Evento atualizado:', { ...eventToEdit, ...data })
+        const saved = await updateEvent({ ...eventToEdit, ...eventPayload })
+        if (!saved) {
+          toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description: 'Não foi possível salvar o evento. Tente novamente.',
+          })
+          return
+        }
+        devLog('Agenda: Evento atualizado:', { ...eventToEdit, ...eventPayload })
         toast({
           title: 'Evento Atualizado',
           description: 'As alterações foram salvas com sucesso.',
         })
       } else {
-        const newEvent = { id: crypto.randomUUID(), ...data }
-        addEvent(newEvent)
+        const newEvent: Event = {
+          id: crypto.randomUUID(),
+          ...eventPayload,
+        }
+        const saved = await addEvent(newEvent)
+        if (!saved) {
+          toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description:
+              'Não foi possível salvar o evento no servidor. Verifique sua conexão e permissões.',
+          })
+          return
+        }
         devLog('Agenda: Novo evento criado:', newEvent)
-        // Verificar se foi salvo corretamente
-        setTimeout(() => {
-          const currentEvents = useChancellorStore.getState().events
-          devLog(`Agenda: Total de eventos após adicionar: ${currentEvents.length}`)
-          devLog('Agenda: Último evento no store:', currentEvents[currentEvents.length - 1])
-        }, 100)
+        const eventDate = new Date(`${data.date}T12:00:00`)
+        if (!isNaN(eventDate.getTime())) {
+          setSelectedDate(eventDate)
+          setCurrentDate(eventDate)
+        }
         toast({
           title: 'Evento Criado',
           description: 'Novo evento adicionado à agenda.',

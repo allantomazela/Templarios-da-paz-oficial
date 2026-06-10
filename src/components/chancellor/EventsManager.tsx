@@ -31,10 +31,12 @@ export function EventsManager() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedEvent) {
-        updateEvent({ ...selectedEvent, ...data })
+        const saved = await updateEvent({ ...selectedEvent, ...data })
+        if (!saved) throw new Error('Falha ao atualizar evento')
         return 'Evento atualizado com sucesso.'
       } else {
-        addEvent({ id: crypto.randomUUID(), ...data })
+        const saved = await addEvent({ id: crypto.randomUUID(), ...data })
+        if (!saved) throw new Error('Falha ao criar evento')
         return 'Evento criado com sucesso.'
       }
     },

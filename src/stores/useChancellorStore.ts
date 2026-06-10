@@ -88,8 +88,8 @@ interface ChancellorState {
   updateBrotherDegree: (brotherId: string, updates: Partial<Brother>) => void
 
   // Events
-  addEvent: (event: Event) => void
-  updateEvent: (event: Event) => void
+  addEvent: (event: Event) => Promise<boolean>
+  updateEvent: (event: Event) => Promise<boolean>
   deleteEvent: (id: string) => void
 
   // Solids
@@ -295,55 +295,55 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       ),
     })),
 
-  addEvent: (event) => {
+  addEvent: async (event) => {
     devLog(
       `useChancellorStore: Adicionando evento - ${event.title}, Data: ${event.date}`,
     )
     set((state) => ({ events: [...state.events, event] }))
 
-    void (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('events')
-          .insert(eventToDbPayload(event))
-          .select('*')
-          .single()
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert(eventToDbPayload(event))
+        .select('*')
+        .single()
 
-        if (error) throw error
-        if (!data) return
+      if (error) throw error
+      if (!data) throw new Error('Evento não retornado após insert')
 
-        const persisted = mapEventFromDB(data)
-        set((state) => ({
-          events: state.events.map((e) =>
-            e.id === event.id ? persisted : e,
-          ),
-        }))
-      } catch (error) {
-        if (handleAuthError(error)) return
-        logError('addEvent persist', error)
-        set((state) => ({
-          events: state.events.filter((e) => e.id !== event.id),
-        }))
-      }
-    })()
+      const persisted = mapEventFromDB(data)
+      set((state) => ({
+        events: state.events.map((e) =>
+          e.id === event.id ? { ...persisted, locationId: event.locationId } : e,
+        ),
+      }))
+      return true
+    } catch (error) {
+      if (handleAuthError(error)) return false
+      logError('addEvent persist', error)
+      set((state) => ({
+        events: state.events.filter((e) => e.id !== event.id),
+      }))
+      return false
+    }
   },
-  updateEvent: (event) => {
+  updateEvent: async (event) => {
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),
     }))
 
-    void (async () => {
-      try {
-        const { error } = await supabase
-          .from('events')
-          .update(eventToDbPayload(event))
-          .eq('id', event.id)
-        if (error) throw error
-      } catch (error) {
-        if (handleAuthError(error)) return
-        logError('updateEvent persist', error)
-      }
-    })()
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update(eventToDbPayload(event))
+        .eq('id', event.id)
+      if (error) throw error
+      return true
+    } catch (error) {
+      if (handleAuthError(error)) return false
+      logError('updateEvent persist', error)
+      return false
+    }
   },
   deleteEvent: (id) => {
     set((state) => ({ events: state.events.filter((e) => e.id !== id) }))

@@ -3,6 +3,18 @@ import type { Location } from '@/lib/data'
 export const MANUAL_EVENT_LOCATION_ID = '__manual__'
 export const LODGE_EVENT_LOCATION_ID = '__lodge__'
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** IDs virtuais da UI não podem ir para a coluna UUID location_id. */
+export function sanitizeLocationIdForDb(
+  locationId?: string,
+): string | null {
+  if (!locationId || locationId === MANUAL_EVENT_LOCATION_ID) return null
+  if (locationId === LODGE_EVENT_LOCATION_ID) return null
+  return UUID_RE.test(locationId) ? locationId : null
+}
+
 export interface LodgeContactInfo {
   address?: string
   city?: string

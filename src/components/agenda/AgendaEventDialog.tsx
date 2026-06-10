@@ -12,6 +12,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -32,6 +33,16 @@ import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useChancellorStore from '@/stores/useChancellorStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import {
+  MANUAL_EVENT_LOCATION_ID,
+  LODGE_EVENT_LOCATION_ID,
+  buildLodgeLocationDescription,
+  buildLodgeLocationName,
+  defaultNewEventLocationId,
+  inferLocationIdFromEvent,
+  resolveEventLocationInput,
+} from '@/lib/event-locations'
 import {
   Plus,
   Trash2,
@@ -42,15 +53,17 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
-const eventSchema = z.object({
-  title: z.string().min(3, 'Título é obrigatório'),
-  date: z.string().min(1, 'Data é obrigatória'),
-  time: z.string().min(1, 'Hora é obrigatória'),
-  type: z.enum(['Sessão', 'Reunião', 'Evento Social', 'Outro']),
-  locationId: z.string().min(1, 'Local é obrigatório'),
-  description: z.string().min(3, 'Descrição é obrigatória'),
-  attendees: z.coerce.number().min(0, 'Número de participantes inválido'),
-  timeline: z
+const eventSchema = z
+  .object({
+    title: z.string().min(3, 'Título é obrigatório'),
+    date: z.string().min(1, 'Data é obrigatória'),
+    time: z.string().min(1, 'Hora é obrigatória'),
+    type: z.enum(['Sessão', 'Reunião', 'Evento Social', 'Outro']),
+    locationId: z.string().min(1, 'Selecione um local'),
+    customLocation: z.string().optional(),
+    description: z.string().min(3, 'Descrição é obrigatória'),
+    attendees: z.coerce.number().min(0, 'Número de participantes inválido'),
+    timeline: z
     .array(
       z.object({
         time: z.string().min(1, 'Hora necessária'),
@@ -66,7 +79,19 @@ const eventSchema = z.object({
       }),
     )
     .optional(),
-})
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.locationId === MANUAL_EVENT_LOCATION_ID &&
+      !data.customLocation?.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe o local manualmente',
+        path: ['customLocation'],
+      })
+    }
+  })
 
 type EventFormValues = z.infer<typeof eventSchema>
 
@@ -86,7 +111,12 @@ export function AgendaEventDialog({
   onSave,
 }: AgendaEventDialogProps) {
   const { locations, events } = useChancellorStore()
+  const siteTitle = useSiteSettingsStore((s) => s.siteTitle)
+  const contact = useSiteSettingsStore((s) => s.contact)
   const [conflictWarning, setConflictWarning] = useState<string | null>(null)
+
+  const lodgeLocationName = buildLodgeLocationName(siteTitle, contact.city)
+  const lodgeLocationDescription = buildLodgeLocationDescription(contact)
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -95,7 +125,8 @@ export function AgendaEventDialog({
       date: '',
       time: '20:00',
       type: 'Sessão',
-      locationId: '',
+      locationId: LODGE_EVENT_LOCATION_ID,
+      customLocation: '',
       description: '',
       attendees: 0,
       timeline: [],
@@ -121,22 +152,26 @@ export function AgendaEventDialog({
     name: 'reminders',
   })
 
+  const watchLocationId = form.watch('locationId')
+  const isManualLocation = watchLocationId === MANUAL_EVENT_LOCATION_ID
+
   useEffect(() => {
     if (open) {
       if (eventToEdit) {
-        // Try to match legacy location text to an ID if possible, otherwise use existing ID
-        let locId = eventToEdit.locationId || ''
-        if (!locId && eventToEdit.location) {
-          const found = locations.find((l) => l.name === eventToEdit.location)
-          if (found) locId = found.id
-        }
+        const { locationId, customLocation } = inferLocationIdFromEvent(
+          eventToEdit,
+          locations,
+          siteTitle,
+          contact,
+        )
 
         form.reset({
           title: eventToEdit.title,
           date: eventToEdit.date,
           time: eventToEdit.time,
           type: eventToEdit.type,
-          locationId: locId || (locations[0]?.id ?? ''),
+          locationId,
+          customLocation,
           description: eventToEdit.description,
           attendees: eventToEdit.attendees,
           timeline: eventToEdit.timeline || [],
@@ -150,7 +185,8 @@ export function AgendaEventDialog({
             : format(new Date(), 'yyyy-MM-dd'),
           time: '20:00',
           type: 'Sessão',
-          locationId: locations[0]?.id ?? '',
+          locationId: defaultNewEventLocationId(),
+          customLocation: '',
           description: '',
           attendees: 0,
           timeline: [],
@@ -158,7 +194,7 @@ export function AgendaEventDialog({
         })
       }
     }
-  }, [eventToEdit, selectedDate, form, open, locations])
+  }, [eventToEdit, selectedDate, form, open, locations, siteTitle, contact])
 
   // Conflict Checking
   const checkConflict = () => {
@@ -172,12 +208,18 @@ export function AgendaEventDialog({
     }
 
     // Basic check: same location on same date (ignoring time duration logic for simplicity, just start time proximity)
+    const selectedLocationName =
+      locId === LODGE_EVENT_LOCATION_ID
+        ? lodgeLocationName
+        : locId === MANUAL_EVENT_LOCATION_ID
+          ? form.getValues('customLocation')?.trim()
+          : locations.find((l) => l.id === locId)?.name
+
     const conflicts = events.filter(
       (e) =>
         e.id !== eventToEdit?.id &&
         e.date === date &&
-        (e.locationId === locId ||
-          e.location === locations.find((l) => l.id === locId)?.name) &&
+        (e.locationId === locId || e.location === selectedLocationName) &&
         Math.abs(
           parseInt(e.time.replace(':', '')) - parseInt(time.replace(':', '')),
         ) < 200, // Roughly 2 hours overlap check logic simplified
@@ -197,12 +239,18 @@ export function AgendaEventDialog({
   }
 
   const handleSubmit = (data: EventFormValues) => {
-    // Resolve location Name from ID for legacy support/display
-    const loc = locations.find((l) => l.id === data.locationId)
+    const resolved = resolveEventLocationInput({
+      locationId: data.locationId,
+      customLocation: data.customLocation,
+      siteTitle,
+      contact,
+      locations,
+    })
+
     const formattedData = {
       ...data,
-      location: loc ? loc.name : 'Local Indefinido',
-      locationId: data.locationId,
+      location: resolved.location,
+      locationId: resolved.locationId,
     }
     onSave(formattedData)
   }
@@ -319,9 +367,11 @@ export function AgendaEventDialog({
                             <Select
                               onValueChange={(val) => {
                                 field.onChange(val)
+                                if (val !== MANUAL_EVENT_LOCATION_ID) {
+                                  form.setValue('customLocation', '')
+                                }
                                 checkConflict()
                               }}
-                              defaultValue={field.value}
                               value={field.value}
                             >
                               <FormControl>
@@ -330,11 +380,29 @@ export function AgendaEventDialog({
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
+                                <SelectItem value={LODGE_EVENT_LOCATION_ID}>
+                                  <div>
+                                    <div className="font-medium">
+                                      {lodgeLocationName}
+                                    </div>
+                                    {lodgeLocationDescription ? (
+                                      <div className="text-xs text-muted-foreground">
+                                        {lodgeLocationDescription}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </SelectItem>
                                 {locations.map((loc) => (
                                   <SelectItem key={loc.id} value={loc.id}>
-                                    {loc.name} ({loc.capacity} lug.)
+                                    {loc.name}
+                                    {loc.capacity > 0
+                                      ? ` (${loc.capacity} lug.)`
+                                      : ''}
                                   </SelectItem>
                                 ))}
+                                <SelectItem value={MANUAL_EVENT_LOCATION_ID}>
+                                  Outro local (informar manualmente)
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -342,6 +410,34 @@ export function AgendaEventDialog({
                         )}
                       />
                     </div>
+
+                    {isManualLocation && (
+                      <FormField
+                        control={form.control}
+                        name="customLocation"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Local manual</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ex.: Salão parceiro, evento externo..."
+                                {...field}
+                                value={field.value || ''}
+                                onChange={(e) => {
+                                  field.onChange(e)
+                                  checkConflict()
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Use para sessões ou eventos fora do templo da
+                              loja.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     {conflictWarning && (
                       <Alert variant="destructive">

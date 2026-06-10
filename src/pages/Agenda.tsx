@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   format,
   addMonths,
@@ -48,6 +48,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 import useChancellorStore from '@/stores/useChancellorStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { CalendarGrid } from '@/components/agenda/CalendarGrid'
 import { WeeklyCalendar } from '@/components/agenda/WeeklyCalendar'
 import { AgendaEventDialog } from '@/components/agenda/AgendaEventDialog'
@@ -66,7 +67,13 @@ import { getBrazilianHolidaysAndComemorativos } from '@/lib/brazilian-holidays'
 export default function Agenda() {
   const { events, brothers, addEvent, updateEvent, deleteEvent } =
     useChancellorStore()
+  const fetchSettings = useSiteSettingsStore((s) => s.fetchSettings)
   const { user } = useAuthStore()
+
+  useEffect(() => {
+    fetchSettings(true, true)
+    useChancellorStore.getState().fetchChancellorData()
+  }, [fetchSettings])
   const userRole = user?.role || 'member'
   const canEdit = ['admin', 'editor'].includes(userRole)
   const { toast } = useToast()

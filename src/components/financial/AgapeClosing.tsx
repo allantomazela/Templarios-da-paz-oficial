@@ -59,6 +59,7 @@ import {
   saveAgapeCharge,
   saveAgapeMonthlyTotal,
   type AgapeChargeFormData,
+  type AgapeConsumptionTotalRow,
 } from '@/lib/agape-payments'
 
 function statusBadge(status: AgapeBrotherCharge['status']) {
@@ -81,6 +82,9 @@ export function AgapeClosing() {
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [closing, setClosing] = useState<AgapeMonthlyClosing | null>(null)
   const [liveTotal, setLiveTotal] = useState<number | null>(null)
+  const [liveConsumptionRows, setLiveConsumptionRows] = useState<
+    AgapeConsumptionTotalRow[]
+  >([])
   const [loading, setLoading] = useState(true)
   const dialog = useDialog()
   const [selectedCharge, setSelectedCharge] = useState<AgapeBrotherCharge | null>(null)
@@ -101,12 +105,13 @@ export function AgapeClosing() {
         const [closingData, chargesData, consumptionTotals] = await Promise.all([
           fetchAgapeMonthlyClosing(selectedMonth, selectedYear),
           fetchAgapeChargesForMonth(selectedMonth, selectedYear),
-          fetchLiveConsumptionTotals(selectedMonth, selectedYear).catch(() => []),
+          fetchLiveConsumptionTotals(selectedMonth, selectedYear),
         ])
 
         setClosing(closingData)
         setCharges(chargesData.charges)
         setBrotherNames(chargesData.brotherNames)
+        setLiveConsumptionRows(consumptionTotals)
         setTotalBeveragesInput(
           closingData?.totalBeveragesSpent != null
             ? String(closingData.totalBeveragesSpent)
@@ -155,8 +160,8 @@ export function AgapeClosing() {
     async () => {
       const result = await generateAgapeChargesForMonth(selectedMonth, selectedYear)
       toast({
-        title: 'Cobranças geradas',
-        description: `${result.created} nova(s), ${result.updated} atualizada(s). Total consumido: ${formatCurrencyBRL(result.totalConsumed)}.`,
+        title: 'Consumos importados',
+        description: `${result.created} nova(s), ${result.updated} atualizada(s). Total dos irmãos: ${formatCurrencyBRL(result.totalConsumed)} (${result.brothersWithConsumption} irmão(s)).`,
       })
       await loadData.execute()
     },
@@ -243,7 +248,15 @@ export function AgapeClosing() {
     totalBeverages > 0 &&
     charges.length > 0 &&
     Math.abs(brothersTotal - totalBeverages) > 0.01
+  const needsImport =
+    (liveTotal ?? 0) > 0 &&
+    (charges.length === 0 || Math.abs((liveTotal ?? 0) - brothersTotal) > 0.01)
   const isClosed = closing?.status === 'closed'
+
+  const handleUseLiveTotalAsBeverages = () => {
+    if ((liveTotal ?? 0) <= 0) return
+    setTotalBeveragesInput(String(liveTotal))
+  }
 
   const monthOptions = useMemo(() => {
     return Array.from({ length: 12 }, (_, i) => {
@@ -464,17 +477,81 @@ export function AgapeClosing() {
             </Alert>
           )}
 
-          {consumptionMismatch && !isClosed && (
-            <Alert>
+          {needsImport && !isClosed && (
+            <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Consumo do sistema diferente</AlertTitle>
+              <AlertTitle>Consumos do Ágape não importados</AlertTitle>
               <AlertDescription>
-                O consumo registrado nas sessões (
-                {formatCurrencyBRL(liveTotal!)}) difere da soma das cobranças (
-                {formatCurrencyBRL(brothersTotal)}). Use &quot;Importar consumos&quot;
-                para sincronizar.
+                Há {formatCurrencyBRL(liveTotal!)} lançados no Ágape neste mês, mas o
+                fechamento tem {formatCurrencyBRL(brothersTotal)}. Clique em{' '}
+                <strong>Importar consumos do mês</strong> para sincronizar.
               </AlertDescription>
             </Alert>
+          )}
+
+          {consumptionMismatch && !isClosed && !needsImport && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Valores desatualizados</AlertTitle>
+              <AlertDescription>
+                O consumo no Ágape ({formatCurrencyBRL(liveTotal!)}) difere das
+                cobranças ({formatCurrencyBRL(brothersTotal)}). Importe novamente para
+                atualizar.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {liveConsumptionRows.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">
+                  Consumos lançados no Ágape ({monthLabel})
+                </CardTitle>
+                <CardDescription>
+                  Valores registrados no módulo Ágape — use Importar para trazer ao
+                  fechamento financeiro.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Irmão</TableHead>
+                        <TableHead className="text-right">Itens</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {liveConsumptionRows.map((row) => (
+                        <TableRow key={row.brother_id}>
+                          <TableCell>{row.brother_name}</TableCell>
+                          <TableCell className="text-right">{row.total_items}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrencyBRL(row.total_amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-medium">
+                    Total no Ágape: {formatCurrencyBRL(liveTotal ?? 0)}
+                  </span>
+                  {!isClosed && (liveTotal ?? 0) > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUseLiveTotalAsBeverages}
+                    >
+                      Usar este total nas bebidas
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {isBalanced && !isClosed && (

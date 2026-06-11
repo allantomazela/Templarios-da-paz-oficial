@@ -62,11 +62,77 @@ interface ClosingRow {
   closed_at: string | null
 }
 
-interface ConsumptionTotalRow {
+export interface AgapeConsumptionTotalRow {
   brother_id: string
   brother_name: string
   total_amount: number
   total_items: number
+}
+
+function getMonthDateBounds(month: number, year: number) {
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  return { startDate, endDate }
+}
+
+/** Consulta direta — mesmo critério dos relatórios mensais do Ágape. */
+async function fetchConsumptionTotalsFromQuery(
+  supabaseAny: ReturnType<typeof supabase> & object,
+  month: number,
+  year: number,
+): Promise<AgapeConsumptionTotalRow[]> {
+  const { startDate, endDate } = getMonthDateBounds(month, year)
+
+  const { data: sessions, error: sessionsError } = await supabaseAny
+    .from('agape_sessions')
+    .select('id')
+    .gte('date', startDate)
+    .lte('date', endDate)
+
+  if (sessionsError) throw formatSupabaseError(sessionsError)
+
+  const sessionIds = (sessions || []).map((s: { id: string }) => s.id)
+  if (sessionIds.length === 0) return []
+
+  const { data: consumptions, error } = await supabaseAny
+    .from('agape_consumptions')
+    .select(`
+      brother_id,
+      total_amount,
+      quantity,
+      brother:profiles!agape_consumptions_brother_id_fkey ( full_name )
+    `)
+    .in('session_id', sessionIds)
+
+  if (error) throw formatSupabaseError(error)
+
+  const byBrother = new Map<string, AgapeConsumptionTotalRow>()
+
+  for (const row of consumptions || []) {
+    const brotherId = row.brother_id as string
+    const amount = Number(row.total_amount) || 0
+    const items = Number(row.quantity) || 0
+    const brotherName =
+      (row.brother as { full_name: string | null } | null)?.full_name || 'Sem nome'
+
+    const existing = byBrother.get(brotherId)
+    if (existing) {
+      existing.total_amount += amount
+      existing.total_items += items
+    } else {
+      byBrother.set(brotherId, {
+        brother_id: brotherId,
+        brother_name: brotherName,
+        total_amount: amount,
+        total_items: items,
+      })
+    }
+  }
+
+  return Array.from(byBrother.values()).sort((a, b) =>
+    a.brother_name.localeCompare(b.brother_name, 'pt-BR'),
+  )
 }
 
 function formatSupabaseError(error: unknown): Error {
@@ -371,7 +437,6 @@ export async function fetchAgapeChargesForMonth(
     `)
     .eq('month', month)
     .eq('year', year)
-    .order('profiles(full_name)', { ascending: true })
 
   if (error) throw formatSupabaseError(error)
 
@@ -383,30 +448,53 @@ export async function fetchAgapeChargesForMonth(
     return mapAgapeChargeRow(row)
   })
 
+  charges.sort((a, b) => {
+    const nameA =
+      brotherNames[a.brotherId] || a.brotherName || ''
+    const nameB =
+      brotherNames[b.brotherId] || b.brotherName || ''
+    return nameA.localeCompare(nameB, 'pt-BR')
+  })
+
   return { charges, brotherNames }
 }
 
 export async function fetchLiveConsumptionTotals(
   month: number,
   year: number,
-): Promise<ConsumptionTotalRow[]> {
+): Promise<AgapeConsumptionTotalRow[]> {
   const supabaseAny = supabase as any
+
   const { data, error } = await supabaseAny.rpc(
     'get_agape_monthly_consumption_totals',
     { p_month: month, p_year: year },
   )
 
-  if (error) throw formatSupabaseError(error)
-  return (data || []) as ConsumptionTotalRow[]
+  if (!error && data && data.length > 0) {
+    return data as AgapeConsumptionTotalRow[]
+  }
+
+  if (error) {
+    console.warn('RPC get_agape_monthly_consumption_totals falhou, usando consulta direta.', error)
+  }
+
+  return fetchConsumptionTotalsFromQuery(supabaseAny, month, year)
 }
 
-/** Gera/atualiza cobranças a partir dos consumos das sessões fechadas do mês. */
+/** Gera/atualiza cobranças a partir dos consumos lançados no Ágape no mês. */
 export async function generateAgapeChargesForMonth(
   month: number,
   year: number,
 ): Promise<GenerateAgapeChargesResult> {
   const supabaseAny = supabase as any
   const consumptionTotals = await fetchLiveConsumptionTotals(month, year)
+
+  if (consumptionTotals.length === 0) {
+    throw new Error(
+      `Nenhum consumo encontrado para ${String(month).padStart(2, '0')}/${year}. ` +
+        'Registre os lançamentos no módulo Ágape e confira o mês selecionado.',
+    )
+  }
 
   const {
     data: { user },

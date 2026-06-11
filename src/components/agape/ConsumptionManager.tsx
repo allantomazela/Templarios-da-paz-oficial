@@ -45,7 +45,7 @@ export function ConsumptionManager({
     consumptions,
     menuItems,
     sessions,
-    loading,
+    fetchMenuItems,
     fetchConsumptions,
     createConsumption,
     deleteConsumption,
@@ -57,6 +57,7 @@ export function ConsumptionManager({
   const [selectedMenuItem, setSelectedMenuItem] = useState<string>('')
   const [quantity, setQuantity] = useState<number>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [consumptionsLoading, setConsumptionsLoading] = useState(false)
   const [sessionTotal, setSessionTotal] = useState<{
     total_brothers: number
     total_items: number
@@ -98,8 +99,11 @@ export function ConsumptionManager({
 
     void loadBrothers()
     void loadSessionTotal()
-    void fetchConsumptions(sessionId)
-  }, [open, sessionId])
+    void fetchMenuItems()
+
+    setConsumptionsLoading(true)
+    void fetchConsumptions(sessionId).finally(() => setConsumptionsLoading(false))
+  }, [open, sessionId, fetchMenuItems, fetchConsumptions, loadBrothers, loadSessionTotal])
 
   const handleAddConsumption = async () => {
     // Proteção contra cliques duplos
@@ -204,9 +208,22 @@ export function ConsumptionManager({
     return null
   }
 
+  const handleDialogInteractOutside = (event: Event) => {
+    const target = event.target as HTMLElement | null
+    if (
+      target?.closest('[data-radix-select-content]') ||
+      target?.closest('[role="listbox"]')
+    ) {
+      event.preventDefault()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onInteractOutside={handleDialogInteractOutside}
+      >
         <DialogHeader>
           <DialogTitle>
             Gerenciar Consumos - {session ? new Date(session.date).toLocaleDateString('pt-BR') : 'Sessão'}
@@ -233,7 +250,7 @@ export function ConsumptionManager({
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o irmão" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   {brothers.map((brother) => (
                     <SelectItem key={brother.id} value={brother.id}>
                       {brother.full_name || 'Sem nome'}
@@ -246,7 +263,7 @@ export function ConsumptionManager({
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o item" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   {activeMenuItems.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.name} - {formatCurrencyBRL(item.price)}
@@ -265,14 +282,19 @@ export function ConsumptionManager({
 
               <Button
                 onClick={handleAddConsumption}
-                disabled={!selectedBrother || !selectedMenuItem || isSubmitting || loading}
+                disabled={
+                  !selectedBrother ||
+                  !selectedMenuItem ||
+                  isSubmitting ||
+                  activeMenuItems.length === 0
+                }
               >
-                {isSubmitting || loading ? (
+                {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Plus className="mr-2 h-4 w-4" />
                 )}
-                {isSubmitting || loading ? 'Adicionando...' : 'Adicionar'}
+                {isSubmitting ? 'Adicionando...' : 'Adicionar'}
               </Button>
             </div>
           </div>
@@ -299,7 +321,14 @@ export function ConsumptionManager({
           </div>
         )}
 
-        {loading ? (
+        {activeMenuItems.length === 0 && session?.status === 'open' && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Não há itens ativos no cardápio. Cadastre itens na aba{' '}
+            <strong>Cardápio</strong> antes de lançar consumos.
+          </div>
+        )}
+
+        {consumptionsLoading ? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>

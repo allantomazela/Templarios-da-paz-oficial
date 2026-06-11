@@ -295,7 +295,13 @@ export function AgapeChargeDialog({
                     <FormItem>
                       <FormLabel>Consumo registrado</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" min="0" {...field} readOnly />
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...field}
+                          readOnly={!!chargeToEdit}
+                        />
                       </FormControl>
                       <FormDescription>
                         {formatCurrencyBRL(watchConsumed)}

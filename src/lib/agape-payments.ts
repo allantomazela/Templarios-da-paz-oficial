@@ -55,6 +55,7 @@ interface ClosingRow {
   month: number
   year: number
   total_consumed: number
+  total_beverages_spent: number | null
   total_paid: number
   status: 'open' | 'closed'
   notes: string | null
@@ -96,11 +97,68 @@ export function mapAgapeClosingRow(row: ClosingRow): AgapeMonthlyClosing {
     month: row.month,
     year: row.year,
     totalConsumed: Number(row.total_consumed),
+    totalBeveragesSpent:
+      row.total_beverages_spent != null
+        ? Number(row.total_beverages_spent)
+        : undefined,
     totalPaid: Number(row.total_paid),
     status: row.status,
     notes: row.notes ?? undefined,
     closedAt: row.closed_at ?? undefined,
   }
+}
+
+async function ensureOpenClosing(
+  supabaseAny: ReturnType<typeof supabase> & object,
+  month: number,
+  year: number,
+): Promise<AgapeMonthlyClosing> {
+  const existing = await fetchAgapeMonthlyClosing(month, year)
+  if (existing) {
+    if (existing.status === 'closed') {
+      throw new Error('O fechamento deste mês já está encerrado.')
+    }
+    return existing
+  }
+
+  const { data, error } = await supabaseAny
+    .from('agape_monthly_closings')
+    .insert({
+      month,
+      year,
+      total_consumed: 0,
+      total_paid: 0,
+      status: 'open',
+    })
+    .select('*')
+    .single()
+
+  if (error) throw formatSupabaseError(error)
+  return mapAgapeClosingRow(data as ClosingRow)
+}
+
+/** Define o valor total gasto em bebidas no mês (informado no fechamento). */
+export async function saveAgapeMonthlyTotal(
+  month: number,
+  year: number,
+  totalBeveragesSpent: number,
+): Promise<AgapeMonthlyClosing> {
+  if (totalBeveragesSpent <= 0) {
+    throw new Error('Informe um valor total maior que zero.')
+  }
+
+  const supabaseAny = supabase as any
+  const closing = await ensureOpenClosing(supabaseAny, month, year)
+
+  const { data, error } = await supabaseAny
+    .from('agape_monthly_closings')
+    .update({ total_beverages_spent: totalBeveragesSpent })
+    .eq('id', closing.id)
+    .select('*')
+    .single()
+
+  if (error) throw formatSupabaseError(error)
+  return mapAgapeClosingRow(data as ClosingRow)
 }
 
 export function buildAgapeDescription(
@@ -263,8 +321,7 @@ async function refreshClosingTotals(
 
   const rows = charges || []
   const totalConsumed = rows.reduce(
-    (sum: number, r: { consumed_amount: number }) =>
-      sum + Number(r.consumed_amount),
+    (sum: number, r: { amount: number }) => sum + Number(r.amount),
     0,
   )
   const totalPaid = rows
@@ -355,27 +412,7 @@ export async function generateAgapeChargesForMonth(
     data: { user },
   } = await supabase.auth.getUser()
 
-  let closing = await fetchAgapeMonthlyClosing(month, year)
-  if (!closing) {
-    const { data: createdClosing, error: closingError } = await supabaseAny
-      .from('agape_monthly_closings')
-      .insert({
-        month,
-        year,
-        total_consumed: 0,
-        total_paid: 0,
-        status: 'open',
-      })
-      .select('*')
-      .single()
-
-    if (closingError) throw formatSupabaseError(closingError)
-    closing = mapAgapeClosingRow(createdClosing as ClosingRow)
-  }
-
-  if (closing.status === 'closed') {
-    throw new Error('O fechamento deste mês já está encerrado.')
-  }
+  const closing = await ensureOpenClosing(supabaseAny, month, year)
 
   let created = 0
   let updated = 0
@@ -448,10 +485,13 @@ export async function saveAgapeCharge(
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
 
-  const closing = await fetchAgapeMonthlyClosing(month, data.year)
-  if (closing?.status === 'closed') {
+  const existingClosing = await fetchAgapeMonthlyClosing(month, data.year)
+  if (existingClosing?.status === 'closed') {
     throw new Error('O fechamento deste mês está encerrado e não pode ser alterado.')
   }
+
+  const closing =
+    existingClosing ?? (await ensureOpenClosing(supabaseAny, month, data.year))
 
   const {
     data: { user },
@@ -471,7 +511,7 @@ export async function saveAgapeCharge(
     account_id: data.status === 'Pago' ? data.accountId ?? null : null,
     notes: data.notes?.trim() || null,
     recorded_by: user?.id ?? null,
-    closing_id: closing?.id ?? null,
+    closing_id: closing.id,
   }
 
   const persistAndSync = async (
@@ -490,9 +530,7 @@ export async function saveAgapeCharge(
       existingTransactionId,
     })
 
-    if (closing?.id) {
-      await refreshClosingTotals(supabaseAny, month, data.year, closing.id)
-    }
+    await refreshClosingTotals(supabaseAny, month, data.year, closing.id)
   }
 
   if (options?.chargeId) {
@@ -596,28 +634,42 @@ export async function closeAgapeMonth(
   const closing = await fetchAgapeMonthlyClosing(month, year)
 
   if (!closing) {
-    throw new Error('Gere as cobranças do mês antes de encerrar o fechamento.')
+    throw new Error('Informe o valor total das bebidas antes de encerrar.')
   }
 
   if (closing.status === 'closed') {
     throw new Error('Este mês já está encerrado.')
   }
 
-  const { charges } = await fetchAgapeChargesForMonth(month, year)
-  const pending = charges.filter((c) => c.status !== 'Pago')
+  const totalBeverages = closing.totalBeveragesSpent ?? 0
+  if (totalBeverages <= 0) {
+    throw new Error('Informe o valor total gasto em bebidas antes de encerrar.')
+  }
 
+  const { charges } = await fetchAgapeChargesForMonth(month, year)
+  if (charges.length === 0) {
+    throw new Error('Gere ou registre as cobranças dos irmãos antes de encerrar.')
+  }
+
+  const pending = charges.filter((c) => c.status !== 'Pago')
   if (pending.length > 0) {
     throw new Error(
       `Ainda há ${pending.length} irmão(s) com pagamento pendente. Registre todos os pagamentos antes de encerrar.`,
     )
   }
 
-  const totalConsumed = charges.reduce((s, c) => s + c.consumedAmount, 0)
+  const brothersTotal = charges.reduce((s, c) => s + c.amount, 0)
   const totalPaid = charges.reduce((s, c) => s + c.amount, 0)
 
-  if (Math.abs(totalConsumed - totalPaid) > 0.009) {
+  if (Math.abs(brothersTotal - totalBeverages) > 0.009) {
     throw new Error(
-      `O total consumido (${totalConsumed.toFixed(2)}) não confere com o total pago (${totalPaid.toFixed(2)}).`,
+      `A soma dos irmãos (R$ ${brothersTotal.toFixed(2)}) não confere com o total das bebidas (R$ ${totalBeverages.toFixed(2)}).`,
+    )
+  }
+
+  if (Math.abs(totalPaid - totalBeverages) > 0.009) {
+    throw new Error(
+      `O total recebido (R$ ${totalPaid.toFixed(2)}) ainda não confere com o total das bebidas (R$ ${totalBeverages.toFixed(2)}).`,
     )
   }
 
@@ -629,8 +681,9 @@ export async function closeAgapeMonth(
     .from('agape_monthly_closings')
     .update({
       status: 'closed',
-      total_consumed: totalConsumed,
+      total_consumed: brothersTotal,
       total_paid: totalPaid,
+      total_beverages_spent: totalBeverages,
       notes: notes?.trim() || closing.notes || null,
       closed_at: new Date().toISOString(),
       closed_by: user?.id ?? null,

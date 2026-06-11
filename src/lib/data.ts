@@ -147,7 +147,10 @@ export interface AgapeMonthlyClosing {
   id: string
   month: number
   year: number
+  /** Soma das cobranças por irmão */
   totalConsumed: number
+  /** Valor total das bebidas informado no fechamento */
+  totalBeveragesSpent?: number
   totalPaid: number
   status: 'open' | 'closed'
   notes?: string

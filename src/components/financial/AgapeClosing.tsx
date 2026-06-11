@@ -10,6 +10,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -33,6 +36,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Wine,
+  Plus,
+  Save,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -52,6 +57,7 @@ import {
   generateAgapeChargesForMonth,
   reopenAgapeMonth,
   saveAgapeCharge,
+  saveAgapeMonthlyTotal,
   type AgapeChargeFormData,
 } from '@/lib/agape-payments'
 
@@ -78,6 +84,7 @@ export function AgapeClosing() {
   const [loading, setLoading] = useState(true)
   const dialog = useDialog()
   const [selectedCharge, setSelectedCharge] = useState<AgapeBrotherCharge | null>(null)
+  const [totalBeveragesInput, setTotalBeveragesInput] = useState('')
 
   const monthLabel = useMemo(
     () =>
@@ -100,6 +107,11 @@ export function AgapeClosing() {
         setClosing(closingData)
         setCharges(chargesData.charges)
         setBrotherNames(chargesData.brotherNames)
+        setTotalBeveragesInput(
+          closingData?.totalBeveragesSpent != null
+            ? String(closingData.totalBeveragesSpent)
+            : '',
+        )
         setLiveTotal(
           consumptionTotals.reduce(
             (sum, r) => sum + Number(r.total_amount),
@@ -175,6 +187,22 @@ export function AgapeClosing() {
     { showSuccessToast: false },
   )
 
+  const saveTotalOperation = useAsyncOperation(
+    async () => {
+      const value = Number(totalBeveragesInput.replace(',', '.'))
+      if (!value || value <= 0) {
+        throw new Error('Informe o valor total gasto em bebidas.')
+      }
+      await saveAgapeMonthlyTotal(selectedMonth, selectedYear, value)
+      toast({
+        title: 'Total das bebidas salvo',
+        description: `Valor de referência do mês: ${formatCurrencyBRL(value)}.`,
+      })
+      await loadData.execute()
+    },
+    { showSuccessToast: false },
+  )
+
   const deleteOperation = useAsyncOperation(
     async (charge: AgapeBrotherCharge) => {
       if (!confirm(`Excluir cobrança de ${brotherNames[charge.brotherId] || 'irmão'}?`)) {
@@ -188,21 +216,33 @@ export function AgapeClosing() {
     { showSuccessToast: false },
   )
 
-  const totalConsumed = charges.reduce((s, c) => s + c.consumedAmount, 0)
+  const brothersTotal = charges.reduce((s, c) => s + c.amount, 0)
   const totalPaid = charges
     .filter((c) => c.status === 'Pago')
     .reduce((s, c) => s + c.amount, 0)
   const totalPending = charges
     .filter((c) => c.status !== 'Pago')
     .reduce((s, c) => s + c.amount, 0)
+  const totalBeverages = closing?.totalBeveragesSpent ?? 0
+  const remainingBalance = Math.max(0, totalBeverages - totalPaid)
+  const paymentProgress =
+    totalBeverages > 0 ? Math.min(100, (totalPaid / totalBeverages) * 100) : 0
+  const brothersMatchTotal =
+    totalBeverages > 0 && Math.abs(brothersTotal - totalBeverages) < 0.01
   const isBalanced =
+    totalBeverages > 0 &&
     charges.length > 0 &&
+    brothersMatchTotal &&
     charges.every((c) => c.status === 'Pago') &&
-    Math.abs(totalConsumed - totalPaid) < 0.01
+    Math.abs(totalPaid - totalBeverages) < 0.01
   const consumptionMismatch =
     liveTotal != null &&
     charges.length > 0 &&
-    Math.abs(liveTotal - totalConsumed) > 0.01
+    Math.abs(liveTotal - brothersTotal) > 0.01
+  const brothersTotalMismatch =
+    totalBeverages > 0 &&
+    charges.length > 0 &&
+    Math.abs(brothersTotal - totalBeverages) > 0.01
   const isClosed = closing?.status === 'closed'
 
   const monthOptions = useMemo(() => {
@@ -226,8 +266,8 @@ export function AgapeClosing() {
             Fechamento do Ágape
           </h3>
           <p className="text-sm text-muted-foreground">
-            Gere cobranças a partir dos consumos, registre pagamentos dos irmãos e
-            encerre o mês quando tudo conferir.
+            Informe o total gasto em bebidas, importe o consumo de cada irmão e
+            acompanhe o saldo restante conforme os pagamentos entram.
           </p>
         </div>
         <Select
@@ -271,32 +311,101 @@ export function AgapeClosing() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Valor total das bebidas</CardTitle>
+              <CardDescription>
+                Informe no final do mês quanto foi gasto no total. O saldo vai
+                diminuindo conforme cada irmão paga a sua parte.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="total-beverages">Total gasto em bebidas (R$)</Label>
+                  <Input
+                    id="total-beverages"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex.: 850.00"
+                    value={totalBeveragesInput}
+                    onChange={(e) => setTotalBeveragesInput(e.target.value)}
+                    disabled={isClosed}
+                  />
+                </div>
+                {!isClosed && (
+                  <Button
+                    onClick={() => saveTotalOperation.execute()}
+                    disabled={saveTotalOperation.loading}
+                  >
+                    {saveTotalOperation.loading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Salvar total
+                  </Button>
+                )}
+              </div>
+
+              {totalBeverages > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Recebido dos irmãos</span>
+                    <span className="font-medium">
+                      {formatCurrencyBRL(totalPaid)} de {formatCurrencyBRL(totalBeverages)}
+                    </span>
+                  </div>
+                  <Progress value={paymentProgress} className="h-2" />
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Saldo restante: </span>
+                    <span
+                      className={
+                        remainingBalance <= 0.009
+                          ? 'font-semibold text-green-600'
+                          : 'font-semibold text-amber-600'
+                      }
+                    >
+                      {formatCurrencyBRL(remainingBalance)}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Consumo no mês</CardDescription>
+                <CardDescription>Total das bebidas</CardDescription>
                 <CardTitle className="text-2xl">
-                  {formatCurrencyBRL(liveTotal ?? totalConsumed)}
+                  {totalBeverages > 0
+                    ? formatCurrencyBRL(totalBeverages)
+                    : '—'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground">
-                Sessões fechadas/finalizadas
+                Valor informado no fechamento
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Cobranças geradas</CardDescription>
+                <CardDescription>Soma dos irmãos</CardDescription>
                 <CardTitle className="text-2xl">
-                  {formatCurrencyBRL(totalConsumed)}
+                  {formatCurrencyBRL(brothersTotal)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground">
                 {charges.length} irmão(s)
+                {liveTotal != null && liveTotal > 0 && (
+                  <> · sistema: {formatCurrencyBRL(liveTotal)}</>
+                )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Total recebido</CardDescription>
+                <CardDescription>Já recebido</CardDescription>
                 <CardTitle className="text-2xl text-green-600">
                   {formatCurrencyBRL(totalPaid)}
                 </CardTitle>
@@ -307,7 +416,26 @@ export function AgapeClosing() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Pendente</CardDescription>
+                <CardDescription>Saldo restante</CardDescription>
+                <CardTitle
+                  className={`text-2xl ${
+                    totalBeverages > 0 && remainingBalance <= 0.009
+                      ? 'text-green-600'
+                      : 'text-amber-600'
+                  }`}
+                >
+                  {totalBeverages > 0
+                    ? formatCurrencyBRL(remainingBalance)
+                    : '—'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground">
+                Total das bebidas − recebido
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>A receber</CardDescription>
                 <CardTitle className="text-2xl text-amber-600">
                   {formatCurrencyBRL(totalPending)}
                 </CardTitle>
@@ -324,15 +452,27 @@ export function AgapeClosing() {
             </Card>
           </div>
 
-          {consumptionMismatch && !isClosed && (
+          {brothersTotalMismatch && !isClosed && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Consumo desatualizado</AlertTitle>
+              <AlertTitle>Soma dos irmãos não confere</AlertTitle>
+              <AlertDescription>
+                A soma das partes dos irmãos ({formatCurrencyBRL(brothersTotal)})
+                difere do total das bebidas ({formatCurrencyBRL(totalBeverages)}).
+                Ajuste os valores ou atualize as cobranças.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {consumptionMismatch && !isClosed && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Consumo do sistema diferente</AlertTitle>
               <AlertDescription>
                 O consumo registrado nas sessões (
-                {formatCurrencyBRL(liveTotal!)}) difere das cobranças (
-                {formatCurrencyBRL(totalConsumed)}). Clique em &quot;Atualizar
-                cobranças&quot; para sincronizar.
+                {formatCurrencyBRL(liveTotal!)}) difere da soma das cobranças (
+                {formatCurrencyBRL(brothersTotal)}). Use &quot;Importar consumos&quot;
+                para sincronizar.
               </AlertDescription>
             </Alert>
           )}
@@ -342,7 +482,8 @@ export function AgapeClosing() {
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertTitle className="text-green-800">Pronto para encerrar</AlertTitle>
               <AlertDescription className="text-green-700">
-                Todos os irmãos pagaram e o total confere com o consumo do mês.
+                Todos os irmãos pagaram, a soma confere com o total das bebidas e
+                não há saldo restante.
               </AlertDescription>
             </Alert>
           )}
@@ -358,8 +499,21 @@ export function AgapeClosing() {
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              {charges.length === 0 ? 'Gerar cobranças do mês' : 'Atualizar cobranças'}
+              Importar consumos do mês
             </Button>
+
+            {!isClosed && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSelectedCharge(null)
+                  dialog.open()
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar pagamento
+              </Button>
+            )}
 
             {!isClosed && (
               <Button
@@ -393,8 +547,8 @@ export function AgapeClosing() {
 
           {charges.length === 0 ? (
             <div className="rounded-md border bg-card py-12 text-center text-muted-foreground">
-              Nenhuma cobrança para {monthLabel}. Gere as cobranças a partir dos
-              consumos das sessões fechadas.
+              Nenhuma cobrança para {monthLabel}. Informe o total das bebidas e
+              importe os consumos ou registre os pagamentos dos irmãos.
             </div>
           ) : (
             <div className="rounded-md border bg-card">

@@ -87,85 +87,106 @@ export function AgapeClosing() {
     [selectedMonth, selectedYear],
   )
 
-  const loadData = useAsyncOperation(async () => {
-    setLoading(true)
-    try {
-      const [closingData, chargesData, consumptionTotals] = await Promise.all([
-        fetchAgapeMonthlyClosing(selectedMonth, selectedYear),
-        fetchAgapeChargesForMonth(selectedMonth, selectedYear),
-        fetchLiveConsumptionTotals(selectedMonth, selectedYear).catch(() => []),
-      ])
+  const loadData = useAsyncOperation(
+    async () => {
+      setLoading(true)
+      try {
+        const [closingData, chargesData, consumptionTotals] = await Promise.all([
+          fetchAgapeMonthlyClosing(selectedMonth, selectedYear),
+          fetchAgapeChargesForMonth(selectedMonth, selectedYear),
+          fetchLiveConsumptionTotals(selectedMonth, selectedYear).catch(() => []),
+        ])
 
-      setClosing(closingData)
-      setCharges(chargesData.charges)
-      setBrotherNames(chargesData.brotherNames)
-      setLiveTotal(
-        consumptionTotals.reduce(
-          (sum, r) => sum + Number(r.total_amount),
-          0,
-        ),
-      )
-    } finally {
-      setLoading(false)
-    }
-  })
+        setClosing(closingData)
+        setCharges(chargesData.charges)
+        setBrotherNames(chargesData.brotherNames)
+        setLiveTotal(
+          consumptionTotals.reduce(
+            (sum, r) => sum + Number(r.total_amount),
+            0,
+          ),
+        )
+      } finally {
+        setLoading(false)
+      }
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao carregar fechamento do ágape.',
+    },
+  )
 
   useEffect(() => {
-    loadData.run()
+    loadData.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear])
 
-  const saveOperation = useAsyncOperation(async (data: AgapeChargeFormData) => {
-    await saveAgapeCharge(data, {
-      chargeId: selectedCharge?.id,
-      existingTransactionId: selectedCharge?.transactionId,
-    })
-    notifyFinancialDataChanged()
-    toast({
-      title: 'Pagamento registrado',
-      description: 'A receita foi lançada na tesouraria.',
-    })
-    dialog.close()
-    setSelectedCharge(null)
-    await loadData.run()
-  })
+  const saveOperation = useAsyncOperation(
+    async (data: AgapeChargeFormData) => {
+      await saveAgapeCharge(data, {
+        chargeId: selectedCharge?.id,
+        existingTransactionId: selectedCharge?.transactionId,
+      })
+      notifyFinancialDataChanged()
+      toast({
+        title: 'Pagamento registrado',
+        description: 'A receita foi lançada na tesouraria.',
+      })
+      dialog.close()
+      setSelectedCharge(null)
+      await loadData.execute()
+    },
+    { showSuccessToast: false },
+  )
 
-  const generateOperation = useAsyncOperation(async () => {
-    const result = await generateAgapeChargesForMonth(selectedMonth, selectedYear)
-    toast({
-      title: 'Cobranças geradas',
-      description: `${result.created} nova(s), ${result.updated} atualizada(s). Total consumido: ${formatCurrencyBRL(result.totalConsumed)}.`,
-    })
-    await loadData.run()
-  })
+  const generateOperation = useAsyncOperation(
+    async () => {
+      const result = await generateAgapeChargesForMonth(selectedMonth, selectedYear)
+      toast({
+        title: 'Cobranças geradas',
+        description: `${result.created} nova(s), ${result.updated} atualizada(s). Total consumido: ${formatCurrencyBRL(result.totalConsumed)}.`,
+      })
+      await loadData.execute()
+    },
+    { showSuccessToast: false },
+  )
 
-  const closeOperation = useAsyncOperation(async () => {
-    await closeAgapeMonth(selectedMonth, selectedYear)
-    toast({
-      title: 'Fechamento encerrado',
-      description: `O mês ${monthLabel} foi fechado com sucesso.`,
-    })
-    await loadData.run()
-  })
+  const closeOperation = useAsyncOperation(
+    async () => {
+      await closeAgapeMonth(selectedMonth, selectedYear)
+      toast({
+        title: 'Fechamento encerrado',
+        description: `O mês ${monthLabel} foi fechado com sucesso.`,
+      })
+      await loadData.execute()
+    },
+    { showSuccessToast: false },
+  )
 
-  const reopenOperation = useAsyncOperation(async () => {
-    await reopenAgapeMonth(selectedMonth, selectedYear)
-    toast({
-      title: 'Fechamento reaberto',
-      description: 'O mês pode ser editado novamente.',
-    })
-    await loadData.run()
-  })
+  const reopenOperation = useAsyncOperation(
+    async () => {
+      await reopenAgapeMonth(selectedMonth, selectedYear)
+      toast({
+        title: 'Fechamento reaberto',
+        description: 'O mês pode ser editado novamente.',
+      })
+      await loadData.execute()
+    },
+    { showSuccessToast: false },
+  )
 
-  const deleteOperation = useAsyncOperation(async (charge: AgapeBrotherCharge) => {
-    if (!confirm(`Excluir cobrança de ${brotherNames[charge.brotherId] || 'irmão'}?`)) {
-      return
-    }
-    await deleteAgapeCharge(charge)
-    notifyFinancialDataChanged()
-    toast({ title: 'Cobrança excluída' })
-    await loadData.run()
-  })
+  const deleteOperation = useAsyncOperation(
+    async (charge: AgapeBrotherCharge) => {
+      if (!confirm(`Excluir cobrança de ${brotherNames[charge.brotherId] || 'irmão'}?`)) {
+        return
+      }
+      await deleteAgapeCharge(charge)
+      notifyFinancialDataChanged()
+      toast({ title: 'Cobrança excluída' })
+      await loadData.execute()
+    },
+    { showSuccessToast: false },
+  )
 
   const totalConsumed = charges.reduce((s, c) => s + c.consumedAmount, 0)
   const totalPaid = charges
@@ -328,7 +349,7 @@ export function AgapeClosing() {
 
           <div className="flex flex-wrap gap-2">
             <Button
-              onClick={() => generateOperation.run()}
+              onClick={() => generateOperation.execute()}
               disabled={isClosed || generateOperation.loading}
               variant="outline"
             >
@@ -342,7 +363,7 @@ export function AgapeClosing() {
 
             {!isClosed && (
               <Button
-                onClick={() => closeOperation.run()}
+                onClick={() => closeOperation.execute()}
                 disabled={!isBalanced || closeOperation.loading}
               >
                 {closeOperation.loading ? (
@@ -357,7 +378,7 @@ export function AgapeClosing() {
             {isClosed && (
               <Button
                 variant="outline"
-                onClick={() => reopenOperation.run()}
+                onClick={() => reopenOperation.execute()}
                 disabled={reopenOperation.loading}
               >
                 {reopenOperation.loading ? (
@@ -438,7 +459,7 @@ export function AgapeClosing() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => deleteOperation.run(charge)}
+                            onClick={() => deleteOperation.execute(charge)}
                             disabled={deleteOperation.loading}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -466,7 +487,7 @@ export function AgapeClosing() {
         defaultMonth={selectedMonth}
         defaultYear={selectedYear}
         readOnlyMonthYear
-        onSave={(data) => saveOperation.run(data)}
+        onSave={(data) => saveOperation.execute(data)}
         saving={saveOperation.loading}
       />
     </div>

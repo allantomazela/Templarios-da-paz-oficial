@@ -28,7 +28,10 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Loader2, User, Calendar, UserCheck, Circle } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
+import {
+  updateCandidateStatus,
+  updatePhaseProgress,
+} from '@/lib/candidates-api'
 import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
@@ -74,7 +77,6 @@ export function CandidateDetail({
   )
   const [notesEdit, setNotesEdit] = useState<Record<string, string>>({})
   const [scheduledDateEdit, setScheduledDateEdit] = useState<Record<string, string>>({})
-  const supabaseAny = supabase as any
 
   useEffect(() => {
     if (candidate) setLocalCandidateStatus(candidate.status)
@@ -102,33 +104,7 @@ export function CandidateDetail({
   ) => {
     setUpdatingId(progressId)
     try {
-      const payload: Record<string, unknown> = {
-        updated_at: new Date().toISOString(),
-        ...(updates.notes !== undefined && { notes: updates.notes || null }),
-        ...(updates.scheduledCheckDate !== undefined && {
-          scheduled_check_date: updates.scheduledCheckDate || null,
-        }),
-      }
-      if (updates.status) {
-        payload.status = updates.status
-        if (updates.status === 'in_progress') {
-          payload.started_at = new Date().toISOString()
-        }
-        if (updates.status === 'completed' || updates.status === 'rejected') {
-          payload.completed_at = new Date().toISOString()
-        }
-        if (updates.status === 'pending') {
-          payload.started_at = null
-          payload.completed_at = null
-        }
-      }
-
-      const { error } = await supabaseAny
-        .from('candidate_phase_progress')
-        .update(payload)
-        .eq('id', progressId)
-
-      if (error) throw error
+      await updatePhaseProgress(progressId, updates)
       toast({ title: 'Fase atualizada', description: 'Andamento salvo.' })
       onUpdated()
     } catch (error) {
@@ -160,11 +136,7 @@ export function CandidateDetail({
     if (!candidate) return
     setUpdatingCandidateStatus(true)
     try {
-      const { error } = await supabaseAny
-        .from('initiation_candidates')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', candidate.id)
-      if (error) throw error
+      await updateCandidateStatus(candidate.id, newStatus)
       setLocalCandidateStatus(newStatus)
       toast({ title: 'Status atualizado', description: 'Status geral do candidato alterado.' })
       onUpdated()

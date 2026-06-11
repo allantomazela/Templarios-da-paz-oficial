@@ -26,56 +26,34 @@ import {
 import { DocumentDialog } from './DocumentDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
-import { format } from 'date-fns'
-import { supabase } from '@/lib/supabase/client'
+import {
+  createLodgeDocument,
+  deleteLodgeDocument,
+  fetchLodgeDocuments,
+  updateLodgeDocument,
+  type DocumentSaveInput,
+} from '@/lib/documents-api'
+import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+import { useToast } from '@/hooks/use-toast'
 
 export function DocumentsList() {
   const [documents, setDocuments] = useState<LodgeDocument[]>([])
   const dialog = useDialog()
   const [selectedDoc, setSelectedDoc] = useState<LodgeDocument | null>(null)
-  const supabaseAny = supabase as any
   const hasLoadedRef = useRef(false)
-
-  // Função para mapear dados do banco para o tipo LodgeDocument
-  const mapDocumentFromDB = (row: any): LodgeDocument => {
-    return {
-      id: row.id,
-      title: row.title,
-      description: row.description || '',
-      category: row.category,
-      uploadDate: row.upload_date || format(new Date(row.created_at), 'yyyy-MM-dd'),
-      type: row.file_type || 'PDF',
-      url: row.file_url,
-    }
-  }
+  const { toast } = useToast()
 
   const loadDocuments = useAsyncOperation(
     async () => {
-      const { data: rows, error } = await supabaseAny
-        .from('lodge_documents')
-        .select('*')
-        .order('upload_date', { ascending: false })
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        // Se a tabela não existir ainda, apenas logar e continuar
-        if (error.code === '404' || error.code === 'PGRST116') {
-          console.warn('Tabela lodge_documents não encontrada. A migração precisa ser aplicada.')
-          setDocuments([])
-          return null
-        }
-        console.error('Erro ao carregar documentos:', error)
-        throw new Error('Não foi possível carregar os documentos.')
-      }
-
-      const mappedDocuments = (rows || []).map(mapDocumentFromDB)
+      const mappedDocuments = await fetchLodgeDocuments()
       setDocuments(mappedDocuments)
       return null
     },
     {
       showSuccessToast: false,
       errorMessage: 'Falha ao carregar documentos.',
-      showErrorToast: false, // Não mostrar toast se a tabela não existir
+      showErrorToast: false,
     },
   )
 
@@ -90,122 +68,66 @@ export function DocumentsList() {
   }, [])
 
   const saveOperation = useAsyncOperation(
-    async (data: any) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      
+    async (data: DocumentSaveInput) => {
       if (selectedDoc) {
-        // Atualizar metadados
-        const { data: updatedRows, error } = await supabaseAny
-          .from('lodge_documents')
-          .update({
-            title: data.title,
-            description: data.description,
-            category: data.category,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', selectedDoc.id)
-          .select('*')
-          .limit(1)
-
-        if (error) {
-          console.error('Erro ao atualizar documento:', error)
-          throw new Error('Falha ao atualizar os metadados do documento.')
-        }
-
-        const updatedRow = updatedRows?.[0]
-        if (!updatedRow) {
-          throw new Error('Documento não encontrado após atualização.')
-        }
-
-        const updatedDoc = mapDocumentFromDB(updatedRow)
+        const updatedDoc = await updateLodgeDocument(selectedDoc.id, data)
         setDocuments((prev) =>
           prev.map((d) => (d.id === selectedDoc.id ? updatedDoc : d)),
         )
-        loadDocumentsExecute()
         return 'Metadados atualizados com sucesso.'
-      } else {
-        // Criar novo documento (o upload do arquivo é feito no DocumentDialog)
-        if (!data.fileUrl) {
-          throw new Error('Arquivo não foi enviado. Por favor, faça o upload do arquivo.')
-        }
-
-        const { data: createdRows, error } = await supabaseAny
-          .from('lodge_documents')
-          .insert({
-            title: data.title,
-            description: data.description,
-            category: data.category,
-            file_url: data.fileUrl,
-            file_name: data.fileName,
-            file_size: data.fileSize,
-            file_type: data.fileType,
-            upload_date: format(new Date(), 'yyyy-MM-dd'),
-            uploaded_by: user?.id || null,
-          })
-          .select('*')
-          .limit(1)
-
-        if (error) {
-          console.error('Erro ao criar documento:', error)
-          throw new Error('Falha ao salvar o documento.')
-        }
-
-        const createdRow = createdRows?.[0]
-        if (!createdRow) {
-          throw new Error('Documento não foi criado corretamente.')
-        }
-
-        const newDoc = mapDocumentFromDB(createdRow)
-        setDocuments((prev) => [newDoc, ...prev])
-        loadDocumentsExecute()
-        return 'Documento enviado com sucesso.'
       }
+
+      const newDoc = await createLodgeDocument(data)
+      setDocuments((prev) => [newDoc, ...prev])
+      return 'Documento enviado com sucesso.'
     },
     {
       successMessage: 'Operação realizada com sucesso!',
       errorMessage: 'Falha ao salvar o documento.',
+      showErrorToast: false,
+      onError: (error) => {
+        if (isAuthError(error)) {
+          useAuthStore.getState().clearSessionAndRedirectToLogin()
+          return
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao salvar',
+          description: getSaveErrorMessage(error),
+        })
+      },
     },
   )
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
       const doc = documents.find((d) => d.id === id)
-
-      const { error } = await supabaseAny
-        .from('lodge_documents')
-        .delete()
-        .eq('id', id)
-
-      if (error) {
-        console.error('Erro ao deletar documento:', error)
-        throw new Error('Falha ao remover o documento.')
-      }
-
+      await deleteLodgeDocument(id, doc?.url)
       setDocuments((prev) => prev.filter((d) => d.id !== id))
-      loadDocumentsExecute()
-
-      if (doc?.url) {
-        try {
-          const filePath = doc.url.split('/').slice(-2).join('/') // Extrair path do storage
-          await supabase.storage.from('site-assets').remove([filePath])
-        } catch (storageError) {
-          console.warn('Erro ao deletar arquivo do storage (não crítico):', storageError)
-        }
-      }
-
       return 'Documento excluído.'
     },
     {
       successMessage: 'Documento removido com sucesso!',
       errorMessage: 'Falha ao remover o documento.',
+      showErrorToast: false,
+      onError: (error) => {
+        if (isAuthError(error)) {
+          useAuthStore.getState().clearSessionAndRedirectToLogin()
+          return
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao excluir',
+          description: getSaveErrorMessage(error),
+        })
+      },
     },
   )
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: DocumentSaveInput) => {
     const result = await saveOperation.execute(data)
     if (result) {
       dialog.closeDialog()
-      // Recarregar lista após salvar
       loadDocumentsExecute()
     }
   }
@@ -314,6 +236,7 @@ export function DocumentsList() {
         onOpenChange={dialog.onOpenChange}
         documentToEdit={selectedDoc}
         onSave={handleSave}
+        isSaving={saveOperation.loading}
       />
     </div>
   )

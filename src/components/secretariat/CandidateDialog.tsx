@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { FormHeader } from '@/components/ui/form-header'
+import { Loader2 } from 'lucide-react'
+import type { CandidateSaveInput } from '@/lib/candidates-api'
 
 const candidateSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório'),
@@ -53,7 +55,7 @@ interface CandidateDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   candidateToEdit: InitiationCandidate | null
-  onSave: (data: CandidateFormValues) => void
+  onSave: (data: CandidateSaveInput) => void | Promise<void>
   isSaving?: boolean
 }
 
@@ -101,8 +103,8 @@ export function CandidateDialog({
     }
   }, [candidateToEdit, form, open])
 
-  const handleSubmit = form.handleSubmit((data) => {
-    onSave({
+  const handleSubmit = form.handleSubmit(async (data) => {
+    await onSave({
       ...data,
       email: data.email || undefined,
       notes: data.notes || undefined,
@@ -246,6 +248,7 @@ export function CandidateDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSaving ? 'Salvando...' : candidateToEdit ? 'Salvar' : 'Cadastrar'}
             </Button>
           </DialogFooter>

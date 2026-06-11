@@ -27,7 +27,11 @@ import {
 import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Loader2, ListOrdered } from 'lucide-react'
 import { PhaseDefinitionDialog } from './PhaseDefinitionDialog'
 import { useDialog } from '@/hooks/use-dialog'
-import { supabase } from '@/lib/supabase/client'
+import {
+  createPhaseDefinition,
+  deletePhaseDefinition,
+  updatePhaseDefinition,
+} from '@/lib/phase-definitions-api'
 import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
@@ -45,7 +49,6 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
   const [isDeleting, setIsDeleting] = useState(false)
   const dialog = useDialog()
   const { toast } = useToast()
-  const supabaseAny = supabase as any
 
   const maxOrder = phases.length > 0 ? Math.max(...phases.map((p) => p.order), 0) : 0
 
@@ -53,24 +56,14 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
     setIsSaving(true)
     try {
       if (selectedPhase) {
-        const { error } = await supabaseAny
-          .from('sindicancia_phase_definitions')
-          .update({
-            name: data.name,
-            description: data.description ?? null,
-            order: data.order,
-          })
-          .eq('id', selectedPhase.id)
-        if (error) throw error
+        await updatePhaseDefinition(selectedPhase.id, data)
         toast({ title: 'Fase atualizada', description: 'As alterações foram salvas.' })
       } else {
-        const { error } = await supabaseAny.from('sindicancia_phase_definitions').insert({
-          name: data.name,
-          description: data.description ?? null,
-          order: data.order,
+        await createPhaseDefinition(data)
+        toast({
+          title: 'Fase adicionada',
+          description: 'A nova fase está disponível para os candidatos.',
         })
-        if (error) throw error
-        toast({ title: 'Fase adicionada', description: 'A nova fase está disponível para os candidatos.' })
       }
       dialog.closeDialog()
       onUpdated()
@@ -93,12 +86,11 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
     if (!deleteTargetId) return
     setIsDeleting(true)
     try {
-      const { error } = await supabaseAny
-        .from('sindicancia_phase_definitions')
-        .delete()
-        .eq('id', deleteTargetId)
-      if (error) throw error
-      toast({ title: 'Fase removida', description: 'A fase foi excluída. Andamentos vinculados foram removidos.' })
+      await deletePhaseDefinition(deleteTargetId)
+      toast({
+        title: 'Fase removida',
+        description: 'A fase foi excluída. Andamentos vinculados foram removidos.',
+      })
       setDeleteTargetId(null)
       onUpdated()
     } catch (error) {
@@ -149,7 +141,8 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
         <CollapsibleContent>
           <div className="border-t px-4 pb-4 pt-2">
             <p className="text-sm text-muted-foreground mb-3">
-              Defina as fases do processo (ex.: Leitura em loja, Escrutínio). A ordem define a sequência exibida para cada candidato.
+              Defina as fases do processo (ex.: Leitura em loja, Escrutínio). A ordem define a
+              sequência exibida para cada candidato.
             </p>
             <div className="rounded-md border bg-card">
               <Table>
@@ -165,7 +158,8 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
                   {phases.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                        Nenhuma fase definida. Clique em &quot;Nova fase&quot; para adicionar (ex.: Documentação, Leitura em loja, Escrutínio).
+                        Nenhuma fase definida. Clique em &quot;Nova fase&quot; para adicionar (ex.:
+                        Documentação, Leitura em loja, Escrutínio).
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -178,7 +172,12 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(phase)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEdit(phase)}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
@@ -215,7 +214,8 @@ export function PhaseDefinitionsManager({ phases, onUpdated }: PhaseDefinitionsM
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir fase</AlertDialogTitle>
             <AlertDialogDescription>
-              O histórico desta fase para todos os candidatos será removido. Esta ação não pode ser desfeita.
+              O histórico desta fase para todos os candidatos será removido. Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

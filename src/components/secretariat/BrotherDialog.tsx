@@ -126,6 +126,7 @@ interface BrotherDialogProps {
   brotherToEdit: Brother | null
   /** Deve retornar Promise para o formulário manter loading até o fim do salvamento */
   onSave: (data: BrotherFormValues) => void | Promise<void>
+  isSaving?: boolean
 }
 
 export function BrotherDialog({
@@ -133,6 +134,7 @@ export function BrotherDialog({
   onOpenChange,
   brotherToEdit,
   onSave,
+  isSaving = false,
 }: BrotherDialogProps) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isLoadingCEP, setIsLoadingCEP] = useState(false)
@@ -140,6 +142,7 @@ export function BrotherDialog({
     { id: string; full_name: string | null; email: string | null }[]
   >([])
   const [loadingProfiles, setLoadingProfiles] = useState(false)
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false)
   const photoBlobRef = useRef<string | null>(null)
   const { toast } = useToast()
 
@@ -195,6 +198,9 @@ export function BrotherDialog({
       profileId: BROTHER_PROFILE_AUTO,
     },
   })
+
+  const isSavingForm =
+    isSaving || isSubmittingLocal || form.formState.isSubmitting
 
   useEffect(() => {
     if (!open) return
@@ -378,14 +384,29 @@ export function BrotherDialog({
   }
 
   const handleSubmit = async (data: BrotherFormValues) => {
-    // Unformat values before saving
-    const unformattedData = {
-      ...data,
-      cpf: data.cpf ? unformatCPF(data.cpf) : undefined,
-      phone: unformatPhone(data.phone),
-      addressZipcode: data.addressZipcode ? unformatCEP(data.addressZipcode) : undefined,
+    if (imageUpload.isUploading) {
+      toast({
+        variant: 'destructive',
+        title: 'Aguarde o envio da foto',
+        description: 'Espere o upload da foto terminar antes de salvar.',
+      })
+      return
     }
-    await onSave(unformattedData)
+
+    setIsSubmittingLocal(true)
+    try {
+      const unformattedData = {
+        ...data,
+        cpf: data.cpf ? unformatCPF(data.cpf) : undefined,
+        phone: unformatPhone(data.phone),
+        addressZipcode: data.addressZipcode
+          ? unformatCEP(data.addressZipcode)
+          : undefined,
+      }
+      await onSave(unformattedData)
+    } finally {
+      setIsSubmittingLocal(false)
+    }
   }
 
   const brazilianStates = [
@@ -1053,11 +1074,14 @@ export function BrotherDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && (
+              <Button
+                type="submit"
+                disabled={isSavingForm || imageUpload.isUploading}
+              >
+                {isSavingForm && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Salvar
+                {isSavingForm ? 'Salvando...' : 'Salvar'}
               </Button>
             </DialogFooter>
           </form>

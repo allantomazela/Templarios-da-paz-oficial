@@ -30,6 +30,7 @@ import { FormHeader } from '@/components/ui/form-header'
 import { Loader2, Upload, X, FileText } from 'lucide-react'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { useToast } from '@/hooks/use-toast'
+import type { DocumentSaveInput } from '@/lib/documents-api'
 
 const documentSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
@@ -43,7 +44,8 @@ interface DocumentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   documentToEdit: LodgeDocument | null
-  onSave: (data: DocumentFormValues & { fileUrl?: string; fileName?: string; fileSize?: number; fileType?: string }) => void
+  onSave: (data: DocumentSaveInput) => void | Promise<void>
+  isSaving?: boolean
 }
 
 export function DocumentDialog({
@@ -51,9 +53,11 @@ export function DocumentDialog({
   onOpenChange,
   documentToEdit,
   onSave,
+  isSaving = false,
 }: DocumentDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -133,10 +137,16 @@ export function DocumentDialog({
     }
   }
 
+  const isSavingForm = isSaving || isSubmittingLocal || isUploading
+
   const handleSubmit = async (data: DocumentFormValues) => {
-    // Se estiver editando, não precisa fazer upload
     if (documentToEdit) {
-      onSave(data)
+      setIsSubmittingLocal(true)
+      try {
+        await onSave(data)
+      } finally {
+        setIsSubmittingLocal(false)
+      }
       return
     }
 
@@ -163,14 +173,18 @@ export function DocumentDialog({
 
       setUploadProgress('Arquivo enviado com sucesso!')
 
-      // Chamar onSave com os dados do arquivo
-      onSave({
-        ...data,
-        fileUrl,
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size,
-        fileType: selectedFile.type,
-      })
+      setIsSubmittingLocal(true)
+      try {
+        await onSave({
+          ...data,
+          fileUrl,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type,
+        })
+      } finally {
+        setIsSubmittingLocal(false)
+      }
     } catch (error) {
       console.error('Erro no upload:', error)
       toast({
@@ -308,9 +322,18 @@ export function DocumentDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isUploading || (!documentToEdit && !selectedFile)}>
-                {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {documentToEdit ? 'Salvar' : 'Enviar Documento'}
+              <Button
+                type="submit"
+                disabled={
+                  isSavingForm || (!documentToEdit && !selectedFile)
+                }
+              >
+                {isSavingForm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSavingForm
+                  ? 'Salvando...'
+                  : documentToEdit
+                    ? 'Salvar'
+                    : 'Enviar Documento'}
               </Button>
             </DialogFooter>
           </form>

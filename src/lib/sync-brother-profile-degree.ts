@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/supabase/client'
+import { withTimeout } from '@/lib/async-utils'
 import { logError, logWarning } from '@/lib/logger'
 import useAuthStore from '@/stores/useAuthStore'
 import { normalizeMasonicDegree } from '@/lib/masonic-degree'
+
+const PROFILE_SYNC_TIMEOUT_MS = 8_000
 
 /**
  * Mantém profiles.masonic_degree alinhado ao grau em brothers (Secretaria).
@@ -16,11 +19,15 @@ export async function syncProfileMasonicDegreeFromBrother(
   if (!normalizedEmail || !normalizedDegree) return
 
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ masonic_degree: normalizedDegree })
-      .ilike('email', normalizedEmail)
-      .select('id')
+    const { data, error } = await withTimeout(
+      supabase
+        .from('profiles')
+        .update({ masonic_degree: normalizedDegree })
+        .ilike('email', normalizedEmail)
+        .select('id'),
+      PROFILE_SYNC_TIMEOUT_MS,
+      'Sincronização do grau no perfil expirou.',
+    )
 
     if (error) {
       logWarning('Não foi possível sincronizar grau no perfil', error)

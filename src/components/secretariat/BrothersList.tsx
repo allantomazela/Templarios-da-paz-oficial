@@ -31,10 +31,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
-import { supabase } from '@/lib/supabase/client'
-import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
-import { mapBrotherFromDB } from '@/lib/brother-mappers'
-import { resolveBrotherProfileIdForSave } from '@/lib/brother-profile-link'
+import {
+  createBrother,
+  fetchBrothers,
+  toggleBrotherStatus,
+  updateBrother,
+  type BrotherSaveInput,
+} from '@/lib/brothers-api'
+import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
+import { useToast } from '@/hooks/use-toast'
 
 export function BrothersList() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -44,60 +50,12 @@ export function BrothersList() {
   const dialog = useDialog()
   const detailsDialog = useDialog()
   const [selectedBrother, setSelectedBrother] = useState<Brother | null>(null)
-  const supabaseAny = supabase as any
   const hasLoadedRef = useRef(false)
-
-  // Função para mapear dados do Brother para o formato do banco
-  const mapBrotherToDB = (brother: Partial<Brother>) => {
-    return {
-      name: brother.name,
-      email: brother.email,
-      phone: brother.phone,
-      cpf: brother.cpf || null,
-      dob: brother.dob || null,
-      photo_url: brother.photoUrl || null,
-      degree: brother.degree || 'Aprendiz',
-      role: brother.role || 'Irmão',
-      status: brother.status || 'Ativo',
-      initiation_date: brother.initiationDate,
-      elevation_date: brother.elevationDate || null,
-      exaltation_date: brother.exaltationDate || null,
-      attendance_rate: brother.attendanceRate || 0,
-      masonic_registration_number: brother.masonicRegistrationNumber || null,
-      obedience: brother.obedience || null,
-      origin_lodge: brother.originLodge || null,
-      origin_lodge_number: brother.originLodgeNumber || null,
-      current_lodge_number: brother.currentLodgeNumber || null,
-      affiliation_date: brother.affiliationDate || null,
-      regular_status: brother.regularStatus || null,
-      notes: brother.notes || null,
-      spouse_name: brother.spouseName || null,
-      spouse_dob: brother.spouseDob || null,
-      children: Array.isArray(brother.children) ? brother.children : [],
-      address_street: brother.addressStreet || null,
-      address_number: brother.addressNumber || null,
-      address_complement: brother.addressComplement || null,
-      address_neighborhood: brother.addressNeighborhood || null,
-      address_city: brother.addressCity || null,
-      address_state: brother.addressState || null,
-      address_zipcode: brother.addressZipcode || null,
-      address: brother.address || null,
-    }
-  }
+  const { toast } = useToast()
 
   const loadBrothers = useAsyncOperation(
     async () => {
-      const { data: rows, error } = await supabaseAny
-        .from('brothers')
-        .select('*')
-        .order('name', { ascending: true })
-
-      if (error) {
-        console.error('Erro ao carregar irmãos:', error)
-        throw new Error('Não foi possível carregar os irmãos.')
-      }
-
-      const mappedBrothers = (rows || []).map(mapBrotherFromDB)
+      const mappedBrothers = await fetchBrothers()
       setBrothers(mappedBrothers)
       return null
     },
@@ -129,88 +87,45 @@ export function BrothersList() {
   })
 
   const saveOperation = useAsyncOperation(
-    async (data: any) => {
-      const profileId = await resolveBrotherProfileIdForSave(
-        data.email,
-        data.profileId,
-      )
-      const dbData = {
-        ...mapBrotherToDB(data),
-        profile_id: profileId,
-      }
-      
+    async (data: BrotherSaveInput) => {
       if (selectedBrother) {
-        // Atualizar
-        const { data: updatedRow, error } = await supabaseAny
-          .from('brothers')
-          .update({
-            ...dbData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', selectedBrother.id)
-          .select('*')
-          .single()
-
-        if (error) {
-          console.error('Erro ao atualizar irmão:', error)
-          throw new Error('Falha ao atualizar o irmão.')
-        }
-
-        const updatedBrother = mapBrotherFromDB(updatedRow)
+        const updatedBrother = await updateBrother(selectedBrother.id, data)
         setBrothers((prev) =>
           prev.map((b) => (b.id === selectedBrother.id ? updatedBrother : b)),
         )
-        await syncProfileMasonicDegreeFromBrother(data.email, data.degree)
-        loadBrothersExecute()
         return 'Irmão atualizado com sucesso.'
-      } else {
-        // Criar novo
-        const { data: createdRow, error } = await supabaseAny
-          .from('brothers')
-          .insert(dbData)
-          .select('*')
-          .single()
-
-        if (error) {
-          console.error('Erro ao criar irmão:', error)
-          throw new Error('Falha ao criar o irmão.')
-        }
-
-        const newBrother = mapBrotherFromDB(createdRow)
-        setBrothers((prev) => [newBrother, ...prev])
-        await syncProfileMasonicDegreeFromBrother(data.email, data.degree)
-        loadBrothersExecute()
-        return 'Irmão adicionado com sucesso.'
       }
+
+      const newBrother = await createBrother(data)
+      setBrothers((prev) => [newBrother, ...prev])
+      return 'Irmão adicionado com sucesso.'
     },
     {
+      showSuccessToast: true,
       successMessage: 'Operação realizada com sucesso!',
       errorMessage: 'Falha ao salvar o registro.',
+      showErrorToast: false,
+      onError: (error) => {
+        if (isAuthError(error)) {
+          useAuthStore.getState().clearSessionAndRedirectToLogin()
+          return
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao salvar',
+          description: getSaveErrorMessage(error),
+        })
+      },
     },
   )
 
   const toggleStatusOperation = useAsyncOperation(
     async (brother: Brother) => {
-      const newStatus = brother.status === 'Ativo' ? 'Inativo' : 'Ativo'
-      
-      const { error } = await supabaseAny
-        .from('brothers')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', brother.id)
-
-      if (error) {
-        console.error('Erro ao alterar status:', error)
-        throw new Error('Falha ao alterar o status.')
-      }
-
+      const updatedBrother = await toggleBrotherStatus(brother)
       setBrothers((prev) =>
-        prev.map((b) => (b.id === brother.id ? { ...b, status: newStatus } : b)),
+        prev.map((b) => (b.id === brother.id ? updatedBrother : b)),
       )
-      loadBrothersExecute()
-      return `Status de ${brother.name} alterado para ${newStatus}.`
+      return `Status de ${brother.name} alterado para ${updatedBrother.status}.`
     },
     {
       successMessage: 'Status alterado com sucesso!',
@@ -218,13 +133,12 @@ export function BrothersList() {
     },
   )
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: BrotherSaveInput) => {
     const result = await saveOperation.execute(data)
     if (result) {
       dialog.closeDialog()
       loadBrothersExecute()
     }
-    return result
   }
 
   const toggleStatus = (brother: Brother) => {
@@ -436,6 +350,7 @@ export function BrothersList() {
         onOpenChange={dialog.onOpenChange}
         brotherToEdit={selectedBrother}
         onSave={handleSave}
+        isSaving={saveOperation.loading}
       />
 
       <BrotherDetails

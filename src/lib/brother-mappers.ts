@@ -1,5 +1,42 @@
 import type { Brother } from '@/lib/data'
 
+export function mapBrotherToDB(brother: Partial<Brother>) {
+  return {
+    name: brother.name,
+    email: brother.email,
+    phone: brother.phone,
+    cpf: brother.cpf || null,
+    dob: brother.dob || null,
+    photo_url: brother.photoUrl || null,
+    degree: brother.degree || 'Aprendiz',
+    role: brother.role || 'Irmão',
+    status: brother.status || 'Ativo',
+    initiation_date: brother.initiationDate,
+    elevation_date: brother.elevationDate || null,
+    exaltation_date: brother.exaltationDate || null,
+    attendance_rate: brother.attendanceRate || 0,
+    masonic_registration_number: brother.masonicRegistrationNumber || null,
+    obedience: brother.obedience || null,
+    origin_lodge: brother.originLodge || null,
+    origin_lodge_number: brother.originLodgeNumber || null,
+    current_lodge_number: brother.currentLodgeNumber || null,
+    affiliation_date: brother.affiliationDate || null,
+    regular_status: brother.regularStatus || null,
+    notes: brother.notes || null,
+    spouse_name: brother.spouseName || null,
+    spouse_dob: brother.spouseDob || null,
+    children: Array.isArray(brother.children) ? brother.children : [],
+    address_street: brother.addressStreet || null,
+    address_number: brother.addressNumber || null,
+    address_complement: brother.addressComplement || null,
+    address_neighborhood: brother.addressNeighborhood || null,
+    address_city: brother.addressCity || null,
+    address_state: brother.addressState || null,
+    address_zipcode: brother.addressZipcode || null,
+    address: brother.address || null,
+  }
+}
+
 export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
   const childrenRaw = row.children
   const children = childrenRaw

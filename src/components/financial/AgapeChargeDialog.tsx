@@ -205,7 +205,7 @@ export function AgapeChargeDialog({
     <Dialog open={open} onOpenChange={saving ? undefined : onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <FormHeader
-          icon={Wine}
+          icon={<Wine className="h-5 w-5" />}
           title={chargeToEdit ? 'Editar pagamento do ágape' : 'Registrar pagamento do ágape'}
           description="Vincula o pagamento do irmão à tesouraria como receita na categoria Ágape."
         />

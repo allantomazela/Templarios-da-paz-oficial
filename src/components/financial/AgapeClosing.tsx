@@ -149,7 +149,7 @@ export function AgapeClosing() {
         title: 'Pagamento registrado',
         description: 'A receita foi lançada na tesouraria.',
       })
-      dialog.close()
+      dialog.closeDialog()
       setSelectedCharge(null)
       await loadData.execute()
     },
@@ -232,26 +232,43 @@ export function AgapeClosing() {
   const remainingBalance = Math.max(0, totalBeverages - totalPaid)
   const paymentProgress =
     totalBeverages > 0 ? Math.min(100, (totalPaid / totalBeverages) * 100) : 0
-  const brothersMatchTotal =
-    totalBeverages > 0 && Math.abs(brothersTotal - totalBeverages) < 0.01
-  const isBalanced =
+  const pendingCount = charges.filter((c) => c.status !== 'Pago').length
+  const beveragesVsConsumptionMismatch =
+    totalBeverages > 0 &&
+    (liveTotal ?? 0) > 0 &&
+    Math.abs((liveTotal ?? 0) - totalBeverages) > 0.01
+  const brothersMatchBeverages =
     totalBeverages > 0 &&
     charges.length > 0 &&
-    brothersMatchTotal &&
-    charges.every((c) => c.status === 'Pago') &&
+    Math.abs(brothersTotal - totalBeverages) < 0.01
+  const allBrothersPaid =
+    charges.length > 0 && charges.every((c) => c.status === 'Pago')
+  const isReadyToClose =
+    totalBeverages > 0 &&
+    charges.length > 0 &&
+    !beveragesVsConsumptionMismatch &&
+    brothersMatchBeverages &&
+    allBrothersPaid &&
     Math.abs(totalPaid - totalBeverages) < 0.01
-  const consumptionMismatch =
-    liveTotal != null &&
-    charges.length > 0 &&
-    Math.abs(liveTotal - brothersTotal) > 0.01
-  const brothersTotalMismatch =
-    totalBeverages > 0 &&
-    charges.length > 0 &&
-    Math.abs(brothersTotal - totalBeverages) > 0.01
   const needsImport =
     (liveTotal ?? 0) > 0 &&
     (charges.length === 0 || Math.abs((liveTotal ?? 0) - brothersTotal) > 0.01)
   const isClosed = closing?.status === 'closed'
+  const closeDisabledReason = (() => {
+    if (isClosed) return null
+    if (totalBeverages <= 0) return 'Salve o total gasto em bebidas.'
+    if (charges.length === 0) return 'Importe os consumos ou registre cobranças.'
+    if (beveragesVsConsumptionMismatch) {
+      return 'O consumo no Ágape deve conferir com o total das bebidas.'
+    }
+    if (!brothersMatchBeverages) {
+      return 'Importe novamente os consumos para alinhar a soma dos irmãos.'
+    }
+    if (pendingCount > 0) {
+      return `${pendingCount} irmão(s) ainda não confirmou pagamento.`
+    }
+    return null
+  })()
 
   const handleUseLiveTotalAsBeverages = () => {
     if ((liveTotal ?? 0) <= 0) return
@@ -465,14 +482,26 @@ export function AgapeClosing() {
             </Card>
           </div>
 
-          {brothersTotalMismatch && !isClosed && (
+          {beveragesVsConsumptionMismatch && !isClosed && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Soma dos irmãos não confere</AlertTitle>
+              <AlertTitle>Consumo não confere com o total das bebidas</AlertTitle>
               <AlertDescription>
-                A soma das partes dos irmãos ({formatCurrencyBRL(brothersTotal)})
-                difere do total das bebidas ({formatCurrencyBRL(totalBeverages)}).
-                Ajuste os valores ou atualize as cobranças.
+                O consumo lançado no Ágape ({formatCurrencyBRL(liveTotal!)}) difere do
+                total informado ({formatCurrencyBRL(totalBeverages)}). Ajuste o valor
+                das bebidas ou confira os lançamentos no módulo Ágape.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {pendingCount > 0 && !isClosed && !beveragesVsConsumptionMismatch && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">Pagamentos em andamento</AlertTitle>
+              <AlertDescription className="text-amber-900">
+                {pendingCount} irmão(s) ainda não acertou o consumo ({formatCurrencyBRL(totalPending)}{' '}
+                pendente). Use <strong>Registrar pagamento</strong> ou edite cada linha
+                conforme os PIX forem chegando.
               </AlertDescription>
             </Alert>
           )}
@@ -485,18 +514,6 @@ export function AgapeClosing() {
                 Há {formatCurrencyBRL(liveTotal!)} lançados no Ágape neste mês, mas o
                 fechamento tem {formatCurrencyBRL(brothersTotal)}. Clique em{' '}
                 <strong>Importar consumos do mês</strong> para sincronizar.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {consumptionMismatch && !isClosed && !needsImport && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Valores desatualizados</AlertTitle>
-              <AlertDescription>
-                O consumo no Ágape ({formatCurrencyBRL(liveTotal!)}) difere das
-                cobranças ({formatCurrencyBRL(brothersTotal)}). Importe novamente para
-                atualizar.
               </AlertDescription>
             </Alert>
           )}
@@ -554,18 +571,17 @@ export function AgapeClosing() {
             </Card>
           )}
 
-          {isBalanced && !isClosed && (
+          {isReadyToClose && !isClosed && (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertTitle className="text-green-800">Pronto para encerrar</AlertTitle>
               <AlertDescription className="text-green-700">
-                Todos os irmãos pagaram, a soma confere com o total das bebidas e
-                não há saldo restante.
+                Consumo, total das bebidas e pagamentos dos irmãos estão conferidos.
               </AlertDescription>
             </Alert>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => generateOperation.execute()}
               disabled={isClosed || generateOperation.loading}
@@ -584,7 +600,7 @@ export function AgapeClosing() {
                 variant="secondary"
                 onClick={() => {
                   setSelectedCharge(null)
-                  dialog.open()
+                  dialog.openDialog()
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -595,7 +611,7 @@ export function AgapeClosing() {
             {!isClosed && (
               <Button
                 onClick={() => closeOperation.execute()}
-                disabled={!isBalanced || closeOperation.loading}
+                disabled={!isReadyToClose || closeOperation.loading}
               >
                 {closeOperation.loading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -621,6 +637,10 @@ export function AgapeClosing() {
               </Button>
             )}
           </div>
+
+          {closeDisabledReason && !isClosed && (
+            <p className="text-sm text-muted-foreground">{closeDisabledReason}</p>
+          )}
 
           {charges.length === 0 ? (
             <div className="rounded-md border bg-card py-12 text-center text-muted-foreground">
@@ -681,7 +701,7 @@ export function AgapeClosing() {
                             size="icon"
                             onClick={() => {
                               setSelectedCharge(charge)
-                              dialog.open()
+                              dialog.openDialog()
                             }}
                           >
                             <Pencil className="h-4 w-4" />
@@ -707,12 +727,10 @@ export function AgapeClosing() {
       )}
 
       <AgapeChargeDialog
-        open={dialog.isOpen}
+        open={dialog.open}
         onOpenChange={(open) => {
-          if (!open) {
-            dialog.close()
-            setSelectedCharge(null)
-          }
+          dialog.onOpenChange(open)
+          if (!open) setSelectedCharge(null)
         }}
         chargeToEdit={selectedCharge}
         defaultMonth={selectedMonth}

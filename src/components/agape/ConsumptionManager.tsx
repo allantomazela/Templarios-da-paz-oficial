@@ -83,19 +83,23 @@ export function ConsumptionManager({
   }, [])
 
   const loadSessionTotal = useCallback(async () => {
-    const total = await getSessionTotal(sessionId)
-    if (total) {
-      setSessionTotal(total)
+    try {
+      const total = await getSessionTotal(sessionId)
+      if (total) {
+        setSessionTotal(total)
+      }
+    } catch (error) {
+      logError('Error loading session total', error)
     }
   }, [getSessionTotal, sessionId])
 
   useEffect(() => {
-    if (open && sessionId) {
-      fetchConsumptions(sessionId)
-      loadBrothers()
-      loadSessionTotal()
-    }
-  }, [open, sessionId, fetchConsumptions, loadBrothers, loadSessionTotal])
+    if (!open || !sessionId) return
+
+    void loadBrothers()
+    void loadSessionTotal()
+    void fetchConsumptions(sessionId)
+  }, [open, sessionId])
 
   const handleAddConsumption = async () => {
     // Proteção contra cliques duplos

@@ -41,7 +41,7 @@ export function AgapeRecordPanel() {
         ? 'Você tem controle total do módulo de ágape.'
         : 'Como membro da diretoria, você pode registrar consumos dos irmãos nas sessões abertas.'
 
-  if (loading) {
+  if (loading && !consumptionDialog.open) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

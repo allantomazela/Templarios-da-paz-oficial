@@ -9,6 +9,7 @@ import {
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { getAppOrigin } from '@/lib/app-origin'
 import { sendUserEmail } from '@/lib/user-email-api'
+import { sanitizeAuthProfile } from '@/lib/profile-avatar'
 
 export type UserStatus = 'pending' | 'approved' | 'blocked' | 'in_memoriam' | 'adormecido'
 
@@ -121,10 +122,11 @@ export const useAuthStore = create<AuthState>((set) => ({
               return data
             })
 
-          userProfile = (await Promise.race([
+          const rawProfile = (await Promise.race([
             fetchPromise,
             timeoutPromise,
           ])) as Profile
+          userProfile = sanitizeAuthProfile(rawProfile)
         } catch (error) {
           logWarning('Auth initialization warning: Profile fetch failed', error)
         }
@@ -199,7 +201,9 @@ export const useAuthStore = create<AuthState>((set) => ({
               .eq('id', session.user.id)
               .single()
 
-            const userProfile = profile as Profile
+            const userProfile = profile
+              ? sanitizeAuthProfile(profile as Profile)
+              : null
             const isMasterAdmin = isMasterAdminEmail(session.user.email)
 
             let role = userProfile?.role || 'member'
@@ -298,7 +302,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         .eq('id', data.session.user.id)
         .single()
 
-      const userProfile = profile as Profile | null
+      const userProfile = profile
+        ? sanitizeAuthProfile(profile as Profile)
+        : null
       let role = userProfile?.role || 'member'
       let status = userProfile?.status || 'pending'
 

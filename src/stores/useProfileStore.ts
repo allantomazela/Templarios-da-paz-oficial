@@ -5,6 +5,41 @@ import { logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+import { resolveProfileAvatarUrl } from '@/lib/profile-avatar'
+
+function patchAuthUserProfile(patch: Partial<Profile>): void {
+  useAuthStore.setState((state) => {
+    if (!state.user) return state
+    const current = state.user.profile
+    if (!current) return state
+    return {
+      user: {
+        ...state.user,
+        profile: { ...current, ...patch },
+      },
+    }
+  })
+}
+
+function normalizeProfileRow(data: {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: string | null
+  status: string | null
+  masonic_degree: string | null
+  avatar_url: string | null
+}): Profile {
+  return {
+    id: data.id,
+    full_name: data.full_name || '',
+    email: data.email || undefined,
+    role: (data.role as Profile['role']) || 'member',
+    status: (data.status as Profile['status']) || 'pending',
+    masonic_degree: data.masonic_degree || undefined,
+    avatar_url: resolveProfileAvatarUrl(data.avatar_url),
+  }
+}
 
 interface UserPreferences {
   notifications: {
@@ -76,16 +111,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       if (!profileFetchSeq.isCurrent(id)) return
 
       if (data) {
-        const profile: Profile = {
-          id: data.id,
-          full_name: data.full_name || '',
-          email: data.email || undefined,
-          role: (data.role as 'admin' | 'editor' | 'member') || 'member',
-          status: (data.status as 'pending' | 'approved' | 'blocked') || 'pending',
-          masonic_degree: data.masonic_degree || undefined,
-          avatar_url: data.avatar_url || undefined,
-        }
+        const profile = normalizeProfileRow(data)
         set({ profile })
+        patchAuthUserProfile(profile)
       }
     } catch (error) {
       if (isAuthError(error)) {
@@ -141,9 +169,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         delete patch.masonic_degree
       }
 
-      set((state) => ({
-        profile: state.profile ? { ...state.profile, ...patch } : null,
-      }))
+      const nextProfile = { ...profile, ...patch }
+      set({ profile: nextProfile })
+      patchAuthUserProfile(patch)
     } catch (error) {
       if (isAuthError(error)) {
         useAuthStore.getState().clearSessionAndRedirectToLogin()
@@ -159,18 +187,21 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     if (!profile) throw new Error('No profile loaded')
 
     try {
+      const storedUrl = avatarUrl.trim() || null
       const { error } = await supabase
         .from('profiles')
-        .update({ avatar_url: avatarUrl })
+        .update({ avatar_url: storedUrl })
         .eq('id', profile.id)
 
       if (error) throw error
 
+      const displayUrl = resolveProfileAvatarUrl(storedUrl)
       set((state) => ({
         profile: state.profile
-          ? { ...state.profile, avatar_url: avatarUrl }
+          ? { ...state.profile, avatar_url: displayUrl }
           : null,
       }))
+      patchAuthUserProfile({ avatar_url: displayUrl })
     } catch (error) {
       if (isAuthError(error)) {
         useAuthStore.getState().clearSessionAndRedirectToLogin()

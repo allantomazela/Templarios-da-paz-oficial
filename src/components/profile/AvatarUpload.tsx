@@ -8,6 +8,10 @@ import { useProfileStore } from '@/stores/useProfileStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import {
+  getProfileInitials,
+  resolveProfileAvatarUrl,
+} from '@/lib/profile-avatar'
+import {
   Card,
   CardContent,
   CardDescription,
@@ -24,7 +28,7 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
   const { updateAvatar } = useProfileStore()
   const userId = useAuthStore((s) => s.user?.id)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    currentAvatarUrl || null,
+    resolveProfileAvatarUrl(currentAvatarUrl) ?? null,
   )
 
   const imageUpload = useImageUpload({
@@ -48,9 +52,7 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
   )
 
   useEffect(() => {
-    if (currentAvatarUrl) {
-      setAvatarPreview(currentAvatarUrl)
-    }
+    setAvatarPreview(resolveProfileAvatarUrl(currentAvatarUrl) ?? null)
   }, [currentAvatarUrl])
 
   useEffect(() => {
@@ -74,14 +76,8 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
     imageUpload.reset()
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
+  const initials = getProfileInitials(userName)
+  const displayAvatarUrl = resolveProfileAvatarUrl(avatarPreview)
 
   return (
     <Card>
@@ -94,12 +90,12 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
       <CardContent className="space-y-4">
         <div className="flex items-center gap-6">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={avatarPreview || undefined} alt={userName} />
-            <AvatarFallback className="text-2xl">
-              {avatarPreview ? (
-                <User className="h-12 w-12" />
+            <AvatarImage src={displayAvatarUrl} alt={userName} />
+            <AvatarFallback className="bg-muted text-2xl font-medium text-muted-foreground">
+              {displayAvatarUrl ? (
+                <User className="h-10 w-10" aria-hidden />
               ) : (
-                getInitials(userName)
+                initials
               )}
             </AvatarFallback>
           </Avatar>
@@ -130,7 +126,7 @@ export function AvatarUpload({ currentAvatarUrl, userName }: AvatarUploadProps) 
               </div>
             )}
 
-            {avatarPreview && (
+            {displayAvatarUrl && (
               <Button
                 type="button"
                 variant="outline"

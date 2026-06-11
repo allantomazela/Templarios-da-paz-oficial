@@ -41,6 +41,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  getProfileInitials,
+  resolveProfileAvatarUrl,
+} from '@/lib/profile-avatar'
 import { CheckinPresenceModal } from '@/components/checkin/CheckinPresenceModal'
 
 export interface AppSidebarProps {
@@ -285,13 +289,11 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
             >
               <Avatar className="h-9 w-9 border border-sidebar-accent transition-transform group-hover:scale-105">
                 <AvatarImage
-                  src={
-                    user?.profile?.avatar_url ||
-                    `https://img.usecurling.com/ppl/thumbnail?gender=male&seed=${user?.id}`
-                  }
+                  src={resolveProfileAvatarUrl(user?.profile?.avatar_url)}
+                  alt={user?.profile?.full_name || 'Perfil'}
                 />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {user?.profile?.full_name?.charAt(0) || 'U'}
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                  {getProfileInitials(user?.profile?.full_name || user?.email)}
                 </AvatarFallback>
               </Avatar>
               {!effectiveCollapsed && (

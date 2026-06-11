@@ -17,8 +17,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Brother } from '@/lib/data'
-import { MoreHorizontal, Search, Plus, Eye, Pencil, Power } from 'lucide-react'
+import { MoreHorizontal, Search, Plus, Eye, Pencil, Power, Trash2, Loader2 } from 'lucide-react'
 import { BrotherDialog } from './BrotherDialog'
 import { BrotherDetails } from './BrotherDetails'
 import { useDialog } from '@/hooks/use-dialog'
@@ -33,6 +43,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import {
   createBrother,
+  deleteBrother,
   fetchBrothers,
   toggleBrotherStatus,
   updateBrother,
@@ -50,6 +61,8 @@ export function BrothersList() {
   const dialog = useDialog()
   const detailsDialog = useDialog()
   const [selectedBrother, setSelectedBrother] = useState<Brother | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Brother | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const hasLoadedRef = useRef(false)
   const { toast } = useToast()
 
@@ -143,6 +156,36 @@ export function BrothersList() {
 
   const toggleStatus = (brother: Brother) => {
     toggleStatusOperation.execute(brother)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      await deleteBrother(deleteTarget.id, deleteTarget.photoUrl)
+      setBrothers((prev) => prev.filter((b) => b.id !== deleteTarget.id))
+      if (selectedBrother?.id === deleteTarget.id) {
+        setSelectedBrother(null)
+        detailsDialog.closeDialog()
+      }
+      setDeleteTarget(null)
+      toast({
+        title: 'Irmão excluído',
+        description: 'O cadastro foi removido permanentemente.',
+      })
+    } catch (error) {
+      if (isAuthError(error)) {
+        useAuthStore.getState().clearSessionAndRedirectToLogin()
+        return
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir',
+        description: getSaveErrorMessage(error),
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const openEdit = (brother: Brother) => {
@@ -274,6 +317,13 @@ export function BrothersList() {
                           <Power className="mr-2 h-4 w-4" />
                           {brother.status === 'Ativo' ? 'Desativar' : 'Ativar'}
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setDeleteTarget(brother)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -337,6 +387,15 @@ export function BrothersList() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTarget(brother)}
+                      aria-label={`Excluir ${brother.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -358,6 +417,48 @@ export function BrothersList() {
         onOpenChange={detailsDialog.onOpenChange}
         brother={selectedBrother}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir irmão permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? (
+                <>
+                  Você está prestes a excluir o cadastro de{' '}
+                  <strong>{deleteTarget.name}</strong>. Todos os dados pessoais e
+                  maçônicos deste registro serão removidos. Esta ação não pode ser
+                  desfeita.
+                  {deleteTarget.profileId && (
+                    <>
+                      {' '}
+                      A conta de usuário vinculada no sistema <strong>não</strong>{' '}
+                      será excluída — apenas o vínculo com este cadastro.
+                    </>
+                  )}
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDeleteConfirm()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

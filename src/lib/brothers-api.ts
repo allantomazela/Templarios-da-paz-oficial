@@ -123,3 +123,37 @@ export async function toggleBrotherStatus(brother: Brother): Promise<Brother> {
 
   return mapBrotherFromDB(updatedRow)
 }
+
+export async function deleteBrother(
+  id: string,
+  photoUrl?: string | null,
+): Promise<void> {
+  const supabaseAny = supabase as any
+  const { error } = await withTimeout(
+    supabaseAny.from('brothers').delete().eq('id', id),
+    BROTHER_OP_TIMEOUT_MS,
+    'Exclusão demorou demais. Verifique sua conexão e tente novamente.',
+  )
+
+  if (error) {
+    throw toError(error, 'Falha ao excluir o irmão.')
+  }
+
+  if (photoUrl?.includes('/brothers-photos/')) {
+    void removeBrotherPhotoFromStorage(photoUrl)
+  }
+}
+
+async function removeBrotherPhotoFromStorage(photoUrl: string): Promise<void> {
+  try {
+    const filePath = photoUrl.split('/brothers-photos/')[1]
+    if (!filePath) return
+    await withTimeout(
+      supabase.storage.from('site-assets').remove([`brothers-photos/${filePath}`]),
+      BROTHER_OP_TIMEOUT_MS,
+      'Remoção da foto no storage expirou.',
+    )
+  } catch {
+    // Não bloqueia exclusão do cadastro
+  }
+}

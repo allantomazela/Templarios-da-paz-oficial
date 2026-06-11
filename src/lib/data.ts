@@ -143,6 +143,33 @@ export interface Contribution {
   notes?: string
 }
 
+export interface AgapeMonthlyClosing {
+  id: string
+  month: number
+  year: number
+  totalConsumed: number
+  totalPaid: number
+  status: 'open' | 'closed'
+  notes?: string
+  closedAt?: string
+}
+
+export interface AgapeBrotherCharge {
+  id: string
+  brotherId: string
+  brotherName?: string
+  month: number
+  year: number
+  consumedAmount: number
+  amount: number
+  status: 'Pago' | 'Pendente' | 'Atrasado'
+  paymentDate?: string
+  accountId?: string
+  transactionId?: string
+  notes?: string
+  closingId?: string
+}
+
 export interface LibraryItem {
   id: string
   title: string

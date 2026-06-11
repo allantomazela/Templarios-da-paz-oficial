@@ -12,6 +12,7 @@ import { MembershipFeeSettings } from '@/components/financial/MembershipFeeSetti
 import { BankAccounts } from '@/components/financial/BankAccounts'
 import { CashFlowReport } from '@/components/financial/CashFlowReport'
 import { CharityCollection } from '@/components/financial/CharityCollection'
+import { AgapeClosing } from '@/components/financial/AgapeClosing'
 
 export default function Financial() {
   const [activeTab, setActiveTab] = useState('overview')
@@ -38,6 +39,7 @@ export default function Financial() {
             <TabsTrigger value="income">Receitas</TabsTrigger>
             <TabsTrigger value="expenses">Despesas</TabsTrigger>
             <TabsTrigger value="charity">Tronco de Beneficência</TabsTrigger>
+            <TabsTrigger value="agape">Fechamento Ágape</TabsTrigger>
             <TabsTrigger value="contributions">Mensalidades</TabsTrigger>
             <TabsTrigger value="budgets">Metas e Orçamentos</TabsTrigger>
             <TabsTrigger value="reports">Outros Relatórios</TabsTrigger>
@@ -68,6 +70,10 @@ export default function Financial() {
 
         <TabsContent value="charity">
           {activeTab === 'charity' ? <CharityCollection /> : null}
+        </TabsContent>
+
+        <TabsContent value="agape">
+          {activeTab === 'agape' ? <AgapeClosing /> : null}
         </TabsContent>
 
         <TabsContent value="contributions">

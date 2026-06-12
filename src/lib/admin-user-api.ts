@@ -4,6 +4,11 @@ import { withTimeout } from '@/lib/async-utils'
 
 const DELETE_TIMEOUT_MS = 25_000
 
+interface DeleteMemberPayload {
+  userId?: string
+  brotherId?: string
+}
+
 async function parseInvokeError(error: unknown, fallback: string): Promise<string> {
   if (error instanceof FunctionsHttpError && error.context) {
     try {
@@ -17,14 +22,14 @@ async function parseInvokeError(error: unknown, fallback: string): Promise<strin
   return fallback
 }
 
-export async function deleteUserAsAdmin(userId: string): Promise<void> {
+async function deleteMember(payload: DeleteMemberPayload): Promise<void> {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) {
-    throw new Error('Faça login como administrador para continuar.')
+    throw new Error('Faça login para continuar.')
   }
 
   const invokePromise = supabase.functions.invoke('admin-delete-user', {
-    body: { userId },
+    body: payload,
   })
 
   const { data, error } = await withTimeout(
@@ -37,13 +42,21 @@ export async function deleteUserAsAdmin(userId: string): Promise<void> {
     throw new Error(
       await parseInvokeError(
         error,
-        'Não foi possível excluir o usuário. Faça login novamente como administrador.',
+        'Não foi possível concluir a exclusão. Faça login novamente.',
       ),
     )
   }
 
-  const payload = data as { error?: string; success?: boolean } | null
-  if (payload?.error) {
-    throw new Error(payload.error)
+  const response = data as { error?: string; success?: boolean } | null
+  if (response?.error) {
+    throw new Error(response.error)
   }
+}
+
+export async function deleteUserAsAdmin(userId: string): Promise<void> {
+  await deleteMember({ userId })
+}
+
+export async function deleteBrotherAsAdmin(brotherId: string): Promise<void> {
+  await deleteMember({ brotherId })
 }

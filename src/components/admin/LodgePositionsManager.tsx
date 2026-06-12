@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, addYears } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateBR, toDateInputValue } from '@/lib/format-utils'
 import {
   Card,
   CardContent,
@@ -189,8 +189,8 @@ export function LodgePositionsManager() {
       form.reset({
         position_type: position.position_type,
         user_id: position.user_id || '',
-        start_date: position.start_date,
-        end_date: position.end_date,
+        start_date: toDateInputValue(position.start_date),
+        end_date: toDateInputValue(position.end_date),
       })
     } else {
       setPositionToEdit(null)
@@ -312,13 +312,8 @@ export function LodgePositionsManager() {
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {format(new Date(item.start_date), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}{' '}
-                            -{' '}
-                            {format(new Date(item.end_date), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}
+                            {formatDateBR(item.start_date)} -{' '}
+                            {formatDateBR(item.end_date)}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -389,13 +384,8 @@ export function LodgePositionsManager() {
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {format(new Date(position.start_date), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}{' '}
-                            -{' '}
-                            {format(new Date(position.end_date), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}
+                            {formatDateBR(position.start_date)} -{' '}
+                            {formatDateBR(position.end_date)}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

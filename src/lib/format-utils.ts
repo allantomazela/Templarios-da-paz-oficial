@@ -115,33 +115,47 @@ export function unformatCEP(value: string): string {
   return value.replace(/\D/g, '')
 }
 
+/** Interpreta data de calendário (YYYY-MM-DD) no fuso local, sem deslocar o dia. */
+export function parseCalendarDate(
+  date: string | Date | null | undefined,
+): Date | null {
+  if (!date) return null
+  if (date instanceof Date) {
+    return isNaN(date.getTime()) ? null : date
+  }
+
+  const trimmed = date.trim()
+  const isoDatePart = trimmed.split('T')[0]?.split(' ')[0] ?? ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDatePart)) {
+    const [year, month, day] = isoDatePart.split('-').map(Number)
+    const dateObj = new Date(year, month - 1, day)
+    return isNaN(dateObj.getTime()) ? null : dateObj
+  }
+
+  const parsed = new Date(trimmed)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
+/** Valor para input[type=date] (YYYY-MM-DD) sem conversão de fuso. */
+export function toDateInputValue(date: string | null | undefined): string {
+  if (!date?.trim()) return ''
+  const isoDatePart = date.trim().split('T')[0]?.split(' ')[0] ?? ''
+  return /^\d{4}-\d{2}-\d{2}$/.test(isoDatePart) ? isoDatePart : ''
+}
+
 /**
  * Formats a date string to Brazilian format (DD/MM/YYYY)
  * @param date - Date string (YYYY-MM-DD) or Date object
  * @returns Formatted date string (DD/MM/YYYY)
  */
 export function formatDateBR(date: string | Date | null | undefined): string {
-  if (!date) return ''
-  
-  let dateObj: Date
-  if (typeof date === 'string') {
-    // Handle YYYY-MM-DD format
-    if (date.includes('-')) {
-      const [year, month, day] = date.split('-')
-      dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-    } else {
-      dateObj = new Date(date)
-    }
-  } else {
-    dateObj = date
-  }
-  
-  if (isNaN(dateObj.getTime())) return ''
-  
+  const dateObj = parseCalendarDate(date)
+  if (!dateObj) return ''
+
   const day = String(dateObj.getDate()).padStart(2, '0')
   const month = String(dateObj.getMonth() + 1).padStart(2, '0')
   const year = dateObj.getFullYear()
-  
+
   return `${day}/${month}/${year}`
 }
 

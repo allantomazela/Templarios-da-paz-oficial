@@ -90,6 +90,7 @@ export function MenuItemsList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[72px]">Imagem</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
@@ -101,13 +102,26 @@ export function MenuItemsList() {
             <TableBody>
               {menuItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Nenhum item encontrado. Crie um novo item para começar.
                   </TableCell>
                 </TableRow>
               ) : (
                 menuItems.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="h-12 w-12 rounded-md object-cover border"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/40 text-[10px] text-muted-foreground">
+                          Sem foto
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.description || '-'}</TableCell>
                     <TableCell>{item.category}</TableCell>

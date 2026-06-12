@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Menu, X, Lock } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import { canViewVenerablesGallery } from '@/lib/lodge-member-access'
 import { useState, useEffect, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { NewsSection } from '@/components/home/NewsSection'
@@ -19,7 +20,8 @@ import {
 import { IllustratedTempleColumn } from '@/components/home/HeroTempleColumns'
 
 export default function Index() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
+  const canViewVenerables = canViewVenerablesGallery(user)
   const {
     logoUrl,
     homeBannerUrl,
@@ -51,8 +53,15 @@ export default function Index() {
 
   useEffect(() => {
     void fetchSettings(true)
-    void fetchVenerables(true)
-  }, [fetchSettings, fetchVenerables])
+  }, [fetchSettings])
+
+  useEffect(() => {
+    if (canViewVenerables) {
+      void fetchVenerables(true)
+      return
+    }
+    useSiteSettingsStore.setState({ venerables: [] })
+  }, [canViewVenerables, fetchVenerables])
 
   // Handle hash scrolling on mount or hash change
   useEffect(() => {
@@ -104,7 +113,9 @@ export default function Index() {
         fraternity={values.fraternity}
       />
     ),
-    venerables: <VenerablesSection key="venerables" venerables={venerables} />,
+    venerables: canViewVenerables ? (
+      <VenerablesSection key="venerables" venerables={venerables} />
+    ) : null,
     news: <NewsSection key="news" />,
     contact: (
       <ContactSection
@@ -118,7 +129,9 @@ export default function Index() {
         messageEmail={contact.messageEmail}
       />
     ),
-    masters: <VenerablesSection key="masters" venerables={venerables} />,
+    masters: canViewVenerables ? (
+      <VenerablesSection key="masters" venerables={venerables} />
+    ) : null,
   }
 
   const navLinkClass =

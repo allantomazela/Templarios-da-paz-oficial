@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Brother, Child } from '@/lib/data'
 import { DialogFooter } from '@/components/ui/dialog'
@@ -60,6 +60,19 @@ import {
 export type { BrotherFormValues }
 
 export type BrotherFormMode = 'secretariat' | 'self'
+
+const OPTIONAL_SELECT_NONE = '__none__'
+
+function optionalSelectValue(value: string | undefined): string {
+  return value && value.length > 0 ? value : OPTIONAL_SELECT_NONE
+}
+
+function optionalSelectChange(
+  value: string,
+  onChange: (value: string) => void,
+): void {
+  onChange(value === OPTIONAL_SELECT_NONE ? '' : value)
+}
 
 interface BrotherFormProps {
   brotherToEdit: Brother | null
@@ -274,19 +287,24 @@ export function BrotherForm({
     }
   }
 
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value)
-    form.setValue('cpf', formatted)
+  const handleCPFChange = (value: string) => {
+    form.setValue('cpf', formatCPF(value), { shouldDirty: true })
   }
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value)
-    form.setValue('phone', formatted)
+  const handlePhoneChange = (value: string) => {
+    form.setValue('phone', formatPhone(value), { shouldDirty: true })
   }
 
-  const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCEP(e.target.value)
-    form.setValue('addressZipcode', formatted)
+  const handleCEPChange = (value: string) => {
+    form.setValue('addressZipcode', formatCEP(value), { shouldDirty: true })
+  }
+
+  const handleInvalidSubmit = (errors: FieldErrors<BrotherFormValues>) => {
+    toast({
+      variant: 'destructive',
+      title: 'Não foi possível salvar',
+      description: getFirstFormErrorMessage(errors),
+    })
   }
 
   const handleSubmit = async (data: BrotherFormValues) => {
@@ -301,13 +319,8 @@ export function BrotherForm({
 
     setIsSubmittingLocal(true)
     try {
-      const sanitizedChildren = data.children.filter(
-        (child) => child.name.trim().length > 0 && child.dob.trim().length > 0,
-      )
-
       const unformattedData = {
         ...data,
-        children: sanitizedChildren,
         photoUrl: isSelfMode
           ? (syncedProfilePhoto ?? undefined)
           : data.photoUrl,
@@ -329,7 +342,10 @@ export function BrotherForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
+        className="space-y-6"
+      >
             {/* Photo */}
             <div className="space-y-2">
               <FormLabel>Foto</FormLabel>
@@ -454,7 +470,7 @@ export function BrotherForm({
                         <FormLabel>Conta no sistema (mensalidades)</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value || BROTHER_PROFILE_AUTO}
+                          value={field.value ?? BROTHER_PROFILE_AUTO}
                           disabled={loadingProfiles}
                         >
                           <FormControl>
@@ -503,8 +519,7 @@ export function BrotherForm({
                           maxLength={14}
                           {...field}
                           onChange={(e) => {
-                            field.onChange(e)
-                            handleCPFChange(e)
+                            handleCPFChange(e.target.value)
                           }}
                         />
                       </FormControl>
@@ -524,8 +539,7 @@ export function BrotherForm({
                           maxLength={15}
                           {...field}
                           onChange={(e) => {
-                            field.onChange(e)
-                            handlePhoneChange(e)
+                            handlePhoneChange(e.target.value)
                           }}
                         />
                       </FormControl>
@@ -572,10 +586,7 @@ export function BrotherForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grau *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione o grau" />
@@ -637,8 +648,10 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Obediência</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
-                        value={field.value || undefined}
+                        onValueChange={(value) =>
+                          optionalSelectChange(value, field.onChange)
+                        }
+                        value={optionalSelectValue(field.value)}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -646,6 +659,9 @@ export function BrotherForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value={OPTIONAL_SELECT_NONE}>
+                            Não informado
+                          </SelectItem>
                           <SelectItem value="GOB">GOB - Grande Oriente do Brasil</SelectItem>
                           <SelectItem value="GLESP">GLESP - Grande Loja do Estado de São Paulo</SelectItem>
                           <SelectItem value="COMAB">COMAB - Confederação da Maçonaria do Brasil</SelectItem>
@@ -715,8 +731,10 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Status de Regularidade</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
-                        value={field.value || undefined}
+                        onValueChange={(value) =>
+                          optionalSelectChange(value, field.onChange)
+                        }
+                        value={optionalSelectValue(field.value)}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -724,6 +742,9 @@ export function BrotherForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value={OPTIONAL_SELECT_NONE}>
+                            Não informado
+                          </SelectItem>
                           <SelectItem value="Regular">Regular</SelectItem>
                           <SelectItem value="Irregular">Irregular</SelectItem>
                           <SelectItem value="Suspenso">Suspenso</SelectItem>
@@ -868,8 +889,7 @@ export function BrotherForm({
                             maxLength={9}
                             {...field}
                             onChange={(e) => {
-                              field.onChange(e)
-                              handleCEPChange(e)
+                              handleCEPChange(e.target.value)
                             }}
                             onBlur={handleCEPBlur}
                             className="pr-10"
@@ -969,8 +989,10 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Estado</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
-                        value={field.value || undefined}
+                        onValueChange={(value) =>
+                          optionalSelectChange(value, field.onChange)
+                        }
+                        value={optionalSelectValue(field.value)}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -978,6 +1000,9 @@ export function BrotherForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value={OPTIONAL_SELECT_NONE}>
+                            Não informado
+                          </SelectItem>
                           {BRAZILIAN_STATES.map((state) => (
                             <SelectItem key={state} value={state}>
                               {state}
@@ -1023,4 +1048,47 @@ export function BrotherForm({
       </form>
     </Form>
   )
+}
+
+function getFirstFormErrorMessage(
+  errors: FieldErrors<BrotherFormValues>,
+): string {
+  for (const value of Object.values(errors)) {
+    if (!value || typeof value !== 'object') continue
+
+    if ('message' in value && value.message) {
+      return String(value.message)
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === 'object') {
+          for (const nested of Object.values(item)) {
+            if (
+              nested &&
+              typeof nested === 'object' &&
+              'message' in nested &&
+              nested.message
+            ) {
+              return String(nested.message)
+            }
+          }
+        }
+      }
+      continue
+    }
+
+    for (const nested of Object.values(value)) {
+      if (
+        nested &&
+        typeof nested === 'object' &&
+        'message' in nested &&
+        nested.message
+      ) {
+        return String(nested.message)
+      }
+    }
+  }
+
+  return 'Verifique os campos destacados e tente novamente.'
 }

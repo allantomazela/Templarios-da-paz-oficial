@@ -7,6 +7,18 @@ const childSchema = z.object({
   dob: z.string().min(1, 'Data de nascimento do filho é obrigatória'),
 })
 
+function filterFilledChildren(value: unknown): unknown {
+  if (!Array.isArray(value)) return []
+  return value.filter((child) => {
+    if (!child || typeof child !== 'object') return false
+    const row = child as { name?: string; dob?: string }
+    return (
+      String(row.name ?? '').trim().length > 0 &&
+      String(row.dob ?? '').trim().length > 0
+    )
+  })
+}
+
 export const brotherFormSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
   email: z.string().email('Email inválido'),
@@ -37,7 +49,7 @@ export const brotherFormSchema = z.object({
   notes: z.string().optional(),
   spouseName: z.string().optional(),
   spouseDob: z.string().optional(),
-  children: z.array(childSchema).default([]),
+  children: z.preprocess(filterFilledChildren, z.array(childSchema).default([])),
   addressStreet: z.string().optional(),
   addressNumber: z.string().optional(),
   addressComplement: z.string().optional(),

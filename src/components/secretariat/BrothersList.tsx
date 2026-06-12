@@ -65,6 +65,7 @@ export function BrothersList() {
   const [selectedBrother, setSelectedBrother] = useState<Brother | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Brother | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSavingBrother, setIsSavingBrother] = useState(false)
   const hasLoadedRef = useRef(false)
   const editingBrotherRef = useRef<Brother | null>(null)
 
@@ -106,8 +107,7 @@ export function BrothersList() {
   })
 
   const saveOperation = useAsyncOperation(
-    async (data: BrotherSaveInput) => {
-      const brotherToUpdate = editingBrotherRef.current
+    async (data: BrotherSaveInput, brotherToUpdate: Brother | null) => {
       if (brotherToUpdate) {
         const updatedBrother = await updateBrother(
           brotherToUpdate.id,
@@ -163,14 +163,23 @@ export function BrothersList() {
 
   const handleSave = useCallback(
     async (data: BrotherSaveInput) => {
-      const result = await saveOperation.execute(data)
-      if (result !== null) {
-        dialog.closeDialog()
-        setSelectedBrother(null)
-        loadBrothersExecute()
+      const brotherToUpdate =
+        editingBrotherRef.current ?? selectedBrother
+
+      setIsSavingBrother(true)
+      try {
+        const result = await saveOperation.execute(data, brotherToUpdate)
+        if (result !== null) {
+          dialog.closeDialog()
+          setSelectedBrother(null)
+          editingBrotherRef.current = null
+          await loadBrothersExecute()
+        }
+      } finally {
+        setIsSavingBrother(false)
       }
     },
-    [dialog, loadBrothersExecute, saveOperation],
+    [dialog, loadBrothersExecute, saveOperation, selectedBrother],
   )
 
   const toggleStatus = (brother: Brother) => {
@@ -217,11 +226,13 @@ export function BrothersList() {
   }
 
   const openEdit = (brother: Brother) => {
+    editingBrotherRef.current = brother
     setSelectedBrother(brother)
     dialog.openDialog()
   }
 
   const openNew = () => {
+    editingBrotherRef.current = null
     setSelectedBrother(null)
     dialog.openDialog()
   }
@@ -446,7 +457,7 @@ export function BrothersList() {
         onOpenChange={dialog.onOpenChange}
         brotherToEdit={selectedBrother}
         onSave={handleSave}
-        isSaving={saveOperation.loading}
+        isSaving={saveOperation.loading || isSavingBrother}
       />
 
       <BrotherDetails

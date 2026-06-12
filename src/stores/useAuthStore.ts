@@ -41,7 +41,7 @@ interface AuthState {
     password: string,
     name: string,
     degree: string,
-  ) => Promise<{ error: any }>
+  ) => Promise<{ error: any; emailSent?: boolean }>
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>
   updatePassword: (password: string) => Promise<{ error: any }>
   /** Limpa sessão e redireciona para /login (ex.: quando refresh token é inválido) */
@@ -374,24 +374,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     })
 
     if (!error && data.user) {
-      if (data.session) {
-        await sendUserEmail({
+      let emailSent = false
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const result = await sendUserEmail({
           type: 'signup_pending',
           email,
           fullName: name,
+          profileId: data.user.id,
         })
-      } else {
-        void sendUserEmail({
-          type: 'signup_pending',
-          email,
-          fullName: name,
-        })
+        if (result.ok) {
+          emailSent = true
+          break
+        }
+        await new Promise((resolve) => setTimeout(resolve, 400))
       }
       await supabase.auth.signOut()
+      set({ loading: false })
+      return { error, emailSent }
     }
 
     set({ loading: false })
-    return { error }
+    return { error, emailSent: false }
   },
 
   signOut: async () => {

@@ -128,6 +128,7 @@ export function UserManagement() {
           type: 'account_approved',
           email: user.email,
           fullName: user.full_name || 'Irmão',
+          profileId: user.id,
         })
         if (!mail.ok && !mail.skipped) {
           toast({

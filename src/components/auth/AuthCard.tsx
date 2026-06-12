@@ -153,7 +153,7 @@ export function AuthCard() {
     setIsLoading(true)
     
     try {
-      const { error } = await signUp(
+      const { error, emailSent } = await signUp(
         data.email.trim().toLowerCase(),
         data.password,
         data.name.trim(),
@@ -182,8 +182,9 @@ export function AuthCard() {
       } else {
         toast({
           title: 'Cadastro realizado',
-          description:
-            'Enviamos um e-mail de confirmação. Sua conta aguarda aprovação da diretoria ou da administração — você só poderá entrar após a liberação.',
+          description: emailSent
+            ? 'Enviamos um e-mail de confirmação. Sua conta aguarda aprovação da diretoria ou da administração — você só poderá entrar após a liberação.'
+            : 'Sua conta foi registrada e aguarda aprovação. Se o e-mail não chegar em alguns minutos, verifique a caixa de spam ou fale com a administração da loja.',
         })
         registerForm.reset()
       }

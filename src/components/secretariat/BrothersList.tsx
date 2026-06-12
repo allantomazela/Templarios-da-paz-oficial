@@ -188,7 +188,10 @@ export function BrothersList() {
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: getSaveErrorMessage(error),
+        description:
+          error instanceof Error
+            ? error.message
+            : getSaveErrorMessage(error),
       })
     } finally {
       setIsDeleting(false)

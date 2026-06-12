@@ -7,6 +7,7 @@ export async function sendUserEmail(params: {
   type: UserEmailType
   email: string
   fullName: string
+  profileId?: string
 }): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke('send-user-email', {
@@ -14,6 +15,7 @@ export async function sendUserEmail(params: {
         type: params.type,
         email: params.email.trim().toLowerCase(),
         full_name: params.fullName.trim(),
+        profile_id: params.profileId,
       },
     })
 

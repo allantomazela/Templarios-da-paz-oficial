@@ -7,6 +7,19 @@ import { deleteMemberFromSystem } from '../_shared/member-deletion.ts'
 interface DeleteBody {
   userId?: string
   brotherId?: string
+  user_id?: string
+  brother_id?: string
+  id?: string
+}
+
+function parseDeleteIds(body: DeleteBody): {
+  userId?: string
+  brotherId?: string
+} {
+  const userId = (body.userId ?? body.user_id)?.trim() || undefined
+  const brotherId = (body.brotherId ?? body.brother_id ?? body.id)?.trim() ||
+    undefined
+  return { userId, brotherId }
 }
 
 serve(async (req) => {
@@ -48,12 +61,14 @@ serve(async (req) => {
     })
   }
 
-  const userId = body.userId?.trim()
-  const brotherId = body.brotherId?.trim()
+  const { userId, brotherId } = parseDeleteIds(body)
 
   if (!userId && !brotherId) {
     return new Response(
-      JSON.stringify({ error: 'Informe userId ou brotherId.' }),
+      JSON.stringify({
+        error: 'Informe userId ou brotherId.',
+        hint: 'Envie { "brotherId": "<uuid>" } na secretaria ou { "userId": "<uuid>" } no admin.',
+      }),
       {
         status: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -64,7 +79,12 @@ serve(async (req) => {
   const authHeader = req.headers.get('Authorization')
   const auth =
     brotherId && !userId
-      ? await requireAdminOrEditor(supabaseUrl, supabaseAnonKey, authHeader)
+      ? await requireAdminOrEditor(
+          supabaseUrl,
+          supabaseAnonKey,
+          authHeader,
+          serviceRoleKey,
+        )
       : await requireAdmin(
           supabaseUrl,
           supabaseAnonKey,

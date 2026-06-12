@@ -15,15 +15,30 @@ export type AuthedUserClient =
     }
   | { ok: false; status: number; message: string }
 
+const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
+
+type AuthUser = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof createClient>['auth']['getUser']>
+  >['data']['user']
+>
+
 /**
  * Valida Bearer JWT e exige papel admin ou editor (RPC alinhada às políticas RLS).
+ * Com serviceRoleKey, valida o JWT via Auth Admin (compatível com JWT assimétrico).
  */
 export async function requireAdminOrEditor(
   supabaseUrl: string,
   supabaseAnonKey: string,
   authHeader: string | null,
+  serviceRoleKey?: string,
 ): Promise<AuthedUserClient> {
   if (!authHeader?.startsWith('Bearer ')) {
+    return { ok: false, status: 401, message: 'Não autorizado.' }
+  }
+
+  const jwt = authHeader.slice(7).trim()
+  if (!jwt) {
     return { ok: false, status: 401, message: 'Não autorizado.' }
   }
 
@@ -31,21 +46,78 @@ export async function requireAdminOrEditor(
     global: { headers: { Authorization: authHeader } },
   })
 
+  let user: AuthUser
+
+  if (serviceRoleKey) {
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    const {
+      data: { user: authUser },
+      error: userError,
+    } = await adminClient.auth.getUser(jwt)
+
+    if (userError || !authUser) {
+      return {
+        ok: false,
+        status: 401,
+        message: 'Sessão inválida ou expirada. Faça login novamente.',
+      }
+    }
+
+    user = authUser
+
+    if (authUser.email?.toLowerCase() === MASTER_ADMIN_EMAIL) {
+      return { ok: true, user, userClient }
+    }
+
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    if (profile?.role === 'admin' || profile?.role === 'editor') {
+      return { ok: true, user, userClient }
+    }
+
+    const { data: canManage, error: secretariatError } = await adminClient.rpc(
+      'can_manage_secretariat',
+      { p_user_id: authUser.id },
+    )
+
+    if (secretariatError || !canManage) {
+      return { ok: false, status: 403, message: 'Sem permissão para esta ação.' }
+    }
+
+    return { ok: true, user, userClient }
+  }
+
   const {
-    data: { user },
+    data: { user: authUser },
     error: userError,
   } = await userClient.auth.getUser()
 
-  if (userError || !user) {
+  if (userError || !authUser) {
     return { ok: false, status: 401, message: 'Sessão inválida.' }
   }
+
+  user = authUser
 
   const { data: allowed, error: rpcError } = await userClient.rpc(
     'is_admin_or_editor',
   )
 
   if (rpcError || !allowed) {
-    return { ok: false, status: 403, message: 'Sem permissão para esta ação.' }
+    const { data: canManage, error: secretariatError } = await userClient.rpc(
+      'can_manage_secretariat',
+      { p_user_id: authUser.id },
+    )
+
+    if (secretariatError || !canManage) {
+      return { ok: false, status: 403, message: 'Sem permissão para esta ação.' }
+    }
   }
 
   return { ok: true, user, userClient }
@@ -78,8 +150,6 @@ export async function requireAuthenticatedUser(
 
   return { ok: true, user, userClient }
 }
-
-const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
 
 /**
  * Valida Bearer JWT e exige papel admin.
@@ -122,7 +192,7 @@ export async function requireAdmin(
       }
     }
 
-    if (user.email === MASTER_ADMIN_EMAIL) {
+    if (user.email?.toLowerCase() === MASTER_ADMIN_EMAIL) {
       return { ok: true, user, userClient }
     }
 

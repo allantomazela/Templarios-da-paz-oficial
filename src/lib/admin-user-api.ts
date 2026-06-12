@@ -54,9 +54,17 @@ async function deleteMember(payload: DeleteMemberPayload): Promise<void> {
 }
 
 export async function deleteUserAsAdmin(userId: string): Promise<void> {
-  await deleteMember({ userId })
+  const id = userId?.trim()
+  if (!id) {
+    throw new Error('ID do usuário não informado.')
+  }
+  await deleteMember({ userId: id })
 }
 
 export async function deleteBrotherAsAdmin(brotherId: string): Promise<void> {
-  await deleteMember({ brotherId })
+  const id = brotherId?.trim()
+  if (!id) {
+    throw new Error('ID do irmão não informado.')
+  }
+  await deleteMember({ brotherId: id })
 }

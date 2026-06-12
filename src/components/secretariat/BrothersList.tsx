@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Table,
   TableBody,
@@ -256,6 +256,11 @@ export function BrothersList() {
         </Button>
       </div>
 
+      <BrothersDegreeSummary
+        brothers={brothers}
+        loading={loadBrothersLoading}
+      />
+
       {/* Desktop Table */}
       <div className="hidden md:block rounded-md border bg-card">
         <Table>
@@ -479,6 +484,54 @@ export function BrothersList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+const BROTHER_DEGREES: Brother['degree'][] = ['Aprendiz', 'Companheiro', 'Mestre']
+
+interface BrothersDegreeSummaryProps {
+  brothers: Brother[]
+  loading: boolean
+}
+
+function BrothersDegreeSummary({ brothers, loading }: BrothersDegreeSummaryProps) {
+  const summary = useMemo(() => {
+    const counts: Record<Brother['degree'], number> = {
+      Aprendiz: 0,
+      Companheiro: 0,
+      Mestre: 0,
+    }
+
+    for (const brother of brothers) {
+      counts[brother.degree] += 1
+    }
+
+    return { counts, total: brothers.length }
+  }, [brothers])
+
+  if (loading) return null
+
+  return (
+    <div
+      className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 rounded-md border bg-muted/40 px-3 py-2 text-sm"
+      aria-label="Resumo de irmãos por grau"
+    >
+      <span className="text-muted-foreground">Cadastro total</span>
+      {BROTHER_DEGREES.map((degree) => (
+        <span key={degree} className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">{degree}</span>
+          <Badge variant="secondary" className="min-w-[2rem] justify-center font-semibold tabular-nums">
+            {summary.counts[degree]}
+          </Badge>
+        </span>
+      ))}
+      <span className="inline-flex items-center gap-1.5 border-l border-border pl-3 sm:ml-1">
+        <span className="font-medium">Total</span>
+        <Badge className="min-w-[2rem] justify-center font-semibold tabular-nums">
+          {summary.total}
+        </Badge>
+      </span>
     </div>
   )
 }

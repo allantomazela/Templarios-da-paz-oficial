@@ -27,12 +27,21 @@ import {
   AlertTitle,
 } from '@/components/ui/alert'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Loader2,
   RefreshCw,
   Pencil,
   Trash2,
   Lock,
-  Unlock,
   CheckCircle2,
   AlertTriangle,
   Wine,
@@ -45,10 +54,15 @@ import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrencyBRL } from '@/lib/format-utils'
-import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import useFinancialStore, {
+  notifyFinancialDataChanged,
+} from '@/stores/useFinancialStore'
+import useAgapeStore from '@/stores/useAgapeStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { AgapeChargeDialog } from './AgapeChargeDialog'
+import { AgapeClosingAdjustmentsPanel } from './AgapeClosingAdjustmentsPanel'
 import {
+  clearAgapeMonthClosing,
   closeAgapeMonth,
   deleteAgapeCharge,
   fetchAgapeChargesForMonth,
@@ -61,6 +75,9 @@ import {
   type AgapeChargeFormData,
   type AgapeConsumptionTotalRow,
 } from '@/lib/agape-payments'
+import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+import { getSaveErrorMessage, isAuthError } from '@/lib/auth-utils'
+import useAuthStore from '@/stores/useAuthStore'
 
 function statusBadge(status: AgapeBrotherCharge['status']) {
   if (status === 'Pago') {
@@ -74,6 +91,9 @@ function statusBadge(status: AgapeBrotherCharge['status']) {
 
 export function AgapeClosing() {
   const { toast } = useToast()
+  const signOut = useAuthStore((s) => s.signOut)
+  const { canManageAgapeClosing, canAccessAgapeClosingOnly } =
+    useAgapeClosingPermissions()
   const { agapePix } = useSiteSettingsStore()
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
@@ -88,7 +108,23 @@ export function AgapeClosing() {
   const [loading, setLoading] = useState(true)
   const dialog = useDialog()
   const [selectedCharge, setSelectedCharge] = useState<AgapeBrotherCharge | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AgapeBrotherCharge | null>(null)
+  const [clearMonthOpen, setClearMonthOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isClearingMonth, setIsClearingMonth] = useState(false)
   const [totalBeveragesInput, setTotalBeveragesInput] = useState('')
+
+  const handleOperationError = (error: unknown, fallback: string) => {
+    if (isAuthError(error)) {
+      void signOut()
+      return
+    }
+    toast({
+      variant: 'destructive',
+      title: 'Operação não concluída',
+      description: getSaveErrorMessage(error) || fallback,
+    })
+  }
 
   const monthLabel = useMemo(
     () =>
@@ -101,6 +137,12 @@ export function AgapeClosing() {
   const loadData = useAsyncOperation(
     async () => {
       setLoading(true)
+      setClosing(null)
+      setCharges([])
+      setBrotherNames({})
+      setLiveConsumptionRows([])
+      setLiveTotal(0)
+      setTotalBeveragesInput('')
       try {
         const [closingData, chargesData, consumptionTotals] = await Promise.all([
           fetchAgapeMonthlyClosing(selectedMonth, selectedYear),
@@ -134,7 +176,21 @@ export function AgapeClosing() {
   )
 
   useEffect(() => {
+    useAgapeStore.getState().clearOperationalCache()
+    notifyFinancialDataChanged()
+    void useFinancialStore.getState().fetchTransactions()
     loadData.execute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, selectedYear])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadData.execute()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear])
 
@@ -146,14 +202,22 @@ export function AgapeClosing() {
       })
       notifyFinancialDataChanged()
       toast({
-        title: 'Pagamento registrado',
-        description: 'A receita foi lançada na tesouraria.',
+        title: selectedCharge ? 'Lançamento atualizado' : 'Pagamento registrado',
+        description: selectedCharge
+          ? 'A cobrança e a tesouraria foram atualizadas.'
+          : 'A receita foi lançada na tesouraria.',
       })
       dialog.closeDialog()
       setSelectedCharge(null)
       await loadData.execute()
     },
-    { showSuccessToast: false },
+    {
+      showSuccessToast: false,
+      showErrorToast: false,
+      errorMessage: 'Não foi possível salvar o lançamento.',
+      onError: (error) =>
+        handleOperationError(error, 'Não foi possível salvar o lançamento.'),
+    },
   )
 
   const generateOperation = useAsyncOperation(
@@ -208,18 +272,44 @@ export function AgapeClosing() {
     { showSuccessToast: false },
   )
 
-  const deleteOperation = useAsyncOperation(
-    async (charge: AgapeBrotherCharge) => {
-      if (!confirm(`Excluir cobrança de ${brotherNames[charge.brotherId] || 'irmão'}?`)) {
-        return
-      }
-      await deleteAgapeCharge(charge)
+  const handleClearMonthConfirm = async () => {
+    setIsClearingMonth(true)
+    try {
+      const result = await clearAgapeMonthClosing(selectedMonth, selectedYear)
       notifyFinancialDataChanged()
-      toast({ title: 'Cobrança excluída' })
+      toast({
+        title: 'Mês limpo',
+        description: `${result.removed} cobrança(s) removida(s) do fechamento.`,
+      })
+      setClearMonthOpen(false)
       await loadData.execute()
-    },
-    { showSuccessToast: false },
-  )
+    } catch (error) {
+      handleOperationError(error, 'Não foi possível limpar o mês.')
+    } finally {
+      setIsClearingMonth(false)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      await deleteAgapeCharge(deleteTarget)
+      notifyFinancialDataChanged()
+      toast({
+        title: 'Lançamento excluído',
+        description: deleteTarget.transactionId
+          ? 'A cobrança e a receita na tesouraria foram removidas.'
+          : 'A cobrança foi removida do fechamento.',
+      })
+      setDeleteTarget(null)
+      await loadData.execute()
+    } catch (error) {
+      handleOperationError(error, 'Não foi possível excluir o lançamento.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const brothersTotal = charges.reduce((s, c) => s + c.amount, 0)
   const totalPaid = charges
@@ -254,6 +344,7 @@ export function AgapeClosing() {
     (liveTotal ?? 0) > 0 &&
     (charges.length === 0 || Math.abs((liveTotal ?? 0) - brothersTotal) > 0.01)
   const isClosed = closing?.status === 'closed'
+  const canEdit = canManageAgapeClosing && !isClosed
   const closeDisabledReason = (() => {
     if (isClosed) return null
     if (totalBeverages <= 0) return 'Salve o total gasto em bebidas.'
@@ -297,32 +388,76 @@ export function AgapeClosing() {
           </h3>
           <p className="text-sm text-muted-foreground">
             Informe o total gasto em bebidas, importe o consumo de cada irmão e
-            acompanhe o saldo restante conforme os pagamentos entram.
+            acompanhe o saldo restante conforme os pagamentos entram. Erros de
+            lançamento podem ser corrigidos na seção <strong>Correções e ajustes</strong>{' '}
+            ou linha a linha na tabela.
           </p>
         </div>
-        <Select
-          value={`${selectedYear}-${selectedMonth}`}
-          onValueChange={(v) => {
-            const [y, m] = v.split('-').map(Number)
-            setSelectedYear(y)
-            setSelectedMonth(m)
-          }}
-        >
-          <SelectTrigger className="w-[220px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {monthOptions.map((opt) => (
-              <SelectItem
-                key={`${opt.year}-${opt.month}`}
-                value={`${opt.year}-${opt.month}`}
-              >
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={`${selectedYear}-${selectedMonth}`}
+            onValueChange={(v) => {
+              const [y, m] = v.split('-').map(Number)
+              setSelectedYear(y)
+              setSelectedMonth(m)
+            }}
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((opt) => (
+                <SelectItem
+                  key={`${opt.year}-${opt.month}`}
+                  value={`${opt.year}-${opt.month}`}
+                >
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => loadData.execute()}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Atualizar
+          </Button>
+        </div>
       </div>
+
+      {!canManageAgapeClosing && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Acesso restrito</AlertTitle>
+          <AlertDescription>
+            Apenas a administração, a tesouraria e o Mestre de Banquete podem
+            gerenciar o fechamento do ágape.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {canManageAgapeClosing && !loading && (
+        <AgapeClosingAdjustmentsPanel
+          monthLabel={monthLabel}
+          canEdit={canEdit}
+          isClosed={isClosed}
+          hasCharges={charges.length > 0}
+          hasBeveragesTotal={totalBeverages > 0}
+          isAgapeOnlyUser={canAccessAgapeClosingOnly}
+          onClearMonth={() => setClearMonthOpen(true)}
+          onReopenMonth={() => reopenOperation.execute()}
+          clearing={isClearingMonth}
+          reopening={reopenOperation.loading}
+        />
+      )}
 
       {agapePix.pixName && (
         <Alert>
@@ -361,10 +496,10 @@ export function AgapeClosing() {
                     placeholder="Ex.: 850.00"
                     value={totalBeveragesInput}
                     onChange={(e) => setTotalBeveragesInput(e.target.value)}
-                    disabled={isClosed}
+                    disabled={!canEdit}
                   />
                 </div>
-                {!isClosed && (
+                {canEdit && (
                   <Button
                     onClick={() => saveTotalOperation.execute()}
                     disabled={saveTotalOperation.loading}
@@ -556,7 +691,7 @@ export function AgapeClosing() {
                   <span className="font-medium">
                     Total no Ágape: {formatCurrencyBRL(liveTotal ?? 0)}
                   </span>
-                  {!isClosed && (liveTotal ?? 0) > 0 && (
+                  {canEdit && (liveTotal ?? 0) > 0 && (
                     <Button
                       type="button"
                       variant="outline"
@@ -582,6 +717,7 @@ export function AgapeClosing() {
           )}
 
           <div className="flex flex-wrap items-center gap-2">
+            {canManageAgapeClosing && (
             <Button
               onClick={() => generateOperation.execute()}
               disabled={isClosed || generateOperation.loading}
@@ -594,8 +730,9 @@ export function AgapeClosing() {
               )}
               Importar consumos do mês
             </Button>
+            )}
 
-            {!isClosed && (
+            {canEdit && (
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -608,7 +745,7 @@ export function AgapeClosing() {
               </Button>
             )}
 
-            {!isClosed && (
+            {canEdit && (
               <Button
                 onClick={() => closeOperation.execute()}
                 disabled={!isReadyToClose || closeOperation.loading}
@@ -622,20 +759,6 @@ export function AgapeClosing() {
               </Button>
             )}
 
-            {isClosed && (
-              <Button
-                variant="outline"
-                onClick={() => reopenOperation.execute()}
-                disabled={reopenOperation.loading}
-              >
-                {reopenOperation.loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Unlock className="mr-2 h-4 w-4" />
-                )}
-                Reabrir mês
-              </Button>
-            )}
           </div>
 
           {closeDisabledReason && !isClosed && (
@@ -658,7 +781,7 @@ export function AgapeClosing() {
                     <TableHead>Status</TableHead>
                     <TableHead>Data pagto.</TableHead>
                     <TableHead>Tesouraria</TableHead>
-                    {!isClosed && (
+                    {canEdit && (
                       <TableHead className="text-right">Ações</TableHead>
                     )}
                   </TableRow>
@@ -694,11 +817,12 @@ export function AgapeClosing() {
                           '—'
                         )}
                       </TableCell>
-                      {!isClosed && (
+                      {canEdit && (
                         <TableCell className="text-right space-x-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Editar lançamento"
                             onClick={() => {
                               setSelectedCharge(charge)
                               dialog.openDialog()
@@ -710,8 +834,9 @@ export function AgapeClosing() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => deleteOperation.execute(charge)}
-                            disabled={deleteOperation.loading}
+                            title="Excluir lançamento"
+                            onClick={() => setDeleteTarget(charge)}
+                            disabled={isDeleting}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -739,6 +864,85 @@ export function AgapeClosing() {
         onSave={(data) => saveOperation.execute(data)}
         saving={saveOperation.loading}
       />
+
+      <AlertDialog
+        open={clearMonthOpen}
+        onOpenChange={(open) => !open && !isClearingMonth && setClearMonthOpen(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar todos os lançamentos do mês?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão excluídas todas as cobranças de <strong>{monthLabel}</strong> e as
+              receitas vinculadas na tesouraria. O total das bebidas será zerado. Use para
+              recomeçar o fechamento deste mês.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isClearingMonth}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isClearingMonth}
+              onClick={(e) => {
+                e.preventDefault()
+                void handleClearMonthConfirm()
+              }}
+            >
+              {isClearingMonth ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Limpar mês
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lançamento do fechamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? (
+                <>
+                  Você está prestes a excluir a cobrança de{' '}
+                  <strong>
+                    {brotherNames[deleteTarget.brotherId] ||
+                      deleteTarget.brotherName ||
+                      'irmão'}
+                  </strong>{' '}
+                  ({formatCurrencyBRL(deleteTarget.amount)}).
+                  {deleteTarget.transactionId ? (
+                    <>
+                      {' '}
+                      A receita vinculada na tesouraria também será removida.
+                    </>
+                  ) : null}{' '}
+                  Esta ação não pode ser desfeita.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault()
+                void handleDeleteConfirm()
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

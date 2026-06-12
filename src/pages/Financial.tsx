@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FinancialOverview } from '@/components/financial/FinancialOverview'
 import { IncomeList } from '@/components/financial/IncomeList'
@@ -13,40 +13,82 @@ import { BankAccounts } from '@/components/financial/BankAccounts'
 import { CashFlowReport } from '@/components/financial/CashFlowReport'
 import { CharityCollection } from '@/components/financial/CharityCollection'
 import { AgapeClosing } from '@/components/financial/AgapeClosing'
+import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+import { Navigate } from 'react-router-dom'
+
+const FINANCIAL_TABS = [
+  { value: 'overview', label: 'Dashboard' },
+  { value: 'bank-accounts', label: 'Contas Bancárias' },
+  { value: 'cash-flow', label: 'Fluxo de Caixa' },
+  { value: 'income', label: 'Receitas' },
+  { value: 'expenses', label: 'Despesas' },
+  { value: 'charity', label: 'Tronco de Beneficência' },
+  { value: 'agape', label: 'Fechamento Ágape' },
+  { value: 'contributions', label: 'Mensalidades' },
+  { value: 'budgets', label: 'Metas e Orçamentos' },
+  { value: 'reports', label: 'Outros Relatórios' },
+  { value: 'categories', label: 'Categorias' },
+  { value: 'settings', label: 'Configurações' },
+] as const
+
+type FinancialTabValue = (typeof FINANCIAL_TABS)[number]['value']
 
 export default function Financial() {
-  const [activeTab, setActiveTab] = useState('overview')
+  const { canManageAgapeClosing, canAccessFullFinancial } =
+    useAgapeClosingPermissions()
+  const [activeTab, setActiveTab] = useState<FinancialTabValue>('overview')
+
+  const visibleTabs = useMemo(() => {
+    if (canAccessFullFinancial) return FINANCIAL_TABS
+    if (canManageAgapeClosing) {
+      return FINANCIAL_TABS.filter((tab) => tab.value === 'agape')
+    }
+    return []
+  }, [canAccessFullFinancial, canManageAgapeClosing])
+
+  useEffect(() => {
+    if (visibleTabs.length === 0) return
+    const isCurrentVisible = visibleTabs.some((tab) => tab.value === activeTab)
+    if (!isCurrentVisible) {
+      setActiveTab(visibleTabs[0].value)
+    }
+  }, [visibleTabs, activeTab])
+
+  if (!canManageAgapeClosing) {
+    return <Navigate to="/access-denied" replace />
+  }
+
+  const agapeOnly = !canAccessFullFinancial
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
+        <h2 className="text-3xl font-bold tracking-tight">
+          {agapeOnly ? 'Fechamento do Ágape' : 'Financeiro'}
+        </h2>
         <p className="text-muted-foreground">
-          Controle de receitas, despesas, fluxo de caixa e gestão bancária.
+          {agapeOnly
+            ? 'Controle mensal dos consumos e pagamentos do ágape. Use Correções e ajustes para editar, excluir ou limpar o mês sem acessar o banco de dados.'
+            : 'Controle de receitas, despesas, fluxo de caixa e gestão bancária.'}
         </p>
       </div>
 
       <Tabs
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={(value) => setActiveTab(value as FinancialTabValue)}
         className="space-y-4"
       >
-        <div className="flex items-center overflow-x-auto">
-          <TabsList className="w-full justify-start md:w-auto">
-            <TabsTrigger value="overview">Dashboard</TabsTrigger>
-            <TabsTrigger value="bank-accounts">Contas Bancárias</TabsTrigger>
-            <TabsTrigger value="cash-flow">Fluxo de Caixa</TabsTrigger>
-            <TabsTrigger value="income">Receitas</TabsTrigger>
-            <TabsTrigger value="expenses">Despesas</TabsTrigger>
-            <TabsTrigger value="charity">Tronco de Beneficência</TabsTrigger>
-            <TabsTrigger value="agape">Fechamento Ágape</TabsTrigger>
-            <TabsTrigger value="contributions">Mensalidades</TabsTrigger>
-            <TabsTrigger value="budgets">Metas e Orçamentos</TabsTrigger>
-            <TabsTrigger value="reports">Outros Relatórios</TabsTrigger>
-            <TabsTrigger value="categories">Categorias</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
-          </TabsList>
-        </div>
+        {visibleTabs.length > 1 && (
+          <div className="flex items-center overflow-x-auto">
+            <TabsList className="w-full justify-start md:w-auto">
+              {visibleTabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        )}
 
         <TabsContent value="overview">
           {activeTab === 'overview' ? <FinancialOverview /> : null}

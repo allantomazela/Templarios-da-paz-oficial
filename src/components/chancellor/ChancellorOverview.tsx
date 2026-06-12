@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { useSiteSettingsStore } from '@/stores/useSiteSettingsStore'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   Users,
@@ -22,15 +21,11 @@ import {
   HandCoins,
   AlertTriangle,
   Check,
-  QrCode,
-  Printer,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useRef } from 'react'
-import QRCode from 'qrcode'
+import { TempleQrCard } from '@/components/chancellor/TempleQrCard'
 
 export function ChancellorOverview() {
-  const qrCardRef = useRef<HTMLDivElement | null>(null)
   const {
     sessionRecords,
     attendanceRecords,
@@ -38,7 +33,6 @@ export function ChancellorOverview() {
     reviewedAlerts,
     markAlertAsReviewed,
   } = useChancellorStore()
-  const { templeCheckinUrl } = useSiteSettingsStore()
 
   // Metrics
   const totalCharity = sessionRecords.reduce(
@@ -143,106 +137,9 @@ export function ChancellorOverview() {
     Mestre: { label: 'Mestre', color: 'hsl(var(--chart-3))' },
   }
 
-  const effectiveTempleUrl =
-    (templeCheckinUrl && templeCheckinUrl.trim()) ||
-    (typeof window !== 'undefined'
-      ? `${window.location.origin}/checkin-templo`
-      : '/checkin-templo')
-
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
-    effectiveTempleUrl,
-  )}`
-
-  /** Gera PNG em base64 localmente para a janela de impressão (evita img externa ainda carregando + print() imediato no pai, que deixava o QR em branco). */
-  const handlePrintQR = async () => {
-    if (typeof window === 'undefined') return
-    let dataUrl: string
-    try {
-      dataUrl = await QRCode.toDataURL(effectiveTempleUrl, {
-        width: 256,
-        margin: 2,
-        color: { dark: '#000000', light: '#ffffff' },
-        errorCorrectionLevel: 'M',
-      })
-    } catch {
-      return
-    }
-
-    const printWindow = window.open('', '_blank', 'width=480,height=640')
-    if (!printWindow) return
-
-    const safeUrl = effectiveTempleUrl
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-
-    const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>QR Check-in Templo</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 16px;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .card {
-      border: 1px solid #000;
-      padding: 16px;
-      text-align: center;
-      max-width: 100%;
-    }
-    img { width: 256px; height: 256px; display: block; margin: 0 auto; }
-    .url { margin-top: 12px; font-size: 11px; word-break: break-all; text-align: left; }
-    @media print { body { padding: 8px; } }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2 style="margin:0 0 12px;font-size:18px;">QR fixo do Templo</h2>
-    <img id="qr-print-img" src="${dataUrl}" alt="QR fixo do Templo" width="256" height="256" />
-    <div class="url">${safeUrl}</div>
-  </div>
-  <script>
-    (function () {
-      function doPrint() {
-        try {
-          window.focus();
-          window.print();
-        } catch (e) {}
-      }
-      function schedulePrint() {
-        setTimeout(doPrint, 150);
-      }
-      var img = document.getElementById('qr-print-img');
-      window.addEventListener('afterprint', function () {
-        try { window.close(); } catch (e) {}
-      });
-      if (img && img.complete && img.naturalHeight > 0) {
-        schedulePrint();
-      } else if (img) {
-        img.onload = schedulePrint;
-        img.onerror = function () { window.close(); };
-      } else {
-        schedulePrint();
-      }
-    })();
-  </script>
-</body>
-</html>`
-
-    printWindow.document.open()
-    printWindow.document.write(html)
-    printWindow.document.close()
-  }
-
   return (
     <div className="space-y-6">
+      <TempleQrCard />
       {/* Presence Notifications Widget */}
       {alertBrothers.length > 0 && (
         <Card className="border-l-4 border-l-amber-500 bg-amber-500/10 dark:bg-amber-500/20">
@@ -325,62 +222,6 @@ export function ChancellorOverview() {
             <div className="text-2xl font-bold">{degrees['Mestre'] || 0}</div>
             <p className="text-xs text-muted-foreground">
               De {brothers.length} irmãos ativos
-            </p>
-          </CardContent>
-        </Card>
-        <Card
-          className="hover:shadow-md transition-shadow md:col-span-1"
-          ref={qrCardRef}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <QrCode className="h-4 w-4 text-muted-foreground" />
-              QR fixo do Templo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Use este QR para imprimir e fixar no Templo. Ele sempre aponta para o fluxo de
-              check-in do Templo, respeitando geolocalização e a sessão aberta.
-            </p>
-            <div className="flex justify-center">
-              <img
-                src={qrImageUrl}
-                alt="QR fixo do Templo"
-                className="h-40 w-40 border border-border rounded-md bg-white p-2"
-              />
-            </div>
-            <div className="text-[11px] break-words text-muted-foreground border rounded-md p-2 bg-muted/50">
-              <span className="font-semibold">Endereço:</span>{' '}
-              <span>{effectiveTempleUrl}</span>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  if (navigator.clipboard) {
-                    navigator.clipboard.writeText(effectiveTempleUrl).catch(() => {})
-                  }
-                }}
-              >
-                Copiar link
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="flex-1"
-                onClick={() => handlePrintQR()}
-              >
-                <Printer className="h-4 w-4 mr-1.5" />
-                Imprimir
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Para alterar o endereço (ex.: outra Loja ou domínio), use{' '}
-              <span className="font-semibold">Configurações &gt; Check-in por QR Code</span>.
             </p>
           </CardContent>
         </Card>

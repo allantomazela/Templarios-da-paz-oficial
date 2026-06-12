@@ -46,6 +46,7 @@ import {
   resolveProfileAvatarUrl,
 } from '@/lib/profile-avatar'
 import { CheckinPresenceModal } from '@/components/checkin/CheckinPresenceModal'
+import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
 export interface AppSidebarProps {
   /** No Sheet do header mobile: ocupa a largura, sempre com rótulos (evita colapso + conflito com .text-muted-foreground global). */
@@ -60,6 +61,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
   const { user, signOut } = useAuthStore()
   const { logoUrl } = useSiteSettingsStore()
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
+  const { isAgapeController } = useAgapePermissions()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -117,7 +119,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
     ...(canAccessModule('secretariat') || isMasterAdmin
       ? [{ name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' }]
       : []),
-    ...(canAccessModule('financial') || isMasterAdmin
+    ...(canAccessModule('financial') || isMasterAdmin || isAgapeController
       ? [
           {
             name: 'Financeiro',

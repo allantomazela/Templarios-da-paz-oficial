@@ -18,9 +18,22 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Plus, Loader2, Trash2 } from 'lucide-react'
-import { useAgapeStore } from '@/stores/useAgapeStore'
+import { Plus, Loader2, Trash2, Pencil } from 'lucide-react'
+import { useAgapeStore, type AgapeConsumption } from '@/stores/useAgapeStore'
 import { useToast } from '@/hooks/use-toast'
+import { useAgapePermissions } from '@/hooks/use-agape-permissions'
+import { ConsumptionEditDialog } from './ConsumptionEditDialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase/client'
 import {
   Select,
@@ -51,7 +64,11 @@ export function ConsumptionManager({
     deleteConsumption,
     getSessionTotal,
   } = useAgapeStore()
+  const { isAgapeController } = useAgapePermissions()
   const { toast } = useToast()
+  const [editTarget, setEditTarget] = useState<AgapeConsumption | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [brothers, setBrothers] = useState<Array<{ id: string; full_name: string | null }>>([])
   const [selectedBrother, setSelectedBrother] = useState<string>('')
   const [selectedMenuItem, setSelectedMenuItem] = useState<string>('')
@@ -183,24 +200,27 @@ export function ConsumptionManager({
     }
   }
 
-  const handleDeleteConsumption = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este consumo?')) {
-      return
-    }
+  const canManageConsumptions =
+    isAgapeController || session?.status === 'open'
 
-    const { error } = await deleteConsumption(id)
-    if (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir o consumo.',
-        variant: 'destructive',
-      })
-    } else {
-      toast({
-        title: 'Sucesso',
-        description: 'Consumo excluído com sucesso.',
-      })
-      loadSessionTotal()
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetId) return
+    setIsDeleting(true)
+    try {
+      const { error } = await deleteConsumption(deleteTargetId)
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: getSaveErrorMessage(error),
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({ title: 'Consumo excluído' })
+      setDeleteTargetId(null)
+      await loadSessionTotal()
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -343,14 +363,16 @@ export function ConsumptionManager({
                   <TableHead>Preço Unit.</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Registrado por</TableHead>
-                  {session?.status === 'open' && <TableHead className="text-right">Ações</TableHead>}
+                  {canManageConsumptions && (
+                    <TableHead className="text-right">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessionConsumptions.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={session?.status === 'open' ? 7 : 6}
+                      colSpan={canManageConsumptions ? 7 : 6}
                       className="text-center text-muted-foreground"
                     >
                       Nenhum consumo registrado ainda.
@@ -375,13 +397,24 @@ export function ConsumptionManager({
                       <TableCell className="text-sm text-muted-foreground">
                         {consumption.recorded_by_profile?.full_name || '—'}
                       </TableCell>
-                      {session?.status === 'open' && (
-                        <TableCell className="text-right">
+                      {canManageConsumptions && (
+                        <TableCell className="text-right space-x-1">
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             type="button"
-                            onClick={() => handleDeleteConsumption(consumption.id)}
+                            title="Editar quantidade"
+                            onClick={() => setEditTarget(consumption)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            className="text-destructive hover:text-destructive"
+                            title="Excluir consumo"
+                            onClick={() => setDeleteTargetId(consumption.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -395,6 +428,42 @@ export function ConsumptionManager({
           </div>
         )}
       </DialogContent>
+
+      <ConsumptionEditDialog
+        open={!!editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
+        consumption={editTarget}
+        onSaved={() => void loadSessionTotal()}
+      />
+
+      <AlertDialog
+        open={!!deleteTargetId}
+        onOpenChange={(open) => !open && !isDeleting && setDeleteTargetId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir consumo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O lançamento será removido desta sessão. Se o fechamento financeiro do mês
+              já foi importado, atualize o Fechamento Ágape em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault()
+                void handleDeleteConfirm()
+              }}
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }

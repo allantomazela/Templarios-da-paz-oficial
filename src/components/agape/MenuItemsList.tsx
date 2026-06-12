@@ -10,6 +10,17 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { MenuItemDialog } from './MenuItemDialog'
 import { useDialog } from '@/hooks/use-dialog'
@@ -21,6 +32,8 @@ export function MenuItemsList() {
   const { menuItems, loading, deleteMenuItem } = useAgapeStore()
   const dialog = useDialog()
   const [selectedItem, setSelectedItem] = useState<AgapeMenuItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AgapeMenuItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
 
   const handleEdit = (item: AgapeMenuItem) => {
@@ -28,23 +41,23 @@ export function MenuItemsList() {
     dialog.openDialog()
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este item do cardápio?')) {
-      return
-    }
-
-    const { error } = await deleteMenuItem(id)
-    if (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir o item.',
-        variant: 'destructive',
-      })
-    } else {
-      toast({
-        title: 'Sucesso',
-        description: 'Item excluído com sucesso.',
-      })
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      const { error } = await deleteMenuItem(deleteTarget.id)
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: getSaveErrorMessage(error),
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({ title: 'Item excluído' })
+      setDeleteTarget(null)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -122,7 +135,7 @@ export function MenuItemsList() {
                           variant="ghost"
                           size="sm"
                           type="button"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => setDeleteTarget(item)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -147,6 +160,40 @@ export function MenuItemsList() {
         }}
         item={selectedItem}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir item do cardápio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? (
+                <>
+                  O item <strong>{deleteTarget.name}</strong> será removido. Consumos
+                  antigos que referenciam este item podem impedir a exclusão — nesse caso,
+                  exclua os consumos primeiro.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault()
+                void handleDeleteConfirm()
+              }}
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

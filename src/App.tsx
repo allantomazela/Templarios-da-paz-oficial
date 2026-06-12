@@ -192,7 +192,11 @@ const App = () => (
               <Route
                 path="financial"
                 element={
-                  <RoleGuard allowedRoles={['admin', 'editor']} requiredModule="financial">
+                  <RoleGuard
+                    allowedRoles={['admin', 'editor']}
+                    requiredModule="financial"
+                    alternativeModules={['agape']}
+                  >
                     <Financial />
                   </RoleGuard>
                 }

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
-import { toError, isDuplicateKeyError } from '@/lib/async-utils'
+import { toError, isDuplicateKeyError, withTimeout } from '@/lib/async-utils'
+import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { AgapeBrotherCharge, AgapeMonthlyClosing } from '@/lib/data'
 import {
@@ -569,6 +570,17 @@ export async function saveAgapeCharge(
   data: AgapeChargeFormData,
   options?: { chargeId?: string; existingTransactionId?: string | null },
 ): Promise<void> {
+  return withTimeout(
+    saveAgapeChargeInternal(data, options),
+    SECRETARIAT_OP_TIMEOUT_MS,
+    'O salvamento do lançamento demorou demais. Verifique sua conexão e tente novamente.',
+  )
+}
+
+async function saveAgapeChargeInternal(
+  data: AgapeChargeFormData,
+  options?: { chargeId?: string; existingTransactionId?: string | null },
+): Promise<void> {
   const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
@@ -686,11 +698,23 @@ export async function saveAgapeCharge(
 }
 
 export async function deleteAgapeCharge(charge: AgapeBrotherCharge): Promise<void> {
+  return withTimeout(
+    deleteAgapeChargeInternal(charge),
+    SECRETARIAT_OP_TIMEOUT_MS,
+    'A exclusão do lançamento demorou demais. Verifique sua conexão e tente novamente.',
+  )
+}
+
+async function deleteAgapeChargeInternal(
+  charge: AgapeBrotherCharge,
+): Promise<void> {
   const supabaseAny = supabase as any
 
   const closing = await fetchAgapeMonthlyClosing(charge.month, charge.year)
   if (closing?.status === 'closed') {
-    throw new Error('Não é possível excluir cobrança de um mês já encerrado.')
+    throw new Error(
+      'Não é possível excluir lançamento de um mês já encerrado. Reabra o mês antes de ajustar.',
+    )
   }
 
   if (charge.transactionId) {
@@ -698,7 +722,9 @@ export async function deleteAgapeCharge(charge: AgapeBrotherCharge): Promise<voi
       .from('financial_transactions')
       .delete()
       .eq('id', charge.transactionId)
-    if (txError) throw txError
+    if (txError) {
+      throw formatSupabaseError(txError)
+    }
   }
 
   const { error } = await supabaseAny
@@ -706,7 +732,7 @@ export async function deleteAgapeCharge(charge: AgapeBrotherCharge): Promise<voi
     .delete()
     .eq('id', charge.id)
 
-  if (error) throw error
+  if (error) throw formatSupabaseError(error)
 
   if (closing?.id) {
     await refreshClosingTotals(supabaseAny, charge.month, charge.year, closing.id)
@@ -782,6 +808,39 @@ export async function closeAgapeMonth(
 
   if (error) throw formatSupabaseError(error)
   return mapAgapeClosingRow(data as ClosingRow)
+}
+
+/** Remove todas as cobranças do mês e zera o fechamento (mês deve estar aberto). */
+export async function clearAgapeMonthClosing(
+  month: number,
+  year: number,
+): Promise<{ removed: number }> {
+  const closing = await fetchAgapeMonthlyClosing(month, year)
+  if (closing?.status === 'closed') {
+    throw new Error(
+      'O fechamento deste mês está encerrado. Reabra o mês antes de limpar os lançamentos.',
+    )
+  }
+
+  const { charges } = await fetchAgapeChargesForMonth(month, year)
+  for (const charge of charges) {
+    await deleteAgapeCharge(charge)
+  }
+
+  const supabaseAny = supabase as any
+  if (closing?.id) {
+    const { error } = await supabaseAny
+      .from('agape_monthly_closings')
+      .update({
+        total_consumed: 0,
+        total_paid: 0,
+        total_beverages_spent: null,
+      })
+      .eq('id', closing.id)
+    if (error) throw formatSupabaseError(error)
+  }
+
+  return { removed: charges.length }
 }
 
 export async function reopenAgapeMonth(

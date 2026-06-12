@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -19,8 +20,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { FormHeader } from '@/components/ui/form-header'
-import { useAgapeStore } from '@/stores/useAgapeStore'
+import { useAgapeStore, type AgapeSession } from '@/stores/useAgapeStore'
 import { useToast } from '@/hooks/use-toast'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 import { Calendar } from 'lucide-react'
 
 const sessionSchema = z.object({
@@ -33,11 +35,17 @@ type SessionFormValues = z.infer<typeof sessionSchema>
 interface AgapeSessionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  sessionToEdit?: AgapeSession | null
 }
 
-export function AgapeSessionDialog({ open, onOpenChange }: AgapeSessionDialogProps) {
-  const { createSession, loading } = useAgapeStore()
+export function AgapeSessionDialog({
+  open,
+  onOpenChange,
+  sessionToEdit,
+}: AgapeSessionDialogProps) {
+  const { createSession, updateSession, loading } = useAgapeStore()
   const { toast } = useToast()
+  const isEditing = Boolean(sessionToEdit?.id)
 
   const form = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
@@ -47,7 +55,41 @@ export function AgapeSessionDialog({ open, onOpenChange }: AgapeSessionDialogPro
     },
   })
 
+  useEffect(() => {
+    if (sessionToEdit) {
+      form.reset({
+        date: sessionToEdit.date,
+        description: sessionToEdit.description || '',
+      })
+    } else if (open) {
+      form.reset({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+      })
+    }
+  }, [sessionToEdit, open, form])
+
   const onSubmit = async (data: SessionFormValues) => {
+    if (isEditing && sessionToEdit) {
+      const { error } = await updateSession(sessionToEdit.id, {
+        date: data.date,
+        description: data.description || null,
+      })
+
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: getSaveErrorMessage(error),
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({ title: 'Sessão atualizada' })
+      onOpenChange(false)
+      return
+    }
+
     const { error } = await createSession({
       date: data.date,
       description: data.description || null,
@@ -58,14 +100,11 @@ export function AgapeSessionDialog({ open, onOpenChange }: AgapeSessionDialogPro
     if (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível criar a sessão.',
+        description: getSaveErrorMessage(error),
         variant: 'destructive',
       })
     } else {
-      toast({
-        title: 'Sucesso',
-        description: 'Sessão criada com sucesso.',
-      })
+      toast({ title: 'Sessão criada' })
       form.reset()
       onOpenChange(false)
     }
@@ -74,10 +113,16 @@ export function AgapeSessionDialog({ open, onOpenChange }: AgapeSessionDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby={undefined}>
-        <DialogTitle className="sr-only">Nova Sessão de Ágape</DialogTitle>
+        <DialogTitle className="sr-only">
+          {isEditing ? 'Editar sessão de Ágape' : 'Nova sessão de Ágape'}
+        </DialogTitle>
         <FormHeader
-          title="Nova Sessão de Ágape"
-          description="Crie uma nova sessão de ágape para registrar os consumos dos irmãos."
+          title={isEditing ? 'Editar sessão de Ágape' : 'Nova sessão de Ágape'}
+          description={
+            isEditing
+              ? 'Corrija a data ou a descrição da sessão.'
+              : 'Crie uma sessão para registrar os consumos dos irmãos.'
+          }
           icon={<Calendar className="h-5 w-5" />}
         />
 
@@ -123,7 +168,7 @@ export function AgapeSessionDialog({ open, onOpenChange }: AgapeSessionDialogPro
                 Cancelar
               </Button>
               <Button type="submit" disabled={loading}>
-                Criar Sessão
+                {isEditing ? 'Salvar alterações' : 'Criar sessão'}
               </Button>
             </DialogFooter>
           </form>

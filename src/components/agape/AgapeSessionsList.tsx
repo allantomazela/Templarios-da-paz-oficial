@@ -9,20 +9,45 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Calendar, Eye, Lock, CheckCircle2, Loader2 } from 'lucide-react'
-import { useAgapeStore } from '@/stores/useAgapeStore'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Plus,
+  Calendar,
+  Eye,
+  Lock,
+  CheckCircle2,
+  Loader2,
+  Pencil,
+  Trash2,
+  Unlock,
+} from 'lucide-react'
+import { useAgapeStore, type AgapeSession } from '@/stores/useAgapeStore'
 import { AgapeSessionDialog } from './AgapeSessionDialog'
 import { ConsumptionManager } from './ConsumptionManager'
 import { useDialog } from '@/hooks/use-dialog'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
+import { getSaveErrorMessage } from '@/lib/auth-utils'
 
 export function AgapeSessionsList() {
-  const { sessions, loading, closeSession, finalizeSession } = useAgapeStore()
+  const { sessions, loading, closeSession, finalizeSession, reopenSession, deleteSession } =
+    useAgapeStore()
   const dialog = useDialog()
   const consumptionDialog = useDialog()
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
+  const [sessionToEdit, setSessionToEdit] = useState<AgapeSession | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AgapeSession | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
 
   const handleCloseSession = async (id: string) => {
@@ -30,14 +55,11 @@ export function AgapeSessionsList() {
     if (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível fechar a sessão.',
+        description: getSaveErrorMessage(error),
         variant: 'destructive',
       })
     } else {
-      toast({
-        title: 'Sucesso',
-        description: 'Sessão fechada com sucesso.',
-      })
+      toast({ title: 'Sessão fechada' })
     }
   }
 
@@ -46,14 +68,47 @@ export function AgapeSessionsList() {
     if (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível finalizar a sessão.',
+        description: getSaveErrorMessage(error),
         variant: 'destructive',
       })
     } else {
+      toast({ title: 'Sessão finalizada' })
+    }
+  }
+
+  const handleReopenSession = async (id: string) => {
+    const { error } = await reopenSession(id)
+    if (error) {
       toast({
-        title: 'Sucesso',
-        description: 'Sessão finalizada com sucesso.',
+        title: 'Erro',
+        description: getSaveErrorMessage(error),
+        variant: 'destructive',
       })
+    } else {
+      toast({ title: 'Sessão reaberta para ajustes' })
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      const { error } = await deleteSession(deleteTarget.id)
+      if (error) {
+        toast({
+          title: 'Erro',
+          description: getSaveErrorMessage(error),
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({
+        title: 'Sessão excluída',
+        description: 'Os consumos desta sessão também foram removidos.',
+      })
+      setDeleteTarget(null)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -67,6 +122,16 @@ export function AgapeSessionsList() {
     if (!open) {
       setSelectedSession(null)
     }
+  }
+
+  const openCreateDialog = () => {
+    setSessionToEdit(null)
+    dialog.openDialog()
+  }
+
+  const openEditDialog = (session: AgapeSession) => {
+    setSessionToEdit(session)
+    dialog.openDialog()
   }
 
   const getStatusBadge = (status: string) => {
@@ -86,7 +151,7 @@ export function AgapeSessionsList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Sessões de Ágape</h3>
-        <Button onClick={dialog.openDialog} type="button">
+        <Button onClick={openCreateDialog} type="button">
           <Plus className="mr-2 h-4 w-4" />
           Nova Sessão
         </Button>
@@ -120,41 +185,75 @@ export function AgapeSessionsList() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(session.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        {format(new Date(session.date), "dd 'de' MMMM 'de' yyyy", {
+                          locale: ptBR,
+                        })}
                       </div>
                     </TableCell>
                     <TableCell>{session.description || '-'}</TableCell>
                     <TableCell>{getStatusBadge(session.status)}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           type="button"
+                          title="Ver consumos"
                           onClick={() => handleViewConsumptions(session.id)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          title="Editar sessão"
+                          onClick={() => openEditDialog(session)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         {session.status === 'open' ? (
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             type="button"
+                            title="Fechar sessão"
                             onClick={() => handleCloseSession(session.id)}
                           >
                             <Lock className="h-4 w-4" />
                           </Button>
-                        ) : null}
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            title="Reabrir sessão"
+                            onClick={() => handleReopenSession(session.id)}
+                          >
+                            <Unlock className="h-4 w-4" />
+                          </Button>
+                        )}
                         {session.status === 'closed' ? (
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             type="button"
+                            title="Finalizar sessão"
                             onClick={() => handleFinalizeSession(session.id)}
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </Button>
                         ) : null}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          className="text-destructive hover:text-destructive"
+                          title="Excluir sessão"
+                          onClick={() => setDeleteTarget(session)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -167,7 +266,11 @@ export function AgapeSessionsList() {
 
       <AgapeSessionDialog
         open={dialog.open}
-        onOpenChange={dialog.onOpenChange}
+        onOpenChange={(open) => {
+          dialog.onOpenChange(open)
+          if (!open) setSessionToEdit(null)
+        }}
+        sessionToEdit={sessionToEdit}
       />
 
       {selectedSession ? (
@@ -177,6 +280,43 @@ export function AgapeSessionsList() {
           sessionId={selectedSession}
         />
       ) : null}
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir sessão de ágape?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? (
+                <>
+                  A sessão de{' '}
+                  <strong>
+                    {format(new Date(deleteTarget.date), 'dd/MM/yyyy', { locale: ptBR })}
+                  </strong>{' '}
+                  e <strong>todos os consumos</strong> lançados nela serão removidos
+                  permanentemente.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault()
+                void handleDeleteConfirm()
+              }}
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -7,17 +7,20 @@ import { MenuItemsList } from '@/components/agape/MenuItemsList'
 import { MonthlyReports } from '@/components/agape/MonthlyReports'
 import { AgapeConsumptionSimple } from '@/components/agape/AgapeConsumptionSimple'
 import { AgapeRecordPanel } from '@/components/agape/AgapeRecordPanel'
+import { AgapeMaintenancePanel } from '@/components/agape/AgapeMaintenancePanel'
 import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
 export default function Agape() {
-  const { fetchSessions, fetchMenuItems, fetchConsumptions } = useAgapeStore()
+  const { clearOperationalCache, fetchSessions, fetchMenuItems, fetchConsumptions } =
+    useAgapeStore()
   const { isAgapeController, canRecordConsumption } = useAgapePermissions()
 
   useEffect(() => {
+    clearOperationalCache()
     fetchSessions()
     fetchMenuItems()
     fetchConsumptions()
-  }, [fetchSessions, fetchMenuItems, fetchConsumptions])
+  }, [clearOperationalCache, fetchSessions, fetchMenuItems, fetchConsumptions])
 
   if (isAgapeController) {
     return (
@@ -39,6 +42,7 @@ export default function Agape() {
               <TabsTrigger value="menu">Cardápio</TabsTrigger>
               <TabsTrigger value="record">Registrar consumos</TabsTrigger>
               <TabsTrigger value="reports">Relatórios Mensais</TabsTrigger>
+              <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
             </TabsList>
           </div>
 
@@ -60,6 +64,10 @@ export default function Agape() {
 
           <TabsContent value="reports">
             <MonthlyReports />
+          </TabsContent>
+
+          <TabsContent value="maintenance">
+            <AgapeMaintenancePanel />
           </TabsContent>
         </Tabs>
       </div>

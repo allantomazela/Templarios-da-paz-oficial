@@ -46,7 +46,7 @@ export function getSaveErrorMessage(error: unknown): string {
   if (!error || typeof error !== 'object') return 'Não foi possível salvar. Tente novamente.'
   const err = error as { message?: string; code?: string; status?: number }
   if (err.code === '42501' || (typeof err.message === 'string' && /row-level security|policy/i.test(err.message ?? ''))) {
-    return 'Você não tem permissão para esta ação. Verifique se está logado como admin/editor.'
+    return 'Você não tem permissão para esta ação. Contate a administração ou o Mestre de Banquete.'
   }
   if (err.status === 403) return 'Acesso negado. Verifique suas permissões.'
   if (err.status === 401) return 'Sessão expirada. Faça login novamente.'

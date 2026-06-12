@@ -75,6 +75,8 @@ interface AgapeState {
   updateSession: (id: string, updates: Partial<AgapeSession>) => Promise<{ error: any }>
   closeSession: (id: string) => Promise<{ error: any }>
   finalizeSession: (id: string) => Promise<{ error: any }>
+  reopenSession: (id: string) => Promise<{ error: any }>
+  deleteSession: (id: string) => Promise<{ error: any }>
 
   // Menu Items
   fetchMenuItems: () => Promise<void>
@@ -91,6 +93,9 @@ interface AgapeState {
   // Reports
   getBrotherSessionTotal: (brotherId: string, sessionId: string) => Promise<{ total_items: number; total_amount: number } | null>
   getSessionTotal: (sessionId: string) => Promise<{ total_brothers: number; total_items: number; total_amount: number } | null>
+
+  /** Limpa cache local (após reset no banco ou troca de aba). */
+  clearOperationalCache: () => void
 }
 
 export const useAgapeStore = create<AgapeState>((set, get) => ({
@@ -98,6 +103,10 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   menuItems: [],
   consumptions: [],
   loading: false,
+
+  clearOperationalCache: () => {
+    set({ sessions: [], menuItems: [], consumptions: [] })
+  },
 
   fetchSessions: async () => {
     const reqId = agapeFetchSeq.sessions.next()
@@ -179,6 +188,34 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
   finalizeSession: async (id) => {
     return get().updateSession(id, { status: 'finalized' })
+  },
+
+  reopenSession: async (id) => {
+    return get().updateSession(id, { status: 'open' })
+  },
+
+  deleteSession: async (id) => {
+    set({ loading: true })
+    try {
+      const { error } = await supabase
+        .from('agape_sessions')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await get().fetchSessions()
+      set((state) => ({
+        consumptions: state.consumptions.filter((c) => c.session_id !== id),
+      }))
+      return { error: null }
+    } catch (error) {
+      if (handleAuthError(error)) return { error }
+      logError('Error deleting agape session', error)
+      return { error }
+    } finally {
+      set({ loading: false })
+    }
   },
 
   fetchMenuItems: async () => {

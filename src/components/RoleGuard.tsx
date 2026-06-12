@@ -9,12 +9,15 @@ interface RoleGuardProps {
   children: ReactNode
   allowedRoles: string[]
   requiredModule?: string // Módulo específico necessário (ex: 'secretariat', 'financial')
+  /** Módulos alternativos (ex.: agape para Mestre de Banquete no Financeiro) */
+  alternativeModules?: string[]
 }
 
 function RoleGuardInner({
   user,
   allowedRoles,
   requiredModule,
+  alternativeModules,
   children,
 }: RoleGuardProps & { user: NonNullable<ReturnType<typeof useAuthStore>['user']> }) {
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
@@ -24,6 +27,16 @@ function RoleGuardInner({
   const userStatus = user?.profile?.status
   const isBlockedStatus =
     userStatus === 'blocked' || userStatus === 'in_memoriam'
+
+  const moduleCandidates = [
+    ...(requiredModule ? [requiredModule] : []),
+    ...(alternativeModules ?? []),
+  ]
+
+  const hasModuleAccessViaPosition =
+    Boolean(user?.id) &&
+    moduleCandidates.length > 0 &&
+    moduleCandidates.some((module) => hasPermission(user.id, module))
 
   if (isMasterAdmin) {
     userRole = 'admin'
@@ -36,11 +49,8 @@ function RoleGuardInner({
   if (requiredModule && user?.id) {
     if (userRole === 'member' && allowedRoles.includes('member')) {
       // ok
-    } else {
-      const hasModuleAccess = hasPermission(user.id, requiredModule)
-      if (!hasModuleAccess && !isMasterAdmin) {
-        return <Navigate to="/access-denied" replace />
-      }
+    } else if (!isMasterAdmin && !hasModuleAccessViaPosition) {
+      return <Navigate to="/access-denied" replace />
     }
   }
 
@@ -52,6 +62,9 @@ function RoleGuardInner({
       userPermissions.some((perm) => allowedRoles.includes(perm))
 
     if (isMasterAdmin) {
+      return <>{children}</>
+    }
+    if (hasModuleAccessViaPosition) {
       return <>{children}</>
     }
     if (!hasRoleAccess && !hasPositionAccess) {
@@ -70,6 +83,7 @@ export function RoleGuard({
   children,
   allowedRoles,
   requiredModule,
+  alternativeModules,
 }: RoleGuardProps) {
   const { user, loading } = useAuthStore()
   const [isTimeout, setIsTimeout] = useState(false)
@@ -100,7 +114,12 @@ export function RoleGuard({
   }
 
   return (
-    <RoleGuardInner user={user} allowedRoles={allowedRoles} requiredModule={requiredModule}>
+    <RoleGuardInner
+      user={user}
+      allowedRoles={allowedRoles}
+      requiredModule={requiredModule}
+      alternativeModules={alternativeModules}
+    >
       {children}
     </RoleGuardInner>
   )

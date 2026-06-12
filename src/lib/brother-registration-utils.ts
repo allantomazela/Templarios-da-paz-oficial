@@ -1,6 +1,7 @@
 import type { Brother } from '@/lib/data'
 import type { Profile } from '@/stores/useAuthStore'
 import { formatPhone } from '@/lib/format-utils'
+import { resolveProfileAvatarUrl } from '@/lib/profile-avatar'
 
 const PLACEHOLDER_PHONE = 'não informado'
 
@@ -20,6 +21,17 @@ export function normalizeBrotherPhoneForForm(phone?: string | null): string {
   return trimmed
 }
 
+/** Foto do cadastro na secretaria sempre segue o avatar do perfil. */
+export function resolveBrotherPhotoFromProfile(
+  profileAvatarUrl?: string | null,
+  brotherPhotoUrl?: string | null,
+): string | undefined {
+  return (
+    resolveProfileAvatarUrl(profileAvatarUrl) ??
+    resolveProfileAvatarUrl(brotherPhotoUrl)
+  )
+}
+
 export function buildBrotherDraftFromProfile(profile: Profile): Brother {
   const today = new Date().toISOString().slice(0, 10)
 
@@ -34,7 +46,7 @@ export function buildBrotherDraftFromProfile(profile: Profile): Brother {
     status: 'Ativo',
     initiationDate: today,
     attendanceRate: 0,
-    photoUrl: profile.avatar_url || undefined,
+    photoUrl: resolveBrotherPhotoFromProfile(profile.avatar_url),
   }
 }
 

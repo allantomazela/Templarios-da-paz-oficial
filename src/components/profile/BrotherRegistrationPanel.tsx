@@ -11,7 +11,9 @@ import {
 import {
   buildBrotherDraftFromProfile,
   isBrotherRegistrationComplete,
+  resolveBrotherPhotoFromProfile,
 } from '@/lib/brother-registration-utils'
+import { syncBrotherPhotoFromProfile } from '@/lib/sync-brother-profile-avatar'
 import { useProfileStore } from '@/stores/useProfileStore'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -55,9 +57,26 @@ export function BrotherRegistrationPanel({
     void loadBrother()
   }, [loadBrother])
 
+  useEffect(() => {
+    if (!profile.id) return
+    void syncBrotherPhotoFromProfile(
+      profile.id,
+      profile.email,
+      profile.avatar_url,
+    )
+  }, [profile.avatar_url, profile.email, profile.id])
+
   const brotherForForm = useMemo(() => {
-    if (brother) return brother
-    return buildBrotherDraftFromProfile(profile)
+    const base = brother ?? buildBrotherDraftFromProfile(profile)
+    const syncedPhoto = resolveBrotherPhotoFromProfile(
+      profile.avatar_url,
+      base.photoUrl,
+    )
+
+    return {
+      ...base,
+      photoUrl: syncedPhoto,
+    }
   }, [brother, profile])
 
   const isComplete = isBrotherRegistrationComplete(brother)
@@ -73,6 +92,7 @@ export function BrotherRegistrationPanel({
         profile.email.trim(),
         data as BrotherSaveInput,
         brother,
+        profile.avatar_url,
       )
 
       setBrother(saved)
@@ -132,6 +152,8 @@ export function BrotherRegistrationPanel({
         <CardContent>
           <BrotherForm
             brotherToEdit={brotherForForm}
+            profileAvatarUrl={profile.avatar_url}
+            userName={profile.full_name}
             onSave={saveOperation.execute}
             isSaving={saveOperation.loading}
             mode="self"

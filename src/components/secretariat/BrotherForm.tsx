@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Upload, X, Plus, Search } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Loader2, Upload, X, Plus, Search, User } from 'lucide-react'
 import { useImageUpload } from '@/hooks/use-image-upload'
 import {
   formatCPF,
@@ -46,7 +47,14 @@ import {
   BRAZILIAN_STATES,
   type BrotherFormValues,
 } from '@/lib/brother-form-schema'
-import { normalizeBrotherPhoneForForm } from '@/lib/brother-registration-utils'
+import {
+  normalizeBrotherPhoneForForm,
+  resolveBrotherPhotoFromProfile,
+} from '@/lib/brother-registration-utils'
+import {
+  getProfileInitials,
+  resolveProfileAvatarUrl,
+} from '@/lib/profile-avatar'
 
 export type { BrotherFormValues }
 
@@ -60,6 +68,9 @@ interface BrotherFormProps {
   active?: boolean
   onCancel?: () => void
   submitLabel?: string
+  /** Avatar do perfil — no modo self a foto segue sempre o Meu Perfil */
+  profileAvatarUrl?: string | null
+  userName?: string
 }
 
 export function BrotherForm({
@@ -70,9 +81,17 @@ export function BrotherForm({
   active = true,
   onCancel,
   submitLabel,
+  profileAvatarUrl,
+  userName,
 }: BrotherFormProps) {
   const isSelfMode = mode === 'self'
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const syncedProfilePhoto = resolveBrotherPhotoFromProfile(
+    profileAvatarUrl,
+    brotherToEdit?.photoUrl,
+  )
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    isSelfMode ? (syncedProfilePhoto ?? null) : null,
+  )
   const [isLoadingCEP, setIsLoadingCEP] = useState(false)
   const [approvedProfiles, setApprovedProfiles] = useState<
     { id: string; full_name: string | null; email: string | null }[]
@@ -137,7 +156,9 @@ export function BrotherForm({
         phone: normalizeBrotherPhoneForForm(brotherToEdit.phone),
         cpf: brotherToEdit.cpf || '',
         dob: brotherToEdit.dob || '',
-        photoUrl: brotherToEdit.photoUrl || '',
+        photoUrl: isSelfMode
+          ? (syncedProfilePhoto ?? '')
+          : (brotherToEdit.photoUrl || ''),
         initiationDate: brotherToEdit.initiationDate,
         elevationDate: brotherToEdit.elevationDate || '',
         exaltationDate: brotherToEdit.exaltationDate || '',
@@ -164,7 +185,10 @@ export function BrotherForm({
         profileId: brotherToEdit.profileId || BROTHER_PROFILE_AUTO,
       })
 
-      if (brotherToEdit.photoUrl) {
+      if (isSelfMode) {
+        setPhotoPreview(syncedProfilePhoto ?? null)
+        imageUpload.reset()
+      } else if (brotherToEdit.photoUrl) {
         setPhotoPreview(brotherToEdit.photoUrl)
         imageUpload.reset()
       } else {
@@ -178,7 +202,14 @@ export function BrotherForm({
     }
     return () => revokePhotoBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brotherToEdit?.id, active])
+  }, [brotherToEdit?.id, active, isSelfMode, profileAvatarUrl])
+
+  useEffect(() => {
+    if (!active || !isSelfMode) return
+    const url = syncedProfilePhoto ?? ''
+    form.setValue('photoUrl', url)
+    setPhotoPreview(url || null)
+  }, [active, form, isSelfMode, syncedProfilePhoto])
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -271,6 +302,9 @@ export function BrotherForm({
     try {
       const unformattedData = {
         ...data,
+        photoUrl: isSelfMode
+          ? (syncedProfilePhoto ?? undefined)
+          : data.photoUrl,
         cpf: data.cpf ? unformatCPF(data.cpf) : undefined,
         phone: unformatPhone(data.phone),
         addressZipcode: data.addressZipcode
@@ -290,60 +324,83 @@ export function BrotherForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Photo Upload Section */}
+            {/* Photo */}
             <div className="space-y-2">
               <FormLabel>Foto</FormLabel>
-              <div className="flex items-center gap-4">
-                {photoPreview ? (
-                  <div className="relative">
-                    <img
-                      src={photoPreview}
-                      alt="Preview"
-                      className="w-24 h-24 object-cover rounded-lg border"
+              {isSelfMode ? (
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-24 w-24 border">
+                    <AvatarImage
+                      src={resolveProfileAvatarUrl(profileAvatarUrl)}
+                      alt={userName || 'Foto de perfil'}
                     />
-                    {imageUpload.isUploading && (
-                      <div className="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-white" />
-                        <span className="sr-only">Enviando foto...</span>
-                      </div>
-                    )}
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6"
-                      onClick={handleRemovePhoto}
-                      disabled={imageUpload.isUploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center">
-                    {imageUpload.isUploading ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Upload className="h-8 w-8 text-muted-foreground" />
-                    )}
-                  </div>
-                )}
-                <div className="flex-1">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    ref={imageUpload.inputRef}
-                    onChange={handlePhotoUpload}
-                    disabled={imageUpload.isUploading}
-                    className="cursor-pointer"
-                  />
-                  {imageUpload.isUploading && !photoPreview && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Enviando foto...
+                    <AvatarFallback className="bg-muted text-xl font-medium text-muted-foreground">
+                      {resolveProfileAvatarUrl(profileAvatarUrl) ? (
+                        <User className="h-10 w-10" aria-hidden />
+                      ) : (
+                        getProfileInitials(userName)
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <p className="text-sm text-muted-foreground">
+                    Esta é a mesma foto exibida no menu e na aba Informações
+                    Pessoais. Para alterá-la, use a seção Foto de Perfil nessa
+                    aba.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  {photoPreview ? (
+                    <div className="relative">
+                      <img
+                        src={photoPreview}
+                        alt="Preview"
+                        className="w-24 h-24 object-cover rounded-lg border"
+                      />
+                      {imageUpload.isUploading && (
+                        <div className="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          <span className="sr-only">Enviando foto...</span>
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={handleRemovePhoto}
+                        disabled={imageUpload.isUploading}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center">
+                      {imageUpload.isUploading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                      )}
                     </div>
                   )}
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      ref={imageUpload.inputRef}
+                      onChange={handlePhotoUpload}
+                      disabled={imageUpload.isUploading}
+                      className="cursor-pointer"
+                    />
+                    {imageUpload.isUploading && !photoPreview && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Enviando foto...
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Personal Information */}

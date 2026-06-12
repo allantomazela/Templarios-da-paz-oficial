@@ -6,6 +6,7 @@ import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 import { resolveProfileAvatarUrl } from '@/lib/profile-avatar'
+import { syncBrotherPhotoFromProfile } from '@/lib/sync-brother-profile-avatar'
 
 function patchAuthUserProfile(patch: Partial<Profile>): void {
   useAuthStore.setState((state) => {
@@ -202,6 +203,12 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           : null,
       }))
       patchAuthUserProfile({ avatar_url: displayUrl })
+
+      void syncBrotherPhotoFromProfile(
+        profile.id,
+        profile.email,
+        storedUrl,
+      )
     } catch (error) {
       if (isAuthError(error)) {
         useAuthStore.getState().clearSessionAndRedirectToLogin()

@@ -3,6 +3,7 @@ import { withTimeout, toError } from '@/lib/async-utils'
 import { mapBrotherFromDB, mapBrotherToDB } from '@/lib/brother-mappers'
 import { resolveBrotherProfileIdForSave } from '@/lib/brother-profile-link'
 import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
+import { resolveBrotherPhotoFromProfile } from '@/lib/brother-registration-utils'
 import { deleteBrotherAsAdmin } from '@/lib/admin-user-api'
 import type { Brother } from '@/lib/data'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
@@ -74,11 +75,18 @@ export async function saveMyBrotherRegistration(
   email: string,
   data: BrotherSaveInput,
   existing: Brother | null,
+  profileAvatarUrl?: string | null,
 ): Promise<Brother> {
+  const syncedPhoto = resolveBrotherPhotoFromProfile(
+    profileAvatarUrl,
+    data.photoUrl,
+  )
+
   const payload: BrotherSaveInput = {
     ...data,
     email,
     profileId,
+    photoUrl: syncedPhoto,
   }
 
   if (existing?.id) {

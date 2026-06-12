@@ -63,7 +63,7 @@ const CATEGORIES = [
 ]
 
 export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps) {
-  const { createMenuItem, updateMenuItem, loading } = useAgapeStore()
+  const { createMenuItem, updateMenuItem } = useAgapeStore()
   const { toast } = useToast()
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
@@ -87,8 +87,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
     errorMessage: 'Falha no upload. Use imagem de até 512 px e 1,5 MB.',
   })
 
-  const isSavingForm =
-    loading || imageUpload.isUploading || isSubmittingLocal
+  const isSavingForm = imageUpload.isUploading || isSubmittingLocal
 
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(menuItemSchema),
@@ -105,6 +104,9 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
   useEffect(() => {
     if (!open) {
       revokePreviewBlob()
+      setIsSubmittingLocal(false)
+      setPendingImageFile(null)
+      imageUpload.reset()
       return
     }
 

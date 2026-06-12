@@ -68,6 +68,8 @@ interface AgapeState {
   sessions: AgapeSession[]
   menuItems: AgapeMenuItem[]
   consumptions: AgapeConsumption[]
+  /** Carregamento inicial/refetch da lista de cardápio */
+  menuItemsLoading: boolean
   loading: boolean
 
   // Sessions
@@ -103,6 +105,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   sessions: [],
   menuItems: [],
   consumptions: [],
+  menuItemsLoading: false,
   loading: false,
 
   clearOperationalCache: () => {
@@ -221,7 +224,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
   fetchMenuItems: async () => {
     const reqId = agapeFetchSeq.menuItems.next()
-    set({ loading: true })
+    set({ menuItemsLoading: true })
     try {
       const { data, error } = await supabase
         .from('agape_menu_items')
@@ -240,13 +243,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error fetching menu items', error)
     } finally {
       if (agapeFetchSeq.menuItems.isCurrent(reqId)) {
-        set({ loading: false })
+        set({ menuItemsLoading: false })
       }
     }
   },
 
   createMenuItem: async (item) => {
-    set({ loading: true })
     try {
       const { data: createdRow, error } = await supabase
         .from('agape_menu_items')
@@ -272,13 +274,10 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (handleAuthError(error)) return { error }
       logError('Error creating menu item', error)
       return { error }
-    } finally {
-      set({ loading: false })
     }
   },
 
   updateMenuItem: async (id, updates) => {
-    set({ loading: true })
     try {
       const { data: updatedRow, error } = await supabase
         .from('agape_menu_items')
@@ -307,13 +306,10 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (handleAuthError(error)) return { error }
       logError('Error updating menu item', error)
       return { error }
-    } finally {
-      set({ loading: false })
     }
   },
 
   deleteMenuItem: async (id) => {
-    set({ loading: true })
     try {
       const { error } = await supabase
         .from('agape_menu_items')
@@ -322,14 +318,14 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (error) throw error
 
-      await get().fetchMenuItems()
+      set((state) => ({
+        menuItems: state.menuItems.filter((menuItem) => menuItem.id !== id),
+      }))
       return { error: null }
     } catch (error) {
       if (handleAuthError(error)) return { error }
       logError('Error deleting menu item', error)
       return { error }
-    } finally {
-      set({ loading: false })
     }
   },
 

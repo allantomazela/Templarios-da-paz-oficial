@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast'
 import { AgapeMenuItem } from '@/stores/useAgapeStore'
 
 export function MenuItemsList() {
-  const { menuItems, loading, deleteMenuItem } = useAgapeStore()
+  const { menuItems, menuItemsLoading, deleteMenuItem } = useAgapeStore()
   const dialog = useDialog()
   const [selectedItem, setSelectedItem] = useState<AgapeMenuItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AgapeMenuItem | null>(null)
@@ -81,7 +81,7 @@ export function MenuItemsList() {
         </Button>
       </div>
 
-      {loading ? (
+      {menuItemsLoading && menuItems.length === 0 ? (
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -164,6 +164,7 @@ export function MenuItemsList() {
       )}
 
       <MenuItemDialog
+        key={selectedItem?.id ?? 'new'}
         open={dialog.open}
         onOpenChange={(open) => {
           if (!open) {

@@ -1011,6 +1011,11 @@ export type Database = {
       | "secretario"
       | "chanceler"
       | "tesoureiro"
+      | "mestre_banquete"
+      | "primeiro_vigilante"
+      | "segundo_vigilante"
+      | "mestre_cerimonias"
+      | "mestre_harmonia"
       user_status: "pending" | "approved" | "blocked" | "in_memoriam" | "adormecido"
     }
     CompositeTypes: {
@@ -1146,6 +1151,11 @@ export const Constants = {
         "secretario",
         "chanceler",
         "tesoureiro",
+        "mestre_banquete",
+        "primeiro_vigilante",
+        "segundo_vigilante",
+        "mestre_cerimonias",
+        "mestre_harmonia",
       ],
       user_status: ["pending", "approved", "blocked", "in_memoriam", "adormecido"],
     },

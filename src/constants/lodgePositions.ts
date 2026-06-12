@@ -10,6 +10,10 @@ export type LodgePositionType =
   | 'chanceler'
   | 'tesoureiro'
   | 'mestre_banquete'
+  | 'primeiro_vigilante'
+  | 'segundo_vigilante'
+  | 'mestre_cerimonias'
+  | 'mestre_harmonia'
 
 /** Cargos da diretoria (podem registrar consumos no ágape) */
 export const DIRECTORATE_POSITION_TYPES: LodgePositionType[] = [
@@ -34,4 +38,8 @@ export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {
   tesoureiro: ['financial', 'agape'],
   orador: ['reports', 'agape'],
   mestre_banquete: ['agenda', 'events', 'agape'],
+  primeiro_vigilante: [],
+  segundo_vigilante: [],
+  mestre_cerimonias: [],
+  mestre_harmonia: [],
 }

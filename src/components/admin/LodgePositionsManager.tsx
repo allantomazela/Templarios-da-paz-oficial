@@ -73,6 +73,10 @@ const POSITION_LABELS: Record<LodgePositionType, string> = {
   chanceler: 'Chanceler',
   tesoureiro: 'Tesoureiro',
   mestre_banquete: 'Mestre de Banquete',
+  primeiro_vigilante: '1º Vigilante',
+  segundo_vigilante: '2º Vigilante',
+  mestre_cerimonias: 'Mestre de Cerimônia',
+  mestre_harmonia: 'Mestre de Harmonia',
 }
 
 const positionFormSchema = z.object({
@@ -83,6 +87,10 @@ const positionFormSchema = z.object({
     'chanceler',
     'tesoureiro',
     'mestre_banquete',
+    'primeiro_vigilante',
+    'segundo_vigilante',
+    'mestre_cerimonias',
+    'mestre_harmonia',
   ]),
   user_id: z.string().min(1, 'Selecione um usuário'),
   start_date: z.string().min(1, 'Data de início é obrigatória'),

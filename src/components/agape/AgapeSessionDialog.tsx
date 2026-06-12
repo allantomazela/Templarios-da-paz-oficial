@@ -24,6 +24,7 @@ import { useAgapeStore, type AgapeSession } from '@/stores/useAgapeStore'
 import { useToast } from '@/hooks/use-toast'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
 import { Calendar } from 'lucide-react'
+import { todayLocalISODate, toDateInputValue } from '@/lib/format-utils'
 
 const sessionSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -50,7 +51,7 @@ export function AgapeSessionDialog({
   const form = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: todayLocalISODate(),
       description: '',
     },
   })
@@ -58,12 +59,12 @@ export function AgapeSessionDialog({
   useEffect(() => {
     if (sessionToEdit) {
       form.reset({
-        date: sessionToEdit.date,
+        date: toDateInputValue(sessionToEdit.date),
         description: sessionToEdit.description || '',
       })
     } else if (open) {
       form.reset({
-        date: new Date().toISOString().split('T')[0],
+        date: todayLocalISODate(),
         description: '',
       })
     }

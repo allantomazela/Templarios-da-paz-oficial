@@ -53,7 +53,7 @@ import { ptBR } from 'date-fns/locale'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import useFinancialStore, {
   notifyFinancialDataChanged,
 } from '@/stores/useFinancialStore'
@@ -803,7 +803,7 @@ export function AgapeClosing() {
                       <TableCell>{statusBadge(charge.status)}</TableCell>
                       <TableCell>
                         {charge.paymentDate
-                          ? format(new Date(charge.paymentDate), 'dd/MM/yyyy')
+                          ? formatDateBR(charge.paymentDate)
                           : '—'}
                       </TableCell>
                       <TableCell>

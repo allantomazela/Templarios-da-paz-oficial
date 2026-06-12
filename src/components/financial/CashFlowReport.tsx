@@ -12,7 +12,6 @@ import { Printer, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import {
-  parseISO,
   isWithinInterval,
   startOfMonth,
   endOfMonth,
@@ -23,7 +22,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import {
+  formatCurrencyBRL,
+  getCalendarDateTimestamp,
+  parseCalendarDate,
+} from '@/lib/format-utils'
 import { Transaction } from '@/lib/data'
 
 interface TransactionFromDB {
@@ -101,8 +104,13 @@ export function CashFlowReport() {
   const { start, end } = getDateRange()
 
   const filteredTransactions = transactions
-    .filter((t) => isWithinInterval(parseISO(t.date), { start, end }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter((t) => {
+      const date = parseCalendarDate(t.date)
+      return date ? isWithinInterval(date, { start, end }) : false
+    })
+    .sort(
+      (a, b) => getCalendarDateTimestamp(a.date) - getCalendarDateTimestamp(b.date),
+    )
 
   const totalIncome = filteredTransactions
     .filter((t) => t.type === 'Receita')

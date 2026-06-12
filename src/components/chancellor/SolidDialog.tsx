@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { FormHeader } from '@/components/ui/form-header'
-import { format } from 'date-fns'
+import { todayLocalISODate } from '@/lib/format-utils'
 import { HeartHandshake } from 'lucide-react'
 
 const solidSchema = z.object({
@@ -58,7 +58,7 @@ export function SolidDialog({
   const form = useForm<SolidFormValues>({
     resolver: zodResolver(solidSchema),
     defaultValues: {
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: todayLocalISODate(),
       amount: 0,
       category: 'Hospitalaria',
       description: '',
@@ -77,7 +77,7 @@ export function SolidDialog({
       })
     } else {
       form.reset({
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: todayLocalISODate(),
         amount: 0,
         category: 'Hospitalaria',
         description: '',

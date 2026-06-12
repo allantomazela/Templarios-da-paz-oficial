@@ -10,9 +10,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAgapeStore } from '@/stores/useAgapeStore'
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import {
+  formatCalendarDate,
+  formatCurrencyBRL,
+  parseCalendarDate,
+} from '@/lib/format-utils'
 import { Download, Loader2, FileText } from 'lucide-react'
 import {
   Table,
@@ -70,7 +74,8 @@ export function MonthlyReports() {
 
         // Buscar sessões do mês
         const monthSessions = sessions.filter((s) => {
-          const sessionDate = parseISO(s.date)
+          const sessionDate = parseCalendarDate(s.date)
+          if (!sessionDate) return false
           return sessionDate >= startDate && sessionDate <= endDate
         })
 
@@ -156,7 +161,9 @@ export function MonthlyReports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth])
 
-  const monthName = format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: ptBR })
+  const monthName = formatCalendarDate(`${selectedMonth}-01`, 'MMMM yyyy', {
+    locale: ptBR,
+  })
 
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
@@ -278,7 +285,9 @@ export function MonthlyReports() {
           <CardHeader>
             <CardTitle>Resumo do Mês</CardTitle>
             <CardDescription>
-              {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: ptBR })}
+              {formatCalendarDate(`${selectedMonth}-01`, 'MMMM yyyy', {
+                locale: ptBR,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -1,6 +1,7 @@
 import { MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
   BrandLogoImg,
@@ -91,7 +92,7 @@ export function VisitorCertificateDocument({
             )}
             , esteve presente na sessão realizada em{' '}
             <strong className="font-bold text-black">
-              {format(new Date(event.date), "dd 'de' MMMM 'de' yyyy", {
+              {formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
                 locale: ptBR,
               })}
             </strong>

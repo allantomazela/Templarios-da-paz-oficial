@@ -43,7 +43,7 @@ import { ContributionDialog } from './ContributionDialog'
 import { BrotherSearchCombobox } from './BrotherSearchCombobox'
 import { MembershipFeeQuickSettings } from './MembershipFeeQuickSettings'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import { format } from 'date-fns'
+import { formatDateBR } from '@/lib/format-utils'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import {
@@ -139,7 +139,7 @@ function ContributionsTable({
               <TableCell>{statusBadge(contribution.status)}</TableCell>
               <TableCell>
                 {contribution.paymentDate
-                  ? format(new Date(contribution.paymentDate), 'dd/MM/yyyy')
+                  ? formatDateBR(contribution.paymentDate)
                   : '—'}
               </TableCell>
               <TableCell>
@@ -478,10 +478,7 @@ export function MembershipPayments() {
                 <CardContent>
                   <p className="text-lg font-semibold">
                     {selectedSummary.lastPaymentDate
-                      ? format(
-                          new Date(selectedSummary.lastPaymentDate),
-                          'dd/MM/yyyy',
-                        )
+                      ? formatDateBR(selectedSummary.lastPaymentDate)
                       : '—'}
                   </p>
                 </CardContent>

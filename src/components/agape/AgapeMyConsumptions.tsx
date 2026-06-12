@@ -11,9 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, CheckCircle2, Calendar } from 'lucide-react'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import useAuthStore from '@/stores/useAuthStore'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCalendarDate, formatCurrencyBRL } from '@/lib/format-utils'
 import {
   Table,
   TableBody,
@@ -100,7 +99,7 @@ export function AgapeMyConsumptions() {
             <SelectContent>
               {sessionsForView.map((session) => (
                 <SelectItem key={session.id} value={session.id}>
-                  {format(new Date(session.date), "dd 'de' MMMM 'de' yyyy", {
+                  {formatCalendarDate(session.date, "dd 'de' MMMM 'de' yyyy", {
                     locale: ptBR,
                   })}
                   {session.description && ` - ${session.description}`}
@@ -117,8 +116,8 @@ export function AgapeMyConsumptions() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">
-                    {format(
-                      new Date(selectedSessionData.date),
+                    {formatCalendarDate(
+                      selectedSessionData.date,
                       "dd 'de' MMMM 'de' yyyy",
                       { locale: ptBR },
                     )}

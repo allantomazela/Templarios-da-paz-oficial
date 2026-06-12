@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import {
   format,
-  parseISO,
   isAfter,
   startOfToday,
   isSameDay,
@@ -33,6 +32,12 @@ import {
   formatCurrencyBRL,
 } from '@/lib/member-payments'
 import { fetchMemberAttendanceSummary } from '@/lib/member-attendance-summary'
+import {
+  formatCalendarDate,
+  formatDateBR,
+  getCalendarDateTimestamp,
+  parseCalendarDate,
+} from '@/lib/format-utils'
 import {
   fetchUpcomingDashboardEvents,
   type DashboardEvent,
@@ -61,7 +66,8 @@ export default function Dashboard() {
     return events
       .filter((event) => {
         try {
-          const eventDate = parseISO(event.date)
+          const eventDate = parseCalendarDate(event.date)
+          if (!eventDate) return false
           return isAfter(eventDate, today) || isSameDay(eventDate, today)
         } catch {
           return false
@@ -70,7 +76,7 @@ export default function Dashboard() {
       .sort((a, b) => {
         try {
           return (
-            parseISO(a.date).getTime() - parseISO(b.date).getTime()
+            getCalendarDateTimestamp(a.date) - getCalendarDateTimestamp(b.date)
           )
         } catch {
           return 0
@@ -269,12 +275,12 @@ export default function Dashboard() {
                     >
                       <div className="flex flex-col items-center justify-center bg-secondary w-12 h-12 rounded-md shrink-0">
                         <span className="text-xs font-bold uppercase">
-                          {format(parseISO(event.date), 'MMM', {
+                          {formatCalendarDate(event.date, 'MMM', {
                             locale: ptBR,
                           })}
                         </span>
                         <span className="text-lg font-bold">
-                          {format(parseISO(event.date), 'dd')}
+                          {formatCalendarDate(event.date, 'dd')}
                         </span>
                       </div>
                       <div className="space-y-1 flex-1 min-w-0">
@@ -412,7 +418,7 @@ export default function Dashboard() {
                       <p className="text-sm font-medium">{item.title}</p>
                       <p className="text-xs text-muted-foreground">
                         Adicionado em{' '}
-                        {format(new Date(item.addedAt), 'dd/MM/yyyy')}
+                        {formatCalendarDate(item.addedAt, 'dd/MM/yyyy')}
                       </p>
                     </div>
                   </div>
@@ -473,11 +479,7 @@ export default function Dashboard() {
                   {financialSummary.lastPaymentDate && (
                     <p className="text-xs text-muted-foreground mt-1 text-right">
                       em{' '}
-                      {format(
-                        new Date(financialSummary.lastPaymentDate),
-                        'dd/MM/yyyy',
-                        { locale: ptBR },
-                      )}
+                      {formatDateBR(financialSummary.lastPaymentDate)}
                     </p>
                   )}
                 </div>

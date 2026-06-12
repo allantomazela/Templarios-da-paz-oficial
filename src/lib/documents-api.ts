@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
+import { todayLocalISODate } from '@/lib/format-utils'
 import { withTimeout, toError } from '@/lib/async-utils'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 import type { LodgeDocument } from '@/lib/data'
@@ -111,7 +112,7 @@ export async function createLodgeDocument(
         file_name: data.fileName,
         file_size: data.fileSize,
         file_type: data.fileType,
-        upload_date: format(new Date(), 'yyyy-MM-dd'),
+        upload_date: todayLocalISODate(),
         uploaded_by: user?.id || null,
       })
       .select('*')

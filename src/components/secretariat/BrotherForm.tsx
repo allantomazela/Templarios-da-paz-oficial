@@ -32,6 +32,7 @@ import {
   unformatCPF,
   unformatPhone,
   unformatCEP,
+  toDateInputValue,
 } from '@/lib/format-utils'
 import { fetchCEPData } from '@/lib/cep-utils'
 import { useToast } from '@/hooks/use-toast'
@@ -155,24 +156,24 @@ export function BrotherForm({
         email: brotherToEdit.email,
         phone: normalizeBrotherPhoneForForm(brotherToEdit.phone),
         cpf: brotherToEdit.cpf || '',
-        dob: brotherToEdit.dob || '',
+        dob: toDateInputValue(brotherToEdit.dob),
         photoUrl: isSelfMode
           ? (syncedProfilePhoto ?? '')
           : (brotherToEdit.photoUrl || ''),
-        initiationDate: brotherToEdit.initiationDate,
-        elevationDate: brotherToEdit.elevationDate || '',
-        exaltationDate: brotherToEdit.exaltationDate || '',
+        initiationDate: toDateInputValue(brotherToEdit.initiationDate),
+        elevationDate: toDateInputValue(brotherToEdit.elevationDate),
+        exaltationDate: toDateInputValue(brotherToEdit.exaltationDate),
         degree: brotherToEdit.degree,
         masonicRegistrationNumber: brotherToEdit.masonicRegistrationNumber || '',
         obedience: brotherToEdit.obedience || '',
         originLodge: brotherToEdit.originLodge || '',
         originLodgeNumber: brotherToEdit.originLodgeNumber || '',
         currentLodgeNumber: brotherToEdit.currentLodgeNumber || '',
-        affiliationDate: brotherToEdit.affiliationDate || '',
+        affiliationDate: toDateInputValue(brotherToEdit.affiliationDate),
         regularStatus: brotherToEdit.regularStatus || '',
         notes: brotherToEdit.notes || '',
         spouseName: brotherToEdit.spouseName || '',
-        spouseDob: brotherToEdit.spouseDob || '',
+        spouseDob: toDateInputValue(brotherToEdit.spouseDob),
         children: children,
         addressStreet: brotherToEdit.addressStreet || '',
         addressNumber: brotherToEdit.addressNumber || '',

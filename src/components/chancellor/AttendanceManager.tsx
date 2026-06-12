@@ -15,7 +15,10 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
 import { QRCheckinScanner } from './QRCheckinScanner'
 import { CheckCircle, Clock, CalendarIcon, RefreshCw, QrCode } from 'lucide-react'
-import { format, parseISO, isValid } from 'date-fns'
+import {
+  formatDateBR,
+  getCalendarDateTimestamp,
+} from '@/lib/format-utils'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { devLog } from '@/lib/logger'
@@ -48,14 +51,10 @@ export function AttendanceManager() {
     // Sort by date descending, handling invalid dates
     merged.sort((a, b) => {
       try {
-        const dateA = parseISO(a.event.date)
-        const dateB = parseISO(b.event.date)
-        
-        if (!isValid(dateA) || !isValid(dateB)) {
-          return 0
-        }
-        
-        return dateB.getTime() - dateA.getTime()
+        const timeA = getCalendarDateTimestamp(a.event.date)
+        const timeB = getCalendarDateTimestamp(b.event.date)
+        if (!timeA || !timeB) return 0
+        return timeB - timeA
       } catch (error) {
         devLog(`Erro ao ordenar eventos: ${error}`)
         return 0
@@ -170,7 +169,7 @@ export function AttendanceManager() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      {format(parseISO(event.date), 'dd/MM/yyyy')}
+                      {formatDateBR(event.date)}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -245,7 +244,7 @@ export function AttendanceManager() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CalendarIcon className="h-4 w-4" />
-                  {format(parseISO(event.date), 'dd/MM/yyyy')}
+                  {formatDateBR(event.date)}
                 </div>
                 <Button
                   className="w-full"

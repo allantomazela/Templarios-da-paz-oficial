@@ -3,7 +3,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, addYears } from 'date-fns'
-import { formatDateBR, toDateInputValue } from '@/lib/format-utils'
+import {
+  formatDateBR,
+  todayLocalISODate,
+  toDateInputValue,
+} from '@/lib/format-utils'
 import {
   Card,
   CardContent,
@@ -127,7 +131,7 @@ export function LodgePositionsManager() {
     defaultValues: {
       position_type: 'veneravel_mestre',
       user_id: '',
-      start_date: format(new Date(), 'yyyy-MM-dd'),
+      start_date: todayLocalISODate(),
       end_date: format(addYears(new Date(), 2), 'yyyy-MM-dd'),
     },
   })
@@ -197,7 +201,7 @@ export function LodgePositionsManager() {
       form.reset({
         position_type: 'veneravel_mestre',
         user_id: '',
-        start_date: format(new Date(), 'yyyy-MM-dd'),
+        start_date: todayLocalISODate(),
         end_date: format(addYears(new Date(), 2), 'yyyy-MM-dd'),
       })
     }

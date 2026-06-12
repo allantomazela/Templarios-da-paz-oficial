@@ -26,7 +26,8 @@ import {
 } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { supabase } from '@/lib/supabase/client'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
+import { formatDateBR } from '@/lib/format-utils'
 import { Check, X, FileText, Users, QrCode, Download } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
@@ -320,7 +321,7 @@ export function AttendanceDialog({
               <Label>Evento</Label>
               <div className="text-sm font-medium">{event?.title}</div>
               <div className="text-xs text-muted-foreground">
-                {event?.date ? format(parseISO(event.date), 'dd/MM/yyyy') : ''}
+                {event?.date ? formatDateBR(event.date) : ''}
               </div>
             </div>
             <div className="flex flex-col justify-center items-center bg-secondary/20 rounded-md py-3 gap-1">

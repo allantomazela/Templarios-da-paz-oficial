@@ -21,7 +21,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { TransactionDialog } from './TransactionDialog'
-import { format } from 'date-fns'
+import { formatDateBR } from '@/lib/format-utils'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
@@ -258,7 +258,7 @@ export function ExpenseList() {
               filteredExpenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell>
-                    {format(new Date(expense.date), 'dd/MM/yyyy')}
+                    {formatDateBR(expense.date)}
                   </TableCell>
                   <TableCell className="font-medium">
                     {expense.description}
@@ -344,7 +344,7 @@ export function ExpenseList() {
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {format(new Date(expense.date), 'dd/MM/yyyy')}
+                    {formatDateBR(expense.date)}
                   </div>
                   <div className="flex items-center gap-1">
                     <Folder className="h-3 w-3" />

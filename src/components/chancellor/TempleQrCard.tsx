@@ -19,8 +19,8 @@ import {
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react'
-import { format, parseISO, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useSiteSettingsStore } from '@/stores/useSiteSettingsStore'
@@ -34,13 +34,10 @@ import {
 
 function formatSessionDate(dateStr?: string): string | undefined {
   if (!dateStr) return undefined
-  try {
-    const d = parseISO(dateStr)
-    if (!isValid(d)) return dateStr
-    return format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-  } catch {
-    return dateStr
-  }
+  const formatted = formatCalendarDate(dateStr, "dd 'de' MMMM 'de' yyyy", {
+    locale: ptBR,
+  })
+  return formatted || dateStr
 }
 
 export function TempleQrCard() {

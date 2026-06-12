@@ -47,8 +47,7 @@ import { CandidateDetail } from './CandidateDetail'
 import { PhaseDefinitionsManager } from './PhaseDefinitionsManager'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateBR } from '@/lib/format-utils'
 import {
   createCandidate,
   deleteCandidate,
@@ -342,7 +341,7 @@ export function CandidatesList() {
                   </TableCell>
                   <TableCell>{c.indicatedBy}</TableCell>
                   <TableCell>
-                    {format(new Date(c.indicationDate), 'dd/MM/yyyy', { locale: ptBR })}
+                    {formatDateBR(c.indicationDate)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

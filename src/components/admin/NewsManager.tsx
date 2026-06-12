@@ -20,7 +20,7 @@ import useNewsStore, { NewsEvent } from '@/stores/useNewsStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { Plus, Pencil, Trash2, CalendarDays, Loader2 } from 'lucide-react'
 import { NewsDialog } from './NewsDialog'
-import { format } from 'date-fns'
+import { formatDateBR } from '@/lib/format-utils'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 
@@ -166,7 +166,7 @@ export function NewsManager() {
                     {item.eventDate ? (
                       <div className="flex items-center gap-1 text-xs">
                         <CalendarDays className="h-3 w-3" />
-                        {format(new Date(item.eventDate), 'dd/MM/yyyy')}
+                        {formatDateBR(item.eventDate)}
                       </div>
                     ) : (
                       '-'

@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { format } from 'date-fns'
+import { formatDateBR, toDateInputValue } from '@/lib/format-utils'
 import { Pencil, Search } from 'lucide-react'
 import { Brother } from '@/lib/data'
 import { useDialog } from '@/hooks/use-dialog'
@@ -53,9 +53,9 @@ export function DegreeManager() {
     setEditingBrother(brother)
     setFormData({
       degree: brother.degree,
-      initiationDate: brother.initiationDate || '',
-      elevationDate: brother.elevationDate || '',
-      exaltationDate: brother.exaltationDate || '',
+      initiationDate: toDateInputValue(brother.initiationDate),
+      elevationDate: toDateInputValue(brother.elevationDate),
+      exaltationDate: toDateInputValue(brother.exaltationDate),
     })
     dialog.openDialog()
   }
@@ -86,14 +86,8 @@ export function DegreeManager() {
     }
   }
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-'
-    try {
-      return format(new Date(dateStr), 'dd/MM/yyyy')
-    } catch {
-      return dateStr
-    }
-  }
+  const formatDate = (dateStr?: string) =>
+    dateStr ? formatDateBR(dateStr) || '-' : '-'
 
   return (
     <div className="space-y-4">

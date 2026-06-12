@@ -51,6 +51,7 @@ import {
   formatMasonicDegreeLabel,
   type MasonicDegree,
 } from '@/lib/masonic-degree'
+import { todayLocalISODate } from '@/lib/format-utils'
 import { useEffectiveMasonicDegree } from '@/hooks/use-effective-masonic-degree'
 
 interface LibraryItemFromDB {
@@ -173,7 +174,7 @@ export default function LibraryPage() {
         file_url: publicUrl,
         file_name: uploadFile.name,
         file_size: uploadFile.size,
-        added_at: new Date().toISOString().slice(0, 10),
+        added_at: todayLocalISODate(),
         uploaded_by: user.id,
       })
       if (error) throw error

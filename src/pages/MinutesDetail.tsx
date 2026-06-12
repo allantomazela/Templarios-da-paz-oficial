@@ -13,6 +13,7 @@ import useAuthStore from '@/stores/useAuthStore'
 import { ArrowLeft, PenTool, CheckCircle2, Calendar, Share2, FileText, Printer } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -65,7 +66,7 @@ export default function MinutesDetail() {
     const content = `
 ATA DE REUNIÃO
 ${currentMinute.title}
-Data: ${format(new Date(currentMinute.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+Data: ${formatCalendarDate(currentMinute.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
 
 ${currentMinute.content}
 
@@ -124,7 +125,7 @@ ${currentMinute.signatures?.map(s => `- ${s.profile_name}`).join('\n') || 'Nenhu
           <div className="flex items-center justify-center gap-2 text-muted-foreground mt-2">
             <Calendar className="h-4 w-4" />
             <span>
-              {format(new Date(currentMinute.date), "dd 'de' MMMM 'de' yyyy", {
+              {formatCalendarDate(currentMinute.date, "dd 'de' MMMM 'de' yyyy", {
                 locale: ptBR,
               })}
             </span>

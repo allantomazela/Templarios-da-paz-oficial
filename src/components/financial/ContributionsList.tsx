@@ -13,11 +13,10 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { ContributionDialog } from './ContributionDialog'
-import { format } from 'date-fns'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { supabase } from '@/lib/supabase/client'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 
 interface ContributionFromDB {
   id: string
@@ -286,7 +285,7 @@ export function ContributionsList() {
                     </TableCell>
                     <TableCell>
                       {contribution.paymentDate
-                        ? format(new Date(contribution.paymentDate), 'dd/MM/yyyy')
+                        ? formatDateBR(contribution.paymentDate)
                         : '-'}
                     </TableCell>
                     <TableCell className="text-right space-x-2">

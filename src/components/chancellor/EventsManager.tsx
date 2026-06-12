@@ -13,7 +13,7 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Event } from '@/lib/data'
 import { EventDialog } from './EventDialog'
-import { format, parseISO } from 'date-fns'
+import { formatDateBR } from '@/lib/format-utils'
 import { Badge } from '@/components/ui/badge'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -118,7 +118,7 @@ export function EventsManager() {
               filteredEvents.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>
-                    {format(parseISO(event.date), 'dd/MM/yyyy')}
+                    {formatDateBR(event.date)}
                   </TableCell>
                   <TableCell>{event.time}</TableCell>
                   <TableCell className="font-medium">{event.title}</TableCell>

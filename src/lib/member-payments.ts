@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import {
+  formatDateBR,
+  getCalendarDateTimestamp,
+  parseCalendarDate,
+  toDateInputValue,
+} from '@/lib/format-utils'
 import {
   DEFAULT_MEMBERSHIP_DUE_DAY,
   fetchMembershipFeeSettings,
@@ -73,7 +78,7 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
           cont.status === 'Pago' ? 'paid' : isOverdue ? 'overdue' : 'pending',
         dueDate: format(dueDate, 'yyyy-MM-dd'),
         paymentDate: cont.payment_date
-          ? format(new Date(cont.payment_date), 'yyyy-MM-dd')
+          ? toDateInputValue(cont.payment_date)
           : undefined,
         month: cont.month,
         year: cont.year,
@@ -112,7 +117,7 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
   }
 
   mappedPayments.sort(
-    (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+    (a, b) => getCalendarDateTimestamp(b.dueDate) - getCalendarDateTimestamp(a.dueDate),
   )
 
   return mappedPayments
@@ -154,7 +159,7 @@ export function buildMemberFinancialSummary(
     (p) => p.status === 'pending' || p.status === 'overdue',
   )
   const nextPending = pendingOrOverdue.sort(
-    (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+    (a, b) => getCalendarDateTimestamp(a.dueDate) - getCalendarDateTimestamp(b.dueDate),
   )[0]
 
   const paidMonthly = monthly
@@ -162,7 +167,7 @@ export function buildMemberFinancialSummary(
     .sort((a, b) => {
       const da = a.paymentDate || a.dueDate
       const db = b.paymentDate || b.dueDate
-      return new Date(db).getTime() - new Date(da).getTime()
+      return getCalendarDateTimestamp(db) - getCalendarDateTimestamp(da)
     })
 
   const lastPaid = paidMonthly[0] ?? null
@@ -174,23 +179,22 @@ export function buildMemberFinancialSummary(
   if (current?.status === 'overdue') {
     statusLabel = 'Em atraso'
     statusClassName = 'text-destructive'
-    nextDueLabel = `Vencimento: ${format(new Date(current.dueDate), 'dd/MM/yyyy', { locale: ptBR })}`
+    nextDueLabel = `Vencimento: ${formatDateBR(current.dueDate)}`
   } else if (current?.status === 'pending') {
     statusLabel = 'Pendente'
     statusClassName = 'text-amber-600'
-    nextDueLabel = `Vencimento: ${format(new Date(current.dueDate), 'dd/MM/yyyy', { locale: ptBR })}`
+    nextDueLabel = `Vencimento: ${formatDateBR(current.dueDate)}`
   } else if (!current && nextPending) {
     statusLabel =
       nextPending.status === 'overdue' ? 'Em atraso' : 'Pendente'
     statusClassName =
       nextPending.status === 'overdue' ? 'text-destructive' : 'text-amber-600'
-    nextDueLabel = `Próximo vencimento: ${format(new Date(nextPending.dueDate), 'dd/MM/yyyy', { locale: ptBR })}`
+    nextDueLabel = `Próximo vencimento: ${formatDateBR(nextPending.dueDate)}`
   } else if (current?.status === 'paid') {
     const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1
     const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear
-    const dayFromDue = current.dueDate
-      ? new Date(current.dueDate).getDate()
-      : DEFAULT_MEMBERSHIP_DUE_DAY
+    const dayFromDue =
+      parseCalendarDate(current.dueDate)?.getDate() ?? DEFAULT_MEMBERSHIP_DUE_DAY
     nextDueLabel = `Próximo vencimento: ${String(dayFromDue).padStart(2, '0')}/${String(nextMonth).padStart(2, '0')}/${nextYear}`
   }
 

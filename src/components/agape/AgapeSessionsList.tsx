@@ -34,8 +34,8 @@ import { useAgapeStore, type AgapeSession } from '@/stores/useAgapeStore'
 import { AgapeSessionDialog } from './AgapeSessionDialog'
 import { ConsumptionManager } from './ConsumptionManager'
 import { useDialog } from '@/hooks/use-dialog'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate, formatDateBR } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
 
@@ -185,7 +185,7 @@ export function AgapeSessionsList() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(session.date), "dd 'de' MMMM 'de' yyyy", {
+                        {formatCalendarDate(session.date, "dd 'de' MMMM 'de' yyyy", {
                           locale: ptBR,
                         })}
                       </div>
@@ -293,7 +293,7 @@ export function AgapeSessionsList() {
                 <>
                   A sessão de{' '}
                   <strong>
-                    {format(new Date(deleteTarget.date), 'dd/MM/yyyy', { locale: ptBR })}
+                    {formatDateBR(deleteTarget.date)}
                   </strong>{' '}
                   e <strong>todos os consumos</strong> lançados nela serão removidos
                   permanentemente.

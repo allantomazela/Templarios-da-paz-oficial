@@ -45,7 +45,6 @@ import {
 } from '@/components/ui/select'
 import {
   format,
-  parseISO,
   isWithinInterval,
   startOfMonth,
   endOfMonth,
@@ -54,7 +53,7 @@ import {
   subMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, parseCalendarDate } from '@/lib/format-utils'
 import { Transaction } from '@/lib/data'
 
 interface TransactionFromDB {
@@ -155,7 +154,8 @@ export function FinancialReports() {
 
     return transactions.filter((t) => {
       try {
-        const transactionDate = parseISO(t.date)
+        const transactionDate = parseCalendarDate(t.date)
+        if (!transactionDate) return false
         return isWithinInterval(transactionDate, {
           start: dateRange.start,
           end: dateRange.end,

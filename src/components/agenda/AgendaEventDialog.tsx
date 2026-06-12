@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FormHeader } from '@/components/ui/form-header'
 import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
+import { todayLocalISODate, toDateInputValue } from '@/lib/format-utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useChancellorStore from '@/stores/useChancellorStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -167,7 +168,7 @@ export function AgendaEventDialog({
 
         form.reset({
           title: eventToEdit.title,
-          date: eventToEdit.date,
+          date: toDateInputValue(eventToEdit.date),
           time: eventToEdit.time,
           type: eventToEdit.type,
           locationId,
@@ -182,7 +183,7 @@ export function AgendaEventDialog({
           title: '',
           date: selectedDate
             ? format(selectedDate, 'yyyy-MM-dd')
-            : format(new Date(), 'yyyy-MM-dd'),
+            : todayLocalISODate(),
           time: '20:00',
           type: 'Sessão',
           locationId: defaultNewEventLocationId(),

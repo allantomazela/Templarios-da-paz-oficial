@@ -23,8 +23,13 @@ import {
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Users, UserCheck, Calendar } from 'lucide-react'
-import { format, subDays, parseISO, isAfter } from 'date-fns'
+import { subDays, isAfter } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import {
+  formatCalendarDate,
+  getCalendarDateTimestamp,
+  parseCalendarDate,
+} from '@/lib/format-utils'
 
 const chartConfig = {
   attendance: {
@@ -55,8 +60,13 @@ export function AnalyticsDashboard() {
 
     return sessionRecords
       .filter((s) => s.status === 'Finalizada')
-      .filter((s) => isAfter(parseISO(s.date), startDate))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .filter((s) => {
+        const date = parseCalendarDate(s.date)
+        return date ? isAfter(date, startDate) : false
+      })
+      .sort(
+        (a, b) => getCalendarDateTimestamp(a.date) - getCalendarDateTimestamp(b.date),
+      )
   }, [sessionRecords, timeRange])
 
   const chartData = useMemo(() => {
@@ -73,7 +83,7 @@ export function AnalyticsDashboard() {
           : 0
 
       return {
-        date: format(parseISO(session.date), 'dd/MM', { locale: ptBR }),
+        date: formatCalendarDate(session.date, 'dd/MM', { locale: ptBR }),
         attendance: percentage,
         count: presentCount,
       }

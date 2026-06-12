@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { logError } from '@/lib/logger'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import {
   Dialog,
   DialogContent,
@@ -246,7 +246,7 @@ export function ConsumptionManager({
       >
         <DialogHeader>
           <DialogTitle>
-            Gerenciar Consumos - {session ? new Date(session.date).toLocaleDateString('pt-BR') : 'Sessão'}
+            Gerenciar Consumos - {session ? formatDateBR(session.date) : 'Sessão'}
           </DialogTitle>
           <DialogDescription>
             Adicione e gerencie os consumos dos irmãos nesta sessão de ágape.

@@ -3,9 +3,12 @@ import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { Download, QrCode } from 'lucide-react'
 import { ReportHeader } from '@/components/reports/ReportHeader'
-import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import {
+  formatCalendarDate,
+  formatCurrencyBRL,
+  formatDateBR,
+} from '@/lib/format-utils'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
   Table,
@@ -81,7 +84,8 @@ export function AgapePaymentReport({
   const { agapePix, siteTitle } = useSiteSettingsStore()
 
   const monthName = useMemo(
-    () => format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: ptBR }),
+    () =>
+      formatCalendarDate(`${selectedMonth}-01`, 'MMMM yyyy', { locale: ptBR }),
     [selectedMonth]
   )
 
@@ -179,9 +183,7 @@ export function AgapePaymentReport({
                   {brother.consumptions.map((consumption, idx) => (
                     <TableRow key={idx}>
                       <TableCell>
-                        {format(parseISO(consumption.date), 'dd/MM/yyyy', {
-                          locale: ptBR,
-                        })}
+                        {formatDateBR(consumption.date)}
                       </TableCell>
                       <TableCell>{consumption.itemName}</TableCell>
                       <TableCell className="text-center">

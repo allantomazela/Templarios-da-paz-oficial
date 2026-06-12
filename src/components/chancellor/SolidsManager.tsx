@@ -13,8 +13,7 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Solid } from '@/lib/data'
 import { SolidDialog } from './SolidDialog'
-import { formatCurrencyBRL } from '@/lib/format-utils'
-import { format } from 'date-fns'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import { Badge } from '@/components/ui/badge'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -144,7 +143,7 @@ export function SolidsManager() {
               filteredSolids.map((solid) => (
                 <TableRow key={solid.id}>
                   <TableCell>
-                    {format(new Date(solid.date), 'dd/MM/yyyy')}
+                    {formatDateBR(solid.date)}
                   </TableCell>
                   <TableCell className="font-medium">
                     {solid.description}

@@ -28,6 +28,11 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import useReportStore from '@/stores/useReportStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { format } from 'date-fns'
+import {
+  formatCalendarDate,
+  formatDateBR,
+  getCalendarDateTimestamp,
+} from '@/lib/format-utils'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { ReportHeader } from './ReportHeader'
@@ -145,11 +150,12 @@ export function GOBAttendanceReport() {
                   {events
                     .sort(
                       (a, b) =>
-                        new Date(b.date).getTime() - new Date(a.date).getTime(),
+                        getCalendarDateTimestamp(b.date) -
+                        getCalendarDateTimestamp(a.date),
                     )
                     .map((event) => (
                       <SelectItem key={event.id} value={event.id}>
-                        {format(new Date(event.date), 'dd/MM/yyyy')} -{' '}
+                        {formatDateBR(event.date)} -{' '}
                         {event.title}
                       </SelectItem>
                     ))}
@@ -177,7 +183,7 @@ export function GOBAttendanceReport() {
             {/* Cabeçalho GOB */}
             <ReportHeader
               title="LISTA DE PRESENÇA"
-              subtitle={`Sessão de ${format(new Date(selectedEvent.date), 'dd/MM/yyyy')}`}
+              subtitle={`Sessão de ${formatDateBR(selectedEvent.date)}`}
             />
 
             {/* Event Details - Formato GOB Compacto */}
@@ -196,8 +202,8 @@ export function GOBAttendanceReport() {
                     Data
                   </span>
                   <span className="text-sm print:text-xs font-semibold text-black">
-                    {format(
-                      new Date(selectedEvent.date),
+                    {formatCalendarDate(
+                      selectedEvent.date,
                       "dd 'de' MMMM 'de' yyyy",
                       { locale: ptBR },
                     )}

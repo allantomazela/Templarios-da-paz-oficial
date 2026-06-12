@@ -13,8 +13,7 @@ import { Calendar, Eye, Loader2 } from 'lucide-react'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { ConsumptionManager } from './ConsumptionManager'
 import { useDialog } from '@/hooks/use-dialog'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateBR } from '@/lib/format-utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
@@ -80,9 +79,7 @@ export function AgapeRecordPanel() {
                   {openSessions.map((session) => (
                     <TableRow key={session.id}>
                       <TableCell>
-                        {format(new Date(session.date), "dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
+                        {formatDateBR(session.date)}
                       </TableCell>
                       <TableCell>{session.description || '—'}</TableCell>
                       <TableCell>

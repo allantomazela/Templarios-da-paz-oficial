@@ -2,6 +2,8 @@
  * Utilitários para exportação de dados
  */
 
+import { todayLocalISODate } from '@/lib/format-utils'
+
 export interface ExportableMessage {
   id: string
   name: string
@@ -72,7 +74,7 @@ export function exportToCSV(
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.csv`)
+  link.setAttribute('download', `${filename}-${todayLocalISODate()}.csv`)
   link.style.visibility = 'hidden'
   document.body.appendChild(link)
   link.click()

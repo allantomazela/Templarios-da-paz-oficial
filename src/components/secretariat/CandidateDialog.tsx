@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FormHeader } from '@/components/ui/form-header'
 import { Loader2 } from 'lucide-react'
 import type { CandidateSaveInput } from '@/lib/candidates-api'
+import { todayLocalISODate, toDateInputValue } from '@/lib/format-utils'
 
 const candidateSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório'),
@@ -73,7 +74,7 @@ export function CandidateDialog({
       email: '',
       phone: '',
       indicatedBy: '',
-      indicationDate: new Date().toISOString().slice(0, 10),
+      indicationDate: todayLocalISODate(),
       status: 'em_sindicancia',
       notes: '',
     },
@@ -86,7 +87,7 @@ export function CandidateDialog({
         email: candidateToEdit.email ?? '',
         phone: candidateToEdit.phone ?? '',
         indicatedBy: candidateToEdit.indicatedBy,
-        indicationDate: candidateToEdit.indicationDate.slice(0, 10),
+        indicationDate: toDateInputValue(candidateToEdit.indicationDate),
         status: candidateToEdit.status,
         notes: candidateToEdit.notes ?? '',
       })
@@ -96,7 +97,7 @@ export function CandidateDialog({
         email: '',
         phone: '',
         indicatedBy: '',
-        indicationDate: new Date().toISOString().slice(0, 10),
+        indicationDate: todayLocalISODate(),
         status: 'em_sindicancia',
         notes: '',
       })

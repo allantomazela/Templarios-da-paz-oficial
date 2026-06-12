@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
+import { todayLocalISODate } from '@/lib/format-utils'
 import { devLog, logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
@@ -228,7 +229,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
 
     getUserCurrentPosition: (userId) => {
       const { positions } = get()
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayLocalISODate()
 
       const position = positions.find(
         (p) =>

@@ -7,9 +7,12 @@ import {
 } from '@/components/ui/sheet'
 import { Brother } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { formatCPF, formatPhone, formatCEP } from '@/lib/format-utils'
+import {
+  formatCPF,
+  formatPhone,
+  formatCEP,
+  formatDateBR,
+} from '@/lib/format-utils'
 import { BrotherMembershipPanel } from './BrotherMembershipPanel'
 
 interface BrotherDetailsProps {
@@ -23,14 +26,8 @@ export function BrotherDetails({
   onOpenChange,
   brother,
 }: BrotherDetailsProps) {
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-'
-    try {
-      return format(new Date(dateStr), 'dd/MM/yyyy', { locale: ptBR })
-    } catch {
-      return dateStr
-    }
-  }
+  const formatDate = (dateStr?: string) =>
+    dateStr ? formatDateBR(dateStr) || '-' : '-'
 
   if (!brother) return null
 

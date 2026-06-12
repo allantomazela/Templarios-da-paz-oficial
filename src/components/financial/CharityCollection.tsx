@@ -2,9 +2,16 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { format, parseISO, isSameDay } from 'date-fns'
+import { isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import {
+  formatCalendarDate,
+  formatCurrencyBRL,
+  getCalendarDateTimestamp,
+  parseCalendarDate,
+  todayLocalISODate,
+  toDateInputValue,
+} from '@/lib/format-utils'
 import {
   Card,
   CardContent,
@@ -232,7 +239,7 @@ export function CharityCollection() {
       sessionTitle: '',
       amount: 0,
       accountId: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: todayLocalISODate(),
       description: '',
     },
   })
@@ -244,15 +251,9 @@ export function CharityCollection() {
     watchEventId.trim() === ''
 
   const selectableEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
-      try {
-        const dateA = parseISO(a.date)
-        const dateB = parseISO(b.date)
-        return dateB.getTime() - dateA.getTime()
-      } catch {
-        return 0
-      }
-    })
+    return [...events].sort(
+      (a, b) => getCalendarDateTimestamp(b.date) - getCalendarDateTimestamp(a.date),
+    )
   }, [events])
 
   const selectableAccounts = useMemo(() => {
@@ -268,8 +269,9 @@ export function CharityCollection() {
     return charityTransactions.map((transaction) => {
       // Tentar extrair eventId da descrição ou buscar por data
       const event = events.find((e) => {
-        const eventDate = parseISO(e.date)
-        const transDate = parseISO(transaction.date)
+        const eventDate = parseCalendarDate(e.date)
+        const transDate = parseCalendarDate(transaction.date)
+        if (!eventDate || !transDate) return false
         return isSameDay(eventDate, transDate)
       })
 
@@ -324,7 +326,7 @@ export function CharityCollection() {
 
       const description =
         data.description?.trim() ||
-        `Tronco de Beneficência - ${sessionLabel} - ${format(parseISO(data.date), 'dd/MM/yyyy', { locale: ptBR })}`
+        `Tronco de Beneficência - ${sessionLabel} - ${formatCalendarDate(data.date, 'dd/MM/yyyy', { locale: ptBR })}`
 
       if (charityToEdit) {
         // Update
@@ -418,11 +420,10 @@ export function CharityCollection() {
         setCharityToEdit(transactionId)
         // Tentar encontrar o evento pela data
         const event = events.find((e) => {
-          try {
-            return isSameDay(parseISO(e.date), parseISO(transaction.date))
-          } catch {
-            return false
-          }
+          const eventDate = parseCalendarDate(e.date)
+          const transDate = parseCalendarDate(transaction.date)
+          if (!eventDate || !transDate) return false
+          return isSameDay(eventDate, transDate)
         })
         const sessionTitle =
           event?.title ||
@@ -436,7 +437,7 @@ export function CharityCollection() {
           sessionTitle: event ? event.title : sessionTitle,
           amount: transaction.amount,
           accountId: transaction.accountId || '',
-          date: transaction.date,
+          date: toDateInputValue(transaction.date),
           description: transaction.description,
         })
       }
@@ -449,7 +450,7 @@ export function CharityCollection() {
         sessionTitle: '',
         amount: 0,
         accountId: defaultAccount?.id ?? '',
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: todayLocalISODate(),
         description: '',
       })
     }
@@ -558,16 +559,13 @@ export function CharityCollection() {
                 {formatCurrencyBRL(
                 charityTransactions
                   .filter((t) => {
-                    try {
-                      const transDate = parseISO(t.date)
-                      const now = new Date()
-                      return (
-                        transDate.getMonth() === now.getMonth() &&
-                        transDate.getFullYear() === now.getFullYear()
-                      )
-                    } catch {
-                      return false
-                    }
+                    const transDate = parseCalendarDate(t.date)
+                    if (!transDate) return false
+                    const now = new Date()
+                    return (
+                      transDate.getMonth() === now.getMonth() &&
+                      transDate.getFullYear() === now.getFullYear()
+                    )
                   })
                   .reduce((sum, t) => sum + t.amount, 0),
               )}
@@ -611,21 +609,17 @@ export function CharityCollection() {
               </TableHeader>
               <TableBody>
                 {charityWithEvents
-                  .sort((a, b) => {
-                    try {
-                      const dateA = parseISO(a.date)
-                      const dateB = parseISO(b.date)
-                      return dateB.getTime() - dateA.getTime()
-                    } catch {
-                      return 0
-                    }
-                  })
+                  .sort(
+                    (a, b) =>
+                      getCalendarDateTimestamp(b.date) -
+                      getCalendarDateTimestamp(a.date),
+                  )
                   .map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(parseISO(transaction.date), 'dd/MM/yyyy', {
+                          {formatCalendarDate(transaction.date, 'dd/MM/yyyy', {
                             locale: ptBR,
                           })}
                         </div>
@@ -734,7 +728,7 @@ export function CharityCollection() {
                               <div>
                                 <div className="font-medium">{event.title}</div>
                                 <div className="text-xs text-muted-foreground">
-                                  {format(parseISO(event.date), 'dd/MM/yyyy', {
+                                  {formatCalendarDate(event.date, 'dd/MM/yyyy', {
                                     locale: ptBR,
                                   })}{' '}
                                   • {event.type}

@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Lock, Pencil, Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import type { Announcement } from '@/lib/data'
 
 export function NoticeCard({
@@ -27,7 +27,7 @@ export function NoticeCard({
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Publicado em{' '}
-            {format(new Date(notice.date), "dd 'de' MMMM 'de' yyyy", {
+            {formatCalendarDate(notice.date, "dd 'de' MMMM 'de' yyyy", {
               locale: ptBR,
             })}{' '}
             por {notice.author}

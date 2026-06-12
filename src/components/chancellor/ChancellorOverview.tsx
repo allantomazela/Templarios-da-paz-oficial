@@ -14,7 +14,11 @@ import {
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import {
+  formatCalendarDate,
+  formatCurrencyBRL,
+  getCalendarDateTimestamp,
+} from '@/lib/format-utils'
 import {
   Users,
   TrendingUp,
@@ -44,7 +48,9 @@ export function ChancellorOverview() {
     (s) => s.status === 'Finalizada',
   )
   const last5Sessions = finishedSessions
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort(
+      (a, b) => getCalendarDateTimestamp(b.date) - getCalendarDateTimestamp(a.date),
+    )
     .slice(0, 5)
 
   // Average Attendance
@@ -115,10 +121,7 @@ export function ChancellorOverview() {
           ar.sessionRecordId === session.id && ar.status === 'Justificado',
       ).length
       return {
-        date: new Date(session.date).toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-        }),
+        date: formatCalendarDate(session.date, 'dd/MM'),
         presente: present,
         justificado: justified,
       }

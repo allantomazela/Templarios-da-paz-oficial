@@ -2,6 +2,8 @@
  * Utility functions for formatting Brazilian documents and data
  */
 
+import { format as dateFnsFormat, type FormatOptions } from 'date-fns'
+
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -18,13 +20,17 @@ export function formatCurrencyBRL(
   return brlFormatter.format(num)
 }
 
+/** Converte Date no fuso local para yyyy-MM-dd (sem passar por UTC). */
+export function toLocalISODate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 /** Data local de hoje no formato yyyy-MM-dd (inputs type="date"). */
 export function todayLocalISODate(): string {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return toLocalISODate(new Date())
 }
 
 /**
@@ -157,6 +163,24 @@ export function formatDateBR(date: string | Date | null | undefined): string {
   const year = dateObj.getFullYear()
 
   return `${day}/${month}/${year}`
+}
+
+/** Timestamp local para ordenar/comparar datas de calendário (YYYY-MM-DD). */
+export function getCalendarDateTimestamp(
+  date: string | Date | null | undefined,
+): number {
+  return parseCalendarDate(date)?.getTime() ?? 0
+}
+
+/** Formata data de calendário com padrão date-fns no fuso local (sem deslocar o dia). */
+export function formatCalendarDate(
+  date: string | Date | null | undefined,
+  pattern: string,
+  options?: FormatOptions,
+): string {
+  const dateObj = parseCalendarDate(date)
+  if (!dateObj) return ''
+  return dateFnsFormat(dateObj, pattern, options)
 }
 
 /**

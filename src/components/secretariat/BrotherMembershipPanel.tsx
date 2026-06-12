@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Brother } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   AlertTriangle,
@@ -15,6 +14,7 @@ import {
   resolveProfileIdByEmail,
 } from '@/lib/contribution-payments'
 import { formatCurrencyBRL } from '@/lib/member-payments'
+import { formatCalendarDate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
 
 interface BrotherMembershipPanelProps {
@@ -168,7 +168,7 @@ export function BrotherMembershipPanel({
                       <td className="p-2">{statusBadge(c.status)}</td>
                       <td className="p-2 text-muted-foreground">
                         {c.paymentDate
-                          ? format(new Date(c.paymentDate), 'dd/MM/yy', {
+                          ? formatCalendarDate(c.paymentDate, 'dd/MM/yy', {
                               locale: ptBR,
                             })
                           : '—'}

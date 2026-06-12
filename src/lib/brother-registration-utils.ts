@@ -1,6 +1,6 @@
 import type { Brother } from '@/lib/data'
 import type { Profile } from '@/stores/useAuthStore'
-import { formatPhone } from '@/lib/format-utils'
+import { formatPhone, todayLocalISODate } from '@/lib/format-utils'
 import { resolveProfileAvatarUrl } from '@/lib/profile-avatar'
 
 const PLACEHOLDER_PHONE = 'não informado'
@@ -33,7 +33,7 @@ export function resolveBrotherPhotoFromProfile(
 }
 
 export function buildBrotherDraftFromProfile(profile: Profile): Brother {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISODate()
 
   return {
     id: '',

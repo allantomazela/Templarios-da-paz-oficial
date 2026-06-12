@@ -16,7 +16,11 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import {
+  formatCurrencyBRL,
+  getCalendarDateTimestamp,
+  parseCalendarDate,
+} from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import useFinancialStore from '@/stores/useFinancialStore'
 import {
@@ -33,7 +37,6 @@ import {
 } from '@/components/ui/select'
 import {
   format,
-  parseISO,
   isWithinInterval,
   startOfMonth,
   endOfMonth,
@@ -100,8 +103,13 @@ export function FinancialOverview() {
   const { start, end } = getDateRange()
 
   const filteredTransactions = transactions
-    .filter((t) => isWithinInterval(parseISO(t.date), { start, end }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter((t) => {
+      const date = parseCalendarDate(t.date)
+      return date ? isWithinInterval(date, { start, end }) : false
+    })
+    .sort(
+      (a, b) => getCalendarDateTimestamp(a.date) - getCalendarDateTimestamp(b.date),
+    )
 
   const totalIncome = filteredTransactions
     .filter((t) => t.type === 'Receita')
@@ -119,7 +127,8 @@ export function FinancialOverview() {
 
   const aggregatedData = filteredTransactions.reduce(
     (acc, curr) => {
-      const date = parseISO(curr.date)
+      const date = parseCalendarDate(curr.date)
+      if (!date) return acc
       const key = isYearView ? format(date, 'MMM') : format(date, 'dd/MM')
 
       if (!acc[key]) acc[key] = { name: key, receita: 0, despesa: 0 }

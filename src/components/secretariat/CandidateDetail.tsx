@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import { Loader2, User, Calendar, UserCheck, Circle } from 'lucide-react'
 import {
   updateCandidateStatus,
@@ -200,7 +201,7 @@ export function CandidateDetail({
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Data da indicação:</span>{' '}
-              {format(new Date(candidate.indicationDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              {formatCalendarDate(candidate.indicationDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-muted-foreground">Status geral</Label>

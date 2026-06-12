@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import useMinutesStore, { Minute } from '@/stores/useMinutesStore'
 import { Plus, Pencil, Trash2, FileText, Eye } from 'lucide-react'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import { useNavigate } from 'react-router-dom'
 import { MinutesDialog } from './MinutesDialog'
 import useAuthStore from '@/stores/useAuthStore'
@@ -143,7 +143,7 @@ export function MinutesList() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(minute.date), "dd 'de' MMMM, yyyy", {
+                      {formatCalendarDate(minute.date, "dd 'de' MMMM, yyyy", {
                         locale: ptBR,
                       })}
                     </TableCell>

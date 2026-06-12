@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { FormHeader } from '@/components/ui/form-header'
 import { format } from 'date-fns'
+import { todayLocalISODate, toDateInputValue } from '@/lib/format-utils'
 import { supabase } from '@/lib/supabase/client'
 import { Loader2, DollarSign } from 'lucide-react'
 
@@ -80,7 +81,7 @@ export function TransactionDialog({
     defaultValues: {
       description: '',
       amount: 0,
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: todayLocalISODate(),
       category: '',
       type: defaultType,
       accountId: '',
@@ -139,7 +140,7 @@ export function TransactionDialog({
       form.reset({
         description: transactionToEdit.description,
         amount: transactionToEdit.amount,
-        date: transactionToEdit.date,
+        date: toDateInputValue(transactionToEdit.date),
         category: transactionToEdit.category,
         type: transactionToEdit.type,
         accountId: transactionToEdit.accountId || '',
@@ -148,7 +149,7 @@ export function TransactionDialog({
       form.reset({
         description: '',
         amount: 0,
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: todayLocalISODate(),
         category: '',
         type: defaultType,
         accountId: accounts.length > 0 ? accounts[0].id : '',

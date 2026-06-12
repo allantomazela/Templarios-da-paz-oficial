@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { ReminderLog, ReminderSettings, Contribution } from '@/lib/data'
 import { format } from 'date-fns'
+import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
 import { Bell, History, CheckCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -205,7 +206,7 @@ export function ReminderSettings() {
       )
 
       let count = 0
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const today = todayLocalISODate()
 
       for (const p of pending) {
         // Check if already sent today
@@ -369,7 +370,7 @@ export function ReminderSettings() {
                   reminderLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>
-                        {format(new Date(log.sentDate), 'dd/MM/yyyy')}
+                        {formatDateBR(log.sentDate)}
                       </TableCell>
                       <TableCell>{getBrotherName(log.brotherId)}</TableCell>
                       <TableCell>{log.method}</TableCell>

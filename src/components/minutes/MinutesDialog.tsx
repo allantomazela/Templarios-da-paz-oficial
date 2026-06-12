@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { FormHeader } from '@/components/ui/form-header'
-import { format } from 'date-fns'
+import { todayLocalISODate, toDateInputValue } from '@/lib/format-utils'
 import { Loader2, FileText } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { logError } from '@/lib/logger'
@@ -62,7 +62,7 @@ export function MinutesDialog({
     resolver: zodResolver(minuteSchema),
     defaultValues: {
       title: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: todayLocalISODate(),
       content: '',
     },
   })
@@ -71,16 +71,14 @@ export function MinutesDialog({
     if (minuteToEdit) {
       form.reset({
         title: minuteToEdit.title,
-        date: minuteToEdit.date
-          ? format(new Date(minuteToEdit.date), 'yyyy-MM-dd')
-          : '',
+        date: toDateInputValue(minuteToEdit.date),
         content: minuteToEdit.content,
       })
       setSelectedTemplate('')
     } else {
       form.reset({
         title: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: todayLocalISODate(),
         content: '',
       })
       setSelectedTemplate('')

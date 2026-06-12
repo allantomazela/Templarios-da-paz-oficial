@@ -23,8 +23,8 @@ import {
   Mail,
   Info,
 } from 'lucide-react'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import useChancellorStore from '@/stores/useChancellorStore'
 import useAuthStore from '@/stores/useAuthStore'
@@ -105,7 +105,7 @@ export function EventDetailsSheet({
               <SheetDescription className="flex items-center gap-2 mt-2 text-base">
                 <CalendarDays className="h-4 w-4" />
                 {event.date &&
-                  format(new Date(event.date), "dd 'de' MMMM 'de' yyyy", {
+                  formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
                     locale: ptBR,
                   })}
               </SheetDescription>

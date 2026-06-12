@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCalendarDate } from '@/lib/format-utils'
 import { AddToCalendar } from '@/components/news/AddToCalendar'
 import { cn } from '@/lib/utils'
 
@@ -99,7 +100,7 @@ export function NewsSection() {
                     {item.eventDate && (
                       <div className="flex items-center text-xs text-muted-foreground">
                         <CalendarDays className="mr-1 h-3 w-3" />
-                        {format(new Date(item.eventDate), 'dd MMM yyyy', {
+                        {formatCalendarDate(item.eventDate, 'dd MMM yyyy', {
                           locale: ptBR,
                         })}
                       </div>

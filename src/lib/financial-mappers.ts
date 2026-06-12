@@ -11,6 +11,7 @@ import type {
   FinancialGoal,
   Contribution,
 } from '@/lib/data'
+import { todayLocalISODate, toLocalISODate } from '@/lib/format-utils'
 
 // ========== BANK ACCOUNTS ==========
 export interface BankAccountDB {
@@ -154,15 +155,15 @@ export function mapBudgetToDB(budget: Partial<Budget>): Partial<BudgetDB> {
   if (!periodStart || !periodEnd) {
     const now = new Date()
     if (budget.period === 'Mensal') {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-      periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+      periodStart = toLocalISODate(new Date(now.getFullYear(), now.getMonth(), 1))
+      periodEnd = toLocalISODate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
     } else if (budget.period === 'Anual') {
-      periodStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0]
-      periodEnd = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0]
+      periodStart = toLocalISODate(new Date(now.getFullYear(), 0, 1))
+      periodEnd = toLocalISODate(new Date(now.getFullYear(), 11, 31))
     } else {
       // Personalizado - usar datas fornecidas ou padrão
-      periodStart = budget.startDate || new Date().toISOString().split('T')[0]
-      periodEnd = budget.endDate || new Date().toISOString().split('T')[0]
+      periodStart = budget.startDate || todayLocalISODate()
+      periodEnd = budget.endDate || todayLocalISODate()
     }
   }
 

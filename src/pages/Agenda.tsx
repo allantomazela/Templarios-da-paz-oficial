@@ -14,6 +14,7 @@ import {
   endOfWeek,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { parseCalendarDate } from '@/lib/format-utils'
 import {
   ChevronLeft,
   ChevronRight,
@@ -128,12 +129,9 @@ export default function Agenda() {
 
   brothers.forEach((brother) => {
     if (brother.dob && filters.birthday) {
-      const dob = new Date(brother.dob)
-      if (!isNaN(dob.getTime())) {
-        const birthdayThisYear = setYear(
-          new Date(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()),
-          currentYear,
-        )
+      const dob = parseCalendarDate(brother.dob)
+      if (dob) {
+        const birthdayThisYear = setYear(dob, currentYear)
         milestoneEvents.push({
           id: `dob-${brother.id}-${currentYear}`,
           title: `Aniv. Ir. ${brother.name}`,
@@ -146,16 +144,9 @@ export default function Agenda() {
     }
 
     if (brother.initiationDate && filters.masonic) {
-      const init = new Date(brother.initiationDate)
-      if (!isNaN(init.getTime())) {
-        const initThisYear = setYear(
-          new Date(
-            init.getUTCFullYear(),
-            init.getUTCMonth(),
-            init.getUTCDate(),
-          ),
-          currentYear,
-        )
+      const init = parseCalendarDate(brother.initiationDate)
+      if (init) {
+        const initThisYear = setYear(init, currentYear)
         const years = currentYear - getYear(init)
 
         if (years > 0) {

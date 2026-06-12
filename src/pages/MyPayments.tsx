@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
@@ -12,7 +10,7 @@ import {
   fetchMemberPayments,
   type MemberPayment as Payment,
 } from '@/lib/member-payments'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 
 export default function MyPayments() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -184,9 +182,7 @@ export default function MyPayments() {
                           {payment.description}
                         </TableCell>
                         <TableCell>
-                          {format(new Date(payment.dueDate), 'dd/MM/yyyy', {
-                            locale: ptBR,
-                          })}
+                          {formatDateBR(payment.dueDate)}
                         </TableCell>
                         <TableCell className="font-mono">
                           {formatCurrencyBRL(payment.amount)}
@@ -194,9 +190,7 @@ export default function MyPayments() {
                         <TableCell>{getStatusBadge(payment.status)}</TableCell>
                         <TableCell>
                           {payment.paymentDate
-                            ? format(new Date(payment.paymentDate), 'dd/MM/yyyy', {
-                                locale: ptBR,
-                              })
+                            ? formatDateBR(payment.paymentDate)
                             : '-'}
                         </TableCell>
                       </TableRow>
@@ -235,9 +229,7 @@ export default function MyPayments() {
                           {payment.description}
                         </TableCell>
                         <TableCell>
-                          {format(new Date(payment.paymentDate!), 'dd/MM/yyyy', {
-                            locale: ptBR,
-                          })}
+                          {formatDateBR(payment.paymentDate!)}
                         </TableCell>
                         <TableCell className="font-mono">
                           {formatCurrencyBRL(payment.amount)}

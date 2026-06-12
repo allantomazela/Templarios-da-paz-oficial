@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Mail, Reply, Send, Plus } from 'lucide-react'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateBR } from '@/lib/format-utils'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { Button } from '@/components/ui/button'
@@ -328,9 +328,7 @@ export default function MyMessages() {
                             </Badge>
                           )}
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(message.date), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}
+                            {formatDateBR(message.date)}
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -341,9 +339,7 @@ export default function MyMessages() {
                               De: {message.sender}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              Data: {format(new Date(message.date), 'dd/MM/yyyy HH:mm', {
-                                locale: ptBR,
-                              })}
+                              Data: {formatDateBR(message.date)}
                             </p>
                           </div>
                           <p className="text-sm whitespace-pre-wrap">
@@ -386,9 +382,7 @@ export default function MyMessages() {
                           <Send className="h-4 w-4" />
                           <span className="flex-1">{message.subject}</span>
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(message.date), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}
+                            {formatDateBR(message.date)}
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -399,9 +393,7 @@ export default function MyMessages() {
                               Para: {message.recipients.join(', ')}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              Data: {format(new Date(message.date), 'dd/MM/yyyy HH:mm', {
-                                locale: ptBR,
-                              })}
+                              Data: {formatDateBR(message.date)}
                             </p>
                           </div>
                           <p className="text-sm whitespace-pre-wrap">

@@ -16,7 +16,7 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { BudgetDialog } from './BudgetDialog'
 import { GoalDialog } from './GoalDialog'
 import { format } from 'date-fns'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 
 interface BudgetFromDB {
   id: string
@@ -532,7 +532,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
                       <div>
                         <CardTitle className="text-base">{goal.name}</CardTitle>
                         <CardDescription>
-                          Prazo: {format(new Date(goal.deadline), 'dd/MM/yyyy')}
+                          Prazo: {formatDateBR(goal.deadline)}
                         </CardDescription>
                       </div>
                       <div className="flex gap-2">

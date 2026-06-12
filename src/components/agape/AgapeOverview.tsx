@@ -1,9 +1,8 @@
 import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAgapeStore } from '@/stores/useAgapeStore'
-import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCalendarDate, formatCurrencyBRL } from '@/lib/format-utils'
 import { Calendar, UtensilsCrossed, Users, DollarSign, Loader2 } from 'lucide-react'
 
 export function AgapeOverview() {
@@ -103,7 +102,7 @@ export function AgapeOverview() {
                 >
                   <div>
                     <p className="font-medium">
-                      {format(new Date(session.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      {formatCalendarDate(session.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </p>
                     {session.description && (
                       <p className="text-sm text-muted-foreground">{session.description}</p>

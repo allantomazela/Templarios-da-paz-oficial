@@ -21,7 +21,10 @@ import { Download, FileText } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import {
+  formatDateBR,
+  getCalendarDateTimestamp,
+} from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import { VisitorCertificateDocument } from './VisitorCertificateDocument'
 import type { VisitorAttendance } from '@/lib/data'
@@ -136,10 +139,14 @@ export function VisitorCertificate() {
                       const record = sessionRecords.find((sr) => sr.eventId === e.id)
                       return record && record.status === 'Finalizada'
                     })
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort(
+                      (a, b) =>
+                        getCalendarDateTimestamp(b.date) -
+                        getCalendarDateTimestamp(a.date),
+                    )
                     .map((event) => (
                       <SelectItem key={event.id} value={event.id}>
-                        {format(new Date(event.date), "dd/MM/yyyy", { locale: ptBR })} - {event.title}
+                        {formatDateBR(event.date)} - {event.title}
                       </SelectItem>
                     ))}
                 </SelectContent>

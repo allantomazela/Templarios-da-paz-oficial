@@ -44,6 +44,7 @@ export function BrotherDialog({
         />
 
         <BrotherForm
+          key={brotherToEdit?.id ?? 'new'}
           brotherToEdit={brotherToEdit}
           onSave={onSave}
           isSaving={isSaving}

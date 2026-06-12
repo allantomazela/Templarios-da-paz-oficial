@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -66,6 +66,11 @@ export function BrothersList() {
   const [deleteTarget, setDeleteTarget] = useState<Brother | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const hasLoadedRef = useRef(false)
+  const editingBrotherRef = useRef<Brother | null>(null)
+
+  useEffect(() => {
+    editingBrotherRef.current = selectedBrother
+  }, [selectedBrother])
 
   const loadBrothers = useAsyncOperation(
     async () => {
@@ -102,10 +107,19 @@ export function BrothersList() {
 
   const saveOperation = useAsyncOperation(
     async (data: BrotherSaveInput) => {
-      if (selectedBrother) {
-        const updatedBrother = await updateBrother(selectedBrother.id, data)
+      const brotherToUpdate = editingBrotherRef.current
+      if (brotherToUpdate) {
+        const updatedBrother = await updateBrother(
+          brotherToUpdate.id,
+          data,
+          {
+            role: brotherToUpdate.role,
+            status: brotherToUpdate.status,
+            attendanceRate: brotherToUpdate.attendanceRate,
+          },
+        )
         setBrothers((prev) =>
-          prev.map((b) => (b.id === selectedBrother.id ? updatedBrother : b)),
+          prev.map((b) => (b.id === brotherToUpdate.id ? updatedBrother : b)),
         )
         return 'Irmão atualizado com sucesso.'
       }
@@ -147,13 +161,17 @@ export function BrothersList() {
     },
   )
 
-  const handleSave = async (data: BrotherSaveInput) => {
-    const result = await saveOperation.execute(data)
-    if (result) {
-      dialog.closeDialog()
-      loadBrothersExecute()
-    }
-  }
+  const handleSave = useCallback(
+    async (data: BrotherSaveInput) => {
+      const result = await saveOperation.execute(data)
+      if (result !== null) {
+        dialog.closeDialog()
+        setSelectedBrother(null)
+        loadBrothersExecute()
+      }
+    },
+    [dialog, loadBrothersExecute, saveOperation],
+  )
 
   const toggleStatus = (brother: Brother) => {
     toggleStatusOperation.execute(brother)

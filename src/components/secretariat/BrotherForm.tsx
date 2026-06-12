@@ -301,8 +301,13 @@ export function BrotherForm({
 
     setIsSubmittingLocal(true)
     try {
+      const sanitizedChildren = data.children.filter(
+        (child) => child.name.trim().length > 0 && child.dob.trim().length > 0,
+      )
+
       const unformattedData = {
         ...data,
+        children: sanitizedChildren,
         photoUrl: isSelfMode
           ? (syncedProfilePhoto ?? undefined)
           : data.photoUrl,
@@ -569,7 +574,7 @@ export function BrotherForm({
                       <FormLabel>Grau *</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -633,7 +638,7 @@ export function BrotherForm({
                       <FormLabel>Obediência</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -711,7 +716,7 @@ export function BrotherForm({
                       <FormLabel>Status de Regularidade</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -965,7 +970,7 @@ export function BrotherForm({
                       <FormLabel>Estado</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>

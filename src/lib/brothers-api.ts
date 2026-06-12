@@ -173,6 +173,7 @@ export async function createBrother(data: BrotherSaveInput): Promise<Brother> {
 export async function updateBrother(
   id: string,
   data: BrotherSaveInput,
+  existing?: Pick<Brother, 'role' | 'status' | 'attendanceRate'>,
 ): Promise<Brother> {
   const profileId = await withTimeout(
     resolveBrotherProfileIdForSave(data.email, data.profileId),
@@ -181,20 +182,32 @@ export async function updateBrother(
   )
 
   const dbData = {
-    ...mapBrotherToDB(data),
+    ...mapBrotherToDB({
+      ...data,
+      role: existing?.role,
+      status: existing?.status,
+      attendanceRate: existing?.attendanceRate,
+    }),
     profile_id: profileId,
     updated_at: new Date().toISOString(),
   }
 
   const supabaseAny = supabase as any
   const { data: updatedRow, error } = await withTimeout(
-    supabaseAny.from('brothers').update(dbData).eq('id', id).select('*').single(),
+    supabaseAny.from('brothers').update(dbData).eq('id', id).select('*').maybeSingle(),
     BROTHER_OP_TIMEOUT_MS,
     'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
   )
 
   if (error) {
     throw toError(error, 'Falha ao atualizar o irmão.')
+  }
+
+  if (!updatedRow) {
+    throw toError(
+      null,
+      'A alteração pode não ter sido aplicada. Verifique suas permissões e tente novamente.',
+    )
   }
 
   const updatedBrother = mapBrotherFromDB(updatedRow)

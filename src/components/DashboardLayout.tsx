@@ -1,16 +1,17 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { Suspense, useEffect, useState } from 'react'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
+import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import useAuthStore from '@/stores/useAuthStore'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { NotificationBanner } from '@/components/NotificationBanner'
 
 export default function DashboardLayout() {
-  const { isAuthenticated, user, loading, signOut } = useAuthStore()
+  const { isAuthenticated, user, loading, initialized, signOut } = useAuthStore()
   const fetchChancellorData = useChancellorStore((s) => s.fetchChancellorData)
   const location = useLocation()
   const [showTimeout, setShowTimeout] = useState(false)
@@ -21,17 +22,17 @@ export default function DashboardLayout() {
     }
   }, [isAuthenticated, user?.id, fetchChancellorData])
 
-  // Resilient Timeout Logic: 3 seconds
+  // Resilient Timeout Logic: 3 seconds (somente na inicialização da sessão)
   useEffect(() => {
     let timeout: NodeJS.Timeout
-    if (loading) {
+    if (!initialized && loading) {
       setShowTimeout(false)
       timeout = setTimeout(() => {
         setShowTimeout(true)
       }, 3000)
     }
     return () => clearTimeout(timeout)
-  }, [loading])
+  }, [initialized, loading])
 
   const handleLogout = async () => {
     try {
@@ -50,7 +51,9 @@ export default function DashboardLayout() {
     window.location.reload()
   }
 
-  if (loading) {
+  const showAuthBlockingLoader = !initialized && loading
+
+  if (showAuthBlockingLoader) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-background gap-6 p-4">
         <div className="flex flex-col items-center gap-4">
@@ -123,7 +126,9 @@ export default function DashboardLayout() {
 
         <main className="flex-1 overflow-y-auto scroll-smooth bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:p-6">
           <div className="max-w-7xl mx-auto w-full animate-fade-in">
-            <Outlet />
+            <Suspense fallback={<DashboardModuleLoader />}>
+              <Outlet />
+            </Suspense>
           </div>
 
           <footer className="py-6 text-center text-xs text-muted-foreground border-t border-border mt-8">

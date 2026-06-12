@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { AgapeOverview } from '@/components/agape/AgapeOverview'
@@ -10,17 +10,25 @@ import { AgapeRecordPanel } from '@/components/agape/AgapeRecordPanel'
 import { AgapeMaintenancePanel } from '@/components/agape/AgapeMaintenancePanel'
 import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
+type AgapeTab =
+  | 'overview'
+  | 'sessions'
+  | 'menu'
+  | 'record'
+  | 'reports'
+  | 'maintenance'
+
 export default function Agape() {
-  const { clearOperationalCache, fetchSessions, fetchMenuItems, fetchConsumptions } =
-    useAgapeStore()
+  const { fetchSessions, fetchMenuItems, fetchConsumptions } = useAgapeStore()
   const { isAgapeController, canRecordConsumption } = useAgapePermissions()
+  const [activeTab, setActiveTab] = useState<AgapeTab>('overview')
 
   useEffect(() => {
-    clearOperationalCache()
-    fetchSessions()
-    fetchMenuItems()
-    fetchConsumptions()
-  }, [clearOperationalCache, fetchSessions, fetchMenuItems, fetchConsumptions])
+    const { sessions, menuItems } = useAgapeStore.getState()
+    if (sessions.length === 0) void fetchSessions()
+    if (menuItems.length === 0) void fetchMenuItems()
+    void fetchConsumptions()
+  }, [fetchSessions, fetchMenuItems, fetchConsumptions])
 
   if (isAgapeController) {
     return (
@@ -34,7 +42,11 @@ export default function Agape() {
           </p>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as AgapeTab)}
+          className="space-y-4"
+        >
           <div className="flex items-center overflow-x-auto">
             <TabsList className="w-full justify-start md:w-auto">
               <TabsTrigger value="overview">Dashboard</TabsTrigger>
@@ -47,27 +59,27 @@ export default function Agape() {
           </div>
 
           <TabsContent value="overview">
-            <AgapeOverview />
+            {activeTab === 'overview' ? <AgapeOverview /> : null}
           </TabsContent>
 
           <TabsContent value="sessions">
-            <AgapeSessionsList />
+            {activeTab === 'sessions' ? <AgapeSessionsList /> : null}
           </TabsContent>
 
           <TabsContent value="menu">
-            <MenuItemsList />
+            {activeTab === 'menu' ? <MenuItemsList /> : null}
           </TabsContent>
 
           <TabsContent value="record">
-            <AgapeRecordPanel />
+            {activeTab === 'record' ? <AgapeRecordPanel /> : null}
           </TabsContent>
 
           <TabsContent value="reports">
-            <MonthlyReports />
+            {activeTab === 'reports' ? <MonthlyReports /> : null}
           </TabsContent>
 
           <TabsContent value="maintenance">
-            <AgapeMaintenancePanel />
+            {activeTab === 'maintenance' ? <AgapeMaintenancePanel /> : null}
           </TabsContent>
         </Tabs>
       </div>

@@ -27,6 +27,7 @@ interface AuthState {
   user: (SupabaseUser & { role?: string; profile?: Profile }) | null
   session: Session | null
   loading: boolean
+  initialized: boolean
   isAuthenticated: boolean
 
   initialize: () => Promise<void>
@@ -54,6 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
   loading: true,
+  initialized: false,
   isAuthenticated: false,
 
   /**
@@ -80,6 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             user: null,
             isAuthenticated: false,
             loading: false,
+            initialized: true,
           })
           return
         }
@@ -94,6 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             user: null,
             isAuthenticated: false,
             loading: false,
+            initialized: true,
           })
           return
         }
@@ -157,6 +161,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           },
           isAuthenticated: true,
           loading: false,
+          initialized: true,
         })
       } else {
         set({
@@ -164,6 +169,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           user: null,
           isAuthenticated: false,
           loading: false,
+          initialized: true,
         })
       }
 
@@ -178,6 +184,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             user: null,
             isAuthenticated: false,
             loading: false,
+            initialized: true,
           })
           return
         }
@@ -189,6 +196,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             user: null,
             isAuthenticated: false,
             loading: false,
+            initialized: true,
           })
           return
         }
@@ -228,10 +236,11 @@ export const useAuthStore = create<AuthState>((set) => ({
               },
               isAuthenticated: true,
               loading: false,
+              initialized: true,
             })
           } catch (error) {
             logError('Error updating auth state', error)
-            // Don't sign out on profile fetch error, just log it
+            set({ loading: false, initialized: true })
           }
         }
       })
@@ -244,11 +253,12 @@ export const useAuthStore = create<AuthState>((set) => ({
           user: null,
           isAuthenticated: false,
           loading: false,
+          initialized: true,
         })
         return
       }
       logError('Auth initialization critical error', error)
-      set({ loading: false })
+      set({ loading: false, initialized: true })
     }
   },
 
@@ -259,6 +269,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: null,
       isAuthenticated: false,
       loading: false,
+      initialized: true,
     })
     window.location.href = '/login'
   },

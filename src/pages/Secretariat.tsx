@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BrothersList } from '@/components/secretariat/BrothersList'
 import { NoticesList } from '@/components/secretariat/NoticesList'
@@ -14,7 +15,16 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
+type SecretariatTab =
+  | 'brothers'
+  | 'indications'
+  | 'communications'
+  | 'docs'
+  | 'minutes'
+
 export default function Secretariat() {
+  const [activeTab, setActiveTab] = useState<SecretariatTab>('brothers')
+
   return (
     <div className="space-y-6">
       <div>
@@ -24,7 +34,11 @@ export default function Secretariat() {
         </p>
       </div>
 
-      <Tabs defaultValue="brothers" className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as SecretariatTab)}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="brothers">Irmãos</TabsTrigger>
           <TabsTrigger value="indications">Indicações</TabsTrigger>
@@ -34,94 +48,101 @@ export default function Secretariat() {
         </TabsList>
 
         <TabsContent value="brothers">
-          <BrothersList />
+          {activeTab === 'brothers' ? <BrothersList /> : null}
         </TabsContent>
 
         <TabsContent value="indications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Candidatos à iniciação</CardTitle>
-              <CardDescription>
-                Acompanhamento das indicações e das fases da sindicância (documentação,
-                entrevistas, visita à loja, parecer, votação).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CandidatesList />
-            </CardContent>
-          </Card>
+          {activeTab === 'indications' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Candidatos à iniciação</CardTitle>
+                <CardDescription>
+                  Acompanhamento das indicações e das fases da sindicância
+                  (documentação, entrevistas, visita à loja, parecer, votação).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CandidatesList />
+              </CardContent>
+            </Card>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="communications" className="space-y-4">
-          <Tabs defaultValue="notices">
-            <div className="flex items-center justify-between mb-4">
-              <TabsList>
-                <TabsTrigger value="notices">Mural de Avisos</TabsTrigger>
-                <TabsTrigger value="messages">Mensagens Internas</TabsTrigger>
-                <TabsTrigger value="contact">Mensagens do Site</TabsTrigger>
-              </TabsList>
-            </div>
+          {activeTab === 'communications' ? (
+            <Tabs defaultValue="notices">
+              <div className="flex items-center justify-between mb-4">
+                <TabsList>
+                  <TabsTrigger value="notices">Mural de Avisos</TabsTrigger>
+                  <TabsTrigger value="messages">Mensagens Internas</TabsTrigger>
+                  <TabsTrigger value="contact">Mensagens do Site</TabsTrigger>
+                </TabsList>
+              </div>
 
-            <TabsContent value="notices">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mural de Avisos</CardTitle>
-                  <CardDescription>
-                    Gerencie os avisos oficiais da loja.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <NoticesList />
-                </CardContent>
-              </Card>
-            </TabsContent>
+              <TabsContent value="notices">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mural de Avisos</CardTitle>
+                    <CardDescription>
+                      Gerencie os avisos oficiais da loja.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <NoticesList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="messages">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mensagens Internas</CardTitle>
-                  <CardDescription>
-                    Comunicação direta entre irmãos.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <MessagesList />
-                </CardContent>
-              </Card>
-            </TabsContent>
+              <TabsContent value="messages">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mensagens Internas</CardTitle>
+                    <CardDescription>
+                      Comunicação direta entre irmãos.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <MessagesList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="contact">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mensagens do Site</CardTitle>
-                  <CardDescription>
-                    Mensagens enviadas através do formulário de contato do site.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ContactMessagesList />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="contact">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mensagens do Site</CardTitle>
+                    <CardDescription>
+                      Mensagens enviadas através do formulário de contato do
+                      site.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ContactMessagesList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="docs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documentos da Loja</CardTitle>
-              <CardDescription>
-                Gerencie o acervo digital de documentos.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DocumentsList />
-            </CardContent>
-          </Card>
+          {activeTab === 'docs' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Documentos da Loja</CardTitle>
+                <CardDescription>
+                  Gerencie o acervo digital de documentos.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DocumentsList />
+              </CardContent>
+            </Card>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="minutes">
-          <MinutesList />
+          {activeTab === 'minutes' ? <MinutesList /> : null}
         </TabsContent>
       </Tabs>
     </div>

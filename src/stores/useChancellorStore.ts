@@ -149,6 +149,10 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
   chancellorDataLoading: false,
 
   fetchChancellorData: async () => {
+    const state = get()
+    if (state.chancellorDataLoading) return
+    if (state.events.length > 0 && state.brothers.length > 0) return
+
     set({ chancellorDataLoading: true })
     try {
       const [events, sessionRecords, attendanceRecords, brothers] =

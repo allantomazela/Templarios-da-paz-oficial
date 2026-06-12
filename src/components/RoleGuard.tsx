@@ -85,20 +85,20 @@ export function RoleGuard({
   requiredModule,
   alternativeModules,
 }: RoleGuardProps) {
-  const { user, loading } = useAuthStore()
+  const { user, loading, initialized } = useAuthStore()
   const [isTimeout, setIsTimeout] = useState(false)
 
   useEffect(() => {
     let timer: NodeJS.Timeout
-    if (loading) {
+    if (!initialized && loading) {
       timer = setTimeout(() => {
         setIsTimeout(true)
       }, 3000)
     }
     return () => clearTimeout(timer)
-  }, [loading])
+  }, [initialized, loading])
 
-  if (loading) {
+  if (!initialized && loading) {
     if (isTimeout) {
       return <Navigate to="/dashboard" replace />
     }

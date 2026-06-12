@@ -1,10 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Suspense, lazy, useEffect } from 'react'
+import { lazy, useEffect } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { Loader2 } from 'lucide-react'
 import DashboardLayout from '@/components/DashboardLayout'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import useAuthStore from '@/stores/useAuthStore'
@@ -16,13 +15,20 @@ import { SeoManager } from '@/components/SeoManager'
 import { RedirectHandler } from '@/components/RedirectHandler'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { lazyPublicPage } from '@/lib/lazy-page'
 
-// Lazy load pages for better performance
-const Index = lazy(() => import('@/pages/Index'))
-const Login = lazy(() => import('@/pages/Login'))
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
-const Privacy = lazy(() => import('@/pages/Privacy'))
-const TermsOfUse = lazy(() => import('@/pages/TermsOfUse'))
+// Páginas públicas (Suspense próprio — tela cheia)
+const Index = lazyPublicPage(() => import('@/pages/Index'))
+const Login = lazyPublicPage(() => import('@/pages/Login'))
+const ResetPassword = lazyPublicPage(() => import('@/pages/ResetPassword'))
+const Privacy = lazyPublicPage(() => import('@/pages/Privacy'))
+const TermsOfUse = lazyPublicPage(() => import('@/pages/TermsOfUse'))
+const AccessDenied = lazyPublicPage(() => import('@/pages/AccessDenied'))
+const CheckinPage = lazyPublicPage(() => import('@/pages/CheckinPage'))
+const TempleCheckinPage = lazyPublicPage(() => import('@/pages/TempleCheckinPage'))
+const NotFound = lazyPublicPage(() => import('@/pages/NotFound'))
+
+// Módulos do dashboard (Suspense no DashboardLayout — sidebar permanece visível)
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Secretariat = lazy(() => import('@/pages/Secretariat'))
 const Financial = lazy(() => import('@/pages/Financial'))
@@ -40,17 +46,6 @@ const UserSettings = lazy(() => import('@/pages/UserSettings'))
 const MyMessages = lazy(() => import('@/pages/MyMessages'))
 const MyPayments = lazy(() => import('@/pages/MyPayments'))
 const Notices = lazy(() => import('@/pages/Notices'))
-const NotFound = lazy(() => import('@/pages/NotFound'))
-const AccessDenied = lazy(() => import('@/pages/AccessDenied'))
-const CheckinPage = lazy(() => import('@/pages/CheckinPage'))
-const TempleCheckinPage = lazy(() => import('@/pages/TempleCheckinPage'))
-
-// Loading fallback component
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-)
 
 function ThemeApplicator() {
   const {
@@ -158,7 +153,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <ErrorBoundary>
-          <Suspense fallback={<PageLoader />}>
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -275,7 +269,6 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
             </Routes>
-          </Suspense>
         </ErrorBoundary>
       </TooltipProvider>
     </ThemeProvider>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { GOBAttendanceReport } from '@/components/reports/GOBAttendanceReport'
 import { CustomReportBuilder } from '@/components/reports/CustomReportBuilder'
 import { ReportHistory } from '@/components/reports/ReportHistory'
@@ -21,6 +22,10 @@ import { Lock } from 'lucide-react'
 export default function Reports() {
   const { user } = useAuthStore()
   const { permissions } = useReportStore()
+  const defaultTab = user?.role && permissions.find((p) => p.role === user.role)?.canViewReports
+    ? 'gob'
+    : 'stats'
+  const [activeTab, setActiveTab] = useState(defaultTab)
 
   // Ensure role is valid, fallback to member
   const role = user?.role || 'member'
@@ -62,7 +67,8 @@ export default function Reports() {
       </div>
 
       <Tabs
-        defaultValue={userPermission.canViewReports ? 'gob' : 'stats'}
+        value={activeTab}
+        onValueChange={setActiveTab}
         className="space-y-4"
       >
         <div className="no-print overflow-x-auto">
@@ -104,34 +110,34 @@ export default function Reports() {
         {userPermission.canViewReports && (
           <>
             <TabsContent value="gob">
-              <GOBAttendanceReport />
+              {activeTab === 'gob' ? <GOBAttendanceReport /> : null}
             </TabsContent>
 
             <TabsContent value="custom">
-              <CustomReportBuilder />
+              {activeTab === 'custom' ? <CustomReportBuilder /> : null}
             </TabsContent>
 
             <TabsContent value="history">
-              <ReportHistory />
+              {activeTab === 'history' ? <ReportHistory /> : null}
             </TabsContent>
           </>
         )}
 
         {userPermission.canViewAnalytics && (
           <TabsContent value="stats">
-            <AnalyticsDashboard />
+            {activeTab === 'stats' ? <AnalyticsDashboard /> : null}
           </TabsContent>
         )}
 
         {userPermission.canManageSchedules && (
           <TabsContent value="scheduler">
-            <ReportScheduler />
+            {activeTab === 'scheduler' ? <ReportScheduler /> : null}
           </TabsContent>
         )}
 
         {userPermission.canConfigureAccess && (
           <TabsContent value="access">
-            <ReportAccessControl />
+            {activeTab === 'access' ? <ReportAccessControl /> : null}
           </TabsContent>
         )}
       </Tabs>

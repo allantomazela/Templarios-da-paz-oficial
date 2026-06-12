@@ -22,6 +22,8 @@ interface UseImageUploadOptions {
   successMessage?: string
   /** Mensagem de erro customizada */
   errorMessage?: string
+  /** Exibe toast de sucesso após upload (padrão: true) */
+  showSuccessToast?: boolean
 }
 
 interface UseImageUploadReturn {
@@ -76,6 +78,7 @@ export function useImageUpload(
     quality = 0.8,
     successMessage = 'Imagem carregada com sucesso.',
     errorMessage = 'Não foi possível carregar a imagem.',
+    showSuccessToast = true,
   } = options
 
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -144,10 +147,12 @@ export function useImageUpload(
         }
 
         setImageUrl(publicUrl)
-        toast({
-          title: 'Sucesso',
-          description: successMessage,
-        })
+        if (showSuccessToast) {
+          toast({
+            title: 'Sucesso',
+            description: successMessage,
+          })
+        }
 
         // Reset input to allow selecting the same file again
         if (inputRef.current) {
@@ -178,7 +183,7 @@ export function useImageUpload(
         setIsUploading(false)
       }
     },
-    [bucket, folder, maxSize, maxFileSizeBytes, quality, successMessage, errorMessage, toast],
+    [bucket, folder, maxSize, maxFileSizeBytes, quality, successMessage, errorMessage, showSuccessToast, toast],
   )
 
   const reset = useCallback(() => {

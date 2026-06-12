@@ -248,7 +248,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   createMenuItem: async (item) => {
     set({ loading: true })
     try {
-      const { error } = await supabase
+      const { data: createdRow, error } = await supabase
         .from('agape_menu_items')
         .insert(item)
         .select()
@@ -256,7 +256,17 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (error) throw error
 
-      await get().fetchMenuItems()
+      if (createdRow) {
+        set((state) => ({
+          menuItems: [...state.menuItems, createdRow].sort((a, b) => {
+            const categoryCompare = a.category.localeCompare(b.category, 'pt-BR')
+            if (categoryCompare !== 0) return categoryCompare
+            return a.name.localeCompare(b.name, 'pt-BR')
+          }),
+        }))
+      } else {
+        await get().fetchMenuItems()
+      }
       return { error: null }
     } catch (error) {
       if (handleAuthError(error)) return { error }
@@ -270,14 +280,28 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   updateMenuItem: async (id, updates) => {
     set({ loading: true })
     try {
-      const { error } = await supabase
+      const { data: updatedRow, error } = await supabase
         .from('agape_menu_items')
         .update(updates)
         .eq('id', id)
+        .select()
+        .single()
 
       if (error) throw error
 
-      await get().fetchMenuItems()
+      if (updatedRow) {
+        set((state) => ({
+          menuItems: state.menuItems
+            .map((menuItem) => (menuItem.id === id ? updatedRow : menuItem))
+            .sort((a, b) => {
+              const categoryCompare = a.category.localeCompare(b.category, 'pt-BR')
+              if (categoryCompare !== 0) return categoryCompare
+              return a.name.localeCompare(b.name, 'pt-BR')
+            }),
+        }))
+      } else {
+        await get().fetchMenuItems()
+      }
       return { error: null }
     } catch (error) {
       if (handleAuthError(error)) return { error }

@@ -66,6 +66,8 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
   const { createMenuItem, updateMenuItem, loading } = useAgapeStore()
   const { toast } = useToast()
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false)
   const previewBlobRef = useRef<string | null>(null)
 
   const revokePreviewBlob = () => {
@@ -80,10 +82,13 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
     folder: 'agape-menu',
     maxSize: AGAPE_MENU_IMAGE_MAX_DIMENSION_PX,
     maxFileSizeBytes: AGAPE_MENU_IMAGE_MAX_FILE_SIZE_BYTES,
-    quality: 0.82,
-    successMessage: 'Imagem do produto enviada com sucesso.',
-    errorMessage: 'Falha no upload. Use imagem de até 800 px e 3 MB.',
+    quality: 0.75,
+    showSuccessToast: false,
+    errorMessage: 'Falha no upload. Use imagem de até 512 px e 1,5 MB.',
   })
+
+  const isSavingForm =
+    loading || imageUpload.isUploading || isSubmittingLocal
 
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(menuItemSchema),
@@ -115,6 +120,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
         is_active: item.is_active,
       })
       setPreviewImage(item.image_url || null)
+      setPendingImageFile(null)
       imageUpload.reset()
     } else {
       form.reset({
@@ -126,6 +132,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
         is_active: true,
       })
       setPreviewImage(null)
+      setPendingImageFile(null)
       imageUpload.reset()
     }
 
@@ -133,76 +140,103 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id, open, form])
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo inválido',
+        description: 'Selecione uma imagem JPG ou PNG.',
+      })
+      if (imageUpload.inputRef.current) {
+        imageUpload.inputRef.current.value = ''
+      }
+      return
+    }
+
+    if (file.size > AGAPE_MENU_IMAGE_MAX_FILE_SIZE_BYTES) {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo muito grande',
+        description: 'Use uma imagem de até 1,5 MB.',
+      })
+      if (imageUpload.inputRef.current) {
+        imageUpload.inputRef.current.value = ''
+      }
+      return
+    }
 
     revokePreviewBlob()
     const blobUrl = URL.createObjectURL(file)
     previewBlobRef.current = blobUrl
     setPreviewImage(blobUrl)
-
-    const url = await imageUpload.handleUpload(file)
-    revokePreviewBlob()
-    if (url) {
-      setPreviewImage(url)
-      form.setValue('image_url', url, { shouldDirty: true })
-    }
+    setPendingImageFile(file)
   }
 
   const handleRemoveImage = () => {
+    revokePreviewBlob()
     setPreviewImage(null)
+    setPendingImageFile(null)
     form.setValue('image_url', '', { shouldDirty: true })
     imageUpload.reset()
   }
 
   const onSubmit = async (data: MenuItemFormValues) => {
-    if (imageUpload.isUploading) {
-      toast({
-        variant: 'destructive',
-        title: 'Aguarde o envio da imagem',
-        description: 'Espere o upload terminar antes de salvar.',
-      })
-      return
-    }
+    setIsSubmittingLocal(true)
+    try {
+      let imageUrl = data.image_url?.trim() || null
 
-    const payload = {
-      ...data,
-      description: data.description?.trim() || null,
-      image_url: data.image_url?.trim() || null,
-    }
+      if (pendingImageFile) {
+        const url = await imageUpload.handleUpload(pendingImageFile)
+        if (!url) return
+        imageUrl = url
+        setPendingImageFile(null)
+        setPreviewImage(url)
+        form.setValue('image_url', url)
+      }
 
-    if (item) {
-      const { error } = await updateMenuItem(item.id, payload)
-      if (error) {
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível atualizar o item.',
-          variant: 'destructive',
-        })
-      } else {
-        toast({
-          title: 'Sucesso',
-          description: 'Item atualizado com sucesso.',
-        })
-        onOpenChange(false)
+      const payload = {
+        ...data,
+        description: data.description?.trim() || null,
+        image_url: imageUrl,
       }
-    } else {
-      const { error } = await createMenuItem(payload)
-      if (error) {
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível criar o item.',
-          variant: 'destructive',
-        })
+
+      if (item) {
+        const { error } = await updateMenuItem(item.id, payload)
+        if (error) {
+          toast({
+            title: 'Erro',
+            description: 'Não foi possível atualizar o item.',
+            variant: 'destructive',
+          })
+        } else {
+          toast({
+            title: 'Sucesso',
+            description: 'Item atualizado com sucesso.',
+          })
+          onOpenChange(false)
+        }
       } else {
-        toast({
-          title: 'Sucesso',
-          description: 'Item criado com sucesso.',
-        })
-        form.reset()
-        onOpenChange(false)
+        const { error } = await createMenuItem(payload)
+        if (error) {
+          toast({
+            title: 'Erro',
+            description: 'Não foi possível criar o item.',
+            variant: 'destructive',
+          })
+        } else {
+          toast({
+            title: 'Sucesso',
+            description: 'Item criado com sucesso.',
+          })
+          form.reset()
+          onOpenChange(false)
+        }
       }
+    } finally {
+      setIsSubmittingLocal(false)
     }
   }
 
@@ -227,7 +261,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
             <div className="space-y-2">
               <FormLabel>Imagem do produto (opcional)</FormLabel>
               <p className="text-xs text-muted-foreground">
-                {AGAPE_MENU_IMAGE_RULE_LABEL}
+                {AGAPE_MENU_IMAGE_RULE_LABEL} A imagem é enviada ao clicar em Salvar.
               </p>
               <div className="flex flex-col gap-3">
                 <div className="relative aspect-square w-full max-w-[200px] border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden">
@@ -239,8 +273,9 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
                         className="w-full h-full object-cover"
                       />
                       {imageUpload.isUploading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Loader2 className="h-8 w-8 animate-spin text-white" />
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 text-white text-xs">
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                          <span>Enviando imagem...</span>
                         </div>
                       )}
                     </>
@@ -257,11 +292,11 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
                     ref={imageUpload.inputRef}
                     className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={imageUpload.isUploading}
+                    onChange={handleImageSelect}
+                    disabled={isSavingForm}
                   />
                 </div>
-                {previewImage && !imageUpload.isUploading && (
+                {previewImage && !isSavingForm && (
                   <Button
                     type="button"
                     variant="outline"
@@ -360,8 +395,17 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading || imageUpload.isUploading}>
-                {item ? 'Salvar' : 'Criar'}
+              <Button type="submit" disabled={isSavingForm}>
+                {isSavingForm ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {imageUpload.isUploading ? 'Enviando imagem...' : 'Salvando...'}
+                  </>
+                ) : item ? (
+                  'Salvar'
+                ) : (
+                  'Criar'
+                )}
               </Button>
             </DialogFooter>
           </form>

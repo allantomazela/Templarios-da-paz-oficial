@@ -23,12 +23,12 @@ export const MEDIA_IMAGE_MAX_DIMENSION_PX = 1920
 export const MEDIA_IMAGE_RULE_LABEL =
   'Até 1920 px no maior lado, no máx. 3 MB. Formatos: JPG, PNG, WebP.'
 
-/** Tamanho máximo para fotos de produtos do cardápio Ágape em bytes (3 MB) */
-export const AGAPE_MENU_IMAGE_MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024
+/** Tamanho máximo para fotos de produtos do cardápio Ágape em bytes (1,5 MB) */
+export const AGAPE_MENU_IMAGE_MAX_FILE_SIZE_BYTES = Math.round(1.5 * 1024 * 1024)
 
-/** Maior lado para fotos do cardápio Ágape em pixels */
-export const AGAPE_MENU_IMAGE_MAX_DIMENSION_PX = 800
+/** Maior lado para fotos do cardápio Ágape em pixels (miniatura na tabela) */
+export const AGAPE_MENU_IMAGE_MAX_DIMENSION_PX = 512
 
 /** Regra para exibição no cadastro do cardápio */
 export const AGAPE_MENU_IMAGE_RULE_LABEL =
-  'Máx. 800 px no maior lado e 3 MB. Use JPG ou PNG.'
+  'Máx. 512 px no maior lado e 1,5 MB. Use JPG ou PNG.'

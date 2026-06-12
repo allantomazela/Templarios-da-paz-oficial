@@ -49,6 +49,10 @@ import {
   type BrotherFormValues,
 } from '@/lib/brother-form-schema'
 import {
+  BROTHER_OBEDIENCE_OPTIONS,
+  normalizeBrotherObedience,
+} from '@/lib/brother-masonic-fields'
+import {
   normalizeBrotherPhoneForForm,
   resolveBrotherPhotoFromProfile,
 } from '@/lib/brother-registration-utils'
@@ -177,8 +181,9 @@ export function BrotherForm({
         elevationDate: toDateInputValue(brotherToEdit.elevationDate),
         exaltationDate: toDateInputValue(brotherToEdit.exaltationDate),
         degree: brotherToEdit.degree,
+        cim: brotherToEdit.cim || '',
         masonicRegistrationNumber: brotherToEdit.masonicRegistrationNumber || '',
-        obedience: brotherToEdit.obedience || '',
+        obedience: normalizeBrotherObedience(brotherToEdit.obedience),
         originLodge: brotherToEdit.originLodge || '',
         originLodgeNumber: brotherToEdit.originLodgeNumber || '',
         currentLodgeNumber: brotherToEdit.currentLodgeNumber || '',
@@ -630,12 +635,31 @@ export function BrotherForm({
                 />
                 <FormField
                   control={form.control}
+                  name="cim"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CIM</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Cadastro de Identificação Maçônica"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Cadastro de Identificação Maçônica do irmão.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="masonicRegistrationNumber"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Número de Registro Maçônico</FormLabel>
                       <FormControl>
-                        <Input placeholder="Número de registro" {...field} />
+                        <Input placeholder="Número de registro na potência" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -646,7 +670,7 @@ export function BrotherForm({
                   name="obedience"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Obediência</FormLabel>
+                      <FormLabel>Potência (Obediência)</FormLabel>
                       <Select
                         onValueChange={(value) =>
                           optionalSelectChange(value, field.onChange)
@@ -655,17 +679,18 @@ export function BrotherForm({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione a obediência" />
+                            <SelectValue placeholder="Selecione a potência" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value={OPTIONAL_SELECT_NONE}>
                             Não informado
                           </SelectItem>
-                          <SelectItem value="GOB">GOB - Grande Oriente do Brasil</SelectItem>
-                          <SelectItem value="GLESP">GLESP - Grande Loja do Estado de São Paulo</SelectItem>
-                          <SelectItem value="COMAB">COMAB - Confederação da Maçonaria do Brasil</SelectItem>
-                          <SelectItem value="Outra">Outra</SelectItem>
+                          {BROTHER_OBEDIENCE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

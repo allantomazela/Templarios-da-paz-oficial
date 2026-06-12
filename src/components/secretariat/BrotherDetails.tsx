@@ -14,6 +14,7 @@ import {
   formatDateBR,
 } from '@/lib/format-utils'
 import { BrotherMembershipPanel } from './BrotherMembershipPanel'
+import { getBrotherObedienceLabel } from '@/lib/brother-masonic-fields'
 
 interface BrotherDetailsProps {
   open: boolean
@@ -255,10 +256,12 @@ export function BrotherDetails({
               Dados Maçônicos
             </h4>
             <div className="grid grid-cols-1 gap-3">
-              <div>
-                <span className="text-xs text-muted-foreground block">CIM</span>
-                <span className="text-sm">#{brother.id.padStart(6, '0')}</span>
-              </div>
+              {brother.cim && (
+                <div>
+                  <span className="text-xs text-muted-foreground block">CIM</span>
+                  <span className="text-sm">{brother.cim}</span>
+                </div>
+              )}
               <div>
                 <span className="text-xs text-muted-foreground block">
                   Cargo
@@ -289,7 +292,8 @@ export function BrotherDetails({
                   <span className="text-sm">{formatDate(brother.exaltationDate)}</span>
                 </div>
               )}
-              {brother.masonicRegistrationNumber && (
+              {brother.masonicRegistrationNumber &&
+                brother.masonicRegistrationNumber !== brother.cim && (
                 <div>
                   <span className="text-xs text-muted-foreground block">
                     Número de Registro Maçônico
@@ -300,9 +304,11 @@ export function BrotherDetails({
               {brother.obedience && (
                 <div>
                   <span className="text-xs text-muted-foreground block">
-                    Obediência
+                    Potência (Obediência)
                   </span>
-                  <span className="text-sm">{brother.obedience}</span>
+                  <span className="text-sm">
+                    {getBrotherObedienceLabel(brother.obedience)}
+                  </span>
                 </div>
               )}
               {brother.originLodge && (

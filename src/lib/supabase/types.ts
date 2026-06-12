@@ -103,6 +103,7 @@ export type Database = {
           affiliation_date: string | null
           attendance_rate: number | null
           children: Json | null
+          cim: string | null
           cpf: string | null
           created_at: string
           current_lodge_number: string | null
@@ -140,6 +141,7 @@ export type Database = {
           affiliation_date?: string | null
           attendance_rate?: number | null
           children?: Json | null
+          cim?: string | null
           cpf?: string | null
           created_at?: string
           current_lodge_number?: string | null
@@ -177,6 +179,7 @@ export type Database = {
           affiliation_date?: string | null
           attendance_rate?: number | null
           children?: Json | null
+          cim?: string | null
           cpf?: string | null
           created_at?: string
           current_lodge_number?: string | null

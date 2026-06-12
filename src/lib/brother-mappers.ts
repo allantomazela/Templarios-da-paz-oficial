@@ -1,4 +1,8 @@
 import type { Brother } from '@/lib/data'
+import {
+  normalizeBrotherObedience,
+  toNullableBrotherText,
+} from '@/lib/brother-masonic-fields'
 
 export function mapBrotherToDB(brother: Partial<Brother>) {
   return {
@@ -15,8 +19,13 @@ export function mapBrotherToDB(brother: Partial<Brother>) {
     elevation_date: brother.elevationDate || null,
     exaltation_date: brother.exaltationDate || null,
     attendance_rate: brother.attendanceRate || 0,
-    masonic_registration_number: brother.masonicRegistrationNumber || null,
-    obedience: brother.obedience || null,
+    cim: toNullableBrotherText(brother.cim),
+    masonic_registration_number: toNullableBrotherText(
+      brother.masonicRegistrationNumber,
+    ),
+    obedience: toNullableBrotherText(
+      normalizeBrotherObedience(brother.obedience),
+    ),
     origin_lodge: brother.originLodge || null,
     origin_lodge_number: brother.originLodgeNumber || null,
     current_lodge_number: brother.currentLodgeNumber || null,
@@ -61,10 +70,17 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
     elevationDate: row.elevation_date ? String(row.elevation_date) : undefined,
     exaltationDate: row.exaltation_date ? String(row.exaltation_date) : undefined,
     attendanceRate: Number(row.attendance_rate) || 0,
+    cim: row.cim
+      ? String(row.cim)
+      : row.masonic_registration_number
+        ? String(row.masonic_registration_number)
+        : undefined,
     masonicRegistrationNumber: row.masonic_registration_number
       ? String(row.masonic_registration_number)
       : undefined,
-    obedience: row.obedience ? String(row.obedience) : undefined,
+    obedience: row.obedience
+      ? normalizeBrotherObedience(String(row.obedience))
+      : undefined,
     originLodge: row.origin_lodge ? String(row.origin_lodge) : undefined,
     originLodgeNumber: row.origin_lodge_number
       ? String(row.origin_lodge_number)

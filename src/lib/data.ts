@@ -29,6 +29,7 @@ export interface Brother {
   photoUrl?: string
   
   // Additional masonic information
+  cim?: string
   masonicRegistrationNumber?: string
   obedience?: string
   originLodge?: string

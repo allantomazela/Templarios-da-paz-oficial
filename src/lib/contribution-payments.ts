@@ -376,18 +376,33 @@ export async function fetchContributionsWithProfiles(): Promise<{
   return { contributions, brotherNames }
 }
 
-export async function fetchApprovedBrothers(): Promise<
-  { id: string; full_name: string | null }[]
-> {
+export type ApprovedBrotherOption = {
+  id: string
+  full_name: string | null
+}
+
+/** Ordem alfabética pt-BR para listas de irmãos (mensalidades, ágape, etc.). */
+export function sortBrothersAlphabetically<T extends ApprovedBrotherOption>(
+  brothers: T[],
+): T[] {
+  return [...brothers].sort((a, b) =>
+    (a.full_name?.trim() || 'Sem nome').localeCompare(
+      b.full_name?.trim() || 'Sem nome',
+      'pt-BR',
+      { sensitivity: 'base' },
+    ),
+  )
+}
+
+export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> {
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('profiles')
     .select('id, full_name')
     .eq('status', 'approved')
-    .order('full_name', { ascending: true })
 
   if (error) throw error
-  return data || []
+  return sortBrothersAlphabetically(data || [])
 }
 
 export async function fetchBankAccounts(): Promise<

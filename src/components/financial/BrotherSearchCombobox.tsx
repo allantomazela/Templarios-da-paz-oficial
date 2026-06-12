@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { sortBrothersAlphabetically } from '@/lib/contribution-payments'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -41,7 +42,11 @@ export function BrotherSearchCombobox({
   className,
 }: BrotherSearchComboboxProps) {
   const [open, setOpen] = useState(false)
-  const selected = brothers.find((b) => b.id === value)
+  const sortedBrothers = useMemo(
+    () => sortBrothersAlphabetically(brothers),
+    [brothers],
+  )
+  const selected = sortedBrothers.find((b) => b.id === value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -68,10 +73,11 @@ export function BrotherSearchCombobox({
           <CommandList>
             <CommandEmpty>Nenhum irmão encontrado.</CommandEmpty>
             <CommandGroup>
-              {brothers.map((brother) => (
+              {sortedBrothers.map((brother, index) => (
                 <CommandItem
                   key={brother.id}
-                  value={`${brother.full_name || 'Sem nome'} ${brother.id}`}
+                  value={`${String(index).padStart(4, '0')}-${brother.full_name || 'Sem nome'}`}
+                  keywords={[brother.full_name || 'Sem nome', brother.id]}
                   onSelect={() => {
                     onChange(brother.id)
                     setOpen(false)

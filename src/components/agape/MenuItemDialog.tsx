@@ -102,14 +102,6 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
   })
 
   useEffect(() => {
-    if (!open) {
-      revokePreviewBlob()
-      setIsSubmittingLocal(false)
-      setPendingImageFile(null)
-      imageUpload.reset()
-      return
-    }
-
     revokePreviewBlob()
 
     if (item) {
@@ -122,8 +114,6 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
         is_active: item.is_active,
       })
       setPreviewImage(item.image_url || null)
-      setPendingImageFile(null)
-      imageUpload.reset()
     } else {
       form.reset({
         name: '',
@@ -134,13 +124,15 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
         is_active: true,
       })
       setPreviewImage(null)
-      setPendingImageFile(null)
-      imageUpload.reset()
     }
+
+    setPendingImageFile(null)
+    setIsSubmittingLocal(false)
+    imageUpload.reset()
 
     return () => revokePreviewBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item?.id, open, form])
+  }, [item?.id])
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

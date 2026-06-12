@@ -32,12 +32,14 @@ export function MenuItemsList() {
   const { menuItems, menuItemsLoading, deleteMenuItem } = useAgapeStore()
   const dialog = useDialog()
   const [selectedItem, setSelectedItem] = useState<AgapeMenuItem | null>(null)
+  const [dialogSession, setDialogSession] = useState(0)
   const [deleteTarget, setDeleteTarget] = useState<AgapeMenuItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
 
   const handleEdit = (item: AgapeMenuItem) => {
     setSelectedItem(item)
+    setDialogSession((current) => current + 1)
     dialog.openDialog()
   }
 
@@ -63,6 +65,7 @@ export function MenuItemsList() {
 
   const handleNew = () => {
     setSelectedItem(null)
+    setDialogSession((current) => current + 1)
     dialog.openDialog()
   }
 
@@ -163,18 +166,18 @@ export function MenuItemsList() {
         </div>
       )}
 
-      <MenuItemDialog
-        key={selectedItem?.id ?? 'new'}
-        open={dialog.open}
-        onOpenChange={(open) => {
-          if (!open) {
-            handleClose()
-          } else {
-            dialog.onOpenChange(open)
-          }
-        }}
-        item={selectedItem}
-      />
+      {dialog.open ? (
+        <MenuItemDialog
+          key={`${selectedItem?.id ?? 'new'}-${dialogSession}`}
+          open
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
+              handleClose()
+            }
+          }}
+          item={selectedItem}
+        />
+      ) : null}
 
       <AlertDialog
         open={!!deleteTarget}

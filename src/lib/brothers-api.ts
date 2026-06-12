@@ -25,6 +25,100 @@ function scheduleProfileDegreeSync(
   void syncProfileMasonicDegreeFromBrother(email, degree)
 }
 
+export async function fetchBrotherForProfile(
+  profileId: string,
+  email?: string | null,
+): Promise<Brother | null> {
+  const supabaseAny = supabase as any
+
+  const { data: byProfile, error: profileError } = await withTimeout(
+    supabaseAny
+      .from('brothers')
+      .select('*')
+      .eq('profile_id', profileId)
+      .maybeSingle(),
+    BROTHER_OP_TIMEOUT_MS,
+    'Carregamento do cadastro demorou demais. Tente novamente.',
+  )
+
+  if (profileError) {
+    throw toError(profileError, 'Não foi possível carregar seu cadastro.')
+  }
+
+  if (byProfile) {
+    return mapBrotherFromDB(byProfile)
+  }
+
+  const normalizedEmail = email?.trim()
+  if (!normalizedEmail) return null
+
+  const { data: byEmail, error: emailError } = await withTimeout(
+    supabaseAny
+      .from('brothers')
+      .select('*')
+      .ilike('email', normalizedEmail)
+      .maybeSingle(),
+    BROTHER_OP_TIMEOUT_MS,
+    'Carregamento do cadastro demorou demais. Tente novamente.',
+  )
+
+  if (emailError) {
+    throw toError(emailError, 'Não foi possível carregar seu cadastro.')
+  }
+
+  return byEmail ? mapBrotherFromDB(byEmail) : null
+}
+
+export async function saveMyBrotherRegistration(
+  profileId: string,
+  email: string,
+  data: BrotherSaveInput,
+  existing: Brother | null,
+): Promise<Brother> {
+  const payload: BrotherSaveInput = {
+    ...data,
+    email,
+    profileId,
+  }
+
+  if (existing?.id) {
+    const dbData = {
+      ...mapBrotherToDB({
+        ...payload,
+        role: existing.role,
+        status: existing.status,
+        attendanceRate: existing.attendanceRate,
+      }),
+      profile_id: profileId,
+      updated_at: new Date().toISOString(),
+    }
+
+    const supabaseAny = supabase as any
+    const { data: updatedRow, error } = await withTimeout(
+      supabaseAny
+        .from('brothers')
+        .update(dbData)
+        .eq('id', existing.id)
+        .select('*')
+        .single(),
+      BROTHER_OP_TIMEOUT_MS,
+      'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+    )
+
+    if (error) {
+      throw toError(error, 'Falha ao salvar seu cadastro.')
+    }
+
+    const updatedBrother = mapBrotherFromDB(updatedRow)
+    scheduleProfileDegreeSync(email, data.degree)
+    return updatedBrother
+  }
+
+  const newBrother = await createBrother(payload)
+  scheduleProfileDegreeSync(email, data.degree)
+  return newBrother
+}
+
 export async function fetchBrothers(): Promise<Brother[]> {
   const supabaseAny = supabase as any
   const { data: rows, error } = await withTimeout(

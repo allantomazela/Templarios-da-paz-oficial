@@ -6,15 +6,22 @@ import { AvatarUpload } from '@/components/profile/AvatarUpload'
 import { ProfileInfo } from '@/components/profile/ProfileInfo'
 import { PasswordChange } from '@/components/profile/PasswordChange'
 import { AccountInfo } from '@/components/profile/AccountInfo'
+import { BrotherRegistrationPanel } from '@/components/profile/BrotherRegistrationPanel'
 import { Loader2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { logError } from '@/lib/logger'
+import {
+  fetchBrotherForProfile,
+} from '@/lib/brothers-api'
+import { isBrotherRegistrationComplete } from '@/lib/brother-registration-utils'
 
 export default function Profile() {
   const { user } = useAuthStore()
   const { profile, fetchProfile, loading } = useProfileStore()
   const [createdAt, setCreatedAt] = useState<string>()
   const [updatedAt, setUpdatedAt] = useState<string>()
+  const [registrationComplete, setRegistrationComplete] = useState(true)
 
   const loadProfile = useCallback(async () => {
     if (!user?.id) return
@@ -33,10 +40,17 @@ export default function Profile() {
         setCreatedAt(data.created_at)
         setUpdatedAt(data.updated_at)
       }
+
+      const brotherRecord = await fetchBrotherForProfile(
+        user.id,
+        data?.email ?? user.email,
+      )
+      setRegistrationComplete(isBrotherRegistrationComplete(brotherRecord))
     } catch (error) {
       logError('Error loading profile', error)
+      setRegistrationComplete(false)
     }
-  }, [fetchProfile, user?.id])
+  }, [fetchProfile, user?.email, user?.id])
 
   useEffect(() => {
     if (user?.id) {
@@ -64,12 +78,27 @@ export default function Profile() {
         </p>
       </div>
 
-      <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList>
+      <Tabs defaultValue="registration" className="space-y-6">
+        <TabsList className="flex h-auto flex-wrap gap-1">
+          <TabsTrigger value="registration" className="gap-2">
+            Cadastro Completo
+            {!registrationComplete && (
+              <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                Pendente
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="personal">Informações Pessoais</TabsTrigger>
           <TabsTrigger value="security">Segurança</TabsTrigger>
           <TabsTrigger value="account">Conta</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="registration" className="space-y-6">
+          <BrotherRegistrationPanel
+            profile={profile}
+            onRegistrationChange={setRegistrationComplete}
+          />
+        </TabsContent>
 
         <TabsContent value="personal" className="space-y-6">
           <AvatarUpload

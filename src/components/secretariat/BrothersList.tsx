@@ -50,10 +50,12 @@ import {
   type BrotherSaveInput,
 } from '@/lib/brothers-api'
 import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
+import { isMasterAdminEmail } from '@/config/master-admin'
 import useAuthStore from '@/stores/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
 
 export function BrothersList() {
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [degreeFilter, setDegreeFilter] = useState('all')
@@ -64,7 +66,6 @@ export function BrothersList() {
   const [deleteTarget, setDeleteTarget] = useState<Brother | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const hasLoadedRef = useRef(false)
-  const { toast } = useToast()
 
   const loadBrothers = useAsyncOperation(
     async () => {
@@ -158,6 +159,8 @@ export function BrothersList() {
     toggleStatusOperation.execute(brother)
   }
 
+  const canDeleteBrother = (brother: Brother) => !isMasterAdminEmail(brother.email)
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
     setIsDeleting(true)
@@ -168,10 +171,14 @@ export function BrothersList() {
         setSelectedBrother(null)
         detailsDialog.closeDialog()
       }
+      const deletedName = deleteTarget.name
+      const hadAccount = !!deleteTarget.profileId
       setDeleteTarget(null)
       toast({
         title: 'Irmão excluído',
-        description: 'O cadastro foi removido permanentemente.',
+        description: hadAccount
+          ? `${deletedName} foi removido da secretaria e o acesso ao sistema foi encerrado.`
+          : `${deletedName} foi removido da secretaria.`,
       })
     } catch (error) {
       if (isAuthError(error)) {
@@ -181,7 +188,10 @@ export function BrothersList() {
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: getSaveErrorMessage(error),
+        description:
+          error instanceof Error
+            ? error.message
+            : getSaveErrorMessage(error),
       })
     } finally {
       setIsDeleting(false)
@@ -317,13 +327,15 @@ export function BrothersList() {
                           <Power className="mr-2 h-4 w-4" />
                           {brother.status === 'Ativo' ? 'Desativar' : 'Ativar'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteTarget(brother)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {canDeleteBrother(brother) && (
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeleteTarget(brother)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -387,15 +399,17 @@ export function BrothersList() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleteTarget(brother)}
-                      aria-label={`Excluir ${brother.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canDeleteBrother(brother) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(brother)}
+                        aria-label={`Excluir ${brother.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -430,15 +444,21 @@ export function BrothersList() {
                 <>
                   Você está prestes a excluir o cadastro de{' '}
                   <strong>{deleteTarget.name}</strong>. Todos os dados pessoais e
-                  maçônicos deste registro serão removidos. Esta ação não pode ser
-                  desfeita.
-                  {deleteTarget.profileId && (
+                  maçônicos deste registro serão removidos.
+                  {deleteTarget.profileId ? (
                     <>
                       {' '}
-                      A conta de usuário vinculada no sistema <strong>não</strong>{' '}
-                      será excluída — apenas o vínculo com este cadastro.
+                      O login no sistema será encerrado imediatamente e a conta
+                      vinculada na gestão de usuários também será excluída.
                     </>
-                  )}
+                  ) : (
+                    <>
+                      {' '}
+                      Se existir conta vinculada pelo e-mail, ela também será
+                      removida.
+                    </>
+                  )}{' '}
+                  Esta ação não pode ser desfeita.
                 </>
               ) : null}
             </AlertDialogDescription>
@@ -448,7 +468,7 @@ export function BrothersList() {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
-                handleDeleteConfirm()
+                void handleDeleteConfirm()
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}

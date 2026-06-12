@@ -128,6 +128,7 @@ export function UserManagement() {
           type: 'account_approved',
           email: user.email,
           fullName: user.full_name || 'Irmão',
+          profileId: user.id,
         })
         if (!mail.ok && !mail.skipped) {
           toast({
@@ -475,7 +476,8 @@ export function UserManagement() {
             <AlertDialogDescription>
               Esta ação remove permanentemente a conta de{' '}
               <strong>{deleteTarget?.full_name}</strong> (
-              {deleteTarget?.email || 'sem e-mail'}), incluindo login e perfil.
+              {deleteTarget?.email || 'sem e-mail'}), encerra o login imediatamente,
+              exclui o perfil e remove o cadastro correspondente na secretaria.
               Não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

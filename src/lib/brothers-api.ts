@@ -3,6 +3,7 @@ import { withTimeout, toError } from '@/lib/async-utils'
 import { mapBrotherFromDB, mapBrotherToDB } from '@/lib/brother-mappers'
 import { resolveBrotherProfileIdForSave } from '@/lib/brother-profile-link'
 import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
+import { deleteBrotherAsAdmin } from '@/lib/admin-user-api'
 import type { Brother } from '@/lib/data'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 
@@ -128,16 +129,11 @@ export async function deleteBrother(
   id: string,
   photoUrl?: string | null,
 ): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await withTimeout(
-    supabaseAny.from('brothers').delete().eq('id', id),
+  await withTimeout(
+    deleteBrotherAsAdmin(id),
     BROTHER_OP_TIMEOUT_MS,
     'Exclusão demorou demais. Verifique sua conexão e tente novamente.',
   )
-
-  if (error) {
-    throw toError(error, 'Falha ao excluir o irmão.')
-  }
 
   if (photoUrl?.includes('/brothers-photos/')) {
     void removeBrotherPhotoFromStorage(photoUrl)

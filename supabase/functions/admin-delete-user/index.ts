@@ -1,12 +1,25 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { corsHeaders } from '../_shared/cors.ts'
-import { requireAdmin } from '../_shared/auth.ts'
-
-const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
+import { requireAdmin, requireAdminOrEditor } from '../_shared/auth.ts'
+import { deleteMemberFromSystem } from '../_shared/member-deletion.ts'
 
 interface DeleteBody {
   userId?: string
+  brotherId?: string
+  user_id?: string
+  brother_id?: string
+  id?: string
+}
+
+function parseDeleteIds(body: DeleteBody): {
+  userId?: string
+  brotherId?: string
+} {
+  const userId = (body.userId ?? body.user_id)?.trim() || undefined
+  const brotherId = (body.brotherId ?? body.brother_id ?? body.id)?.trim() ||
+    undefined
+  return { userId, brotherId }
 }
 
 serve(async (req) => {
@@ -38,20 +51,6 @@ serve(async (req) => {
     )
   }
 
-  const auth = await requireAdmin(
-    supabaseUrl,
-    supabaseAnonKey,
-    req.headers.get('Authorization'),
-    serviceRoleKey,
-  )
-
-  if (!auth.ok) {
-    return new Response(JSON.stringify({ error: auth.message }), {
-      status: auth.status,
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    })
-  }
-
   let body: DeleteBody
   try {
     body = await req.json()
@@ -62,17 +61,14 @@ serve(async (req) => {
     })
   }
 
-  const userId = body.userId?.trim()
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'userId é obrigatório.' }), {
-      status: 400,
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    })
-  }
+  const { userId, brotherId } = parseDeleteIds(body)
 
-  if (userId === auth.user.id) {
+  if (!userId && !brotherId) {
     return new Response(
-      JSON.stringify({ error: 'Você não pode excluir sua própria conta.' }),
+      JSON.stringify({
+        error: 'Informe userId ou brotherId.',
+        hint: 'Envie { "brotherId": "<uuid>" } na secretaria ou { "userId": "<uuid>" } no admin.',
+      }),
       {
         status: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -80,44 +76,59 @@ serve(async (req) => {
     )
   }
 
-  const adminClient = createClient(supabaseUrl, serviceRoleKey)
+  const authHeader = req.headers.get('Authorization')
+  const auth =
+    brotherId && !userId
+      ? await requireAdminOrEditor(
+          supabaseUrl,
+          supabaseAnonKey,
+          authHeader,
+          serviceRoleKey,
+        )
+      : await requireAdmin(
+          supabaseUrl,
+          supabaseAnonKey,
+          authHeader,
+          serviceRoleKey,
+        )
 
-  const { data: targetAuth, error: fetchError } =
-    await adminClient.auth.admin.getUserById(userId)
-
-  if (fetchError || !targetAuth?.user) {
-    return new Response(JSON.stringify({ error: 'Usuário não encontrado.' }), {
-      status: 404,
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.message }), {
+      status: auth.status,
       headers: { ...headers, 'Content-Type': 'application/json' },
     })
   }
 
-  if (targetAuth.user.email === MASTER_ADMIN_EMAIL) {
-    return new Response(
-      JSON.stringify({ error: 'Não é permitido excluir o administrador principal.' }),
-      {
-        status: 403,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      },
-    )
-  }
-
-  const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
-
-  if (deleteError) {
-    return new Response(
-      JSON.stringify({
-        error: deleteError.message || 'Não foi possível excluir o usuário.',
-      }),
-      {
-        status: 500,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      },
-    )
-  }
-
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: { ...headers, 'Content-Type': 'application/json' },
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
   })
+
+  try {
+    const result = await deleteMemberFromSystem(adminClient, {
+      userId,
+      brotherId,
+      actorUserId: auth.user.id,
+    })
+
+    return new Response(JSON.stringify({ success: true, ...result }), {
+      status: 200,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Não foi possível excluir o usuário.'
+    const status =
+      message.includes('não encontrad') || message.includes('não encontrado')
+        ? 404
+        : message.includes('não pode') || message.includes('não é permitido')
+          ? 403
+          : 500
+
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+    })
+  }
 })

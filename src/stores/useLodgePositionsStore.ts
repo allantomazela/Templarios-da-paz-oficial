@@ -4,6 +4,7 @@ import { todayLocalISODate } from '@/lib/format-utils'
 import { devLog, logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
+import { withTimeout } from '@/lib/async-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
 function handleAuthError(error: unknown): boolean {
@@ -45,11 +46,14 @@ export interface LodgePositionHistory {
 }
 
 const fetchPositionsSeq = createRequestSequence()
+const POSITIONS_FETCH_TIMEOUT_MS = 15_000
 
 interface LodgePositionsState {
   positions: LodgePosition[]
   history: LodgePositionHistory[]
   loading: boolean
+  /** true após a primeira tentativa de fetchPositions (sucesso ou falha) */
+  initialized: boolean
 
   fetchPositions: () => Promise<void>
   fetchHistory: () => Promise<void>
@@ -70,15 +74,17 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
     positions: [],
     history: [],
     loading: false,
+    initialized: false,
 
     fetchPositions: async () => {
       const id = fetchPositionsSeq.next()
       set({ loading: true })
       try {
-        const { data, error } = await supabase
-          .from('lodge_positions')
-          .select('*')
-          .order('position_type')
+        const { data, error } = await withTimeout(
+          supabase.from('lodge_positions').select('*').order('position_type'),
+          POSITIONS_FETCH_TIMEOUT_MS,
+          'Carregamento dos cargos demorou demais. Verifique sua conexão.',
+        )
 
         if (error) throw error
 
@@ -122,7 +128,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
         logError('Error fetching positions', error)
       } finally {
         if (fetchPositionsSeq.isCurrent(id)) {
-          set({ loading: false })
+          set({ loading: false, initialized: true })
         }
       }
     },
@@ -147,12 +153,14 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
     assignPosition: async (positionType, userId, startDate, endDate) => {
       set({ loading: true })
       try {
-        // Verificar se já existe cargo ativo para este tipo
-        const { data: existing } = await supabase
+        // maybeSingle evita 406 quando ainda não há registro deste cargo
+        const { data: existing, error: existingError } = await supabase
           .from('lodge_positions')
           .select('*')
           .eq('position_type', positionType)
-          .single()
+          .maybeSingle()
+
+        if (existingError) throw existingError
 
         if (existing) {
           // Mover cargo antigo para histórico
@@ -190,11 +198,13 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
     removePosition: async (positionId) => {
       set({ loading: true })
       try {
-        const { data: position } = await supabase
+        const { data: position, error: positionError } = await supabase
           .from('lodge_positions')
           .select('*')
           .eq('id', positionId)
-          .single()
+          .maybeSingle()
+
+        if (positionError) throw positionError
 
         if (position) {
           // Mover para histórico

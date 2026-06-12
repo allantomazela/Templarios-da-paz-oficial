@@ -22,8 +22,12 @@ type SecretariatTab =
   | 'docs'
   | 'minutes'
 
+type CommunicationsTab = 'notices' | 'messages' | 'contact'
+
 export default function Secretariat() {
   const [activeTab, setActiveTab] = useState<SecretariatTab>('brothers')
+  const [communicationsTab, setCommunicationsTab] =
+    useState<CommunicationsTab>('notices')
 
   return (
     <div className="space-y-6">
@@ -70,7 +74,12 @@ export default function Secretariat() {
 
         <TabsContent value="communications" className="space-y-4">
           {activeTab === 'communications' ? (
-            <Tabs defaultValue="notices">
+            <Tabs
+              value={communicationsTab}
+              onValueChange={(value) =>
+                setCommunicationsTab(value as CommunicationsTab)
+              }
+            >
               <div className="flex items-center justify-between mb-4">
                 <TabsList>
                   <TabsTrigger value="notices">Mural de Avisos</TabsTrigger>
@@ -80,46 +89,52 @@ export default function Secretariat() {
               </div>
 
               <TabsContent value="notices">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Mural de Avisos</CardTitle>
-                    <CardDescription>
-                      Gerencie os avisos oficiais da loja.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <NoticesList />
-                  </CardContent>
-                </Card>
+                {communicationsTab === 'notices' ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Mural de Avisos</CardTitle>
+                      <CardDescription>
+                        Gerencie os avisos oficiais da loja.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <NoticesList />
+                    </CardContent>
+                  </Card>
+                ) : null}
               </TabsContent>
 
               <TabsContent value="messages">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Mensagens Internas</CardTitle>
-                    <CardDescription>
-                      Comunicação direta entre irmãos.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <MessagesList />
-                  </CardContent>
-                </Card>
+                {communicationsTab === 'messages' ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Mensagens Internas</CardTitle>
+                      <CardDescription>
+                        Comunicação direta entre irmãos.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <MessagesList />
+                    </CardContent>
+                  </Card>
+                ) : null}
               </TabsContent>
 
               <TabsContent value="contact">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Mensagens do Site</CardTitle>
-                    <CardDescription>
-                      Mensagens enviadas através do formulário de contato do
-                      site.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ContactMessagesList />
-                  </CardContent>
-                </Card>
+                {communicationsTab === 'contact' ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Mensagens do Site</CardTitle>
+                      <CardDescription>
+                        Mensagens enviadas através do formulário de contato do
+                        site.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ContactMessagesList />
+                    </CardContent>
+                  </Card>
+                ) : null}
               </TabsContent>
             </Tabs>
           ) : null}

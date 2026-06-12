@@ -120,7 +120,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single()
+            .maybeSingle()
             .then(({ data, error }) => {
               if (error) throw error
               return data
@@ -203,11 +203,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         if (session) {
           try {
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
-              .single()
+              .maybeSingle()
+
+            if (profileError) {
+              logError('Error fetching profile on auth change', profileError)
+            }
 
             const userProfile = profile
               ? sanitizeAuthProfile(profile as Profile)
@@ -307,11 +311,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (data.session) {
       const isMasterAdmin = isMasterAdminEmail(data.session.user.email)
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.session.user.id)
-        .single()
+        .maybeSingle()
+
+      if (profileError) {
+        logError('Error fetching profile on sign in', profileError)
+      }
 
       const userProfile = profile
         ? sanitizeAuthProfile(profile as Profile)

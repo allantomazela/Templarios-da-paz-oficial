@@ -14,6 +14,8 @@ import { CashFlowReport } from '@/components/financial/CashFlowReport'
 import { CharityCollection } from '@/components/financial/CharityCollection'
 import { AgapeClosing } from '@/components/financial/AgapeClosing'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import { Navigate } from 'react-router-dom'
 
 const FINANCIAL_TABS = [
@@ -34,6 +36,7 @@ const FINANCIAL_TABS = [
 type FinancialTabValue = (typeof FINANCIAL_TABS)[number]['value']
 
 export default function Financial() {
+  const positionsInitialized = useLodgePositionsStore((s) => s.initialized)
   const { canManageAgapeClosing, canAccessFullFinancial } =
     useAgapeClosingPermissions()
   const [activeTab, setActiveTab] = useState<FinancialTabValue>('overview')
@@ -53,6 +56,10 @@ export default function Financial() {
       setActiveTab(visibleTabs[0].value)
     }
   }, [visibleTabs, activeTab])
+
+  if (!positionsInitialized) {
+    return <DashboardModuleLoader />
+  }
 
   if (!canManageAgapeClosing) {
     return <Navigate to="/access-denied" replace />

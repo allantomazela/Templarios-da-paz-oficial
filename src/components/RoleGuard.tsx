@@ -27,6 +27,7 @@ function RoleGuardInner({
   const userStatus = user?.profile?.status
   const isBlockedStatus =
     userStatus === 'blocked' || userStatus === 'in_memoriam'
+  const hasRoleBasedModuleAccess = allowedRoles.includes(userRole)
 
   const moduleCandidates = [
     ...(requiredModule ? [requiredModule] : []),
@@ -49,7 +50,11 @@ function RoleGuardInner({
   if (requiredModule && user?.id) {
     if (userRole === 'member' && allowedRoles.includes('member')) {
       // ok
-    } else if (!isMasterAdmin && !hasModuleAccessViaPosition) {
+    } else if (
+      !isMasterAdmin &&
+      !hasRoleBasedModuleAccess &&
+      !hasModuleAccessViaPosition
+    ) {
       return <Navigate to="/access-denied" replace />
     }
   }
@@ -86,7 +91,14 @@ export function RoleGuard({
   alternativeModules,
 }: RoleGuardProps) {
   const { user, loading, initialized } = useAuthStore()
+  const { initialized: positionsInitialized } = useLodgePositionsStore()
   const [isTimeout, setIsTimeout] = useState(false)
+
+  const needsPositionsForAccess =
+    Boolean(requiredModule) &&
+    Boolean(user) &&
+    !isMasterAdminEmail(user.email) &&
+    !allowedRoles.includes(user.role || 'member')
 
   useEffect(() => {
     let timer: NodeJS.Timeout
@@ -111,6 +123,15 @@ export function RoleGuard({
 
   if (!user) {
     return <Navigate to="/dashboard" replace />
+  }
+
+  if (needsPositionsForAccess && !positionsInitialized) {
+    return (
+      <div className="flex h-full min-h-[50vh] flex-col items-center justify-center gap-2">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Verificando permissões...</p>
+      </div>
+    )
   }
 
   return (

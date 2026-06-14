@@ -28,16 +28,24 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { ReminderLog, ReminderSettings, Contribution } from '@/lib/data'
-import { format } from 'date-fns'
 import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
 import { Bell, History, CheckCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import {
+  fetchApprovedBrothers,
+  fetchMembershipFeeSettings,
+} from '@/lib/contribution-payments'
+import {
+  buildAllMembershipSchedules,
+  buildOverdueBrotherAlerts,
+} from '@/lib/membership-schedule'
+import { sendMembershipOverdueReminder } from '@/lib/membership-reminders'
 
 interface ReminderLogFromDB {
   id: string
   brother_id: string
-  contribution_id: string
+  contribution_id: string | null
   sent_date: string
   method: 'Email' | 'WhatsApp'
   created_at: string
@@ -200,38 +208,122 @@ export function ReminderSettings() {
   const simulateReminders = useAsyncOperation(
     async () => {
       setIsSimulating(true)
-      // Find pending contributions
-      const pending = contributions.filter(
-        (c) => c.status === 'Pendente' || c.status === 'Atrasado',
-      )
+      try {
+        const [settings, brothers] = await Promise.all([
+          fetchMembershipFeeSettings(),
+          fetchApprovedBrothers(),
+        ])
 
-      let count = 0
-      const today = todayLocalISODate()
+        const brotherNames: Record<string, string> = {}
+        for (const b of brothers) {
+          brotherNames[b.id] = b.full_name?.trim() || 'Sem nome'
+        }
 
-      for (const p of pending) {
-        // Check if already sent today
-        const alreadySent = reminderLogs.some(
-          (l) => l.contributionId === p.id && l.sentDate === today,
+        const schedules = buildAllMembershipSchedules(
+          contributions,
+          brothers.map((b) => ({
+            id: b.id,
+            full_name: b.full_name,
+            created_at: b.created_at,
+          })),
+          brotherNames,
+          settings,
         )
 
-        if (!alreadySent) {
-          // Create reminder log in Supabase
-          const { error } = await supabaseAny.from('reminder_logs').insert({
-            brother_id: p.brotherId,
-            contribution_id: p.id,
-            sent_date: today,
-            method: 'Email',
+        const alerts = buildOverdueBrotherAlerts(schedules)
+        if (alerts.length === 0) {
+          return 'Nenhum irmão com mensalidades em atraso no cronograma.'
+        }
+
+        const alertBrotherIds = alerts.map((a) => a.brotherId)
+        const { data: profiles, error: profilesError } = await supabaseAny
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', alertBrotherIds)
+
+        if (profilesError) throw profilesError
+
+        const profileById = new Map<
+          string,
+          { email: string | null; full_name: string | null }
+        >()
+        for (const p of profiles || []) {
+          profileById.set(p.id, {
+            email: p.email,
+            full_name: p.full_name,
+          })
+        }
+
+        let sentCount = 0
+        let skippedCount = 0
+        let failedCount = 0
+        const today = todayLocalISODate()
+
+        for (const alert of alerts) {
+          const alreadySent = reminderLogs.some(
+            (l) => l.brotherId === alert.brotherId && l.sentDate === today,
+          )
+
+          if (alreadySent) {
+            skippedCount++
+            continue
+          }
+
+          const profile = profileById.get(alert.brotherId)
+          const email = profile?.email?.trim()
+          if (!email) {
+            failedCount++
+            continue
+          }
+
+          const result = await sendMembershipOverdueReminder({
+            brotherId: alert.brotherId,
+            email,
+            fullName: profile?.full_name?.trim() || alert.brotherName,
+            overdueLabels: alert.overdueLabels,
+            overdueAmount: alert.overdueAmount,
           })
 
-          if (!error) {
-            count++
+          if (!result.ok) {
+            failedCount++
+            continue
           }
-        }
-      }
 
-      setIsSimulating(false)
-      await loadData.execute() // Reload data
-      return `${count} novos lembretes foram enviados.`
+          if (result.skipped) {
+            skippedCount++
+            continue
+          }
+
+          const { error: logError } = await supabaseAny
+            .from('reminder_logs')
+            .insert({
+              brother_id: alert.brotherId,
+              contribution_id: null,
+              sent_date: today,
+              method: 'Email',
+            })
+
+          if (logError) {
+            failedCount++
+            continue
+          }
+
+          sentCount++
+        }
+
+        await loadData.execute()
+
+        const parts = [`${sentCount} lembrete(s) enviado(s) por e-mail.`]
+        if (skippedCount > 0) {
+          parts.push(`${skippedCount} ignorado(s) (já enviado hoje ou duplicado).`)
+        }
+        if (failedCount > 0) {
+          parts.push(`${failedCount} falha(s) (sem e-mail ou erro no envio).`)
+        }
+        return parts.join(' ')
+      } finally {
+        setIsSimulating(false)
+      }
     },
     {
       successMessage: 'Verificação concluída!',
@@ -267,7 +359,8 @@ export function ReminderSettings() {
           </CardTitle>
           <CardDescription>
             Defina quando os lembretes de pagamento devem ser enviados aos
-            irmãos.
+            irmãos. A verificação manual envia e-mail real (Resend) para quem
+            estiver em atraso no cronograma de mensalidades.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

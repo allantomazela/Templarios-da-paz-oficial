@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Brother } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ptBR } from 'date-fns/locale'
 import {
   AlertTriangle,
@@ -15,6 +16,12 @@ import {
 } from '@/lib/contribution-payments'
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { formatCalendarDate } from '@/lib/format-utils'
+import {
+  buildMembershipScheduleForBrother,
+  type MembershipFeeScheduleSettings,
+} from '@/lib/membership-schedule'
+import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
+import { supabase } from '@/lib/supabase/client'
 import type { Contribution } from '@/lib/data'
 
 interface BrotherMembershipPanelProps {
@@ -40,13 +47,20 @@ export function BrotherMembershipPanel({
 }: BrotherMembershipPanelProps) {
   const [loading, setLoading] = useState(false)
   const [profileLinked, setProfileLinked] = useState<boolean | null>(null)
+  const [profileId, setProfileId] = useState<string | null>(null)
+  const [memberSince, setMemberSince] = useState<string | null>(null)
   const [contributions, setContributions] = useState<Contribution[]>([])
-  const [dueDay, setDueDay] = useState(10)
+  const [feeSettings, setFeeSettings] = useState<MembershipFeeScheduleSettings>({
+    defaultAmount: 0,
+    dueDay: 10,
+  })
 
   useEffect(() => {
     if (!open || !brother) {
       setContributions([])
       setProfileLinked(null)
+      setProfileId(null)
+      setMemberSince(null)
       return
     }
 
@@ -57,27 +71,44 @@ export function BrotherMembershipPanel({
       try {
         const settings = await fetchMembershipFeeSettings()
         if (cancelled) return
-        setDueDay(settings.dueDay)
+        setFeeSettings(settings)
 
-        let profileId = brother.profileId ?? null
-        if (!profileId) {
-          profileId = await resolveProfileIdByEmail(brother.email)
+        let resolvedProfileId = brother.profileId ?? null
+        if (!resolvedProfileId) {
+          resolvedProfileId = await resolveProfileIdByEmail(brother.email)
         }
 
-        if (!profileId) {
+        if (!resolvedProfileId) {
           setProfileLinked(false)
+          setProfileId(null)
           setContributions([])
+          setMemberSince(null)
           return
         }
 
+        const supabaseAny = supabase as any
+        const [{ data: profileRow }, rows] = await Promise.all([
+          supabaseAny
+            .from('profiles')
+            .select('created_at')
+            .eq('id', resolvedProfileId)
+            .maybeSingle(),
+          fetchContributionsForProfile(resolvedProfileId),
+        ])
+
+        if (cancelled) return
+
         setProfileLinked(true)
-        const rows = await fetchContributionsForProfile(profileId)
-        if (!cancelled) setContributions(rows)
+        setProfileId(resolvedProfileId)
+        setMemberSince(profileRow?.created_at ?? null)
+        setContributions(rows)
       } catch (error) {
         console.error('Erro ao carregar mensalidades do irmão:', error)
         if (!cancelled) {
           setProfileLinked(false)
+          setProfileId(null)
           setContributions([])
+          setMemberSince(null)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -88,12 +119,31 @@ export function BrotherMembershipPanel({
     return () => {
       cancelled = true
     }
-  }, [brother.profileId, brother.email, open])
+  }, [brother, open])
+
+  const schedule = useMemo(() => {
+    if (!profileId || profileLinked !== true) return null
+    return buildMembershipScheduleForBrother(
+      profileId,
+      brother.name,
+      contributions,
+      feeSettings,
+      memberSince,
+    )
+  }, [
+    profileId,
+    profileLinked,
+    brother.name,
+    contributions,
+    feeSettings,
+    memberSince,
+  ])
 
   const pending = contributions.filter((c) => c.status !== 'Pago')
   const paid = contributions.filter((c) => c.status === 'Pago')
-  const totalPaid = paid.reduce((s, c) => s + c.amount, 0)
-  const totalPending = pending.reduce((s, c) => s + c.amount, 0)
+  const totalPaid = schedule?.totalPaid ?? paid.reduce((s, c) => s + c.amount, 0)
+  const totalPending = schedule?.totalOpen ?? pending.reduce((s, c) => s + c.amount, 0)
+  const overdueCount = schedule?.overdueMonthCount ?? 0
 
   return (
     <div className="space-y-3">
@@ -114,6 +164,23 @@ export function BrotherMembershipPanel({
         </div>
       ) : (
         <>
+          {overdueCount > 0 ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Mensalidades em atraso</AlertTitle>
+              <AlertDescription>
+                {overdueCount} mês(es) em atraso — total{' '}
+                {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}. Vencimento dia{' '}
+                {feeSettings.dueDay}.
+              </AlertDescription>
+            </Alert>
+          ) : schedule && schedule.entries.length > 0 ? (
+            <div className="flex items-center gap-2 text-green-600 text-sm">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              Cronograma em dia — vencimento dia {feeSettings.dueDay}.
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="rounded-md border p-3">
               <p className="text-xs text-muted-foreground">Total pago</p>
@@ -129,15 +196,15 @@ export function BrotherMembershipPanel({
             </div>
           </div>
 
-          {pending.length === 0 ? (
-            <div className="flex items-center gap-2 text-green-600 text-sm">
-              <CheckCircle className="h-4 w-4 shrink-0" />
-              Nenhuma mensalidade pendente.
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-amber-600 text-sm mb-1">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              {pending.length} pendência(s) — vencimento dia {dueDay}
+          {schedule && schedule.entries.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Cronograma
+              </p>
+              <MembershipScheduleTable
+                entries={schedule.entries}
+                emptyMessage="Nenhum período no cronograma."
+              />
             </div>
           )}
 
@@ -146,37 +213,42 @@ export function BrotherMembershipPanel({
               Nenhum lançamento de mensalidade registrado.
             </p>
           ) : (
-            <div className="rounded-md border max-h-56 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 sticky top-0">
-                  <tr>
-                    <th className="text-left p-2 font-medium">Ref.</th>
-                    <th className="text-left p-2 font-medium">Valor</th>
-                    <th className="text-left p-2 font-medium">Status</th>
-                    <th className="text-left p-2 font-medium">Pagto.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contributions.map((c) => (
-                    <tr key={c.id} className="border-t">
-                      <td className="p-2">
-                        {c.month}/{c.year}
-                      </td>
-                      <td className="p-2 font-mono">
-                        {formatCurrencyBRL(c.amount)}
-                      </td>
-                      <td className="p-2">{statusBadge(c.status)}</td>
-                      <td className="p-2 text-muted-foreground">
-                        {c.paymentDate
-                          ? formatCalendarDate(c.paymentDate, 'dd/MM/yy', {
-                              locale: ptBR,
-                            })
-                          : '—'}
-                      </td>
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Lançamentos
+              </p>
+              <div className="rounded-md border max-h-56 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 sticky top-0">
+                    <tr>
+                      <th className="text-left p-2 font-medium">Ref.</th>
+                      <th className="text-left p-2 font-medium">Valor</th>
+                      <th className="text-left p-2 font-medium">Status</th>
+                      <th className="text-left p-2 font-medium">Pagto.</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {contributions.map((c) => (
+                      <tr key={c.id} className="border-t">
+                        <td className="p-2">
+                          {c.month}/{c.year}
+                        </td>
+                        <td className="p-2 font-mono">
+                          {formatCurrencyBRL(c.amount)}
+                        </td>
+                        <td className="p-2">{statusBadge(c.status)}</td>
+                        <td className="p-2 text-muted-foreground">
+                          {c.paymentDate
+                            ? formatCalendarDate(c.paymentDate, 'dd/MM/yy', {
+                                locale: ptBR,
+                              })
+                            : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>

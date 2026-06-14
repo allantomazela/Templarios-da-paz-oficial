@@ -289,7 +289,7 @@ export interface ReminderSettings {
 export interface ReminderLog {
   id: string
   brotherId: string
-  contributionId: string
+  contributionId: string | null
   sentDate: string
   method: 'Email' | 'WhatsApp'
 }

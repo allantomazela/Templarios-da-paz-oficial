@@ -4,16 +4,19 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { sendViaResend } from '../_shared/resend-mail.ts'
 import {
   accountApprovedEmail,
+  membershipOverdueReminderEmail,
   signupPendingEmail,
 } from '../_shared/user-email-templates.ts'
 
-type EmailType = 'signup_pending' | 'account_approved'
+type EmailType = 'signup_pending' | 'account_approved' | 'membership_overdue'
 
 interface UserEmailBody {
   type?: EmailType
   email?: string
   full_name?: string
   profile_id?: string
+  overdue_labels?: string[]
+  overdue_amount?: number
 }
 
 const MASTER_ADMIN_EMAIL = 'allantomazela@gmail.com'
@@ -77,6 +80,22 @@ async function canSendApproved(
   })
 
   return Boolean(canApprove)
+}
+
+async function canSendFinancialReminder(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  userEmail: string | undefined,
+): Promise<boolean> {
+  if (userEmail?.toLowerCase() === MASTER_ADMIN_EMAIL) return true
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle()
+
+  return profile?.role === 'admin' || profile?.role === 'editor'
 }
 
 async function resolveProfileId(
@@ -209,7 +228,8 @@ serve(async (req) => {
 
     const profileId = await resolveProfileId(admin, email, body.profile_id)
 
-    if (profileId) {
+    const oneTimeEmailTypes: EmailType[] = ['signup_pending', 'account_approved']
+    if (profileId && oneTimeEmailTypes.includes(type)) {
       const alreadySent = await wasEmailAlreadySent(admin, profileId, type)
       if (alreadySent) {
         return new Response(
@@ -273,6 +293,49 @@ serve(async (req) => {
           headers: { ...headers, 'Content-Type': 'application/json' },
         })
       }
+    } else if (type === 'membership_overdue') {
+      const labels = body.overdue_labels
+      const amount = body.overdue_amount
+
+      if (
+        !Array.isArray(labels) ||
+        labels.length === 0 ||
+        typeof amount !== 'number' ||
+        !Number.isFinite(amount)
+      ) {
+        return new Response(
+          JSON.stringify({
+            error: 'overdue_labels e overdue_amount são obrigatórios',
+          }),
+          {
+            status: 400,
+            headers: { ...headers, 'Content-Type': 'application/json' },
+          },
+        )
+      }
+
+      const approvedById =
+        profileId &&
+        (await getProfileStatus(admin, profileId)) === 'approved'
+
+      if (!approvedById) {
+        return new Response(JSON.stringify({ error: 'Sem permissão' }), {
+          status: 403,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const callerCanSend =
+        user &&
+        (user.email?.toLowerCase() === MASTER_ADMIN_EMAIL ||
+          (await canSendFinancialReminder(admin, user.id, user.email)))
+
+      if (!callerCanSend) {
+        return new Response(JSON.stringify({ error: 'Sem permissão' }), {
+          status: 403,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        })
+      }
     } else {
       return new Response(JSON.stringify({ error: 'Tipo inválido' }), {
         status: 400,
@@ -283,7 +346,13 @@ serve(async (req) => {
     const mail =
       type === 'signup_pending'
         ? signupPendingEmail(fullName)
-        : accountApprovedEmail(fullName)
+        : type === 'account_approved'
+          ? accountApprovedEmail(fullName)
+          : membershipOverdueReminderEmail(
+              fullName,
+              body.overdue_labels!,
+              body.overdue_amount!,
+            )
 
     const result = await sendViaResend({
       to: email,
@@ -302,7 +371,7 @@ serve(async (req) => {
       )
     }
 
-    if (profileId && !result.skipped) {
+    if (profileId && !result.skipped && oneTimeEmailTypes.includes(type)) {
       await markEmailSent(admin, profileId, type, email)
     }
 

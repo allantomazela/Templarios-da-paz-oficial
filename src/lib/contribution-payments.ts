@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { toError, isDuplicateKeyError } from '@/lib/async-utils'
+import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
 
@@ -76,6 +76,7 @@ export async function fetchContributionsForProfile(
     .eq('brother_id', profileId)
     .order('year', { ascending: false })
     .order('month', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw error
   return (data || []).map((row: ContributionRow) => mapContributionRow(row))
@@ -202,9 +203,14 @@ export function buildMensalidadeDescription(
   brotherName: string,
   month: number,
   year: number,
+  paymentDate?: string,
 ): string {
   const name = brotherName.trim() || 'Irmão'
-  return `Mensalidade - ${name} (${String(month).padStart(2, '0')}/${year})`
+  const period = `${String(month).padStart(2, '0')}/${year}`
+  if (paymentDate) {
+    return `Mensalidade - ${name} (${period}) - ${paymentDate}`
+  }
+  return `Mensalidade - ${name} (${period})`
 }
 
 async function resolveMensalidadeCategoryId(
@@ -237,24 +243,6 @@ async function resolveMensalidadeCategoryId(
 
 function formatSupabaseError(error: unknown): Error {
   return toError(error, 'Erro ao salvar mensalidade.')
-}
-
-async function findExistingContribution(
-  supabaseAny: ReturnType<typeof supabase> & object,
-  brotherId: string,
-  month: number,
-  year: number,
-): Promise<{ id: string; transaction_id: string | null } | null> {
-  const { data, error } = await supabaseAny
-    .from('contributions')
-    .select('id, transaction_id')
-    .eq('brother_id', brotherId)
-    .eq('month', month)
-    .eq('year', year)
-    .maybeSingle()
-
-  if (error) throw formatSupabaseError(error)
-  return data ?? null
 }
 
 async function syncFinancialTransaction(
@@ -301,6 +289,7 @@ async function syncFinancialTransaction(
     params.brotherName,
     params.month,
     params.year,
+    paymentDate,
   )
 
   const payload = {
@@ -362,6 +351,7 @@ export async function fetchContributionsWithProfiles(): Promise<{
     `)
     .order('year', { ascending: false })
     .order('month', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw error
 
@@ -451,16 +441,19 @@ export function buildBrotherSummaries(
       const paid = items.filter((i) => i.status === 'Pago')
       const pending = items.filter((i) => i.status !== 'Pago')
 
-      const current = items.find(
+      const currentMonthItems = items.filter(
         (i) =>
           monthNameToNumber(i.month) === currentMonth && i.year === currentYear,
       )
 
       let currentStatus: BrotherContributionSummary['currentStatus'] = 'none'
-      if (current) {
-        if (current.status === 'Pago') currentStatus = 'paid'
-        else if (current.status === 'Atrasado') currentStatus = 'overdue'
-        else {
+      if (currentMonthItems.length > 0) {
+        const hasUnpaid = currentMonthItems.some((i) => i.status !== 'Pago')
+        if (!hasUnpaid) {
+          currentStatus = 'paid'
+        } else if (currentMonthItems.some((i) => i.status === 'Atrasado')) {
+          currentStatus = 'overdue'
+        } else {
           const due = new Date(currentYear, currentMonth - 1, dueDay)
           currentStatus = now > due ? 'overdue' : 'pending'
         }
@@ -544,50 +537,13 @@ export async function saveContribution(
     return
   }
 
-  const existing = await findExistingContribution(
-    supabaseAny,
-    data.brotherId,
-    month,
-    data.year,
-  )
-
-  if (existing) {
-    const { error } = await supabaseAny
-      .from('contributions')
-      .update(basePayload)
-      .eq('id', existing.id)
-    if (error) throw formatSupabaseError(error)
-
-    await persistAndSync(existing.id, existing.transaction_id)
-    return
-  }
-
   const { data: created, error } = await supabaseAny
     .from('contributions')
     .insert(basePayload)
     .select('id, transaction_id')
     .single()
 
-  if (error) {
-    if (isDuplicateKeyError(error)) {
-      const raced = await findExistingContribution(
-        supabaseAny,
-        data.brotherId,
-        month,
-        data.year,
-      )
-      if (raced) {
-        const { error: updateError } = await supabaseAny
-          .from('contributions')
-          .update(basePayload)
-          .eq('id', raced.id)
-        if (updateError) throw formatSupabaseError(updateError)
-        await persistAndSync(raced.id, raced.transaction_id)
-        return
-      }
-    }
-    throw formatSupabaseError(error)
-  }
+  if (error) throw formatSupabaseError(error)
 
   try {
     await persistAndSync(created.id, created.transaction_id)

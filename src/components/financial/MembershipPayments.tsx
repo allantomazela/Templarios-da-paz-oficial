@@ -325,6 +325,22 @@ export function MembershipPayments() {
     [contributions, selectedBrotherId],
   )
 
+  const treasuryPaidTotal = useMemo(() => {
+    return brotherHistory
+      .filter((c) => {
+        const monthIndex = CONTRIBUTION_MONTHS.indexOf(
+          c.month as (typeof CONTRIBUTION_MONTHS)[number],
+        )
+        const monthNum = monthIndex >= 0 ? monthIndex + 1 : 0
+        return (
+          c.status === 'Pago' &&
+          monthNum > 0 &&
+          !isMembershipHistoricalPeriod(c.year, monthNum)
+        )
+      })
+      .reduce((sum, c) => sum + c.amount, 0)
+  }, [brotherHistory])
+
   const filteredAll = contributions.filter((c) => {
     const q = searchTerm.toLowerCase()
     const name = (brotherNames[c.brotherId] || c.brotherName || '').toLowerCase()
@@ -449,22 +465,6 @@ export function MembershipPayments() {
   const current = selectedSummary
     ? currentStatusLabel(selectedSummary.currentStatus)
     : null
-
-  const treasuryPaidTotal = useMemo(() => {
-    return brotherHistory
-      .filter((c) => {
-        const monthIndex = CONTRIBUTION_MONTHS.indexOf(
-          c.month as (typeof CONTRIBUTION_MONTHS)[number],
-        )
-        const monthNum = monthIndex >= 0 ? monthIndex + 1 : 0
-        return (
-          c.status === 'Pago' &&
-          monthNum > 0 &&
-          !isMembershipHistoricalPeriod(c.year, monthNum)
-        )
-      })
-      .reduce((sum, c) => sum + c.amount, 0)
-  }, [brotherHistory])
 
   return (
     <div className="space-y-4">

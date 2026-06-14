@@ -7,7 +7,6 @@ import {
   buildReminderAlerts,
   buildMembershipBackfillPeriods,
   isMembershipHistoricalPeriod,
-  isMembershipPeriodFuture,
   isMembershipPastDue,
 } from '@/lib/membership-schedule'
 

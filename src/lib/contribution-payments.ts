@@ -157,7 +157,7 @@ export interface BrotherContributionSummary {
   paidCount: number
   pendingCount: number
   overdueCount: number
-  currentStatus: 'paid' | 'pending' | 'overdue' | 'none'
+  currentStatus: 'paid' | 'pending' | 'upcoming' | 'overdue' | 'none'
   lastPaymentDate: string | null
 }
 
@@ -463,8 +463,11 @@ export function buildBrotherSummaries(
           )
           const [dy, dm, dd] = dueIso.split('-').map(Number)
           const dueStart = new Date(dy, dm - 1, dd)
-          currentStatus =
-            todayStart.getTime() > dueStart.getTime() ? 'overdue' : 'pending'
+          if (todayStart.getTime() > dueStart.getTime()) {
+            currentStatus = 'overdue'
+          } else {
+            currentStatus = 'upcoming'
+          }
         }
       }
 

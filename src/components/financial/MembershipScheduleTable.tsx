@@ -36,6 +36,13 @@ function statusBadge(status: MembershipMonthStatus) {
       </Badge>
     )
   }
+  if (status === 'upcoming') {
+    return (
+      <Badge className="bg-sky-600 hover:bg-sky-700">
+        {membershipStatusLabel(status)}
+      </Badge>
+    )
+  }
   return (
     <Badge variant="secondary">{membershipStatusLabel(status)}</Badge>
   )

@@ -87,6 +87,14 @@ function todayBrazilISODate(): string {
   }).format(new Date())
 }
 
+function brazilYearMonth(): string {
+  return todayBrazilISODate().slice(0, 7)
+}
+
+function monthStartIso(yearMonth: string): string {
+  return `${yearMonth}-01`
+}
+
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const headers = corsHeaders(origin, 'POST, OPTIONS')
@@ -231,7 +239,7 @@ serve(async (req) => {
     const frequency = settings?.membership_reminder_frequency ?? 'after'
     const days = Number(settings?.membership_reminder_days) || 0
 
-    const [{ data: brothers, error: brothersError }, { data: contributionsData, error: contributionsError }, { data: logsToday, error: logsError }] =
+    const [{ data: brothers, error: brothersError }, { data: contributionsData, error: contributionsError }, { data: logsThisMonth, error: logsError }] =
       await Promise.all([
         admin
           .from('profiles')
@@ -240,8 +248,8 @@ serve(async (req) => {
         admin.from('contributions').select('id, brother_id, month, year, amount, status'),
         admin
           .from('reminder_logs')
-          .select('brother_id')
-          .eq('sent_date', todayBrazilISODate()),
+          .select('brother_id, sent_date')
+          .gte('sent_date', monthStartIso(brazilYearMonth())),
       ])
 
     if (brothersError) throw brothersError
@@ -269,7 +277,12 @@ serve(async (req) => {
     )
 
     const alerts = buildReminderAlerts(schedules, frequency, days)
-    const sentToday = new Set((logsToday || []).map((l) => l.brother_id))
+    const currentMonth = brazilYearMonth()
+    const remindedThisMonth = new Set(
+      (logsThisMonth || [])
+        .filter((l) => String(l.sent_date).startsWith(currentMonth))
+        .map((l) => l.brother_id),
+    )
 
     const profileById = new Map(
       (brothers || []).map((b) => [b.id, b]),
@@ -280,7 +293,7 @@ serve(async (req) => {
     let failed = 0
 
     for (const alert of alerts) {
-      if (sentToday.has(alert.brotherId)) {
+      if (remindedThisMonth.has(alert.brotherId)) {
         skippedCount++
         continue
       }
@@ -296,6 +309,7 @@ serve(async (req) => {
         profile?.full_name?.trim() || alert.brotherName,
         alert.overdueLabels,
         alert.overdueAmount,
+        alert.overdueCount,
       )
 
       const result = await sendViaResend({
@@ -322,7 +336,7 @@ serve(async (req) => {
         continue
       }
 
-      sentToday.add(alert.brotherId)
+      remindedThisMonth.add(alert.brotherId)
       sent++
     }
 
@@ -332,7 +346,7 @@ serve(async (req) => {
     } else {
       parts.push(`${sent} lembrete(s) enviado(s) por e-mail.`)
       if (skippedCount > 0) {
-        parts.push(`${skippedCount} ignorado(s) (já enviado hoje).`)
+        parts.push(`${skippedCount} ignorado(s) (já enviado neste mês).`)
       }
       if (failed > 0) {
         parts.push(`${failed} falha(s).`)

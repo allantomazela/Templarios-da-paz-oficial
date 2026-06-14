@@ -5,6 +5,8 @@ import {
   buildOverdueBrotherAlerts,
   buildAllMembershipSchedules,
   buildReminderAlerts,
+  buildMembershipBackfillPeriods,
+  isMembershipPeriodFuture,
   isMembershipPastDue,
 } from '@/lib/membership-schedule'
 
@@ -137,7 +139,7 @@ describe('isMembershipPastDue', () => {
     const juneOnDue = scheduleOnDueDay.entries.find(
       (e) => e.month === 6 && e.year === 2026,
     )
-    expect(juneOnDue?.status).toBe('pending')
+    expect(juneOnDue?.status).toBe('upcoming')
 
     vi.setSystemTime(new Date(2026, 5, 11))
     const scheduleAfterDue = buildMembershipScheduleForBrother(
@@ -153,5 +155,34 @@ describe('isMembershipPastDue', () => {
     expect(juneOverdue?.status).toBe('overdue')
 
     vi.useRealTimers()
+  })
+
+  it('marca mês futuro como à vencer, não em atraso', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 1))
+
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Teste',
+      [],
+      settings,
+      '2026/06/01',
+    )
+    const june = schedule.entries.find((e) => e.month === 6 && e.year === 2026)
+    expect(june?.status).toBe('upcoming')
+    expect(schedule.overdueMonthCount).toBe(0)
+
+    vi.useRealTimers()
+  })
+
+  it('lista meses de backfill antes de jun/2026', () => {
+    const periods = buildMembershipBackfillPeriods(
+      '2026/01/01',
+      settings,
+      [],
+      'brother-1',
+    )
+    expect(periods.map((p) => p.month)).toEqual([1, 2, 3, 4, 5])
+    expect(periods.every((p) => p.year === 2026)).toBe(true)
   })
 })

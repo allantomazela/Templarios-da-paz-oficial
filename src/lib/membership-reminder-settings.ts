@@ -5,7 +5,7 @@ import { logError } from '@/lib/logger'
 const DEFAULT_SETTINGS: ReminderSettings = {
   enabled: false,
   frequency: 'after',
-  days: 3,
+  days: 0,
 }
 
 export async function fetchMembershipReminderSettings(): Promise<ReminderSettings> {

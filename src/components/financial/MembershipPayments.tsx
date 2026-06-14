@@ -67,6 +67,7 @@ import { MembershipOverduePanel } from '@/components/financial/MembershipOverdue
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
 import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfoPanel'
 import { FinancialAccessOverview } from '@/components/financial/FinancialAccessOverview'
+import { MembershipHistoryBackfillDialog } from '@/components/financial/MembershipHistoryBackfillDialog'
 import {
   buildAllMembershipSchedules,
   buildMembershipScheduleForBrother,
@@ -90,6 +91,8 @@ function currentStatusLabel(status: BrotherContributionSummary['currentStatus'])
   switch (status) {
     case 'paid':
       return { label: 'Em dia', className: 'text-green-600' }
+    case 'upcoming':
+      return { label: 'À vencer', className: 'text-sky-600' }
     case 'pending':
       return { label: 'Pendente', className: 'text-amber-600' }
     case 'overdue':
@@ -205,6 +208,7 @@ export function MembershipPayments() {
   const [viewTab, setViewTab] = useState('by-member')
   const [feeSettings, setFeeSettings] = useState({ defaultAmount: 150, dueDay: 10 })
   const [generateOpen, setGenerateOpen] = useState(false)
+  const [backfillOpen, setBackfillOpen] = useState(false)
   const [generateMonth, setGenerateMonth] = useState(
     CONTRIBUTION_MONTHS[new Date().getMonth()],
   )
@@ -429,6 +433,14 @@ export function MembershipPayments() {
           >
             <CalendarPlus className="mr-2 h-4 w-4" />
             Gerar do mês
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setBackfillOpen(true)}
+            disabled={loading}
+          >
+            <History className="mr-2 h-4 w-4" />
+            Histórico pré-jun/26
           </Button>
         </div>
       </div>
@@ -741,6 +753,19 @@ export function MembershipPayments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MembershipHistoryBackfillDialog
+        open={backfillOpen}
+        onOpenChange={setBackfillOpen}
+        brothers={approvedBrothers}
+        contributions={contributions}
+        feeSettings={feeSettings}
+        defaultBrotherId={selectedBrotherId}
+        onSaved={async () => {
+          await loadData.execute()
+          notifyFinancialDataChanged()
+        }}
+      />
     </div>
   )
 }

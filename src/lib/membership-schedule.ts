@@ -3,8 +3,15 @@ import type { Contribution } from '@/lib/data'
 export type MembershipMonthStatus =
   | 'paid'
   | 'partial'
-  | 'pending'
+  | 'upcoming'
   | 'overdue'
+
+/** Mês a partir do qual o controle em produção passa a valer (jun/2026). */
+export const MEMBERSHIP_TRACKING_START_YEAR = 2026
+export const MEMBERSHIP_TRACKING_START_MONTH = 6
+
+/** Tolerância de meses em atraso antes de mensagem de escalonamento no e-mail. */
+export const MEMBERSHIP_OVERDUE_ESCALATION_MONTHS = 3
 
 export interface MembershipFeeScheduleSettings {
   defaultAmount: number
@@ -140,13 +147,32 @@ export function buildReminderAlerts(
     .sort((a, b) => b.overdueCount - a.overdueCount)
 }
 
-function buildDueDateIso(year: number, month: number, dueDay: number): string {
+export function buildDueDateIsoFromParts(
+  year: number,
+  month: number,
+  dueDay: number,
+): string {
   const day = Math.min(dueDay, 28)
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function buildDueDateIso(year: number, month: number, dueDay: number): string {
+  return buildDueDateIsoFromParts(year, month, dueDay)
+}
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+/** Período de calendário ainda não iniciou (mês futuro). */
+export function isMembershipPeriodFuture(
+  year: number,
+  month: number,
+  referenceDate: Date = new Date(),
+): boolean {
+  const refYear = referenceDate.getFullYear()
+  const refMonth = referenceDate.getMonth() + 1
+  return year > refYear || (year === refYear && month > refMonth)
 }
 
 /** Atraso só após o dia de vencimento (ex.: dia 11 se vence dia 10). */
@@ -224,8 +250,12 @@ function resolveMonthStatus(
   expectedAmount: number,
   dueDateIso: string,
   today: Date,
+  year: number,
+  month: number,
 ): MembershipMonthStatus {
   if (paidAmount >= expectedAmount) return 'paid'
+
+  if (isMembershipPeriodFuture(year, month, today)) return 'upcoming'
 
   const isPastDue = isMembershipPastDue(dueDateIso, today)
 
@@ -234,9 +264,66 @@ function resolveMonthStatus(
   }
 
   if (isPastDue) return 'overdue'
-  if (pendingAmount > 0 || paidAmount === 0) return 'pending'
+  return 'upcoming'
+}
 
-  return 'pending'
+export interface MembershipBackfillPeriod {
+  month: number
+  year: number
+  periodLabel: string
+  expectedAmount: number
+  paid: boolean
+  hasLaunch: boolean
+}
+
+/** Meses anteriores ao início do controle em produção (ex.: jan–mai/2026). */
+export function buildMembershipBackfillPeriods(
+  memberSince: string | null | undefined,
+  settings: MembershipFeeScheduleSettings,
+  contributions: Contribution[],
+  brotherId: string,
+  trackingStartYear = MEMBERSHIP_TRACKING_START_YEAR,
+  trackingStartMonth = MEMBERSHIP_TRACKING_START_MONTH,
+): MembershipBackfillPeriod[] {
+  const memberSinceDate = memberSince ? new Date(memberSince) : null
+  const start = resolveScheduleStart(memberSinceDate, contributions.filter((c) => c.brotherId === brotherId))
+
+  const endYear = trackingStartYear
+  const endMonth = trackingStartMonth - 1
+  if (endMonth < 1) return []
+
+  const byPeriod = groupContributionsByPeriod(
+    contributions.filter((c) => c.brotherId === brotherId),
+  )
+  const expectedAmount = settings.defaultAmount
+  const periods: MembershipBackfillPeriod[] = []
+
+  for (const { year, month } of iterMonths(
+    start.year,
+    start.month,
+    endYear,
+    endMonth,
+  )) {
+    const key = monthKey(year, month)
+    const periodContributions = byPeriod.get(key) ?? []
+    const paidAmount = periodContributions
+      .filter((c) => c.status === 'Pago')
+      .reduce((sum, c) => sum + c.amount, 0)
+
+    periods.push({
+      month,
+      year,
+      periodLabel: periodLabel(month, year),
+      expectedAmount,
+      paid: paidAmount >= expectedAmount,
+      hasLaunch: periodContributions.length > 0,
+    })
+  }
+
+  return periods.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year
+    return a.month - b.month
+  })
 }
 
 export function buildMembershipScheduleForBrother(
@@ -286,6 +373,8 @@ export function buildMembershipScheduleForBrother(
       expectedAmount,
       dueDate,
       today,
+      year,
+      month,
     )
 
     entries.push({
@@ -309,7 +398,10 @@ export function buildMembershipScheduleForBrother(
 
   const overdueEntries = entries.filter((e) => e.status === 'overdue')
   const openEntries = entries.filter(
-    (e) => e.status === 'pending' || e.status === 'partial' || e.status === 'overdue',
+    (e) =>
+      e.status === 'upcoming' ||
+      e.status === 'partial' ||
+      e.status === 'overdue',
   )
   const paidEntries = entries.filter((e) => e.status === 'paid')
 
@@ -387,8 +479,8 @@ export function membershipStatusLabel(status: MembershipMonthStatus): string {
       return 'Pago'
     case 'partial':
       return 'Parcial'
-    case 'pending':
-      return 'Em aberto'
+    case 'upcoming':
+      return 'À vencer'
     case 'overdue':
       return 'Em atraso'
   }

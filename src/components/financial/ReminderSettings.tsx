@@ -57,7 +57,7 @@ export function ReminderSettings() {
     useState<ReminderSettingsModel>({
       enabled: false,
       frequency: 'after',
-      days: 3,
+      days: 0,
     })
   const [reminderLogs, setReminderLogs] = useState<ReminderLog[]>([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
@@ -230,9 +230,10 @@ export function ReminderSettings() {
           </CardTitle>
           <CardDescription>
             Com o envio automático ativo, o sistema verifica diariamente às{' '}
-            <strong>9h (horário de Brasília)</strong> e envia e-mail (Resend)
-            conforme o cronograma de mensalidades. Use o botão abaixo para
-            executar a mesma verificação manualmente.
+            <strong>9h (horário de Brasília)</strong>. Cada irmão com pelo menos
+            uma mensalidade em atraso recebe no máximo <strong>um e-mail por
+            mês</strong> (vencimento fixo dia 10, sem juros). Use o botão abaixo
+            para executar a mesma verificação manualmente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -286,7 +287,11 @@ export function ReminderSettings() {
                   min={0}
                   max={28}
                 />
-                <span className="text-sm text-muted-foreground">dias</span>
+                <span className="text-sm text-muted-foreground">
+                  dias {reminderSettings.frequency === 'after'
+                    ? '(0 = no dia seguinte ao vencimento)'
+                    : ''}
+                </span>
               </div>
             </div>
           </div>

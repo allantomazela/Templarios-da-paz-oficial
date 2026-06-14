@@ -113,10 +113,11 @@ export default function MyPayments() {
           </Badge>
         )
       case 'pending':
+      case 'upcoming':
         return (
-          <Badge variant="secondary">
+          <Badge className="bg-sky-600 hover:bg-sky-700">
             <Clock className="mr-1 h-3 w-3" />
-            Pendente
+            À vencer
           </Badge>
         )
       default:

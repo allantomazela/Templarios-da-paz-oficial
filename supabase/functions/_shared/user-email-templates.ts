@@ -63,6 +63,7 @@ export function membershipOverdueReminderEmail(
   fullName: string,
   overdueLabels: string[],
   overdueAmount: number,
+  overdueCount?: number,
 ) {
   const name = fullName || 'Irmão'
   const months = overdueLabels.join(', ')
@@ -70,6 +71,10 @@ export function membershipOverdueReminderEmail(
     style: 'currency',
     currency: 'BRL',
   })
+  const escalationNote =
+    overdueCount !== undefined && overdueCount >= 3
+      ? `\n\nAtenção: você possui ${overdueCount} mensalidade(s) em atraso. O irmão pode permanecer em débito por até três meses; após isso, a situação será tratada com prioridade pela Tesouraria.`
+      : ''
   const subject = `${SITE_NAME} — Mensalidades em atraso`
   const text = `Olá, ${name}!
 
@@ -77,6 +82,8 @@ Identificamos mensalidades em atraso no ${SITE_NAME}:
 
 Meses: ${months}
 Valor total em aberto: ${amount}
+
+Vencimento fixo no dia 10 de cada mês, sem juros.${escalationNote}
 
 Acesse sua área de pagamentos para regularizar:
 
@@ -87,6 +94,11 @@ Em caso de dúvidas, entre em contato com a Tesouraria.
 Fraternalmente,
 ${SITE_NAME}`
 
+  const escalationHtml =
+    overdueCount !== undefined && overdueCount >= 3
+      ? `<p style="color:#b45309"><strong>Atenção:</strong> você possui <strong>${overdueCount}</strong> mensalidade(s) em atraso. Após três meses de débito, a situação será tratada com prioridade pela Tesouraria.</p>`
+      : ''
+
   const html = layout(
     subject,
     `<p>Olá, <strong>${name}</strong>,</p>
@@ -95,6 +107,8 @@ ${SITE_NAME}`
 <li><strong>Meses:</strong> ${months}</li>
 <li><strong>Valor total em aberto:</strong> ${amount}</li>
 </ul>
+<p style="font-size:13px;color:#666">Vencimento fixo no dia 10 de cada mês, sem juros.</p>
+${escalationHtml}
 <p><a href="${PAYMENTS_URL}" style="display:inline-block;padding:12px 20px;background:#8B4513;color:#fff;text-decoration:none;border-radius:4px">Ver meus pagamentos</a></p>
 <p style="font-size:13px;color:#666">Ou acesse: ${PAYMENTS_URL}</p>
 <p>Em caso de dúvidas, entre em contato com a Tesouraria.</p>`,

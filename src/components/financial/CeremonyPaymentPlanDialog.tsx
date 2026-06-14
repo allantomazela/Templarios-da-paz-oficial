@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { FormHeader } from '@/components/ui/form-header'
 import { GraduationCap, Loader2 } from 'lucide-react'
@@ -136,7 +137,8 @@ export function CeremonyPaymentPlanDialog({
         onOpenChange(next)
       }}
     >
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Nova taxa / pagamento parcelado</DialogTitle>
         <FormHeader
           icon={<GraduationCap className="h-5 w-5" />}
           title="Nova taxa / pagamento parcelado"

@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { FormHeader } from '@/components/ui/form-header'
 import { Wallet, Loader2 } from 'lucide-react'
@@ -116,6 +117,8 @@ export function CeremonyInstallmentDialog({
 
   if (!plan || !installment) return null
 
+  const dialogTitle = `Parcela ${installment.installmentNumber}/${plan.installmentsCount}`
+
   const handleSubmit = async (values: InstallmentFormValues) => {
     await onSave({
       installmentId: installment.id,
@@ -140,10 +143,11 @@ export function CeremonyInstallmentDialog({
         onOpenChange(next)
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
         <FormHeader
           icon={<Wallet className="h-5 w-5" />}
-          title={`Parcela ${installment.installmentNumber}/${plan.installmentsCount}`}
+          title={dialogTitle}
           description={`${ceremonyPlanLabel(plan)} — ${plan.brotherName || 'Irmão'}`}
         />
         <div className="rounded-md border px-3 py-2 text-sm">

@@ -8,8 +8,6 @@ import {
   saveContribution,
   type ContributionFormData,
 } from '@/lib/contribution-payments'
-import { isMembershipHistoricalPeriod } from '@/lib/membership-schedule'
-import { buildBatchMensalidadeDescription } from '@/lib/membership-batch-settle-format'
 import type { BatchSettlePeriod } from '@/lib/membership-batch-settle-types'
 
 export type { BatchSettlePeriod } from '@/lib/membership-batch-settle-types'
@@ -108,11 +106,6 @@ export async function saveBatchContributionPayment(params: {
   }
 
   for (const period of params.periods) {
-    if (isMembershipHistoricalPeriod(period.year, period.month)) {
-      throw new Error(
-        `Use o histórico (jan–mai) para ${period.periodLabel}. Meses anteriores a jun/2026 não entram na tesouraria.`,
-      )
-    }
     if (period.amount <= 0) {
       throw new Error(`Valor inválido para ${period.periodLabel}.`)
     }
@@ -142,6 +135,7 @@ export async function saveBatchContributionPayment(params: {
       period.month,
     )
     const unpaid = existing.find((c) => c.status !== 'Pago')
+    const primary = existing[0]
     const form: ContributionFormData = {
       brotherId: params.brotherId,
       brotherName: params.brotherName,
@@ -158,6 +152,12 @@ export async function saveBatchContributionPayment(params: {
       await saveContribution(form, {
         contributionId: unpaid.id,
         existingTransactionId: unpaid.transactionId,
+        sharedTransactionId: transactionId,
+      })
+    } else if (primary) {
+      await saveContribution(form, {
+        contributionId: primary.id,
+        existingTransactionId: primary.transactionId,
         sharedTransactionId: transactionId,
       })
     } else {

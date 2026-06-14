@@ -72,6 +72,7 @@ import {
   buildAllMembershipSchedules,
   buildMembershipScheduleForBrother,
   buildOverdueBrotherAlerts,
+  contributionCountsInTreasury,
   isMembershipHistoricalPeriod,
 } from '@/lib/membership-schedule'
 import type { ApprovedBrotherOption } from '@/lib/contribution-payments'
@@ -329,17 +330,7 @@ export function MembershipPayments() {
 
   const treasuryPaidTotal = useMemo(() => {
     return brotherHistory
-      .filter((c) => {
-        const monthIndex = CONTRIBUTION_MONTHS.indexOf(
-          c.month as (typeof CONTRIBUTION_MONTHS)[number],
-        )
-        const monthNum = monthIndex >= 0 ? monthIndex + 1 : 0
-        return (
-          c.status === 'Pago' &&
-          monthNum > 0 &&
-          !isMembershipHistoricalPeriod(c.year, monthNum)
-        )
-      })
+      .filter((c) => contributionCountsInTreasury(c))
       .reduce((sum, c) => sum + c.amount, 0)
   }, [brotherHistory])
 

@@ -26,6 +26,35 @@ export function isMembershipHistoricalPeriod(
 export const MEMBERSHIP_HISTORICAL_NOTE =
   'Regularização histórica (pré-produção — não entra na tesouraria)'
 
+/** Lançamento de migração da planilha — sem conta bancária e sem receita. */
+export function isMembershipBackfillContribution(
+  year: number,
+  month: number,
+  contribution: {
+    status: string
+    transactionId?: string | null
+    accountId?: string | null
+    notes?: string | null
+  },
+): boolean {
+  if (contribution.status !== 'Pago') return false
+  if (!isMembershipHistoricalPeriod(year, month)) return false
+  if (contribution.transactionId || contribution.accountId) return false
+  return (contribution.notes ?? '').includes(MEMBERSHIP_HISTORICAL_NOTE)
+}
+
+/** Pagamento real que compõe a tesouraria (com conta ou vínculo financeiro). */
+export function contributionCountsInTreasury(contribution: {
+  status: string
+  transactionId?: string | null
+  accountId?: string | null
+}): boolean {
+  return (
+    contribution.status === 'Pago' &&
+    Boolean(contribution.transactionId || contribution.accountId)
+  )
+}
+
 /** Tolerância de meses em atraso antes de mensagem de escalonamento no e-mail. */
 export const MEMBERSHIP_OVERDUE_ESCALATION_MONTHS = 3
 

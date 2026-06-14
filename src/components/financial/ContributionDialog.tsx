@@ -38,10 +38,6 @@ import {
   type MembershipFeeSettings,
 } from '@/lib/contribution-payments'
 import {
-  isMembershipHistoricalPeriod,
-  MEMBERSHIP_HISTORICAL_NOTE,
-} from '@/lib/membership-schedule'
-import {
   CONTRIBUTION_PAYMENT_METHODS,
   getPaymentMethodFromNotes,
   setPaymentMethodInNotes,
@@ -64,14 +60,7 @@ const contributionSchema = z
     notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    const monthIndex = CONTRIBUTION_MONTHS.indexOf(
-      data.month as (typeof CONTRIBUTION_MONTHS)[number],
-    )
-    const monthNum = monthIndex >= 0 ? monthIndex + 1 : 0
-    const isHistorical =
-      monthNum > 0 && isMembershipHistoricalPeriod(data.year, monthNum)
-
-    if (data.status === 'Pago' && !isHistorical && !data.accountId) {
+    if (data.status === 'Pago' && !data.accountId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Conta bancária é obrigatória para pagamento confirmado',
@@ -135,16 +124,7 @@ export function ContributionDialog({
 
   const watchStatus = form.watch('status')
   const watchNotes = form.watch('notes')
-  const watchMonth = form.watch('month')
-  const watchYear = form.watch('year')
   const selectedPaymentMethod = getPaymentMethodFromNotes(watchNotes)
-
-  const monthIndex = CONTRIBUTION_MONTHS.indexOf(
-    watchMonth as (typeof CONTRIBUTION_MONTHS)[number],
-  )
-  const isHistoricalPeriod =
-    monthIndex >= 0 &&
-    isMembershipHistoricalPeriod(watchYear, monthIndex + 1)
 
   useEffect(() => {
     if (!open) return
@@ -231,12 +211,6 @@ export function ContributionDialog({
 
   const handleSubmit = (values: ContributionFormValues) => {
     const brother = brothers.find((b) => b.id === values.brotherId)
-    const monthIdx = CONTRIBUTION_MONTHS.indexOf(
-      values.month as (typeof CONTRIBUTION_MONTHS)[number],
-    )
-    const historical =
-      monthIdx >= 0 &&
-      isMembershipHistoricalPeriod(values.year, monthIdx + 1)
 
     onSave({
       ...values,
@@ -245,12 +219,8 @@ export function ContributionDialog({
         defaultBrotherName?.trim() ||
         contributionToEdit?.brotherName ||
         undefined,
-      notes: historical
-        ? values.notes?.trim()
-          ? `${MEMBERSHIP_HISTORICAL_NOTE}. ${values.notes.trim()}`
-          : MEMBERSHIP_HISTORICAL_NOTE
-        : values.notes,
-      accountId: historical ? undefined : values.accountId,
+      notes: values.notes?.trim() || undefined,
+      accountId: values.accountId,
     })
   }
 
@@ -432,44 +402,37 @@ export function ContributionDialog({
                     </FormItem>
                   )}
                 />
-                {isHistoricalPeriod ? (
-                  <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    Período anterior a jun/2026: registro apenas de controle.{' '}
-                    <strong>Não gera receita</strong> na tesouraria.
-                  </p>
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="accountId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Conta bancária (tesouraria)</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={loadingOptions}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Onde entrou o valor" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {accounts.map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Gera receita na categoria Mensalidade e compõe o saldo.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                <FormField
+                  control={form.control}
+                  name="accountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Conta bancária (tesouraria)</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={loadingOptions}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Onde entrou o valor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Gera receita na categoria Mensalidade e compõe o saldo.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </>
             )}
 

@@ -268,8 +268,9 @@ async function syncFinancialTransaction(
 ): Promise<string | null> {
   const isPaid = params.status === 'Pago'
   const isHistorical = isMembershipHistoricalPeriod(params.year, params.month)
+  const isBackfillOnly = isHistorical && isPaid && !params.accountId
 
-  if (isHistorical) {
+  if (isBackfillOnly) {
     if (params.existingTransactionId) {
       const { error } = await supabaseAny
         .from('financial_transactions')
@@ -529,7 +530,6 @@ export async function saveContribution(
   const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
-  const isHistorical = isMembershipHistoricalPeriod(data.year, month)
 
   const {
     data: { user },
@@ -545,8 +545,7 @@ export async function saveContribution(
       data.status === 'Pago'
         ? data.paymentDate || todayLocalISODate()
         : null,
-    account_id:
-      data.status === 'Pago' && !isHistorical ? data.accountId ?? null : null,
+    account_id: data.status === 'Pago' ? data.accountId ?? null : null,
     notes: data.notes?.trim() || null,
     recorded_by: user?.id ?? null,
   }
@@ -555,7 +554,7 @@ export async function saveContribution(
     contributionId: string,
     existingTransactionId?: string | null,
   ) => {
-    if (options?.sharedTransactionId && data.status === 'Pago' && !isHistorical) {
+    if (options?.sharedTransactionId && data.status === 'Pago') {
       if (existingTransactionId && existingTransactionId !== options.sharedTransactionId) {
         const { error: deleteError } = await supabaseAny
           .from('financial_transactions')

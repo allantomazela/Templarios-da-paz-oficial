@@ -26,15 +26,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CalendarDays, Info, Loader2, Pencil, Plus } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { CalendarDays, ChevronDown, Info, Loader2, Pencil, Plus } from 'lucide-react'
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { formatDateBR } from '@/lib/format-utils'
 import {
   buildMembershipBackfillPeriods,
   buildMembershipScheduleForBrother,
-  isMembershipHistoricalPeriod,
+  contributionCountsInTreasury,
+  isMembershipBackfillContribution,
   membershipStatusLabel,
-  MEMBERSHIP_TRACKING_START_MONTH,
   MEMBERSHIP_TRACKING_START_YEAR,
   type MembershipFeeScheduleSettings,
   type MembershipMonthStatus,
@@ -109,12 +114,25 @@ function statusBadge(status: MembershipMonthStatus) {
   )
 }
 
+function periodSettleAmount(
+  entry: MembershipScheduleEntry,
+  periodContributions: Contribution[],
+): number {
+  if (entry.remainingAmount > 0) return entry.remainingAmount
+  const needsTreasury = periodContributions.some(
+    (c) =>
+      isMembershipBackfillContribution(entry.year, entry.month, c) &&
+      !contributionCountsInTreasury(c),
+  )
+  if (needsTreasury && entry.status === 'paid') return entry.expectedAmount
+  return 0
+}
+
 function isRowSelectable(
   entry: MembershipScheduleEntry,
-  isHistorical: boolean,
+  periodContributions: Contribution[],
 ): boolean {
-  if (isHistorical) return entry.status !== 'paid'
-  return entry.remainingAmount > 0
+  return periodSettleAmount(entry, periodContributions) > 0
 }
 
 export function MembershipScheduleDialog({
@@ -131,6 +149,7 @@ export function MembershipScheduleDialog({
   const [choices, setChoices] = useState<Record<string, PeriodChoice>>({})
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [batchSettleOpen, setBatchSettleOpen] = useState(false)
+  const [backfillOpen, setBackfillOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -188,59 +207,54 @@ export function MembershipScheduleDialog({
     }
   }, [open])
 
+  const openEntries = useMemo(
+    () => schedule?.entries.filter((e) => e.remainingAmount > 0) ?? [],
+    [schedule],
+  )
+
   const treasuryPaidTotal = useMemo(
     () =>
       brotherContributions
-        .filter(
-          (c) =>
-            c.status === 'Pago' &&
-            !isMembershipHistoricalPeriod(c.year, monthNameToNumber(c.month)),
-        )
+        .filter((c) => contributionCountsInTreasury(c))
         .reduce((sum, c) => sum + c.amount, 0),
     [brotherContributions],
   )
 
-  const openEntries = useMemo(
-    () =>
-      schedule?.entries.filter((e) => e.remainingAmount > 0) ?? [],
-    [schedule],
-  )
-
-  const selectedProductionPeriods = useMemo((): BatchSettlePeriod[] => {
+  const selectedOpenPeriods = useMemo((): BatchSettlePeriod[] => {
     if (!schedule) return []
     return schedule.entries
       .filter((entry) => {
         const key = periodKey(entry.year, entry.month)
-        return (
-          selectedKeys.has(key) &&
-          !historicalKeys.has(key) &&
-          entry.remainingAmount > 0
+        if (!selectedKeys.has(key)) return false
+        const periodContributions = brotherContributions.filter(
+          (c) =>
+            c.year === entry.year &&
+            monthNameToNumber(c.month) === entry.month,
         )
+        return periodSettleAmount(entry, periodContributions) > 0
       })
       .sort((a, b) => {
         if (a.year !== b.year) return a.year - b.year
         return a.month - b.month
       })
-      .map((entry) => ({
-        month: entry.month,
-        year: entry.year,
-        amount: entry.remainingAmount,
-        periodLabel: entry.periodLabel,
-      }))
-  }, [schedule, selectedKeys, historicalKeys])
+      .map((entry) => {
+        const periodContributions = brotherContributions.filter(
+          (c) =>
+            c.year === entry.year &&
+            monthNameToNumber(c.month) === entry.month,
+        )
+        return {
+          month: entry.month,
+          year: entry.year,
+          amount: periodSettleAmount(entry, periodContributions),
+          periodLabel: entry.periodLabel,
+        }
+      })
+  }, [schedule, selectedKeys, brotherContributions])
 
-  const selectedHistoricalCount = useMemo(() => {
-    let count = 0
-    for (const key of selectedKeys) {
-      if (!historicalKeys.has(key)) continue
-      if (choices[key] !== 'paid') count++
-    }
-    return count
-  }, [selectedKeys, historicalKeys, choices])
-
-  const productionSelectionTotal = useMemo(
-    () => selectedProductionPeriods.reduce((sum, p) => sum + p.amount, 0),
-    [selectedProductionPeriods],
+  const selectionTotal = useMemo(
+    () => selectedOpenPeriods.reduce((sum, p) => sum + p.amount, 0),
+    [selectedOpenPeriods],
   )
 
   function contributionsForPeriod(year: number, month: number) {
@@ -261,21 +275,16 @@ export function MembershipScheduleDialog({
   function selectAllOpen() {
     if (!schedule) return
     const keys = schedule.entries
-      .filter((entry) =>
-        isRowSelectable(entry, historicalKeys.has(periodKey(entry.year, entry.month))),
-      )
+      .filter((entry) => {
+        const periodContributions = brotherContributions.filter(
+          (c) =>
+            c.year === entry.year &&
+            monthNameToNumber(c.month) === entry.month,
+        )
+        return isRowSelectable(entry, periodContributions)
+      })
       .map((entry) => periodKey(entry.year, entry.month))
     setSelectedKeys(new Set(keys))
-  }
-
-  function markSelectedHistoricalPaid() {
-    setChoices((prev) => {
-      const next = { ...prev }
-      for (const key of selectedKeys) {
-        if (historicalKeys.has(key)) next[key] = 'paid'
-      }
-      return next
-    })
   }
 
   async function handleSaveHistorical() {
@@ -311,7 +320,7 @@ export function MembershipScheduleDialog({
     await saveBatchContributionPayment({
       brotherId,
       brotherName: brother.full_name?.trim() || 'Irmão',
-      periods: selectedProductionPeriods,
+      periods: selectedOpenPeriods,
       paymentDate: params.paymentDate,
       accountId: params.accountId,
       notes: params.notes,
@@ -321,7 +330,6 @@ export function MembershipScheduleDialog({
     await onSaved()
   }
 
-  const cutoffLabel = `${String(MEMBERSHIP_TRACKING_START_MONTH).padStart(2, '0')}/${MEMBERSHIP_TRACKING_START_YEAR}`
 
   return (
     <>
@@ -333,10 +341,9 @@ export function MembershipScheduleDialog({
               Cronograma — {brother?.full_name?.trim() || 'Irmão'}
             </DialogTitle>
             <DialogDescription>
-              Selecione os meses quitados em um mesmo pagamento (ex.: R$ 580 =
-              março + abril). Histórico jan–mai/{MEMBERSHIP_TRACKING_START_YEAR}{' '}
-              não entra na tesouraria; de {cutoffLabel} em diante, use quitação
-              com conta bancária.
+              Marque os meses quitados no mesmo pagamento e registre na tesouraria
+              (ex.: R$ 580 em junho = março + abril). Meses ainda em aberto
+              continuam pendentes no cronograma.
             </DialogDescription>
           </DialogHeader>
 
@@ -347,12 +354,13 @@ export function MembershipScheduleDialog({
                 <>
                   <strong>{openEntries.length} mês(es) em aberto</strong> —{' '}
                   {openEntries.map((e) => e.periodLabel).join(', ')}. Marque os
-                  meses pagos e use os botões abaixo da tabela.
+                  meses pagos e clique em &quot;Registrar pagamento na
+                  tesouraria&quot;.
                 </>
               ) : (
                 'Cronograma quitado nos meses exibidos.'
               )}{' '}
-              Tesouraria (jun+):{' '}
+              Receita registrada:{' '}
               <strong>{formatCurrencyBRL(treasuryPaidTotal)}</strong>.
             </AlertDescription>
           </Alert>
@@ -367,23 +375,14 @@ export function MembershipScheduleDialog({
                 <Button type="button" variant="outline" size="sm" onClick={selectAllOpen}>
                   Selecionar todos em aberto
                 </Button>
-                {selectedHistoricalCount > 0 ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={markSelectedHistoricalPaid}
-                  >
-                    Marcar histórico selecionado como pago
-                  </Button>
-                ) : null}
-                {selectedProductionPeriods.length > 0 ? (
+                {selectedOpenPeriods.length > 0 ? (
                   <Button
                     type="button"
                     size="sm"
                     onClick={() => setBatchSettleOpen(true)}
                   >
-                    Quitar na tesouraria ({formatCurrencyBRL(productionSelectionTotal)})
+                    Registrar pagamento na tesouraria (
+                    {formatCurrencyBRL(selectionTotal)})
                   </Button>
                 ) : null}
               </div>
@@ -411,8 +410,21 @@ export function MembershipScheduleDialog({
                         entry.month,
                       )
                       const primary = periodContributions[0]
-                      const selectable = isRowSelectable(entry, isHistorical)
+                      const selectable = isRowSelectable(entry, periodContributions)
                       const checked = selectedKeys.has(key)
+                      const paidViaTreasury = periodContributions.some((c) =>
+                        contributionCountsInTreasury(c),
+                      )
+                      const backfillOnlyPaid =
+                        entry.status === 'paid' &&
+                        !paidViaTreasury &&
+                        periodContributions.some((c) =>
+                          isMembershipBackfillContribution(
+                            entry.year,
+                            entry.month,
+                            c,
+                          ),
+                        )
 
                       return (
                         <TableRow
@@ -436,7 +448,11 @@ export function MembershipScheduleDialog({
                           <TableCell className="font-medium">
                             <div className="flex flex-col gap-1">
                               <span>{entry.periodLabel}</span>
-                              {isHistorical ? (
+                              {backfillOnlyPaid ? (
+                                <Badge variant="outline" className="w-fit text-xs">
+                                  Só controle — falta tesouraria
+                                </Badge>
+                              ) : isHistorical && !paidViaTreasury && entry.status === 'paid' ? (
                                 <Badge variant="outline" className="w-fit text-xs">
                                   Só controle
                                 </Badge>
@@ -455,38 +471,9 @@ export function MembershipScheduleDialog({
                               ? formatCurrencyBRL(entry.remainingAmount)
                               : '—'}
                           </TableCell>
-                          <TableCell>
-                            {isHistorical ? (
-                              <Select
-                                value={
-                                  choices[key] ??
-                                  (entry.status === 'paid' ? 'paid' : 'unpaid')
-                                }
-                                onValueChange={(value: PeriodChoice) =>
-                                  setChoices((prev) => ({
-                                    ...prev,
-                                    [key]: value,
-                                  }))
-                                }
-                              >
-                                <SelectTrigger className="w-[160px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="paid">Pago</SelectItem>
-                                  <SelectItem value="unpaid">Não pago</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              statusBadge(entry.status)
-                            )}
-                          </TableCell>
+                          <TableCell>{statusBadge(entry.status)}</TableCell>
                           <TableCell className="text-right">
-                            {isHistorical ? (
-                              <span className="text-xs text-muted-foreground">
-                                Salve histórico
-                              </span>
-                            ) : primary ? (
+                            {primary ? (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -495,7 +482,7 @@ export function MembershipScheduleDialog({
                                 <Pencil className="mr-1 h-3 w-3" />
                                 Editar
                               </Button>
-                            ) : (
+                            ) : entry.remainingAmount > 0 ? (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -516,6 +503,8 @@ export function MembershipScheduleDialog({
                                 <Plus className="mr-1 h-3 w-3" />
                                 Lançar
                               </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -527,30 +516,105 @@ export function MembershipScheduleDialog({
             </>
           )}
 
+          {historicalPeriods.length > 0 ? (
+            <Collapsible open={backfillOpen} onOpenChange={setBackfillOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="flex w-full items-center justify-between px-2 text-sm text-muted-foreground"
+                >
+                  Migrar planilha antiga (jan–mai/{MEMBERSHIP_TRACKING_START_YEAR}) — sem
+                  tesouraria
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform',
+                      backfillOpen && 'rotate-180',
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-2">
+                <p className="text-xs text-muted-foreground">
+                  Use apenas para importar o status da planilha Excel. Não gera receita
+                  no caixa. Para pagamento real (ex.: março e abril pagos em junho),
+                  use a tabela acima com conta bancária.
+                </p>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Referência</TableHead>
+                        <TableHead>Situação na planilha</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {historicalPeriods.map((period) => {
+                        const key = periodKey(period.year, period.month)
+                        return (
+                          <TableRow key={key} className="bg-muted/20">
+                            <TableCell className="font-medium">
+                              {period.periodLabel}
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={
+                                  choices[key] ?? (period.paid ? 'paid' : 'unpaid')
+                                }
+                                onValueChange={(value: PeriodChoice) =>
+                                  setChoices((prev) => ({
+                                    ...prev,
+                                    [key]: value,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="w-[160px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="paid">Pago</SelectItem>
+                                  <SelectItem value="unpaid">Não pago</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSaveHistorical}
+                    disabled={saving || !brotherId}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      'Salvar migração da planilha'
+                    )}
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : null}
+
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
             <p className="text-xs text-muted-foreground text-left">
-              Ex.: pagou R$ 580 em junho → marque março e abril (histórico) como
-              pagos e salve; maio/junho permanecem em aberto até quitar.
+              Ex.: Claudinei pagou R$ 580 em junho → marque março e abril, registre na
+              tesouraria; maio e junho permanecem em aberto até quitar.
             </p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Fechar
-              </Button>
-              {historicalPeriods.length > 0 ? (
-                <Button onClick={handleSaveHistorical} disabled={saving || !brotherId}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    'Salvar histórico (jan–mai)'
-                  )}
-                </Button>
-              ) : null}
-            </div>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -559,7 +623,7 @@ export function MembershipScheduleDialog({
         open={batchSettleOpen}
         onOpenChange={setBatchSettleOpen}
         brotherName={brother?.full_name?.trim() || schedule?.brotherName || 'Irmão'}
-        periods={selectedProductionPeriods}
+        periods={selectedOpenPeriods}
         onConfirm={handleBatchSettle}
       />
     </>

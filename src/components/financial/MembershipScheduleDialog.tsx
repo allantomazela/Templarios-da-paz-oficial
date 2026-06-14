@@ -58,6 +58,7 @@ interface MembershipScheduleDialogProps {
   onSaved: () => void | Promise<void>
   onRegisterPayment: (params: {
     brotherId: string
+    brotherName: string
     month: string
     year: number
   }) => void
@@ -340,6 +341,10 @@ export function MembershipScheduleDialog({
                             onClick={() =>
                               onRegisterPayment({
                                 brotherId: brotherId!,
+                                brotherName:
+                                  brother?.full_name?.trim() ||
+                                  schedule?.brotherName ||
+                                  'Irmão',
                                 month:
                                   CONTRIBUTION_MONTHS[entry.month - 1] ??
                                   String(entry.month),

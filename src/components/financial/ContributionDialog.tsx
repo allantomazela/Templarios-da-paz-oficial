@@ -46,7 +46,7 @@ import {
   getPaymentMethodFromNotes,
   setPaymentMethodInNotes,
 } from '@/lib/contribution-payment-methods'
-import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
+import { BrotherSearchCombobox, type BrotherOption } from '@/components/financial/BrotherSearchCombobox'
 import { MembershipFeeQuickSettings } from '@/components/financial/MembershipFeeQuickSettings'
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { todayLocalISODate } from '@/lib/format-utils'
@@ -87,9 +87,11 @@ interface ContributionDialogProps {
   onOpenChange: (open: boolean) => void
   contributionToEdit: Contribution | null
   defaultBrotherId?: string
+  defaultBrotherName?: string
   defaultMonth?: string
   defaultYear?: number
   defaultAmount?: number
+  brothers?: BrotherOption[]
   feeSettings?: MembershipFeeSettings
   onUpdateFeeSettings?: (settings: MembershipFeeSettings) => Promise<void>
   onSave: (data: ContributionFormData) => void
@@ -101,9 +103,11 @@ export function ContributionDialog({
   onOpenChange,
   contributionToEdit,
   defaultBrotherId,
+  defaultBrotherName,
   defaultMonth,
   defaultYear,
   defaultAmount = 150,
+  brothers: brothersProp,
   feeSettings,
   onUpdateFeeSettings,
   onSave,
@@ -146,10 +150,16 @@ export function ContributionDialog({
     if (!open) return
 
     const loadOptions = async () => {
+      if (brothersProp && brothersProp.length > 0) {
+        setBrothers(brothersProp)
+      }
+
       setLoadingOptions(true)
       try {
         const [brothersData, accountsData] = await Promise.all([
-          fetchApprovedBrothers(),
+          brothersProp && brothersProp.length > 0
+            ? Promise.resolve(brothersProp)
+            : fetchApprovedBrothers(),
           fetchBankAccounts(),
         ])
         setBrothers(brothersData)
@@ -162,7 +172,7 @@ export function ContributionDialog({
     }
 
     loadOptions()
-  }, [open])
+  }, [open, brothersProp])
 
   useEffect(() => {
     if (!open) return
@@ -230,7 +240,11 @@ export function ContributionDialog({
 
     onSave({
       ...values,
-      brotherName: brother?.full_name || undefined,
+      brotherName:
+        brother?.full_name?.trim() ||
+        defaultBrotherName?.trim() ||
+        contributionToEdit?.brotherName ||
+        undefined,
       notes: historical
         ? values.notes?.trim()
           ? `${MEMBERSHIP_HISTORICAL_NOTE}. ${values.notes.trim()}`
@@ -290,8 +304,13 @@ export function ContributionDialog({
                       brothers={brothers}
                       value={field.value}
                       onChange={field.onChange}
+                      selectedLabel={
+                        defaultBrotherName ||
+                        contributionToEdit?.brotherName ||
+                        undefined
+                      }
                       disabled={!!contributionToEdit}
-                      loading={loadingOptions}
+                      loading={loadingOptions && brothers.length === 0}
                       placeholder="Buscar e selecionar irmão"
                     />
                   </FormControl>

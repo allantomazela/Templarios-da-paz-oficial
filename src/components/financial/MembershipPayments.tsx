@@ -230,9 +230,11 @@ export function MembershipPayments() {
   const [generateOpen, setGenerateOpen] = useState(false)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [scheduleDialogBrotherId, setScheduleDialogBrotherId] = useState('')
-  const [launchPrefill, setLaunchPrefill] = useState<{
-    month: string
-    year: number
+  const [contributionLaunch, setContributionLaunch] = useState<{
+    brotherId: string
+    brotherName: string
+    month?: string
+    year?: number
   } | null>(null)
   const [generateMonth, setGenerateMonth] = useState(
     CONTRIBUTION_MONTHS[new Date().getMonth()],
@@ -417,6 +419,15 @@ export function MembershipPayments() {
     },
   )
 
+  const resolveBrotherName = (brotherId: string) => {
+    if (!brotherId) return ''
+    return (
+      brotherNames[brotherId]?.trim() ||
+      approvedBrothers.find((b) => b.id === brotherId)?.full_name?.trim() ||
+      ''
+    )
+  }
+
   const openSchedule = (brotherId: string) => {
     setSelectedBrotherId(brotherId)
     setScheduleDialogBrotherId(brotherId)
@@ -426,16 +437,28 @@ export function MembershipPayments() {
 
   const openNew = (
     brotherId?: string,
-    prefill?: { month: string; year: number },
+    prefill?: { brotherName?: string; month: string; year: number },
   ) => {
+    const id = brotherId ?? selectedBrotherId
     setSelectedContribution(null)
-    setLaunchPrefill(prefill ?? null)
+    setContributionLaunch({
+      brotherId: id,
+      brotherName:
+        prefill?.brotherName?.trim() || resolveBrotherName(id),
+      month: prefill?.month,
+      year: prefill?.year,
+    })
     if (brotherId) setSelectedBrotherId(brotherId)
     dialog.openDialog()
   }
 
   const openEdit = (contribution: Contribution) => {
-    setLaunchPrefill(null)
+    setContributionLaunch({
+      brotherId: contribution.brotherId,
+      brotherName:
+        contribution.brotherName?.trim() ||
+        resolveBrotherName(contribution.brotherId),
+    })
     setSelectedContribution(contribution)
     setSelectedBrotherId(contribution.brotherId)
     dialog.openDialog()
@@ -751,14 +774,18 @@ export function MembershipPayments() {
       <ContributionDialog
         open={dialog.open}
         onOpenChange={(next) => {
-          if (!next) setLaunchPrefill(null)
+          if (!next) setContributionLaunch(null)
           dialog.onOpenChange(next)
         }}
         contributionToEdit={selectedContribution}
-        defaultBrotherId={selectedBrotherId}
-        defaultMonth={launchPrefill?.month}
-        defaultYear={launchPrefill?.year}
+        defaultBrotherId={
+          contributionLaunch?.brotherId || selectedBrotherId
+        }
+        defaultBrotherName={contributionLaunch?.brotherName}
+        defaultMonth={contributionLaunch?.month}
+        defaultYear={contributionLaunch?.year}
         defaultAmount={feeSettings.defaultAmount}
+        brothers={approvedBrothers}
         feeSettings={feeSettings}
         onUpdateFeeSettings={handleUpdateFeeSettings}
         onSave={handleSave}
@@ -828,9 +855,9 @@ export function MembershipPayments() {
           await loadData.execute()
           notifyFinancialDataChanged()
         }}
-        onRegisterPayment={({ brotherId, month, year }) => {
+        onRegisterPayment={({ brotherId, brotherName, month, year }) => {
           setScheduleDialogOpen(false)
-          openNew(brotherId, { month, year })
+          openNew(brotherId, { brotherName, month, year })
         }}
         onEditContribution={(contribution) => {
           setScheduleDialogOpen(false)

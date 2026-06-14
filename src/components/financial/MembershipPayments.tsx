@@ -30,6 +30,8 @@ import {
   Wallet,
   History,
   CalendarPlus,
+  CalendarDays,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   Dialog,
@@ -61,6 +63,14 @@ import {
 } from '@/lib/contribution-payments'
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import { MembershipOverduePanel } from '@/components/financial/MembershipOverduePanel'
+import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
+import {
+  buildAllMembershipSchedules,
+  buildMembershipScheduleForBrother,
+  buildOverdueBrotherAlerts,
+} from '@/lib/membership-schedule'
+import type { ApprovedBrotherOption } from '@/lib/contribution-payments'
 
 function statusBadge(status: Contribution['status']) {
   if (status === 'Pago') {
@@ -185,7 +195,7 @@ export function MembershipPayments() {
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [approvedBrothers, setApprovedBrothers] = useState<
-    { id: string; full_name: string | null }[]
+    ApprovedBrotherOption[]
   >([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -241,6 +251,42 @@ export function MembershipPayments() {
       ),
     [contributions, brotherNames, approvedBrothers, feeSettings.dueDay],
   )
+
+  const allSchedules = useMemo(
+    () =>
+      buildAllMembershipSchedules(
+        contributions,
+        approvedBrothers,
+        brotherNames,
+        feeSettings,
+      ),
+    [contributions, approvedBrothers, brotherNames, feeSettings],
+  )
+
+  const overdueAlerts = useMemo(
+    () => buildOverdueBrotherAlerts(allSchedules),
+    [allSchedules],
+  )
+
+  const selectedSchedule = useMemo(() => {
+    if (!selectedBrotherId) return null
+    const brother = approvedBrothers.find((b) => b.id === selectedBrotherId)
+    const name =
+      brotherNames[selectedBrotherId] || brother?.full_name || 'Sem nome'
+    return buildMembershipScheduleForBrother(
+      selectedBrotherId,
+      name,
+      contributions,
+      feeSettings,
+      brother?.created_at,
+    )
+  }, [
+    selectedBrotherId,
+    approvedBrothers,
+    brotherNames,
+    contributions,
+    feeSettings,
+  ])
 
   const selectedSummary = summaries.find((s) => s.brotherId === selectedBrotherId)
   const brotherHistory = useMemo(
@@ -391,11 +437,23 @@ export function MembershipPayments() {
         onSave={handleUpdateFeeSettings}
       />
 
+      <MembershipOverduePanel
+        alerts={overdueAlerts}
+        onSelectBrother={(brotherId) => {
+          setSelectedBrotherId(brotherId)
+          setViewTab('by-member')
+        }}
+      />
+
       <Tabs value={viewTab} onValueChange={setViewTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="by-member">
             <User className="mr-2 h-4 w-4" />
             Por irmão
+          </TabsTrigger>
+          <TabsTrigger value="overdue">
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Atrasos ({overdueAlerts.length})
           </TabsTrigger>
           <TabsTrigger value="all">
             <History className="mr-2 h-4 w-4" />
@@ -425,7 +483,7 @@ export function MembershipPayments() {
           </div>
 
           {selectedSummary && current && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -472,6 +530,21 @@ export function MembershipPayments() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Em atraso
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg font-semibold text-destructive">
+                    {formatCurrencyBRL(selectedSchedule?.totalOverdue ?? 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedSchedule?.overdueMonthCount ?? 0} mês(es)
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
                     Último pagamento
                   </CardTitle>
                 </CardHeader>
@@ -485,6 +558,16 @@ export function MembershipPayments() {
               </Card>
             </div>
           )}
+
+          {selectedSchedule ? (
+            <div>
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <CalendarDays className="h-4 w-4" />
+                Cronograma de mensalidades
+              </h3>
+              <MembershipScheduleTable entries={selectedSchedule.entries} />
+            </div>
+          ) : null}
 
           <div>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
@@ -505,6 +588,55 @@ export function MembershipPayments() {
               />
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="overdue" className="space-y-4">
+          <MembershipOverduePanel
+            alerts={overdueAlerts}
+            onSelectBrother={(brotherId) => {
+              setSelectedBrotherId(brotherId)
+              setViewTab('by-member')
+            }}
+          />
+          {overdueAlerts.length > 0 ? (
+            <div className="rounded-md border bg-card overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Irmão</TableHead>
+                    <TableHead>Meses em atraso</TableHead>
+                    <TableHead>Valor em aberto</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overdueAlerts.map((alert) => (
+                    <TableRow key={alert.brotherId}>
+                      <TableCell className="font-medium">
+                        {alert.brotherName}
+                      </TableCell>
+                      <TableCell>{alert.overdueLabels.join(', ')}</TableCell>
+                      <TableCell className="font-mono text-destructive">
+                        {formatCurrencyBRL(alert.overdueAmount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBrotherId(alert.brotherId)
+                            setViewTab('by-member')
+                          }}
+                        >
+                          Ver cronograma
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="all" className="space-y-4">

@@ -369,6 +369,7 @@ export async function fetchContributionsWithProfiles(): Promise<{
 export type ApprovedBrotherOption = {
   id: string
   full_name: string | null
+  created_at?: string | null
 }
 
 /** Ordem alfabética pt-BR para listas de irmãos (mensalidades, ágape, etc.). */
@@ -388,7 +389,7 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, created_at')
     .eq('status', 'approved')
 
   if (error) throw error

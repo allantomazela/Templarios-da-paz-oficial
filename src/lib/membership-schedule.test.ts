@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest'
+import type { Contribution } from '@/lib/data'
+import {
+  buildMembershipScheduleForBrother,
+  buildOverdueBrotherAlerts,
+  buildAllMembershipSchedules,
+} from '@/lib/membership-schedule'
+
+const settings = { defaultAmount: 150, dueDay: 10 }
+
+function contribution(
+  overrides: Partial<Contribution> & Pick<Contribution, 'month' | 'year'>,
+): Contribution {
+  return {
+    id: overrides.id ?? crypto.randomUUID(),
+    brotherId: overrides.brotherId ?? 'brother-1',
+    month: overrides.month,
+    year: overrides.year,
+    amount: overrides.amount ?? 150,
+    status: overrides.status ?? 'Pago',
+    paymentDate: overrides.paymentDate,
+    brotherName: overrides.brotherName,
+    accountId: overrides.accountId,
+    transactionId: overrides.transactionId,
+    notes: overrides.notes,
+  }
+}
+
+describe('buildMembershipScheduleForBrother', () => {
+  it('marca mês quitado quando pagamentos somam o valor previsto', () => {
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Teste',
+      [
+        contribution({ month: 'Janeiro', year: 2026, amount: 75, status: 'Pago' }),
+        contribution({
+          id: '2',
+          month: 'Janeiro',
+          year: 2026,
+          amount: 75,
+          status: 'Pago',
+        }),
+      ],
+      settings,
+      '2026-01-01T00:00:00Z',
+    )
+
+    const jan = schedule.entries.find((e) => e.month === 1 && e.year === 2026)
+    expect(jan?.paidAmount).toBe(150)
+    expect(jan?.status).toBe('paid')
+    expect(jan?.remainingAmount).toBe(0)
+  })
+
+  it('identifica mês em atraso sem pagamento suficiente', () => {
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Teste',
+      [],
+      settings,
+      '2020-01-01T00:00:00Z',
+    )
+
+    expect(schedule.overdueMonthCount).toBeGreaterThan(0)
+    expect(schedule.isUpToDate).toBe(false)
+    expect(schedule.totalOverdue).toBeGreaterThan(0)
+  })
+
+  it('gera alertas de atraso por irmão', () => {
+    const contributions = [
+      contribution({
+        brotherId: 'a',
+        month: 'Janeiro',
+        year: 2020,
+        status: 'Pendente',
+      }),
+    ]
+
+    const schedules = buildAllMembershipSchedules(
+      contributions,
+      [
+        { id: 'a', full_name: 'Alpha', created_at: '2020-01-01T00:00:00Z' },
+        { id: 'b', full_name: 'Beta', created_at: '2020-01-01T00:00:00Z' },
+      ],
+      { a: 'Alpha', b: 'Beta' },
+      settings,
+    )
+
+    const alerts = buildOverdueBrotherAlerts(schedules)
+    expect(alerts.some((a) => a.brotherId === 'a')).toBe(true)
+    expect(alerts.every((a) => a.overdueCount > 0)).toBe(true)
+  })
+})

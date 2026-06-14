@@ -16,6 +16,9 @@ import {
 } from 'lucide-react'
 import {
   fetchMemberPayments,
+  getMemberPaymentCategoryLabel,
+  getPaidMemberPayments,
+  sumPaidMemberPayments,
   type MemberPayment as Payment,
 } from '@/lib/member-payments'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
@@ -86,6 +89,14 @@ export default function MyPayments() {
 
   const monthlyPayments = payments.filter((p) => p.type === 'monthly')
   const charityPayments = payments.filter((p) => p.type === 'charity')
+  const paidPayments = useMemo(
+    () => getPaidMemberPayments(payments),
+    [payments],
+  )
+  const totalPaidAll = useMemo(
+    () => sumPaidMemberPayments(payments),
+    [payments],
+  )
 
   const openSchedule = useMemo(
     () => schedule?.openEntries ?? [],
@@ -130,8 +141,8 @@ export default function MyPayments() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Meus Pagamentos</h2>
         <p className="text-muted-foreground">
-          Acompanhe o cronograma de mensalidades, pagamentos realizados e
-          pendências.
+          Acompanhe seu extrato completo de pagamentos, cronograma de
+          mensalidades e pendências.
         </p>
       </div>
 
@@ -164,8 +175,11 @@ export default function MyPayments() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrencyBRL(schedule?.totalPaid ?? 0)}
+              {formatCurrencyBRL(totalPaidAll)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {paidPayments.length} pagamento(s) registrado(s)
+            </p>
           </CardContent>
         </Card>
 
@@ -214,8 +228,12 @@ export default function MyPayments() {
         </Card>
       </div>
 
-      <Tabs defaultValue="schedule" className="space-y-4">
+      <Tabs defaultValue="extrato" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="extrato">
+            <History className="mr-2 h-4 w-4" />
+            Extrato ({paidPayments.length})
+          </TabsTrigger>
           <TabsTrigger value="schedule">
             <CalendarDays className="mr-2 h-4 w-4" />
             Cronograma
@@ -227,13 +245,64 @@ export default function MyPayments() {
             Pagas ({schedule?.paidEntries.length ?? 0})
           </TabsTrigger>
           <TabsTrigger value="entries">
-            <History className="mr-2 h-4 w-4" />
-            Lançamentos ({monthlyPayments.length})
+            Mensalidades ({monthlyPayments.length})
           </TabsTrigger>
           <TabsTrigger value="charity">
             Tronco ({charityPayments.length})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="extrato">
+          <Card>
+            <CardHeader>
+              <CardTitle>Extrato de pagamentos realizados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadPaymentsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Carregando extrato...
+                </div>
+              ) : paidPayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum pagamento registrado ainda.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Data pagamento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paidPayments.map((payment) => (
+                      <TableRow key={`${payment.type}-${payment.id}`}>
+                        <TableCell>
+                          {getMemberPaymentCategoryLabel(payment)}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {payment.description}
+                        </TableCell>
+                        <TableCell>
+                          {payment.paymentDate
+                            ? formatDateBR(payment.paymentDate)
+                            : formatDateBR(payment.dueDate)}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrencyBRL(payment.amount)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="schedule">
           <Card>

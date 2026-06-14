@@ -1,4 +1,11 @@
-import type { Contribution } from '@/lib/data'
+export interface Contribution {
+  id: string
+  brotherId: string
+  month: string
+  year: number
+  amount: number
+  status: 'Pago' | 'Pendente' | 'Atrasado'
+}
 
 export type MembershipMonthStatus =
   | 'paid'
@@ -354,38 +361,4 @@ export function buildAllMembershipSchedules(
       )
     })
     .sort((a, b) => a.brotherName.localeCompare(b.brotherName, 'pt-BR'))
-}
-
-export function buildOverdueBrotherAlerts(
-  schedules: BrotherMembershipSchedule[],
-): OverdueBrotherAlert[] {
-  return schedules
-    .filter((s) => s.overdueMonthCount > 0)
-    .map((s) => ({
-      brotherId: s.brotherId,
-      brotherName: s.brotherName,
-      overdueCount: s.overdueMonthCount,
-      overdueAmount: s.totalOverdue,
-      overdueLabels: s.overdueEntries.map((e) =>
-        shortPeriodLabel(e.month, e.year),
-      ),
-      oldestOverdueDueDate:
-        s.overdueEntries.length > 0
-          ? s.overdueEntries[s.overdueEntries.length - 1]?.dueDate ?? null
-          : null,
-    }))
-    .sort((a, b) => b.overdueCount - a.overdueCount)
-}
-
-export function membershipStatusLabel(status: MembershipMonthStatus): string {
-  switch (status) {
-    case 'paid':
-      return 'Pago'
-    case 'partial':
-      return 'Parcial'
-    case 'pending':
-      return 'Em aberto'
-    case 'overdue':
-      return 'Em atraso'
-  }
 }

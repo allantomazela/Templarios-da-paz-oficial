@@ -4,6 +4,7 @@ import {
   buildMembershipScheduleForBrother,
   buildOverdueBrotherAlerts,
   buildAllMembershipSchedules,
+  buildReminderAlerts,
 } from '@/lib/membership-schedule'
 
 const settings = { defaultAmount: 150, dueDay: 10 }
@@ -88,5 +89,27 @@ describe('buildMembershipScheduleForBrother', () => {
     const alerts = buildOverdueBrotherAlerts(schedules)
     expect(alerts.some((a) => a.brotherId === 'a')).toBe(true)
     expect(alerts.every((a) => a.overdueCount > 0)).toBe(true)
+  })
+})
+
+describe('buildReminderAlerts', () => {
+  it('filtra alertas após vencimento conforme dias configurados', () => {
+    const schedules = buildAllMembershipSchedules(
+      [],
+      [{ id: 'a', full_name: 'Alpha', created_at: '2020-01-01T00:00:00Z' }],
+      { a: 'Alpha' },
+      settings,
+    )
+
+    const alertsDefault = buildReminderAlerts(schedules, 'after', 0)
+    expect(alertsDefault.length).toBeGreaterThan(0)
+
+    const alertsStrict = buildReminderAlerts(
+      schedules,
+      'after',
+      9999,
+      new Date(),
+    )
+    expect(alertsStrict.length).toBe(0)
   })
 })

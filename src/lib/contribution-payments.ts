@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase/client'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
+import { isMembershipHistoricalPeriod } from '@/lib/membership-schedule'
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
 
@@ -94,6 +95,12 @@ export async function generatePendingContributionsForMonth(
   year: number,
   amount?: number,
 ): Promise<GenerateContributionsResult> {
+  if (isMembershipHistoricalPeriod(year, month)) {
+    throw new Error(
+      'Use o cronograma para regularizar meses anteriores a jun/2026 (somente controle).',
+    )
+  }
+
   const supabaseAny = supabase as any
   const settings = await fetchMembershipFeeSettings()
   const feeAmount = amount ?? settings.defaultAmount
@@ -260,6 +267,22 @@ async function syncFinancialTransaction(
   },
 ): Promise<string | null> {
   const isPaid = params.status === 'Pago'
+  const isHistorical = isMembershipHistoricalPeriod(params.year, params.month)
+
+  if (isHistorical) {
+    if (params.existingTransactionId) {
+      const { error } = await supabaseAny
+        .from('financial_transactions')
+        .delete()
+        .eq('id', params.existingTransactionId)
+      if (error) throw error
+    }
+    await supabaseAny
+      .from('contributions')
+      .update({ transaction_id: null, account_id: null })
+      .eq('id', params.contributionId)
+    return null
+  }
 
   if (!isPaid) {
     if (params.existingTransactionId) {
@@ -501,6 +524,7 @@ export async function saveContribution(
   const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
+  const isHistorical = isMembershipHistoricalPeriod(data.year, month)
 
   const {
     data: { user },
@@ -516,7 +540,8 @@ export async function saveContribution(
       data.status === 'Pago'
         ? data.paymentDate || todayLocalISODate()
         : null,
-    account_id: data.status === 'Pago' ? data.accountId ?? null : null,
+    account_id:
+      data.status === 'Pago' && !isHistorical ? data.accountId ?? null : null,
     notes: data.notes?.trim() || null,
     recorded_by: user?.id ?? null,
   }

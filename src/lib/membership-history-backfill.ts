@@ -1,6 +1,7 @@
 import {
   buildDueDateIsoFromParts,
   isMembershipPastDue,
+  MEMBERSHIP_HISTORICAL_NOTE,
   type MembershipFeeScheduleSettings,
 } from '@/lib/membership-schedule'
 import {
@@ -72,7 +73,7 @@ export async function saveMembershipBackfillPeriods(params: {
         amount: params.settings.defaultAmount,
         status: 'Pago',
         paymentDate: dueDate,
-        notes: 'Regularização histórica (pré-produção)',
+        notes: MEMBERSHIP_HISTORICAL_NOTE,
       }
 
       if (primary) {
@@ -99,7 +100,7 @@ export async function saveMembershipBackfillPeriods(params: {
         year: period.year,
         amount: params.settings.defaultAmount,
         status: unpaidStatus,
-        notes: 'Regularização histórica (pré-produção)',
+        notes: MEMBERSHIP_HISTORICAL_NOTE,
       })
       saved++
       continue
@@ -115,7 +116,7 @@ export async function saveMembershipBackfillPeriods(params: {
           year: period.year,
           amount: params.settings.defaultAmount,
           status: unpaidStatus,
-          notes: 'Regularização histórica (pré-produção)',
+          notes: MEMBERSHIP_HISTORICAL_NOTE,
         },
         {
           contributionId: primary.id,

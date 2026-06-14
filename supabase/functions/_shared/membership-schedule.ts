@@ -17,6 +17,22 @@ export type MembershipMonthStatus =
 export const MEMBERSHIP_TRACKING_START_YEAR = 2026
 export const MEMBERSHIP_TRACKING_START_MONTH = 6
 
+/** Período anterior ao início da tesouraria digital — só controle, sem receita. */
+export function isMembershipHistoricalPeriod(
+  year: number,
+  month: number,
+  trackingStartYear = MEMBERSHIP_TRACKING_START_YEAR,
+  trackingStartMonth = MEMBERSHIP_TRACKING_START_MONTH,
+): boolean {
+  return (
+    year < trackingStartYear ||
+    (year === trackingStartYear && month < trackingStartMonth)
+  )
+}
+
+export const MEMBERSHIP_HISTORICAL_NOTE =
+  'Regularização histórica (pré-produção — não entra na tesouraria)'
+
 /** Tolerância de meses em atraso antes de mensagem de escalonamento no e-mail. */
 export const MEMBERSHIP_OVERDUE_ESCALATION_MONTHS = 3
 

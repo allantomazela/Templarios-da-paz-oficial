@@ -6,6 +6,7 @@ import {
   buildAllMembershipSchedules,
   buildReminderAlerts,
   buildMembershipBackfillPeriods,
+  isMembershipHistoricalPeriod,
   isMembershipPeriodFuture,
   isMembershipPastDue,
 } from '@/lib/membership-schedule'
@@ -184,5 +185,11 @@ describe('isMembershipPastDue', () => {
     )
     expect(periods.map((p) => p.month)).toEqual([1, 2, 3, 4, 5])
     expect(periods.every((p) => p.year === 2026)).toBe(true)
+  })
+
+  it('identifica período histórico antes de jun/2026', () => {
+    expect(isMembershipHistoricalPeriod(2026, 5)).toBe(true)
+    expect(isMembershipHistoricalPeriod(2026, 6)).toBe(false)
+    expect(isMembershipHistoricalPeriod(2026, 7)).toBe(false)
   })
 })

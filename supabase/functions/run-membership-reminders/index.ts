@@ -149,6 +149,44 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
+  const startedAt = new Date().toISOString()
+  let runId: string | null = null
+
+  const { data: runRow, error: runInsertError } = await admin
+    .from('membership_reminder_runs')
+    .insert({ source, started_at: startedAt })
+    .select('id')
+    .single()
+
+  if (runInsertError) {
+    console.error('membership_reminder_runs insert error:', runInsertError.message)
+  } else {
+    runId = runRow?.id ?? null
+  }
+
+  async function finalizeRun(payload: {
+    alerts_count?: number
+    sent_count: number
+    skipped_count: number
+    failed_count: number
+    message: string
+    error?: string | null
+  }) {
+    if (!runId) return
+    await admin
+      .from('membership_reminder_runs')
+      .update({
+        finished_at: new Date().toISOString(),
+        alerts_count: payload.alerts_count ?? 0,
+        sent_count: payload.sent_count,
+        skipped_count: payload.skipped_count,
+        failed_count: payload.failed_count,
+        message: payload.message,
+        error: payload.error ?? null,
+      })
+      .eq('id', runId)
+  }
+
   try {
     const { data: settingsRow, error: settingsError } = await admin
       .from('site_settings')
@@ -164,11 +202,18 @@ serve(async (req) => {
     const enabled = Boolean(settings?.membership_reminder_enabled)
 
     if (!enabled) {
+      const message = 'Lembretes automáticos estão desativados.'
+      await finalizeRun({
+        sent_count: 0,
+        skipped_count: 0,
+        failed_count: 0,
+        message,
+      })
       return new Response(
         JSON.stringify({
           ok: true,
           skipped: true,
-          message: 'Lembretes automáticos estão desativados.',
+          message,
           source,
         }),
         {
@@ -294,6 +339,15 @@ serve(async (req) => {
       }
     }
 
+    const message = parts.join(' ')
+    await finalizeRun({
+      alerts_count: alerts.length,
+      sent_count: sent,
+      skipped_count: skippedCount,
+      failed_count: failed,
+      message,
+    })
+
     return new Response(
       JSON.stringify({
         ok: true,
@@ -301,7 +355,8 @@ serve(async (req) => {
         sent,
         skippedCount,
         failed,
-        message: parts.join(' '),
+        alertsCount: alerts.length,
+        message,
       }),
       {
         status: 200,
@@ -311,6 +366,13 @@ serve(async (req) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro inesperado'
     console.error('run-membership-reminders error:', message)
+    await finalizeRun({
+      sent_count: 0,
+      skipped_count: 0,
+      failed_count: 0,
+      message: 'Execução interrompida por erro.',
+      error: message,
+    })
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...headers, 'Content-Type': 'application/json' },

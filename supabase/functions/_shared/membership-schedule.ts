@@ -152,14 +152,17 @@ function buildDueDateIso(year: number, month: number, dueDay: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-function parseIsoDate(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d, 23, 59, 59, 999)
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-function startOfToday(): Date {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+export function isMembershipPastDue(
+  dueDateIso: string,
+  referenceDate: Date = new Date(),
+): boolean {
+  const [y, m, d] = dueDateIso.split('-').map(Number)
+  const dueStart = new Date(y, m - 1, d)
+  return startOfDay(referenceDate).getTime() > dueStart.getTime()
 }
 
 function* iterMonths(
@@ -230,7 +233,7 @@ function resolveMonthStatus(
 ): MembershipMonthStatus {
   if (paidAmount >= expectedAmount) return 'paid'
 
-  const isPastDue = today > parseIsoDate(dueDateIso)
+  const isPastDue = isMembershipPastDue(dueDateIso, today)
 
   if (paidAmount > 0 && paidAmount < expectedAmount) {
     return isPastDue ? 'overdue' : 'partial'
@@ -257,7 +260,7 @@ export function buildMembershipScheduleForBrother(
   const now = new Date()
   const endYear = now.getFullYear()
   const endMonth = now.getMonth() + 1
-  const today = startOfToday()
+  const today = startOfDay(now)
   const dueDay = settings.dueDay || DEFAULT_MEMBERSHIP_DUE_DAY
   const expectedAmount = settings.defaultAmount
 

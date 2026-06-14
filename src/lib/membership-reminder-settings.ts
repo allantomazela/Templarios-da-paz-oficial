@@ -61,6 +61,58 @@ export interface MembershipReminderRunResult {
   error?: string
 }
 
+export interface MembershipReminderRun {
+  id: string
+  source: 'cron' | 'manual'
+  startedAt: string
+  finishedAt: string | null
+  alertsCount: number
+  sentCount: number
+  skippedCount: number
+  failedCount: number
+  message: string | null
+  error: string | null
+}
+
+export async function fetchMembershipReminderRuns(
+  limit = 15,
+): Promise<MembershipReminderRun[]> {
+  const supabaseAny = supabase as any
+  const { data, error } = await supabaseAny
+    .from('membership_reminder_runs')
+    .select('*')
+    .order('started_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+
+  return (data || []).map(
+    (row: {
+      id: string
+      source: 'cron' | 'manual'
+      started_at: string
+      finished_at: string | null
+      alerts_count: number
+      sent_count: number
+      skipped_count: number
+      failed_count: number
+      message: string | null
+      error: string | null
+    }) => ({
+      id: row.id,
+      source: row.source,
+      startedAt: row.started_at,
+      finishedAt: row.finished_at,
+      alertsCount: row.alerts_count ?? 0,
+      sentCount: row.sent_count ?? 0,
+      skippedCount: row.skipped_count ?? 0,
+      failedCount: row.failed_count ?? 0,
+      message: row.message,
+      error: row.error,
+    }),
+  )
+}
+
 export async function runMembershipRemindersManual(): Promise<MembershipReminderRunResult> {
   try {
     const { data, error } = await supabase.functions.invoke(

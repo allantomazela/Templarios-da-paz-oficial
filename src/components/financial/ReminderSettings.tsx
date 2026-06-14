@@ -37,6 +37,7 @@ import {
   runMembershipRemindersManual,
   saveMembershipReminderSettings,
 } from '@/lib/membership-reminder-settings'
+import { MembershipReminderRunsPanel } from '@/components/financial/MembershipReminderRunsPanel'
 
 interface ReminderLogFromDB {
   id: string
@@ -62,6 +63,7 @@ export function ReminderSettings() {
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [runsRefreshKey, setRunsRefreshKey] = useState(0)
   const { toast } = useToast()
   const supabaseAny = supabase as any
 
@@ -190,6 +192,7 @@ export function ReminderSettings() {
       if (!result.ok) {
         throw new Error(result.error || 'Falha ao enviar lembretes.')
       }
+      setRunsRefreshKey((k) => k + 1)
       await loadData.execute()
       return result.message || 'Verificação concluída.'
     },
@@ -310,6 +313,8 @@ export function ReminderSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <MembershipReminderRunsPanel refreshKey={runsRefreshKey} />
 
       <Card>
         <CardHeader>

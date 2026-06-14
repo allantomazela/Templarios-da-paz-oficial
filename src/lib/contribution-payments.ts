@@ -455,8 +455,16 @@ export function buildBrotherSummaries(
         } else if (currentMonthItems.some((i) => i.status === 'Atrasado')) {
           currentStatus = 'overdue'
         } else {
-          const due = new Date(currentYear, currentMonth - 1, dueDay)
-          currentStatus = now > due ? 'overdue' : 'pending'
+          const dueIso = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(Math.min(dueDay, 28)).padStart(2, '0')}`
+          const todayStart = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          )
+          const [dy, dm, dd] = dueIso.split('-').map(Number)
+          const dueStart = new Date(dy, dm - 1, dd)
+          currentStatus =
+            todayStart.getTime() > dueStart.getTime() ? 'overdue' : 'pending'
         }
       }
 

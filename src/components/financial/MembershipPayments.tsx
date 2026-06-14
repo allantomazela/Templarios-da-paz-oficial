@@ -65,6 +65,8 @@ import { formatCurrencyBRL } from '@/lib/member-payments'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { MembershipOverduePanel } from '@/components/financial/MembershipOverduePanel'
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
+import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfoPanel'
+import { FinancialAccessOverview } from '@/components/financial/FinancialAccessOverview'
 import {
   buildAllMembershipSchedules,
   buildMembershipScheduleForBrother,
@@ -445,6 +447,13 @@ export function MembershipPayments() {
         }}
       />
 
+      <FinancialAccessOverview
+        onSelectBrother={(profileId) => {
+          setSelectedBrotherId(profileId)
+          setViewTab('by-member')
+        }}
+      />
+
       <Tabs value={viewTab} onValueChange={setViewTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="by-member">
@@ -481,6 +490,10 @@ export function MembershipPayments() {
               Lançar para este irmão
             </Button>
           </div>
+
+          {selectedBrotherId ? (
+            <BrotherAccessInfoPanel profileId={selectedBrotherId} />
+          ) : null}
 
           {selectedSummary && current && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

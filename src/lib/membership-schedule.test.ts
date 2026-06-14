@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Contribution } from '@/lib/data'
 import {
   buildMembershipScheduleForBrother,
   buildOverdueBrotherAlerts,
   buildAllMembershipSchedules,
   buildReminderAlerts,
+  isMembershipPastDue,
 } from '@/lib/membership-schedule'
 
 const settings = { defaultAmount: 150, dueDay: 10 }
@@ -111,5 +112,46 @@ describe('buildReminderAlerts', () => {
       new Date(),
     )
     expect(alertsStrict.length).toBe(0)
+  })
+})
+
+describe('isMembershipPastDue', () => {
+  it('mantém pendente no dia 10 e marca atraso apenas depois', () => {
+    const dueDate = '2026-06-10'
+    expect(isMembershipPastDue(dueDate, new Date(2026, 5, 10))).toBe(false)
+    expect(isMembershipPastDue(dueDate, new Date(2026, 5, 9))).toBe(false)
+    expect(isMembershipPastDue(dueDate, new Date(2026, 5, 11))).toBe(true)
+  })
+
+  it('marca mês corrente como pendente no dia 10 e atraso só depois', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 10))
+
+    const scheduleOnDueDay = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Teste',
+      [],
+      settings,
+      '2026-06-01T00:00:00Z',
+    )
+    const juneOnDue = scheduleOnDueDay.entries.find(
+      (e) => e.month === 6 && e.year === 2026,
+    )
+    expect(juneOnDue?.status).toBe('pending')
+
+    vi.setSystemTime(new Date(2026, 5, 11))
+    const scheduleAfterDue = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Teste',
+      [],
+      settings,
+      '2026-06-01T00:00:00Z',
+    )
+    const juneOverdue = scheduleAfterDue.entries.find(
+      (e) => e.month === 6 && e.year === 2026,
+    )
+    expect(juneOverdue?.status).toBe('overdue')
+
+    vi.useRealTimers()
   })
 })

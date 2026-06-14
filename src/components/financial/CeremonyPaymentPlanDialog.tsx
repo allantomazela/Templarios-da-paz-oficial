@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -29,6 +29,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { BrotherSearchCombobox, type BrotherOption } from '@/components/financial/BrotherSearchCombobox'
+import { fetchBankAccounts } from '@/lib/contribution-payments'
+import { Checkbox } from '@/components/ui/checkbox'
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { todayLocalISODate } from '@/lib/format-utils'
 import {
@@ -48,6 +50,9 @@ const planSchema = z
     installmentsCount: z.coerce.number().int().min(1).max(48),
     firstDueDate: z.string().optional(),
     ceremonyDate: z.string().optional(),
+    registerNow: z.boolean(),
+    paymentDate: z.string().optional(),
+    accountId: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.paymentType === 'Outros' && !data.description?.trim()) {
@@ -55,6 +60,13 @@ const planSchema = z
         code: z.ZodIssueCode.custom,
         message: 'Descreva o tipo de pagamento',
         path: ['description'],
+      })
+    }
+    if (data.registerNow && !data.accountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Selecione a conta bancária para registrar na tesouraria',
+        path: ['accountId'],
       })
     }
   })
@@ -78,6 +90,9 @@ export function CeremonyPaymentPlanDialog({
   onSave,
   saving = false,
 }: CeremonyPaymentPlanDialogProps) {
+  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([])
+  const [loadingAccounts, setLoadingAccounts] = useState(true)
+
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
     defaultValues: {
@@ -88,8 +103,13 @@ export function CeremonyPaymentPlanDialog({
       installmentsCount: 1,
       firstDueDate: todayLocalISODate(),
       ceremonyDate: '',
+      registerNow: true,
+      paymentDate: todayLocalISODate(),
+      accountId: '',
     },
   })
+
+  const watchRegisterNow = form.watch('registerNow')
 
   const watchTotal = form.watch('totalAmount')
   const watchCount = form.watch('installmentsCount')
@@ -104,6 +124,19 @@ export function CeremonyPaymentPlanDialog({
 
   useEffect(() => {
     if (!open) return
+    setLoadingAccounts(true)
+    fetchBankAccounts()
+      .then((data) => {
+        setAccounts(data)
+        if (data.length === 1) {
+          form.setValue('accountId', data[0].id)
+        }
+      })
+      .finally(() => setLoadingAccounts(false))
+  }, [open, form])
+
+  useEffect(() => {
+    if (!open) return
     form.reset({
       brotherId: defaultBrotherId || '',
       paymentType: 'Iniciacao',
@@ -112,8 +145,11 @@ export function CeremonyPaymentPlanDialog({
       installmentsCount: 1,
       firstDueDate: todayLocalISODate(),
       ceremonyDate: '',
+      registerNow: true,
+      paymentDate: todayLocalISODate(),
+      accountId: accounts[0]?.id || '',
     })
-  }, [open, defaultBrotherId, form])
+  }, [open, defaultBrotherId, form, accounts])
 
   const handleSubmit = async (values: PlanFormValues) => {
     const brother = brothers.find((b) => b.id === values.brotherId)
@@ -126,6 +162,12 @@ export function CeremonyPaymentPlanDialog({
       installmentsCount: values.installmentsCount,
       firstDueDate: values.firstDueDate || todayLocalISODate(),
       ceremonyDate: values.ceremonyDate || undefined,
+      registerPayment: values.registerNow
+        ? {
+            paymentDate: values.paymentDate || todayLocalISODate(),
+            accountId: values.accountId!,
+          }
+        : undefined,
     })
   }
 
@@ -273,6 +315,76 @@ export function CeremonyPaymentPlanDialog({
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="space-y-3 rounded-md border p-3">
+              <FormField
+                control={form.control}
+                name="registerNow"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Registrar 1ª parcela na tesouraria agora</FormLabel>
+                      <FormDescription>
+                        Gera receita em Financeiro → Receitas e compõe o saldo da conta.
+                        Demais parcelas podem ser registradas depois.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {watchRegisterNow ? (
+                <div className="grid gap-4 sm:grid-cols-2 pt-1">
+                  <FormField
+                    control={form.control}
+                    name="paymentDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Data do pagamento</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="accountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conta bancária</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={loadingAccounts}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Onde entrou o valor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {accounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ) : null}
             </div>
 
             <DialogFooter>

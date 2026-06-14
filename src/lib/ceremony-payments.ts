@@ -321,6 +321,34 @@ export async function createCeremonyPaymentPlan(
   const plans = await fetchCeremonyPaymentPlans(data.brotherId)
   const created = plans.find((p) => p.id === plan.id)
   if (!created) throw new Error('Plano criado, mas não foi possível recarregar.')
+
+  if (data.registerPayment?.accountId) {
+    const firstInstallment = created.installments?.[0]
+    if (!firstInstallment) {
+      throw new Error('Plano criado, mas nenhuma parcela foi encontrada para registrar o pagamento.')
+    }
+
+    await saveCeremonyInstallment(
+      {
+        installmentId: firstInstallment.id,
+        brotherName: data.brotherName,
+        paymentType: data.paymentType,
+        planDescription: data.description,
+        installmentNumber: firstInstallment.installmentNumber,
+        installmentsCount: data.installmentsCount,
+        amount: firstInstallment.amount,
+        status: 'Pago',
+        paymentDate: data.registerPayment.paymentDate,
+        accountId: data.registerPayment.accountId,
+        notes: data.registerPayment.notes,
+      },
+      { planId: created.id, existingTransactionId: null },
+    )
+
+    const refreshed = await fetchCeremonyPaymentPlans(data.brotherId)
+    return refreshed.find((p) => p.id === plan.id) ?? created
+  }
+
   return created
 }
 

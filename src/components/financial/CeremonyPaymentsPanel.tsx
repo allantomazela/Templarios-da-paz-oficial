@@ -118,11 +118,26 @@ export function CeremonyPaymentsPanel({
   const handleCreatePlan = async (data: CeremonyPlanFormData) => {
     setSavingPlan(true)
     try {
-      await createCeremonyPaymentPlan(data)
+      const created = await createCeremonyPaymentPlan(data)
       await loadPlans()
       notifyFinancialDataChanged()
       setPlanDialogOpen(false)
-      toast({ title: 'Plano criado', description: 'Parcelas geradas com sucesso.' })
+      if (data.registerPayment?.accountId) {
+        toast({
+          title: 'Plano criado',
+          description: 'Receita da 1ª parcela registrada na tesouraria.',
+        })
+      } else {
+        toast({
+          title: 'Plano criado',
+          description:
+            'Registre cada parcela paga para gerar receita em Financeiro → Receitas.',
+        })
+        const firstInstallment = created.installments?.[0]
+        if (firstInstallment) {
+          openInstallment(created, firstInstallment)
+        }
+      }
     } catch (error) {
       toast({
         title: 'Erro',
@@ -213,7 +228,9 @@ export function CeremonyPaymentsPanel({
 
       <p className="text-sm text-muted-foreground">
         Iniciação, Elevação, Exaltação e outros pagamentos com controle de parcelas.
-        Cada parcela paga gera receita na tesouraria na categoria correspondente.
+        A receita só entra em <strong>Financeiro → Receitas</strong> quando a parcela
+        é marcada como <strong>Pago</strong> com conta bancária (use a opção ao criar
+        o plano ou o botão Registrar em cada parcela).
       </p>
 
       {loading ? (

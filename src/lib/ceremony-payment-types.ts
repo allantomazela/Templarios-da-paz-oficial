@@ -63,6 +63,12 @@ export interface CeremonyPlanFormData {
   installmentsCount: number
   firstDueDate?: string
   ceremonyDate?: string
+  /** Registra a 1ª parcela na tesouraria ao criar o plano. */
+  registerPayment?: {
+    paymentDate: string
+    accountId: string
+    notes?: string
+  }
 }
 
 export interface CeremonyInstallmentFormData {

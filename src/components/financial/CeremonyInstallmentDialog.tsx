@@ -142,7 +142,7 @@ export function CeremonyInstallmentDialog({
     >
       <DialogContent className="max-w-lg">
         <FormHeader
-          icon={Wallet}
+          icon={<Wallet className="h-5 w-5" />}
           title={`Parcela ${installment.installmentNumber}/${plan.installmentsCount}`}
           description={`${ceremonyPlanLabel(plan)} — ${plan.brotherName || 'Irmão'}`}
         />

@@ -32,6 +32,8 @@ import {
   CalendarPlus,
   CalendarDays,
   AlertTriangle,
+  ChevronDown,
+  GraduationCap,
 } from 'lucide-react'
 import {
   Dialog,
@@ -68,6 +70,13 @@ import { MembershipScheduleTable } from '@/components/financial/MembershipSchedu
 import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfoPanel'
 import { FinancialAccessOverview } from '@/components/financial/FinancialAccessOverview'
 import { MembershipScheduleDialog } from '@/components/financial/MembershipScheduleDialog'
+import { CeremonyPaymentsPanel } from '@/components/financial/CeremonyPaymentsPanel'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   buildAllMembershipSchedules,
   buildMembershipScheduleForBrother,
@@ -227,6 +236,8 @@ export function MembershipPayments() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBrotherId, setSelectedBrotherId] = useState('')
   const [viewTab, setViewTab] = useState('by-member')
+  const [mainSection, setMainSection] = useState<'membership' | 'ceremony'>('membership')
+  const [openCeremonyPlan, setOpenCeremonyPlan] = useState(false)
   const [feeSettings, setFeeSettings] = useState({ defaultAmount: 150, dueDay: 10 })
   const [generateOpen, setGenerateOpen] = useState(false)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
@@ -482,6 +493,33 @@ export function MembershipPayments() {
 
   return (
     <div className="space-y-4">
+      <Tabs
+        value={mainSection}
+        onValueChange={(value) => setMainSection(value as 'membership' | 'ceremony')}
+        className="space-y-4"
+      >
+        <TabsList>
+          <TabsTrigger value="membership">
+            <Wallet className="mr-2 h-4 w-4" />
+            Mensalidades
+          </TabsTrigger>
+          <TabsTrigger value="ceremony">
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Iniciação, Elevação e Outros
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="ceremony">
+          <CeremonyPaymentsPanel
+            brothers={approvedBrothers}
+            selectedBrotherId={selectedBrotherId}
+            onBrotherChange={setSelectedBrotherId}
+            openPlanDialog={openCeremonyPlan}
+            onPlanDialogOpenChange={setOpenCeremonyPlan}
+          />
+        </TabsContent>
+
+        <TabsContent value="membership" className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-2xl">
           Registre pagamentos a partir de jun/2026 — entram na tesouraria quando
@@ -489,10 +527,30 @@ export function MembershipPayments() {
           (jan–mai/2026) são ajustados pelo cronograma, apenas para controle.
         </p>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Button onClick={() => openNew(selectedBrotherId)} disabled={loading}>
-            <Plus className="mr-2 h-4 w-4" />
-            Registrar pagamento
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={loading}>
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar pagamento
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openNew(selectedBrotherId)}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Mensalidade
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setMainSection('ceremony')
+                  setOpenCeremonyPlan(true)
+                }}
+              >
+                <GraduationCap className="mr-2 h-4 w-4" />
+                Iniciação, Elevação, Exaltação ou Outros
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             onClick={() => setGenerateOpen(true)}
@@ -759,6 +817,8 @@ export function MembershipPayments() {
               emptyMessage="Nenhuma mensalidade encontrada."
             />
           )}
+        </TabsContent>
+      </Tabs>
         </TabsContent>
       </Tabs>
 

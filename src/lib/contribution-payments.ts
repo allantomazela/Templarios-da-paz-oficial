@@ -519,7 +519,12 @@ export function buildBrotherSummaries(
 
 export async function saveContribution(
   data: ContributionFormData,
-  options?: { contributionId?: string; existingTransactionId?: string | null },
+  options?: {
+    contributionId?: string
+    existingTransactionId?: string | null
+    /** Vincula a uma receita já criada (ex.: pagamento único de vários meses). */
+    sharedTransactionId?: string | null
+  },
 ): Promise<void> {
   const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
@@ -550,6 +555,25 @@ export async function saveContribution(
     contributionId: string,
     existingTransactionId?: string | null,
   ) => {
+    if (options?.sharedTransactionId && data.status === 'Pago' && !isHistorical) {
+      if (existingTransactionId && existingTransactionId !== options.sharedTransactionId) {
+        const { error: deleteError } = await supabaseAny
+          .from('financial_transactions')
+          .delete()
+          .eq('id', existingTransactionId)
+        if (deleteError) throw deleteError
+      }
+      const { error: linkError } = await supabaseAny
+        .from('contributions')
+        .update({
+          transaction_id: options.sharedTransactionId,
+          account_id: data.accountId ?? null,
+        })
+        .eq('id', contributionId)
+      if (linkError) throw linkError
+      return
+    }
+
     await syncFinancialTransaction(supabaseAny, {
       contributionId,
       brotherName,

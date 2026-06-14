@@ -8,6 +8,7 @@ import {
   saveContribution,
   type ContributionFormData,
 } from '@/lib/contribution-payments'
+import { buildBatchMensalidadeDescription } from '@/lib/membership-batch-settle-format'
 import type { BatchSettlePeriod } from '@/lib/membership-batch-settle-types'
 
 export type { BatchSettlePeriod } from '@/lib/membership-batch-settle-types'

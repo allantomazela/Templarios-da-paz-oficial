@@ -350,22 +350,23 @@ export default function Agenda() {
       onValueChange={(v) => setViewMode(v as 'month' | 'week' | 'day')}
       className="flex flex-col h-[calc(100vh-8rem)]"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm shrink-0 mb-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={handlePrev}>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm shrink-0 mb-4 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 w-full min-w-0 md:w-auto">
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <Button variant="outline" size="icon" className="shrink-0" onClick={handlePrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h2 className="text-lg font-bold min-w-[200px] text-center capitalize">
+            <h2 className="text-base sm:text-lg font-bold flex-1 min-w-0 text-center capitalize truncate px-1 md:min-w-[200px] md:flex-none">
               {getHeaderTitle()}
             </h2>
-            <Button variant="outline" size="icon" onClick={handleNext}>
+            <Button variant="outline" size="icon" className="shrink-0" onClick={handleNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
           <Button
             variant="outline"
             size="sm"
+            className="shrink-0"
             onClick={() => {
               setCurrentDate(new Date())
               setSelectedDate(new Date())

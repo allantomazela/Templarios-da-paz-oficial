@@ -32,8 +32,6 @@ export function AgapeConsumptionSimple() {
     menuItems,
     consumptions,
     loading,
-    fetchSessions,
-    fetchMenuItems,
     fetchConsumptions,
     createConsumption,
   } = useAgapeStore()
@@ -43,12 +41,6 @@ export function AgapeConsumptionSimple() {
   const [selectedMenuItem, setSelectedMenuItem] = useState<string>('')
   const [quantity, setQuantity] = useState<number>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  useEffect(() => {
-    fetchSessions()
-    fetchMenuItems()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   useEffect(() => {
     if (selectedSession) {
@@ -154,7 +146,7 @@ export function AgapeConsumptionSimple() {
     0,
   )
 
-  if (loading) {
+  if (loading && sessions.length === 0 && menuItems.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

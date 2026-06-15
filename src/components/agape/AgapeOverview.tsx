@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { ptBR } from 'date-fns/locale'
@@ -6,20 +5,14 @@ import { formatCalendarDate, formatCurrencyBRL } from '@/lib/format-utils'
 import { Calendar, UtensilsCrossed, Users, DollarSign, Loader2 } from 'lucide-react'
 
 export function AgapeOverview() {
-  const { sessions, menuItems, consumptions, loading, fetchSessions, fetchMenuItems, fetchConsumptions } = useAgapeStore()
-
-  useEffect(() => {
-    fetchSessions()
-    fetchMenuItems()
-    fetchConsumptions()
-  }, [fetchSessions, fetchMenuItems, fetchConsumptions])
+  const { sessions, menuItems, consumptions, loading } = useAgapeStore()
 
   const openSessions = sessions.filter(s => s.status === 'open')
   const activeMenuItems = menuItems.filter(m => m.is_active)
   const totalConsumptions = consumptions.length
   const totalAmount = consumptions.reduce((sum, c) => sum + c.total_amount, 0)
 
-  if (loading) {
+  if (loading && sessions.length === 0 && menuItems.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

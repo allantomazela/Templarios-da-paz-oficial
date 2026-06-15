@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAgapeStore } from '@/stores/useAgapeStore'
+import { useModuleActivation } from '@/hooks/use-module-activation'
 import { AgapeOverview } from '@/components/agape/AgapeOverview'
 import { AgapeSessionsList } from '@/components/agape/AgapeSessionsList'
 import { MenuItemsList } from '@/components/agape/MenuItemsList'
@@ -19,16 +20,17 @@ type AgapeTab =
   | 'maintenance'
 
 export default function Agape() {
-  const { fetchSessions, fetchMenuItems, fetchConsumptions } = useAgapeStore()
+  const hydrateModule = useAgapeStore((s) => s.hydrateModule)
   const { isAgapeController, canRecordConsumption } = useAgapePermissions()
   const [activeTab, setActiveTab] = useState<AgapeTab>('overview')
 
-  useEffect(() => {
-    const { sessions, menuItems } = useAgapeStore.getState()
-    if (sessions.length === 0) void fetchSessions()
-    if (menuItems.length === 0) void fetchMenuItems()
-    void fetchConsumptions()
-  }, [fetchSessions, fetchMenuItems, fetchConsumptions])
+  useModuleActivation(
+    '/dashboard/agape',
+    () => {
+      void hydrateModule()
+    },
+    { refreshOnVisible: true },
+  )
 
   if (isAgapeController) {
     return (

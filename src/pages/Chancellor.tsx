@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { useModuleActivation } from '@/hooks/use-module-activation'
+import useChancellorStore from '@/stores/useChancellorStore'
 import { ChancellorOverview } from '@/components/chancellor/ChancellorOverview'
 import { AttendanceManager } from '@/components/chancellor/AttendanceManager'
 import { DegreeManager } from '@/components/chancellor/DegreeManager'
@@ -29,6 +31,15 @@ const CHANCELLOR_TABS: { id: ChancellorTabId; label: string }[] = [
 
 export default function Chancellor() {
   const [tab, setTab] = useState<ChancellorTabId>('overview')
+  const fetchChancellorData = useChancellorStore((s) => s.fetchChancellorData)
+
+  useModuleActivation(
+    '/dashboard/chancellor',
+    () => {
+      void fetchChancellorData({ force: true })
+    },
+    { refreshOnVisible: true },
+  )
 
   return (
     <div className="space-y-6">

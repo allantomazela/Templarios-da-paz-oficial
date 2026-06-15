@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useModuleActivation } from '@/hooks/use-module-activation'
+import useFinancialStore from '@/stores/useFinancialStore'
 import { FinancialOverview } from '@/components/financial/FinancialOverview'
 import { IncomeList } from '@/components/financial/IncomeList'
 import { ExpenseList } from '@/components/financial/ExpenseList'
@@ -37,9 +39,18 @@ type FinancialTabValue = (typeof FINANCIAL_TABS)[number]['value']
 
 export default function Financial() {
   const positionsInitialized = useLodgePositionsStore((s) => s.initialized)
+  const hydrateModule = useFinancialStore((s) => s.hydrateModule)
   const { canManageAgapeClosing, canAccessFullFinancial } =
     useAgapeClosingPermissions()
   const [activeTab, setActiveTab] = useState<FinancialTabValue>('overview')
+
+  useModuleActivation(
+    '/dashboard/financial',
+    () => {
+      void hydrateModule()
+    },
+    { refreshOnVisible: true },
+  )
 
   const visibleTabs = useMemo(() => {
     if (canAccessFullFinancial) return FINANCIAL_TABS

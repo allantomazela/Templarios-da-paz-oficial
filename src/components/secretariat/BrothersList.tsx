@@ -53,6 +53,7 @@ import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import useAuthStore from '@/stores/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
+import { useModuleActivation } from '@/hooks/use-module-activation'
 
 export function BrothersList() {
   const { toast } = useToast()
@@ -66,7 +67,6 @@ export function BrothersList() {
   const [deleteTarget, setDeleteTarget] = useState<Brother | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSavingBrother, setIsSavingBrother] = useState(false)
-  const hasLoadedRef = useRef(false)
   const editingBrotherRef = useRef<Brother | null>(null)
 
   useEffect(() => {
@@ -87,13 +87,13 @@ export function BrothersList() {
 
   const { execute: loadBrothersExecute, loading: loadBrothersLoading } = loadBrothers
 
-  useEffect(() => {
-    if (!hasLoadedRef.current) {
-      hasLoadedRef.current = true
-      loadBrothersExecute()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useModuleActivation(
+    '/dashboard/secretariat',
+    () => {
+      void loadBrothersExecute()
+    },
+    { refreshOnVisible: true },
+  )
 
   const filteredBrothers = brothers.filter((brother) => {
     const matchesSearch =

@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
+import { createAsyncLoadingGate } from '@/lib/async-loading'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -39,6 +40,24 @@ import {
 
 /** Evita que cada fetch individual ligue/desligue `loading` durante `fetchAll`. */
 let financialBulkFetchDepth = 0
+
+const financialLoadingGate = createAsyncLoadingGate()
+
+type FinancialLoadingSetState = (partial: { loading?: boolean }) => void
+
+function beginFinancialLoading(set: FinancialLoadingSetState): void {
+  if (financialBulkFetchDepth > 0) return
+  if (financialLoadingGate.trackStart()) {
+    set({ loading: true })
+  }
+}
+
+function endFinancialLoading(set: FinancialLoadingSetState): void {
+  if (financialBulkFetchDepth > 0) return
+  if (financialLoadingGate.trackEnd()) {
+    set({ loading: false })
+  }
+}
 
 const financialSeq = {
   transactions: createRequestSequence(),
@@ -71,6 +90,8 @@ interface FinancialState {
   fetchGoals: () => Promise<void>
   fetchAccounts: () => Promise<void>
   fetchAll: () => Promise<void>
+  resetLoadingFlags: () => void
+  hydrateModule: () => Promise<void>
 
   // Transaction methods
   addTransaction: (t: Transaction) => Promise<void>
@@ -125,11 +146,20 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   notifyFinancialDataChanged: () =>
     set((state) => ({ dataRevision: state.dataRevision + 1 })),
 
+  resetLoadingFlags: () => {
+    financialLoadingGate.forceReset()
+    set({ loading: false })
+  },
+
+  hydrateModule: async () => {
+    await get().fetchAll()
+  },
+
   // ========== FETCH METHODS ==========
   fetchTransactions: async () => {
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.transactions.next()
-    if (manageLoading) set({ loading: true })
+    if (manageLoading) beginFinancialLoading(set)
     try {
       const { data, error } = await supabase
         .from('financial_transactions')
@@ -145,16 +175,14 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching transactions:', error)
     } finally {
-      if (manageLoading && financialSeq.transactions.isCurrent(id)) {
-        set({ loading: false })
-      }
+      if (manageLoading) endFinancialLoading(set)
     }
   },
 
   fetchCategories: async () => {
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.categories.next()
-    if (manageLoading) set({ loading: true })
+    if (manageLoading) beginFinancialLoading(set)
     try {
       const { data, error } = await supabase
         .from('financial_categories')
@@ -170,16 +198,14 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching categories:', error)
     } finally {
-      if (manageLoading && financialSeq.categories.isCurrent(id)) {
-        set({ loading: false })
-      }
+      if (manageLoading) endFinancialLoading(set)
     }
   },
 
   fetchContributions: async () => {
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.contributions.next()
-    if (manageLoading) set({ loading: true })
+    if (manageLoading) beginFinancialLoading(set)
     try {
       // Verificar se a tabela contributions existe
       const { data, error } = await supabase
@@ -206,16 +232,14 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         set({ contributions: [] })
       }
     } finally {
-      if (manageLoading && financialSeq.contributions.isCurrent(id)) {
-        set({ loading: false })
-      }
+      if (manageLoading) endFinancialLoading(set)
     }
   },
 
   fetchBudgets: async () => {
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.budgets.next()
-    if (manageLoading) set({ loading: true })
+    if (manageLoading) beginFinancialLoading(set)
     try {
       const { data, error } = await supabase
         .from('financial_budgets')
@@ -231,16 +255,14 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching budgets:', error)
     } finally {
-      if (manageLoading && financialSeq.budgets.isCurrent(id)) {
-        set({ loading: false })
-      }
+      if (manageLoading) endFinancialLoading(set)
     }
   },
 
   fetchGoals: async () => {
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.goals.next()
-    if (manageLoading) set({ loading: true })
+    if (manageLoading) beginFinancialLoading(set)
     try {
       const { data, error } = await supabase
         .from('financial_goals')
@@ -256,16 +278,14 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching goals:', error)
     } finally {
-      if (manageLoading && financialSeq.goals.isCurrent(id)) {
-        set({ loading: false })
-      }
+      if (manageLoading) endFinancialLoading(set)
     }
   },
 
   fetchAccounts: async () => {
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.accounts.next()
-    if (manageLoading) set({ loading: true })
+    if (manageLoading) beginFinancialLoading(set)
     try {
       const { data, error } = await supabase
         .from('financial_accounts')
@@ -281,15 +301,16 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching accounts:', error)
     } finally {
-      if (manageLoading && financialSeq.accounts.isCurrent(id)) {
-        set({ loading: false })
-      }
+      if (manageLoading) endFinancialLoading(set)
     }
   },
 
   fetchAll: async () => {
     financialBulkFetchDepth += 1
-    set({ loading: true })
+    const isOuterBatch = financialBulkFetchDepth === 1
+    if (isOuterBatch && financialLoadingGate.trackStart()) {
+      set({ loading: true })
+    }
     try {
       await Promise.all([
         get().fetchTransactions(),
@@ -304,7 +325,9 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       logError('Error fetching all financial data:', error)
     } finally {
       financialBulkFetchDepth -= 1
-      set({ loading: false })
+      if (isOuterBatch && financialLoadingGate.trackEnd()) {
+        set({ loading: false })
+      }
     }
   },
 

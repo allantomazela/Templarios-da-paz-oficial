@@ -111,8 +111,9 @@ interface ChancellorState {
   markAlertAsReviewed: (brotherId: string) => void
 
   /** Carrega dados reais do Supabase (sem mocks). */
-  fetchChancellorData: () => Promise<void>
+  fetchChancellorData: (options?: { force?: boolean }) => Promise<void>
   chancellorDataLoading: boolean
+  resetLoadingFlags: () => void
 
   // Integração Supabase: sessão e presença para check-in por QR
   ensureSessionRecordInSupabase: (
@@ -148,10 +149,20 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
   reviewedAlerts: [],
   chancellorDataLoading: false,
 
-  fetchChancellorData: async () => {
+  resetLoadingFlags: () => {
+    set({ chancellorDataLoading: false })
+  },
+
+  fetchChancellorData: async (options?: { force?: boolean }) => {
     const state = get()
     if (state.chancellorDataLoading) return
-    if (state.events.length > 0 && state.brothers.length > 0) return
+    if (
+      !options?.force &&
+      state.events.length > 0 &&
+      state.brothers.length > 0
+    ) {
+      return
+    }
 
     set({ chancellorDataLoading: true })
     try {

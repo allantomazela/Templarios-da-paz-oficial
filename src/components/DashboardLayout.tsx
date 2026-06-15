@@ -9,12 +9,17 @@ import { isMasterAdminEmail } from '@/config/master-admin'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NotificationBanner } from '@/components/NotificationBanner'
+import { resetStuckModuleLoading } from '@/lib/module-loading-reset'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, initialized, signOut } = useAuthStore()
   const fetchChancellorData = useChancellorStore((s) => s.fetchChancellorData)
   const location = useLocation()
   const [showTimeout, setShowTimeout] = useState(false)
+
+  useEffect(() => {
+    resetStuckModuleLoading()
+  }, [location.pathname])
 
   useEffect(() => {
     if (isAuthenticated && user?.id) {

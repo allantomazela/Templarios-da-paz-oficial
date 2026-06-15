@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import { logError, devLog } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
+import { createAsyncLoadingGate } from '@/lib/async-loading'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
 
@@ -9,6 +10,38 @@ const agapeFetchSeq = {
   sessions: createRequestSequence(),
   menuItems: createRequestSequence(),
   consumptions: createRequestSequence(),
+}
+
+const agapeLoadingGate = createAsyncLoadingGate()
+const menuItemsLoadingGate = createAsyncLoadingGate()
+
+type LoadingSetState = (partial: {
+  loading?: boolean
+  menuItemsLoading?: boolean
+}) => void
+
+function beginAgapeLoading(set: LoadingSetState): void {
+  if (agapeLoadingGate.trackStart()) {
+    set({ loading: true })
+  }
+}
+
+function endAgapeLoading(set: LoadingSetState): void {
+  if (agapeLoadingGate.trackEnd()) {
+    set({ loading: false })
+  }
+}
+
+function beginMenuItemsLoading(set: LoadingSetState): void {
+  if (menuItemsLoadingGate.trackStart()) {
+    set({ menuItemsLoading: true })
+  }
+}
+
+function endMenuItemsLoading(set: LoadingSetState): void {
+  if (menuItemsLoadingGate.trackEnd()) {
+    set({ menuItemsLoading: false })
+  }
 }
 
 function handleAuthError(error: unknown): boolean {
@@ -99,6 +132,10 @@ interface AgapeState {
 
   /** Limpa cache local (após reset no banco ou troca de aba). */
   clearOperationalCache: () => void
+  /** Zera flags de loading presas (troca rápida de módulo). */
+  resetLoadingFlags: () => void
+  /** Recarrega sessões, cardápio e consumos ao entrar no módulo. */
+  hydrateModule: () => Promise<void>
 }
 
 export const useAgapeStore = create<AgapeState>((set, get) => ({
@@ -112,9 +149,23 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
     set({ sessions: [], menuItems: [], consumptions: [] })
   },
 
+  resetLoadingFlags: () => {
+    agapeLoadingGate.forceReset()
+    menuItemsLoadingGate.forceReset()
+    set({ loading: false, menuItemsLoading: false })
+  },
+
+  hydrateModule: async () => {
+    await Promise.all([
+      get().fetchSessions(),
+      get().fetchMenuItems(),
+      get().fetchConsumptions(),
+    ])
+  },
+
   fetchSessions: async () => {
     const reqId = agapeFetchSeq.sessions.next()
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const { data, error } = await supabase
         .from('agape_sessions')
@@ -131,14 +182,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching agape sessions', error)
     } finally {
-      if (agapeFetchSeq.sessions.isCurrent(reqId)) {
-        set({ loading: false })
-      }
+      endAgapeLoading(set)
     }
   },
 
   createSession: async (session) => {
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
@@ -161,12 +210,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error creating agape session', error)
       return { error }
     } finally {
-      set({ loading: false })
+      endAgapeLoading(set)
     }
   },
 
   updateSession: async (id, updates) => {
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const { error } = await supabase
         .from('agape_sessions')
@@ -182,7 +231,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error updating agape session', error)
       return { error }
     } finally {
-      set({ loading: false })
+      endAgapeLoading(set)
     }
   },
 
@@ -199,7 +248,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   },
 
   deleteSession: async (id) => {
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const { error } = await supabase
         .from('agape_sessions')
@@ -218,13 +267,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error deleting agape session', error)
       return { error }
     } finally {
-      set({ loading: false })
+      endAgapeLoading(set)
     }
   },
 
   fetchMenuItems: async () => {
     const reqId = agapeFetchSeq.menuItems.next()
-    set({ menuItemsLoading: true })
+    beginMenuItemsLoading(set)
     try {
       const { data, error } = await supabase
         .from('agape_menu_items')
@@ -242,9 +291,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching menu items', error)
     } finally {
-      if (agapeFetchSeq.menuItems.isCurrent(reqId)) {
-        set({ menuItemsLoading: false })
-      }
+      endMenuItemsLoading(set)
     }
   },
 
@@ -331,7 +378,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
   fetchConsumptions: async (sessionId) => {
     const reqId = agapeFetchSeq.consumptions.next()
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       let query = supabase
         .from('agape_consumptions')
@@ -359,14 +406,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('Error fetching consumptions', error)
     } finally {
-      if (agapeFetchSeq.consumptions.isCurrent(reqId)) {
-        set({ loading: false })
-      }
+      endAgapeLoading(set)
     }
   },
 
   createConsumption: async (consumption) => {
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
@@ -447,12 +492,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error creating consumption', error)
       return { error }
     } finally {
-      set({ loading: false })
+      endAgapeLoading(set)
     }
   },
 
   updateConsumption: async (id, updates) => {
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const { error } = await supabase
         .from('agape_consumptions')
@@ -471,12 +516,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error updating consumption', error)
       return { error }
     } finally {
-      set({ loading: false })
+      endAgapeLoading(set)
     }
   },
 
   deleteConsumption: async (id) => {
-    set({ loading: true })
+    beginAgapeLoading(set)
     try {
       const consumption = get().consumptions.find(c => c.id === id)
 
@@ -496,7 +541,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       logError('Error deleting consumption', error)
       return { error }
     } finally {
-      set({ loading: false })
+      endAgapeLoading(set)
     }
   },
 

@@ -43,3 +43,22 @@ export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {
   mestre_cerimonias: [],
   mestre_harmonia: [],
 }
+
+export const LODGE_POSITION_LABELS: Record<LodgePositionType, string> = {
+  veneravel_mestre: 'Venerável Mestre',
+  orador: 'Orador',
+  secretario: 'Secretário',
+  chanceler: 'Chanceler',
+  tesoureiro: 'Tesoureiro',
+  mestre_banquete: 'Mestre de Banquete',
+  primeiro_vigilante: '1º Vigilante',
+  segundo_vigilante: '2º Vigilante',
+  mestre_cerimonias: 'Mestre de Cerimônia',
+  mestre_harmonia: 'Mestre de Harmonia',
+}
+
+export const SYSTEM_ROLE_LABELS: Record<'admin' | 'editor' | 'member', string> = {
+  admin: 'Administrador',
+  editor: 'Editor (Tesouraria)',
+  member: 'Membro',
+}

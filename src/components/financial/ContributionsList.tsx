@@ -71,6 +71,7 @@ export function ContributionsList() {
         `)
         .order('year', { ascending: false })
         .order('month', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) {
         throw new Error('Falha ao carregar contribuições.')

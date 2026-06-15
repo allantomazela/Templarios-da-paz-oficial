@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -27,17 +27,22 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { ReminderLog, ReminderSettings, Contribution } from '@/lib/data'
-import { format } from 'date-fns'
-import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
+import { ReminderLog, ReminderSettings as ReminderSettingsModel } from '@/lib/data'
+import { formatDateBR } from '@/lib/format-utils'
 import { Bell, History, CheckCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import {
+  fetchMembershipReminderSettings,
+  runMembershipRemindersManual,
+  saveMembershipReminderSettings,
+} from '@/lib/membership-reminder-settings'
+import { MembershipReminderRunsPanel } from '@/components/financial/MembershipReminderRunsPanel'
 
 interface ReminderLogFromDB {
   id: string
   brother_id: string
-  contribution_id: string
+  contribution_id: string | null
   sent_date: string
   method: 'Email' | 'WhatsApp'
   created_at: string
@@ -47,51 +52,44 @@ interface ReminderLogFromDB {
   }
 }
 
-interface ContributionFromDB {
-  id: string
-  brother_id: string
-  month: number
-  year: number
-  amount: number
-  status: 'Pago' | 'Pendente' | 'Atrasado'
-  payment_date: string | null
-}
-
 export function ReminderSettings() {
-  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>({
-    enabled: false,
-    frequency: 'before',
-    days: 3,
-  })
+  const [reminderSettings, setReminderSettings] =
+    useState<ReminderSettingsModel>({
+      enabled: false,
+      frequency: 'after',
+      days: 0,
+    })
   const [reminderLogs, setReminderLogs] = useState<ReminderLog[]>([])
-  const [contributions, setContributions] = useState<Contribution[]>([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [runsRefreshKey, setRunsRefreshKey] = useState(0)
   const { toast } = useToast()
-  const [isSimulating, setIsSimulating] = useState(false)
   const supabaseAny = supabase as any
 
-  // Load data from Supabase
   const loadData = useAsyncOperation(
     async () => {
       setLoading(true)
       try {
-        // Load reminder logs with profiles
-        const { data: logsData, error: logsError } = await supabaseAny
-          .from('reminder_logs')
-          .select(
-            `
+        const [settings, logsResult] = await Promise.all([
+          fetchMembershipReminderSettings(),
+          supabaseAny
+            .from('reminder_logs')
+            .select(
+              `
             *,
             profiles!reminder_logs_brother_id_fkey (
               id,
               full_name
             )
           `,
-          )
-          .order('sent_date', { ascending: false })
+            )
+            .order('sent_date', { ascending: false }),
+        ])
 
-        if (logsError) throw logsError
+        if (logsResult.error) throw logsResult.error
 
+        const logsData = logsResult.data as ReminderLogFromDB[] | null
         const mappedLogs: ReminderLog[] = (logsData || []).map(
           (l: ReminderLogFromDB) => ({
             id: l.id,
@@ -102,7 +100,6 @@ export function ReminderSettings() {
           }),
         )
 
-        // Create brother names map
         const namesMap: Record<string, string> = {}
         ;(logsData || []).forEach((l: ReminderLogFromDB) => {
           if (l.profiles?.full_name) {
@@ -110,45 +107,8 @@ export function ReminderSettings() {
           }
         })
 
-        // Load contributions
-        const { data: contributionsData, error: contributionsError } =
-          await supabaseAny
-            .from('contributions')
-            .select('*')
-            .order('year', { ascending: false })
-            .order('month', { ascending: false })
-
-        if (contributionsError) throw contributionsError
-
-        const MONTHS = [
-          'Janeiro',
-          'Fevereiro',
-          'Março',
-          'Abril',
-          'Maio',
-          'Junho',
-          'Julho',
-          'Agosto',
-          'Setembro',
-          'Outubro',
-          'Novembro',
-          'Dezembro',
-        ]
-
-        const mappedContributions: Contribution[] = (contributionsData || []).map(
-          (c: ContributionFromDB) => ({
-            id: c.id,
-            brotherId: c.brother_id,
-            month: MONTHS[c.month - 1] || `${c.month}`,
-            year: c.year,
-            amount: parseFloat(c.amount.toString()),
-            status: c.status,
-            paymentDate: c.payment_date || undefined,
-          }),
-        )
-
+        setReminderSettings(settings)
         setReminderLogs(mappedLogs)
-        setContributions(mappedContributions)
         setBrotherNames(namesMap)
       } catch (error) {
         console.error('Error loading reminder data:', error)
@@ -173,65 +133,68 @@ export function ReminderSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const persistSettings = useCallback(
+    async (next: ReminderSettingsModel) => {
+      setSaving(true)
+      try {
+        await saveMembershipReminderSettings(next)
+      } catch (error) {
+        console.error('Error saving reminder settings:', error)
+        toast({
+          title: 'Erro ao salvar',
+          description: 'Não foi possível salvar as configurações de lembretes.',
+          variant: 'destructive',
+        })
+        await loadData.execute()
+      } finally {
+        setSaving(false)
+      }
+    },
+    [loadData, toast],
+  )
+
   const handleToggle = (checked: boolean) => {
-    setReminderSettings({ ...reminderSettings, enabled: checked })
+    const next = { ...reminderSettings, enabled: checked }
+    setReminderSettings(next)
+    void persistSettings(next)
     toast({
       title: checked ? 'Lembretes Ativados' : 'Lembretes Desativados',
       description: checked
-        ? 'O sistema enviará lembretes automáticos.'
+        ? 'Verificação automática diária às 9h (Brasília) e envio manual habilitados.'
         : 'O envio automático foi pausado.',
     })
   }
 
   const handleFrequencyChange = (val: string) => {
-    setReminderSettings({
+    const next = {
       ...reminderSettings,
-      frequency: val as 'before' | 'on_due' | 'after',
-    })
+      frequency: val as ReminderSettingsModel['frequency'],
+    }
+    setReminderSettings(next)
+    void persistSettings(next)
   }
 
   const handleDaysChange = (val: string) => {
-    setReminderSettings({
+    const next = {
       ...reminderSettings,
-      days: parseInt(val) || 0,
-    })
+      days: parseInt(val, 10) || 0,
+    }
+    setReminderSettings(next)
   }
 
-  const simulateReminders = useAsyncOperation(
+  const handleDaysBlur = () => {
+    void persistSettings(reminderSettings)
+  }
+
+  const runReminders = useAsyncOperation(
     async () => {
-      setIsSimulating(true)
-      // Find pending contributions
-      const pending = contributions.filter(
-        (c) => c.status === 'Pendente' || c.status === 'Atrasado',
-      )
-
-      let count = 0
-      const today = todayLocalISODate()
-
-      for (const p of pending) {
-        // Check if already sent today
-        const alreadySent = reminderLogs.some(
-          (l) => l.contributionId === p.id && l.sentDate === today,
-        )
-
-        if (!alreadySent) {
-          // Create reminder log in Supabase
-          const { error } = await supabaseAny.from('reminder_logs').insert({
-            brother_id: p.brotherId,
-            contribution_id: p.id,
-            sent_date: today,
-            method: 'Email',
-          })
-
-          if (!error) {
-            count++
-          }
-        }
+      const result = await runMembershipRemindersManual()
+      if (!result.ok) {
+        throw new Error(result.error || 'Falha ao enviar lembretes.')
       }
-
-      setIsSimulating(false)
-      await loadData.execute() // Reload data
-      return `${count} novos lembretes foram enviados.`
+      setRunsRefreshKey((k) => k + 1)
+      await loadData.execute()
+      return result.message || 'Verificação concluída.'
     },
     {
       successMessage: 'Verificação concluída!',
@@ -239,8 +202,8 @@ export function ReminderSettings() {
     },
   )
 
-  const handleSimulate = () => {
-    simulateReminders.execute()
+  const handleRunNow = () => {
+    runReminders.execute()
   }
 
   const getBrotherName = (id: string) => {
@@ -266,8 +229,11 @@ export function ReminderSettings() {
             <Bell className="h-5 w-5" /> Configuração de Lembretes Automáticos
           </CardTitle>
           <CardDescription>
-            Defina quando os lembretes de pagamento devem ser enviados aos
-            irmãos.
+            Com o envio automático ativo, o sistema verifica diariamente às{' '}
+            <strong>9h (horário de Brasília)</strong>. Cada irmão com pelo menos
+            uma mensalidade em atraso recebe no máximo <strong>um e-mail por
+            mês</strong> (vencimento fixo dia 10, sem juros). Use o botão abaixo
+            para executar a mesma verificação manualmente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -277,13 +243,16 @@ export function ReminderSettings() {
                 Ativar Envio Automático
               </Label>
               <span className="text-xs text-muted-foreground">
-                Quando ativado, o sistema verificará diariamente as pendências.
+                {saving
+                  ? 'Salvando configurações...'
+                  : 'Persistido no servidor — vale para o job diário e para o envio manual.'}
               </span>
             </div>
             <Switch
               id="reminder-mode"
               checked={reminderSettings.enabled}
               onCheckedChange={handleToggle}
+              disabled={saving}
             />
           </div>
 
@@ -293,7 +262,7 @@ export function ReminderSettings() {
               <Select
                 value={reminderSettings.frequency}
                 onValueChange={handleFrequencyChange}
-                disabled={!reminderSettings.enabled}
+                disabled={!reminderSettings.enabled || saving}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -312,21 +281,32 @@ export function ReminderSettings() {
                   type="number"
                   value={reminderSettings.days}
                   onChange={(e) => handleDaysChange(e.target.value)}
-                  disabled={!reminderSettings.enabled}
+                  onBlur={handleDaysBlur}
+                  disabled={!reminderSettings.enabled || saving}
                   className="w-24"
+                  min={0}
+                  max={28}
                 />
-                <span className="text-sm text-muted-foreground">dias</span>
+                <span className="text-sm text-muted-foreground">
+                  dias {reminderSettings.frequency === 'after'
+                    ? '(0 = no dia seguinte ao vencimento)'
+                    : ''}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="pt-4 flex justify-end">
             <Button
-              onClick={handleSimulate}
-              disabled={isSimulating || !reminderSettings.enabled || simulateReminders.loading}
+              onClick={handleRunNow}
+              disabled={
+                !reminderSettings.enabled ||
+                runReminders.loading ||
+                saving
+              }
               variant="secondary"
             >
-              {isSimulating || simulateReminders.loading ? (
+              {runReminders.loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Verificando...
@@ -338,6 +318,8 @@ export function ReminderSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <MembershipReminderRunsPanel refreshKey={runsRefreshKey} />
 
       <Card>
         <CardHeader>
@@ -369,9 +351,7 @@ export function ReminderSettings() {
                 ) : (
                   reminderLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell>
-                        {formatDateBR(log.sentDate)}
-                      </TableCell>
+                      <TableCell>{formatDateBR(log.sentDate)}</TableCell>
                       <TableCell>{getBrotherName(log.brotherId)}</TableCell>
                       <TableCell>{log.method}</TableCell>
                       <TableCell className="text-right">

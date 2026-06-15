@@ -14,6 +14,7 @@ import {
   formatDateBR,
 } from '@/lib/format-utils'
 import { BrotherMembershipPanel } from './BrotherMembershipPanel'
+import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfoPanel'
 import { getBrotherObedienceLabel } from '@/lib/brother-masonic-fields'
 
 interface BrotherDetailsProps {
@@ -65,6 +66,11 @@ export function BrotherDetails({
               </Badge>
             </div>
           </div>
+
+          <BrotherAccessInfoPanel
+            profileId={brother.profileId}
+            email={brother.email}
+          />
 
           <BrotherMembershipPanel brother={brother} open={open} />
 

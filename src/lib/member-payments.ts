@@ -1,3 +1,9 @@
+import { mapAgapeChargeRow } from '@/lib/agape-payments'
+import {
+  ceremonyPlanLabel,
+  CEREMONY_PAYMENT_TYPE_LABELS,
+} from '@/lib/ceremony-payment-types'
+import { fetchCeremonyPaymentPlans } from '@/lib/ceremony-payments'
 import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import {
@@ -10,9 +16,20 @@ import {
   DEFAULT_MEMBERSHIP_DUE_DAY,
   fetchMembershipFeeSettings,
 } from '@/lib/contribution-payments'
+
+export type MemberPaymentType = 'monthly' | 'charity' | 'ceremony' | 'agape'
+
+export const MEMBER_PAYMENT_TYPE_LABELS: Record<MemberPaymentType, string> = {
+  monthly: 'Mensalidade',
+  charity: 'Tronco',
+  ceremony: 'Taxa de grau',
+  agape: 'Ágape',
+}
+
 export interface MemberPayment {
   id: string
-  type: 'monthly' | 'charity'
+  type: MemberPaymentType
+  categoryLabel?: string
   description: string
   amount: number
   status: 'paid' | 'pending' | 'overdue'
@@ -20,6 +37,54 @@ export interface MemberPayment {
   paymentDate?: string
   month?: number
   year?: number
+}
+
+function mapDbStatusToMemberStatus(
+  dbStatus: string,
+  dueDate?: string,
+): MemberPayment['status'] {
+  if (dbStatus === 'Pago') return 'paid'
+  if (dbStatus === 'Atrasado') return 'overdue'
+
+  if (dueDate) {
+    const due = parseCalendarDate(dueDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (due && due < today) return 'overdue'
+  }
+
+  return 'pending'
+}
+
+export function getMemberPaymentCategoryLabel(payment: MemberPayment): string {
+  return payment.categoryLabel ?? MEMBER_PAYMENT_TYPE_LABELS[payment.type]
+}
+
+export function sortMemberPaymentsForExtrato(
+  payments: MemberPayment[],
+): MemberPayment[] {
+  return [...payments].sort((a, b) => {
+    const dateA =
+      a.status === 'paid' ? a.paymentDate || a.dueDate : a.dueDate
+    const dateB =
+      b.status === 'paid' ? b.paymentDate || b.dueDate : b.dueDate
+    return getCalendarDateTimestamp(dateB) - getCalendarDateTimestamp(dateA)
+  })
+}
+
+export function getPaidMemberPayments(
+  payments: MemberPayment[],
+): MemberPayment[] {
+  return sortMemberPaymentsForExtrato(
+    payments.filter((payment) => payment.status === 'paid'),
+  )
+}
+
+export function sumPaidMemberPayments(payments: MemberPayment[]): number {
+  return getPaidMemberPayments(payments).reduce(
+    (sum, payment) => sum + payment.amount,
+    0,
+  )
 }
 
 function isMissingTableError(error: { code?: string; message?: string }): boolean {
@@ -33,7 +98,7 @@ function isMissingTableError(error: { code?: string; message?: string }): boolea
   )
 }
 
-/** Carrega mensalidades e doações do irmão autenticado (sem dados mockados). */
+/** Carrega extrato unificado do irmão: mensalidades, tronco, taxas de grau e ágape. */
 export async function fetchMemberPayments(userId: string): Promise<MemberPayment[]> {
   const supabaseAny = supabase as any
   const mappedPayments: MemberPayment[] = []
@@ -116,11 +181,75 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
     })
   }
 
-  mappedPayments.sort(
-    (a, b) => getCalendarDateTimestamp(b.dueDate) - getCalendarDateTimestamp(a.dueDate),
-  )
+  try {
+    const ceremonyPlans = await fetchCeremonyPaymentPlans(userId)
+    for (const plan of ceremonyPlans) {
+      const categoryLabel = CEREMONY_PAYMENT_TYPE_LABELS[plan.paymentType]
+      const planLabel = ceremonyPlanLabel(plan)
 
-  return mappedPayments
+      for (const installment of plan.installments ?? []) {
+        mappedPayments.push({
+          id: installment.id,
+          type: 'ceremony',
+          categoryLabel,
+          description: `${planLabel} — parcela ${installment.installmentNumber}/${plan.installmentsCount}`,
+          amount: installment.amount,
+          status: mapDbStatusToMemberStatus(
+            installment.status,
+            installment.dueDate,
+          ),
+          dueDate: installment.dueDate || todayLocalISODate(),
+          paymentDate: installment.paymentDate
+            ? toDateInputValue(installment.paymentDate)
+            : undefined,
+        })
+      }
+    }
+  } catch (error) {
+    if (!isMissingTableError(error as { code?: string; message?: string })) {
+      console.warn('Falha ao carregar taxas de grau do irmão.', error)
+    }
+  }
+
+  const { data: agapeCharges, error: agapeError } = await supabaseAny
+    .from('agape_brother_charges')
+    .select('*')
+    .eq('brother_id', userId)
+    .order('year', { ascending: false })
+    .order('month', { ascending: false })
+
+  if (agapeError) {
+    if (!isMissingTableError(agapeError)) {
+      console.warn('Falha ao carregar cobranças do ágape do irmão.', agapeError)
+    }
+  } else if (agapeCharges) {
+    for (const row of agapeCharges) {
+      const charge = mapAgapeChargeRow(row)
+      const dueDate = `${charge.year}-${String(charge.month).padStart(2, '0')}-10`
+
+      mappedPayments.push({
+        id: charge.id,
+        type: 'agape',
+        categoryLabel: 'Ágape',
+        description: `Consumo Ágape ${String(charge.month).padStart(2, '0')}/${charge.year}`,
+        amount: charge.amount,
+        status: mapDbStatusToMemberStatus(charge.status, dueDate),
+        dueDate,
+        paymentDate: charge.paymentDate
+          ? toDateInputValue(charge.paymentDate)
+          : undefined,
+        month: charge.month,
+        year: charge.year,
+      })
+    }
+  }
+
+  return sortMemberPaymentsForExtrato(mappedPayments)
+}
+
+function todayLocalISODate(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 export interface MemberFinancialSummary {
@@ -162,15 +291,7 @@ export function buildMemberFinancialSummary(
     (a, b) => getCalendarDateTimestamp(a.dueDate) - getCalendarDateTimestamp(b.dueDate),
   )[0]
 
-  const paidMonthly = monthly
-    .filter((p) => p.status === 'paid')
-    .sort((a, b) => {
-      const da = a.paymentDate || a.dueDate
-      const db = b.paymentDate || b.dueDate
-      return getCalendarDateTimestamp(db) - getCalendarDateTimestamp(da)
-    })
-
-  const lastPaid = paidMonthly[0] ?? null
+  const lastPaid = getPaidMemberPayments(payments)[0] ?? null
 
   let statusLabel = 'Em dia'
   let statusClassName = 'text-green-500'

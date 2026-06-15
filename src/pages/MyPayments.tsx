@@ -1,19 +1,40 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { supabase } from '@/lib/supabase/client'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
-import { CheckCircle, XCircle, Clock } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle,
+  Clock,
+  History,
+  XCircle,
+} from 'lucide-react'
 import {
   fetchMemberPayments,
+  getMemberPaymentCategoryLabel,
+  getPaidMemberPayments,
+  sumPaidMemberPayments,
   type MemberPayment as Payment,
 } from '@/lib/member-payments'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
+import {
+  fetchContributionsForProfile,
+  fetchMembershipFeeSettings,
+} from '@/lib/contribution-payments'
+import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
+import {
+  buildMembershipScheduleForBrother,
+} from '@/lib/membership-schedule'
 
 export default function MyPayments() {
   const [payments, setPayments] = useState<Payment[]>([])
+  const [memberSince, setMemberSince] = useState<string | null>(null)
+  const hasLoadedRef = useRef(false)
 
   const loadPayments = useAsyncOperation(
     async () => {
@@ -26,10 +47,28 @@ export default function MyPayments() {
         throw new Error('Usuário não autenticado.')
       }
 
+      const supabaseAny = supabase as any
+      const [{ data: profile }, mappedPayments, settings] = await Promise.all([
+        supabaseAny
+          .from('profiles')
+          .select('created_at')
+          .eq('id', user.id)
+          .maybeSingle(),
+        fetchMemberPayments(user.id),
+        fetchMembershipFeeSettings(),
+      ])
 
-      const mappedPayments = await fetchMemberPayments(user.id)
+      setMemberSince(profile?.created_at ?? null)
       setPayments(mappedPayments)
-      return null
+
+      const contributions = await fetchContributionsForProfile(user.id)
+      return buildMembershipScheduleForBrother(
+        user.id,
+        'Você',
+        contributions,
+        settings,
+        profile?.created_at,
+      )
     },
     {
       showSuccessToast: false,
@@ -37,11 +76,10 @@ export default function MyPayments() {
     },
   )
 
-  const { execute: loadPaymentsExecute, loading: loadPaymentsLoading } = loadPayments
-  const hasLoadedRef = useRef(false)
+  const { execute: loadPaymentsExecute, loading: loadPaymentsLoading, data: schedule } =
+    loadPayments
 
   useEffect(() => {
-    // Evitar loop infinito: só executar uma vez
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true
       loadPaymentsExecute()
@@ -51,7 +89,23 @@ export default function MyPayments() {
 
   const monthlyPayments = payments.filter((p) => p.type === 'monthly')
   const charityPayments = payments.filter((p) => p.type === 'charity')
-  const pendingPayments = payments.filter((p) => p.status === 'pending' || p.status === 'overdue')
+  const paidPayments = useMemo(
+    () => getPaidMemberPayments(payments),
+    [payments],
+  )
+  const totalPaidAll = useMemo(
+    () => sumPaidMemberPayments(payments),
+    [payments],
+  )
+
+  const openSchedule = useMemo(
+    () => schedule?.openEntries ?? [],
+    [schedule],
+  )
+  const overdueSchedule = useMemo(
+    () => schedule?.overdueEntries ?? [],
+    [schedule],
+  )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -70,10 +124,11 @@ export default function MyPayments() {
           </Badge>
         )
       case 'pending':
+      case 'upcoming':
         return (
-          <Badge variant="secondary">
+          <Badge className="bg-sky-600 hover:bg-sky-700">
             <Clock className="mr-1 h-3 w-3" />
-            Pendente
+            À vencer
           </Badge>
         )
       default:
@@ -86,39 +141,72 @@ export default function MyPayments() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Meus Pagamentos</h2>
         <p className="text-muted-foreground">
-          Acompanhe suas mensalidades e doações ao Tronco de Beneficência.
+          Acompanhe seu extrato completo de pagamentos, cronograma de
+          mensalidades e pendências.
         </p>
       </div>
 
-      {/* Resumo */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {overdueSchedule.length > 0 ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Mensalidades em atraso</AlertTitle>
+          <AlertDescription>
+            Você possui {overdueSchedule.length} mês(es) em atraso, totalizando{' '}
+            {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}. Confira o
+            cronograma abaixo para se organizar.
+          </AlertDescription>
+        </Alert>
+      ) : schedule && schedule.entries.length > 0 ? (
+        <Alert className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
+          <CheckCircle className="h-4 w-4 text-green-700" />
+          <AlertTitle className="text-green-800 dark:text-green-300">
+            Mensalidades em dia
+          </AlertTitle>
+          <AlertDescription className="text-green-700 dark:text-green-400">
+            Não há meses em atraso no seu cronograma.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
+            <CardTitle className="text-sm font-medium">Total pago</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrencyBRL(
-                payments
-                  .filter((p) => p.status === 'paid')
-                  .reduce((sum, p) => sum + p.amount, 0),
-              )}
+              {formatCurrencyBRL(totalPaidAll)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {paidPayments.length} pagamento(s) registrado(s)
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            <CardTitle className="text-sm font-medium">Em aberto</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
-              {formatCurrencyBRL(
-                pendingPayments.reduce((sum, p) => sum + p.amount, 0),
-              )}
+              {formatCurrencyBRL(schedule?.totalOpen ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {pendingPayments.length} pagamento(s)
+              {openSchedule.length} mês(es) no cronograma
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Em atraso</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {overdueSchedule.length} mês(es)
             </p>
           </CardContent>
         </Card>
@@ -140,29 +228,140 @@ export default function MyPayments() {
         </Card>
       </div>
 
-      <Tabs defaultValue="monthly" className="space-y-4">
+      <Tabs defaultValue="extrato" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="monthly">
+          <TabsTrigger value="extrato">
+            <History className="mr-2 h-4 w-4" />
+            Extrato ({paidPayments.length})
+          </TabsTrigger>
+          <TabsTrigger value="schedule">
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Cronograma
+          </TabsTrigger>
+          <TabsTrigger value="open">
+            Em aberto ({openSchedule.length})
+          </TabsTrigger>
+          <TabsTrigger value="paid">
+            Pagas ({schedule?.paidEntries.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="entries">
             Mensalidades ({monthlyPayments.length})
           </TabsTrigger>
           <TabsTrigger value="charity">
-            Tronco de Beneficência ({charityPayments.length})
+            Tronco ({charityPayments.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="monthly">
+        <TabsContent value="extrato">
           <Card>
             <CardHeader>
-              <CardTitle>Mensalidades</CardTitle>
+              <CardTitle>Extrato de pagamentos realizados</CardTitle>
             </CardHeader>
             <CardContent>
               {loadPaymentsLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Carregando pagamentos...
+                  Carregando extrato...
                 </div>
-              ) : monthlyPayments.length === 0 ? (
+              ) : paidPayments.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma mensalidade registrada.
+                  Nenhum pagamento registrado ainda.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Data pagamento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paidPayments.map((payment) => (
+                      <TableRow key={`${payment.type}-${payment.id}`}>
+                        <TableCell>
+                          {getMemberPaymentCategoryLabel(payment)}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {payment.description}
+                        </TableCell>
+                        <TableCell>
+                          {payment.paymentDate
+                            ? formatDateBR(payment.paymentDate)
+                            : formatDateBR(payment.dueDate)}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrencyBRL(payment.amount)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="schedule">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cronograma de mensalidades</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadPaymentsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Carregando cronograma...
+                </div>
+              ) : (
+                <MembershipScheduleTable
+                  entries={schedule?.entries ?? []}
+                  emptyMessage="Nenhum período no cronograma. Entre em contato com a tesouraria."
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="open">
+          <Card>
+            <CardHeader>
+              <CardTitle>Meses em aberto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MembershipScheduleTable
+                entries={openSchedule}
+                emptyMessage="Nenhuma mensalidade em aberto. Parabéns!"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="paid">
+          <Card>
+            <CardHeader>
+              <CardTitle>Meses quitados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MembershipScheduleTable
+                entries={schedule?.paidEntries ?? []}
+                emptyMessage="Nenhum mês quitado ainda."
+                highlightOverdue={false}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="entries">
+          <Card>
+            <CardHeader>
+              <CardTitle>Lançamentos registrados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {monthlyPayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum lançamento registrado.
                 </div>
               ) : (
                 <Table>
@@ -172,7 +371,7 @@ export default function MyPayments() {
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Data Pagamento</TableHead>
+                      <TableHead>Data pagamento</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -181,9 +380,7 @@ export default function MyPayments() {
                         <TableCell className="font-medium">
                           {payment.description}
                         </TableCell>
-                        <TableCell>
-                          {formatDateBR(payment.dueDate)}
-                        </TableCell>
+                        <TableCell>{formatDateBR(payment.dueDate)}</TableCell>
                         <TableCell className="font-mono">
                           {formatCurrencyBRL(payment.amount)}
                         </TableCell>
@@ -191,7 +388,7 @@ export default function MyPayments() {
                         <TableCell>
                           {payment.paymentDate
                             ? formatDateBR(payment.paymentDate)
-                            : '-'}
+                            : '—'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -244,6 +441,13 @@ export default function MyPayments() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {memberSince ? (
+        <p className="text-xs text-muted-foreground">
+          Cronograma calculado a partir de{' '}
+          {formatDateBR(memberSince.split('T')[0])}.
+        </p>
+      ) : null}
     </div>
   )
 }

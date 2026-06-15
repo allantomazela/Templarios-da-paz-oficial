@@ -30,6 +30,10 @@ import {
   Wallet,
   History,
   CalendarPlus,
+  CalendarDays,
+  AlertTriangle,
+  ChevronDown,
+  GraduationCap,
 } from 'lucide-react'
 import {
   Dialog,
@@ -61,6 +65,26 @@ import {
 } from '@/lib/contribution-payments'
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import { MembershipOverduePanel } from '@/components/financial/MembershipOverduePanel'
+import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
+import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfoPanel'
+import { FinancialAccessOverview } from '@/components/financial/FinancialAccessOverview'
+import { MembershipScheduleDialog } from '@/components/financial/MembershipScheduleDialog'
+import { CeremonyPaymentsPanel } from '@/components/financial/CeremonyPaymentsPanel'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  buildAllMembershipSchedules,
+  buildMembershipScheduleForBrother,
+  buildOverdueBrotherAlerts,
+  contributionCountsInTreasury,
+  isMembershipHistoricalPeriod,
+} from '@/lib/membership-schedule'
+import type { ApprovedBrotherOption } from '@/lib/contribution-payments'
 
 function statusBadge(status: Contribution['status']) {
   if (status === 'Pago') {
@@ -78,6 +102,8 @@ function currentStatusLabel(status: BrotherContributionSummary['currentStatus'])
   switch (status) {
     case 'paid':
       return { label: 'Em dia', className: 'text-green-600' }
+    case 'upcoming':
+      return { label: 'À vencer', className: 'text-sky-600' }
     case 'pending':
       return { label: 'Pendente', className: 'text-amber-600' }
     case 'overdue':
@@ -143,15 +169,34 @@ function ContributionsTable({
                   : '—'}
               </TableCell>
               <TableCell>
-                {contribution.transactionId ? (
-                  <Badge variant="outline" className="text-green-700">
-                    Receita lançada
-                  </Badge>
-                ) : contribution.status === 'Pago' ? (
-                  <Badge variant="outline">Sem vínculo</Badge>
-                ) : (
-                  '—'
-                )}
+                {(() => {
+                  const monthIndex = CONTRIBUTION_MONTHS.indexOf(
+                    contribution.month as (typeof CONTRIBUTION_MONTHS)[number],
+                  )
+                  const monthNum = monthIndex >= 0 ? monthIndex + 1 : 0
+                  const historical =
+                    monthNum > 0 &&
+                    isMembershipHistoricalPeriod(contribution.year, monthNum)
+
+                  if (contribution.transactionId) {
+                    return (
+                      <Badge variant="outline" className="text-green-700">
+                        Receita lançada
+                      </Badge>
+                    )
+                  }
+                  if (contribution.status === 'Pago' && historical) {
+                    return (
+                      <Badge variant="outline" className="text-amber-800">
+                        Só controle
+                      </Badge>
+                    )
+                  }
+                  if (contribution.status === 'Pago') {
+                    return <Badge variant="outline">Sem vínculo</Badge>
+                  }
+                  return '—'
+                })()}
               </TableCell>
               <TableCell className="text-right space-x-1">
                 <Button
@@ -185,14 +230,24 @@ export function MembershipPayments() {
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [approvedBrothers, setApprovedBrothers] = useState<
-    { id: string; full_name: string | null }[]
+    ApprovedBrotherOption[]
   >([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBrotherId, setSelectedBrotherId] = useState('')
   const [viewTab, setViewTab] = useState('by-member')
+  const [mainSection, setMainSection] = useState<'membership' | 'ceremony'>('membership')
+  const [openCeremonyPlan, setOpenCeremonyPlan] = useState(false)
   const [feeSettings, setFeeSettings] = useState({ defaultAmount: 150, dueDay: 10 })
   const [generateOpen, setGenerateOpen] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [scheduleDialogBrotherId, setScheduleDialogBrotherId] = useState('')
+  const [contributionLaunch, setContributionLaunch] = useState<{
+    brotherId: string
+    brotherName: string
+    month?: string
+    year?: number
+  } | null>(null)
   const [generateMonth, setGenerateMonth] = useState(
     CONTRIBUTION_MONTHS[new Date().getMonth()],
   )
@@ -242,11 +297,53 @@ export function MembershipPayments() {
     [contributions, brotherNames, approvedBrothers, feeSettings.dueDay],
   )
 
+  const allSchedules = useMemo(
+    () =>
+      buildAllMembershipSchedules(
+        contributions,
+        approvedBrothers,
+        brotherNames,
+        feeSettings,
+      ),
+    [contributions, approvedBrothers, brotherNames, feeSettings],
+  )
+
+  const overdueAlerts = useMemo(
+    () => buildOverdueBrotherAlerts(allSchedules),
+    [allSchedules],
+  )
+
+  const selectedSchedule = useMemo(() => {
+    if (!selectedBrotherId) return null
+    const brother = approvedBrothers.find((b) => b.id === selectedBrotherId)
+    const name =
+      brotherNames[selectedBrotherId] || brother?.full_name || 'Sem nome'
+    return buildMembershipScheduleForBrother(
+      selectedBrotherId,
+      name,
+      contributions,
+      feeSettings,
+      brother?.created_at,
+    )
+  }, [
+    selectedBrotherId,
+    approvedBrothers,
+    brotherNames,
+    contributions,
+    feeSettings,
+  ])
+
   const selectedSummary = summaries.find((s) => s.brotherId === selectedBrotherId)
   const brotherHistory = useMemo(
     () => filterContributionsByBrother(contributions, selectedBrotherId),
     [contributions, selectedBrotherId],
   )
+
+  const treasuryPaidTotal = useMemo(() => {
+    return brotherHistory
+      .filter((c) => contributionCountsInTreasury(c))
+      .reduce((sum, c) => sum + c.amount, 0)
+  }, [brotherHistory])
 
   const filteredAll = contributions.filter((c) => {
     const q = searchTerm.toLowerCase()
@@ -324,13 +421,46 @@ export function MembershipPayments() {
     },
   )
 
-  const openNew = (brotherId?: string) => {
+  const resolveBrotherName = (brotherId: string) => {
+    if (!brotherId) return ''
+    return (
+      brotherNames[brotherId]?.trim() ||
+      approvedBrothers.find((b) => b.id === brotherId)?.full_name?.trim() ||
+      ''
+    )
+  }
+
+  const openSchedule = (brotherId: string) => {
+    setSelectedBrotherId(brotherId)
+    setScheduleDialogBrotherId(brotherId)
+    setViewTab('by-member')
+    setScheduleDialogOpen(true)
+  }
+
+  const openNew = (
+    brotherId?: string,
+    prefill?: { brotherName?: string; month: string; year: number },
+  ) => {
+    const id = brotherId ?? selectedBrotherId
     setSelectedContribution(null)
+    setContributionLaunch({
+      brotherId: id,
+      brotherName:
+        prefill?.brotherName?.trim() || resolveBrotherName(id),
+      month: prefill?.month,
+      year: prefill?.year,
+    })
     if (brotherId) setSelectedBrotherId(brotherId)
     dialog.openDialog()
   }
 
   const openEdit = (contribution: Contribution) => {
+    setContributionLaunch({
+      brotherId: contribution.brotherId,
+      brotherName:
+        contribution.brotherName?.trim() ||
+        resolveBrotherName(contribution.brotherId),
+    })
     setSelectedContribution(contribution)
     setSelectedBrotherId(contribution.brotherId)
     dialog.openDialog()
@@ -363,17 +493,64 @@ export function MembershipPayments() {
 
   return (
     <div className="space-y-4">
+      <Tabs
+        value={mainSection}
+        onValueChange={(value) => setMainSection(value as 'membership' | 'ceremony')}
+        className="space-y-4"
+      >
+        <TabsList>
+          <TabsTrigger value="membership">
+            <Wallet className="mr-2 h-4 w-4" />
+            Mensalidades
+          </TabsTrigger>
+          <TabsTrigger value="ceremony">
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Iniciação, Elevação e Outros
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="ceremony">
+          <CeremonyPaymentsPanel
+            brothers={approvedBrothers}
+            selectedBrotherId={selectedBrotherId}
+            onBrotherChange={setSelectedBrotherId}
+            openPlanDialog={openCeremonyPlan}
+            onPlanDialogOpenChange={setOpenCeremonyPlan}
+          />
+        </TabsContent>
+
+        <TabsContent value="membership" className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-2xl">
-          Registre pagamentos individuais de mensalidade. Quando marcados como{' '}
-          <strong>Pago</strong>, entram automaticamente como receita na tesouraria
-          (categoria Mensalidade) e compõem o saldo.
+          Registre pagamentos a partir de jun/2026 — entram na tesouraria quando
+          marcados como <strong>Pago</strong> com conta bancária. Meses anteriores
+          (jan–mai/2026) são ajustados pelo cronograma, apenas para controle.
         </p>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Button onClick={() => openNew(selectedBrotherId)} disabled={loading}>
-            <Plus className="mr-2 h-4 w-4" />
-            Registrar pagamento
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={loading}>
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar pagamento
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openNew(selectedBrotherId)}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Mensalidade
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setMainSection('ceremony')
+                  setOpenCeremonyPlan(true)
+                }}
+              >
+                <GraduationCap className="mr-2 h-4 w-4" />
+                Iniciação, Elevação, Exaltação ou Outros
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             onClick={() => setGenerateOpen(true)}
@@ -381,6 +558,18 @@ export function MembershipPayments() {
           >
             <CalendarPlus className="mr-2 h-4 w-4" />
             Gerar do mês
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              selectedBrotherId
+                ? openSchedule(selectedBrotherId)
+                : undefined
+            }
+            disabled={loading || !selectedBrotherId}
+          >
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Ver cronograma
           </Button>
         </div>
       </div>
@@ -391,11 +580,27 @@ export function MembershipPayments() {
         onSave={handleUpdateFeeSettings}
       />
 
+      <MembershipOverduePanel
+        alerts={overdueAlerts}
+        onSelectBrother={openSchedule}
+      />
+
+      <FinancialAccessOverview
+        onSelectBrother={(profileId) => {
+          setSelectedBrotherId(profileId)
+          setViewTab('by-member')
+        }}
+      />
+
       <Tabs value={viewTab} onValueChange={setViewTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="by-member">
             <User className="mr-2 h-4 w-4" />
             Por irmão
+          </TabsTrigger>
+          <TabsTrigger value="overdue">
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Atrasos ({overdueAlerts.length})
           </TabsTrigger>
           <TabsTrigger value="all">
             <History className="mr-2 h-4 w-4" />
@@ -424,8 +629,12 @@ export function MembershipPayments() {
             </Button>
           </div>
 
+          {selectedBrotherId ? (
+            <BrotherAccessInfoPanel profileId={selectedBrotherId} />
+          ) : null}
+
           {selectedSummary && current && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -441,15 +650,16 @@ export function MembershipPayments() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total pago
+                    Total na tesouraria
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-lg font-semibold text-green-600">
-                    {formatCurrencyBRL(selectedSummary.totalPaid)}
+                    {formatCurrencyBRL(treasuryPaidTotal)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedSummary.paidCount} pagamento(s)
+                    Jun/2026 em diante · controle:{' '}
+                    {formatCurrencyBRL(selectedSummary.totalPaid)}
                   </p>
                 </CardContent>
               </Card>
@@ -472,6 +682,21 @@ export function MembershipPayments() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Em atraso
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg font-semibold text-destructive">
+                    {formatCurrencyBRL(selectedSchedule?.totalOverdue ?? 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedSchedule?.overdueMonthCount ?? 0} mês(es)
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
                     Último pagamento
                   </CardTitle>
                 </CardHeader>
@@ -485,6 +710,25 @@ export function MembershipPayments() {
               </Card>
             </div>
           )}
+
+          {selectedSchedule ? (
+            <div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <CalendarDays className="h-4 w-4" />
+                  Cronograma de mensalidades
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openSchedule(selectedBrotherId)}
+                >
+                  Gerenciar cronograma
+                </Button>
+              </div>
+              <MembershipScheduleTable entries={selectedSchedule.entries} />
+            </div>
+          ) : null}
 
           <div>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
@@ -505,6 +749,49 @@ export function MembershipPayments() {
               />
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="overdue" className="space-y-4">
+          <MembershipOverduePanel
+            alerts={overdueAlerts}
+            onSelectBrother={openSchedule}
+          />
+          {overdueAlerts.length > 0 ? (
+            <div className="rounded-md border bg-card overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Irmão</TableHead>
+                    <TableHead>Meses em atraso</TableHead>
+                    <TableHead>Valor em aberto</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overdueAlerts.map((alert) => (
+                    <TableRow key={alert.brotherId}>
+                      <TableCell className="font-medium">
+                        {alert.brotherName}
+                      </TableCell>
+                      <TableCell>{alert.overdueLabels.join(', ')}</TableCell>
+                      <TableCell className="font-mono text-destructive">
+                        {formatCurrencyBRL(alert.overdueAmount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSchedule(alert.brotherId)}
+                        >
+                          Ver cronograma
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="all" className="space-y-4">
@@ -532,13 +819,24 @@ export function MembershipPayments() {
           )}
         </TabsContent>
       </Tabs>
+        </TabsContent>
+      </Tabs>
 
       <ContributionDialog
         open={dialog.open}
-        onOpenChange={dialog.onOpenChange}
+        onOpenChange={(next) => {
+          if (!next) setContributionLaunch(null)
+          dialog.onOpenChange(next)
+        }}
         contributionToEdit={selectedContribution}
-        defaultBrotherId={selectedBrotherId}
+        defaultBrotherId={
+          contributionLaunch?.brotherId || selectedBrotherId
+        }
+        defaultBrotherName={contributionLaunch?.brotherName}
+        defaultMonth={contributionLaunch?.month}
+        defaultYear={contributionLaunch?.year}
         defaultAmount={feeSettings.defaultAmount}
+        brothers={approvedBrothers}
         feeSettings={feeSettings}
         onUpdateFeeSettings={handleUpdateFeeSettings}
         onSave={handleSave}
@@ -596,6 +894,27 @@ export function MembershipPayments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MembershipScheduleDialog
+        open={scheduleDialogOpen}
+        onOpenChange={setScheduleDialogOpen}
+        brotherId={scheduleDialogBrotherId || selectedBrotherId || null}
+        brothers={approvedBrothers}
+        contributions={contributions}
+        feeSettings={feeSettings}
+        onSaved={async () => {
+          await loadData.execute()
+          notifyFinancialDataChanged()
+        }}
+        onRegisterPayment={({ brotherId, brotherName, month, year }) => {
+          setScheduleDialogOpen(false)
+          openNew(brotherId, { brotherName, month, year })
+        }}
+        onEditContribution={(contribution) => {
+          setScheduleDialogOpen(false)
+          openEdit(contribution)
+        }}
+      />
     </div>
   )
 }

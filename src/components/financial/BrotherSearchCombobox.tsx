@@ -26,6 +26,7 @@ interface BrotherSearchComboboxProps {
   brothers: BrotherOption[]
   value: string
   onChange: (brotherId: string) => void
+  selectedLabel?: string
   disabled?: boolean
   placeholder?: string
   loading?: boolean
@@ -36,6 +37,7 @@ export function BrotherSearchCombobox({
   brothers,
   value,
   onChange,
+  selectedLabel,
   disabled = false,
   placeholder = 'Selecione o irmão',
   loading = false,
@@ -62,7 +64,9 @@ export function BrotherSearchCombobox({
           <span className="truncate">
             {loading
               ? 'Carregando irmãos...'
-              : selected?.full_name || placeholder}
+              : selected?.full_name?.trim() ||
+                selectedLabel?.trim() ||
+                placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

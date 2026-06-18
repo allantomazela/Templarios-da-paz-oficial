@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Brother } from '@/lib/data'
 import type { Profile } from '@/stores/useAuthStore'
 import { BrotherForm } from '@/components/secretariat/BrotherForm'
-import type { BrotherFormValues } from '@/lib/brother-form-schema'
+import {
+  toBrotherSaveInput,
+  type BrotherFormValues,
+} from '@/lib/brother-form-schema'
 import {
   fetchBrotherForProfile,
   saveMyBrotherRegistration,
@@ -34,6 +37,7 @@ export function BrotherRegistrationPanel({
   const [brother, setBrother] = useState<Brother | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [formRevision, setFormRevision] = useState(0)
 
   const loadBrother = useCallback(async () => {
     if (!profile.id) return
@@ -90,12 +94,13 @@ export function BrotherRegistrationPanel({
       const saved = await saveMyBrotherRegistration(
         profile.id,
         profile.email.trim(),
-        data as BrotherSaveInput,
+        toBrotherSaveInput(data) as BrotherSaveInput,
         brother,
         profile.avatar_url,
       )
 
       setBrother(saved)
+      setFormRevision((revision) => revision + 1)
       onRegistrationChange?.(isBrotherRegistrationComplete(saved))
 
       if (data.name.trim() && data.name.trim() !== profile.full_name) {
@@ -151,6 +156,7 @@ export function BrotherRegistrationPanel({
         </CardHeader>
         <CardContent>
           <BrotherForm
+            key={`brother-form-${brother?.id ?? 'new'}-${formRevision}`}
             brotherToEdit={brotherForForm}
             profileAvatarUrl={profile.avatar_url}
             userName={profile.full_name}

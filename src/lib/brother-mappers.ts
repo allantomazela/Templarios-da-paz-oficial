@@ -40,7 +40,7 @@ export function mapBrotherToDB(brother: Partial<Brother>) {
     address_complement: brother.addressComplement || null,
     address_neighborhood: brother.addressNeighborhood || null,
     address_city: brother.addressCity || null,
-    address_state: brother.addressState || null,
+    address_state: toNullableBrotherText(brother.addressState),
     address_zipcode: brother.addressZipcode || null,
     address: brother.address || null,
   }

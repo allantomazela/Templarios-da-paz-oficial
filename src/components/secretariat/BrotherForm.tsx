@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useForm, useFieldArray, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Brother, Child } from '@/lib/data'
@@ -74,8 +74,10 @@ function optionalSelectValue(value: string | undefined): string {
 function optionalSelectChange(
   value: string,
   onChange: (value: string) => void,
-): void {
-  onChange(value === OPTIONAL_SELECT_NONE ? '' : value)
+): string {
+  const next = value === OPTIONAL_SELECT_NONE ? '' : value
+  onChange(next)
+  return next
 }
 
 interface BrotherFormProps {
@@ -158,6 +160,29 @@ export function BrotherForm({
     name: 'children',
   })
 
+  const formResetKey = useMemo(() => {
+    if (!brotherToEdit) return 'new'
+    return [
+      brotherToEdit.id,
+      brotherToEdit.degree,
+      brotherToEdit.obedience ?? '',
+      brotherToEdit.addressState ?? '',
+      brotherToEdit.name,
+      brotherToEdit.phone,
+      brotherToEdit.initiationDate,
+      brotherToEdit.addressZipcode ?? '',
+    ].join('\0')
+  }, [
+    brotherToEdit?.id,
+    brotherToEdit?.degree,
+    brotherToEdit?.obedience,
+    brotherToEdit?.addressState,
+    brotherToEdit?.name,
+    brotherToEdit?.phone,
+    brotherToEdit?.initiationDate,
+    brotherToEdit?.addressZipcode,
+  ])
+
   useEffect(() => {
     if (!active) {
       revokePhotoBlob()
@@ -221,7 +246,7 @@ export function BrotherForm({
     }
     return () => revokePhotoBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brotherToEdit?.id, active, isSelfMode, profileAvatarUrl])
+  }, [formResetKey, active, isSelfMode])
 
   useEffect(() => {
     if (!active || !isSelfMode) return
@@ -265,7 +290,10 @@ export function BrotherForm({
         form.setValue('addressStreet', cepData.logradouro)
         form.setValue('addressNeighborhood', cepData.bairro)
         form.setValue('addressCity', cepData.localidade)
-        form.setValue('addressState', cepData.uf)
+        form.setValue('addressState', cepData.uf, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
         if (cepData.complemento) {
           form.setValue('addressComplement', cepData.complemento)
         }
@@ -324,8 +352,15 @@ export function BrotherForm({
 
     setIsSubmittingLocal(true)
     try {
+      const degree = form.getValues('degree') ?? data.degree
+      const obedience = form.getValues('obedience') ?? data.obedience
+      const addressState = form.getValues('addressState') ?? data.addressState
+
       const unformattedData = {
         ...data,
+        degree,
+        obedience,
+        addressState,
         photoUrl: isSelfMode
           ? (syncedProfilePhoto ?? undefined)
           : data.photoUrl,
@@ -591,7 +626,17 @@ export function BrotherForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grau *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        value={field.value || 'Aprendiz'}
+                        onValueChange={(value) => {
+                          const next = value as BrotherFormValues['degree']
+                          field.onChange(next)
+                          form.setValue('degree', next, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione o grau" />
@@ -672,10 +717,14 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Potência (Obediência)</FormLabel>
                       <Select
-                        onValueChange={(value) =>
-                          optionalSelectChange(value, field.onChange)
-                        }
                         value={optionalSelectValue(field.value)}
+                        onValueChange={(value) => {
+                          const next = optionalSelectChange(value, field.onChange)
+                          form.setValue('obedience', next, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -756,10 +805,14 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Status de Regularidade</FormLabel>
                       <Select
-                        onValueChange={(value) =>
-                          optionalSelectChange(value, field.onChange)
-                        }
                         value={optionalSelectValue(field.value)}
+                        onValueChange={(value) => {
+                          const next = optionalSelectChange(value, field.onChange)
+                          form.setValue('regularStatus', next, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1014,10 +1067,14 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Estado</FormLabel>
                       <Select
-                        onValueChange={(value) =>
-                          optionalSelectChange(value, field.onChange)
-                        }
                         value={optionalSelectValue(field.value)}
+                        onValueChange={(value) => {
+                          const next = optionalSelectChange(value, field.onChange)
+                          form.setValue('addressState', next, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
                       >
                         <FormControl>
                           <SelectTrigger>

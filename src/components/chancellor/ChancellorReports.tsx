@@ -36,12 +36,11 @@ export const ChancellorReports = memo(function ChancellorReports() {
   const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
   const { toast } = useToast()
   const reportRef = useRef<HTMLDivElement>(null)
-  const { positions, fetchPositions } = useLodgePositionsStore()
+  const { positions, fetchPositions, initialized } = useLodgePositionsStore()
 
-  // Buscar cargos ao montar o componente
   useEffect(() => {
-    fetchPositions()
-  }, [fetchPositions])
+    if (!initialized) void fetchPositions()
+  }, [initialized, fetchPositions])
 
   // Obter nomes do Venerável Mestre e Chanceler
   const venerableMaster = positions.find(

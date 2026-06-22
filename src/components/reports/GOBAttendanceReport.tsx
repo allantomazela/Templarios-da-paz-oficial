@@ -41,16 +41,15 @@ export function GOBAttendanceReport() {
   const { events, sessionRecords, attendanceRecords, brothers, locations } =
     useChancellorStore()
   const { addHistory } = useReportStore()
-  const { positions, fetchPositions } = useLodgePositionsStore()
+  const { positions, fetchPositions, initialized } = useLodgePositionsStore()
   const [selectedEventId, setSelectedEventId] = useState<string>('')
   const { toast } = useToast()
 
   const componentRef = useRef<HTMLDivElement>(null)
 
-  // Buscar cargos ao montar o componente
   useEffect(() => {
-    fetchPositions()
-  }, [fetchPositions])
+    if (!initialized) void fetchPositions()
+  }, [initialized, fetchPositions])
 
   // Obter nomes do Venerável Mestre e Chanceler
   const venerableMaster = positions.find(

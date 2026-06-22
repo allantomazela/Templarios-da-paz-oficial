@@ -46,7 +46,43 @@ export interface LodgePositionHistory {
 }
 
 const fetchPositionsSeq = createRequestSequence()
-const POSITIONS_FETCH_TIMEOUT_MS = 15_000
+const POSITIONS_FETCH_TIMEOUT_MS = 30_000
+
+let positionsFetchInFlight: Promise<void> | null = null
+
+async function loadLodgePositionsFromDb(): Promise<LodgePosition[]> {
+  const { data, error } = await supabase
+    .from('lodge_positions')
+    .select('*')
+    .order('position_type')
+
+  if (error) throw error
+  if (!data?.length) return []
+
+  const userIds = data
+    .map((p) => p.user_id)
+    .filter((id): id is string => id !== null)
+
+  if (userIds.length === 0) return data
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds)
+
+  if (profilesError) {
+    logError('Error fetching profiles for lodge positions', profilesError)
+    return data
+  }
+
+  return data.map((position) => {
+    const user = profiles?.find((p) => p.id === position.user_id)
+    return {
+      ...position,
+      user: user || undefined,
+    }
+  })
+}
 
 interface LodgePositionsState {
   positions: LodgePosition[]
@@ -55,7 +91,7 @@ interface LodgePositionsState {
   /** true após a primeira tentativa de fetchPositions (sucesso ou falha) */
   initialized: boolean
 
-  fetchPositions: () => Promise<void>
+  fetchPositions: (options?: { force?: boolean }) => Promise<void>
   fetchHistory: () => Promise<void>
   assignPosition: (
     positionType: LodgePositionType,
@@ -76,61 +112,42 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
     loading: false,
     initialized: false,
 
-    fetchPositions: async () => {
+    fetchPositions: async (options) => {
+      if (positionsFetchInFlight && !options?.force) {
+        return positionsFetchInFlight
+      }
+
       const id = fetchPositionsSeq.next()
       set({ loading: true })
-      try {
-        const { data, error } = await withTimeout(
-          supabase.from('lodge_positions').select('*').order('position_type'),
-          POSITIONS_FETCH_TIMEOUT_MS,
-          'Carregamento dos cargos demorou demais. Verifique sua conexão.',
-        )
 
-        if (error) throw error
+      positionsFetchInFlight = (async () => {
+        try {
+          const positions = await withTimeout(
+            loadLodgePositionsFromDb(),
+            POSITIONS_FETCH_TIMEOUT_MS,
+            'Carregamento dos cargos demorou demais. Verifique sua conexão.',
+          )
 
-        // Buscar informações dos usuários separadamente
-        if (data && data.length > 0) {
-          const userIds = data
-            .map((p) => p.user_id)
-            .filter((id): id is string => id !== null)
-
-          if (userIds.length > 0) {
-            const { data: profiles, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, full_name, email')
-              .in('id', userIds)
-
-            if (profilesError) {
-              logError('Error fetching profiles', profilesError)
-            }
-
-            // Combinar dados
-            const positionsWithUsers = data.map((position) => {
-              const user = profiles?.find((p) => p.id === position.user_id)
-              return {
-                ...position,
-                user: user || undefined,
-              }
-            })
-
-            if (!fetchPositionsSeq.isCurrent(id)) return
-            set({ positions: positionsWithUsers || [] })
-            devLog(`LodgePositions: Carregados ${positionsWithUsers?.length || 0} cargos`)
-            return
+          if (!fetchPositionsSeq.isCurrent(id)) return
+          set({ positions })
+          devLog(`LodgePositions: Carregados ${positions.length} cargos`)
+        } catch (error) {
+          if (handleAuthError(error)) return
+          const cached = get().positions
+          if (cached.length > 0) {
+            devLog('LodgePositions: mantendo cache após falha no recarregamento', error)
+          } else {
+            logError('Error fetching positions', error)
+          }
+        } finally {
+          positionsFetchInFlight = null
+          if (fetchPositionsSeq.isCurrent(id)) {
+            set({ loading: false, initialized: true })
           }
         }
+      })()
 
-        if (!fetchPositionsSeq.isCurrent(id)) return
-        set({ positions: data || [] })
-        devLog(`LodgePositions: Carregados ${data?.length || 0} cargos`)
-      } catch (error) {
-        if (handleAuthError(error)) return
-        logError('Error fetching positions', error)
-      } finally {
-        if (fetchPositionsSeq.isCurrent(id)) {
-          set({ loading: false, initialized: true })
-        }
-      }
+      return positionsFetchInFlight
     },
 
     fetchHistory: async () => {
@@ -185,7 +202,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
 
         if (error) throw error
 
-        await get().fetchPositions()
+        await get().fetchPositions({ force: true })
         set({ loading: false })
         return { error: null }
       } catch (error) {
@@ -223,7 +240,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
 
         if (error) throw error
 
-        await get().fetchPositions()
+        await get().fetchPositions({ force: true })
         set({ loading: false })
         return { error: null }
       } catch (error) {

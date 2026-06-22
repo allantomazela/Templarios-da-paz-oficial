@@ -37,7 +37,7 @@ import {
 
 export function VisitorCertificate() {
   const { events, sessionRecords } = useChancellorStore()
-  const { positions, fetchPositions } = useLodgePositionsStore()
+  const { positions, fetchPositions, initialized } = useLodgePositionsStore()
   const { toast } = useToast()
   const certificateRef = useRef<HTMLDivElement>(null)
 
@@ -53,10 +53,9 @@ export function VisitorCertificate() {
     masonicNumber: '',
   })
 
-  // Buscar cargos ao montar o componente
   useEffect(() => {
-    fetchPositions()
-  }, [fetchPositions])
+    if (!initialized) void fetchPositions()
+  }, [initialized, fetchPositions])
 
   // Obter nomes do Venerável Mestre e Chanceler
   const venerableMaster = positions.find(

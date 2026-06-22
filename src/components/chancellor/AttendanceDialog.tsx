@@ -68,7 +68,7 @@ export function AttendanceDialog({
     fetchAttendanceFromSupabase,
     saveAttendanceToSupabase,
   } = useChancellorStore()
-  const { positions, fetchPositions } = useLodgePositionsStore()
+  const { positions, fetchPositions, initialized } = useLodgePositionsStore()
   const { toast } = useToast()
   const certificateRef = useRef<HTMLDivElement>(null)
 
@@ -154,8 +154,10 @@ export function AttendanceDialog({
   }
 
   useEffect(() => {
-    fetchPositions()
-  }, [fetchPositions])
+    if (open && !initialized) {
+      void fetchPositions()
+    }
+  }, [open, initialized, fetchPositions])
 
   useEffect(() => {
     if (open) {

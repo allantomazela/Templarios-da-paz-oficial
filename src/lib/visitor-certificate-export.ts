@@ -58,15 +58,27 @@ export async function exportVisitorCertificateAssets(
 ): Promise<VisitorCertificateExportResult> {
   await waitForImages(element)
 
-  const canvas = await html2canvas(element, {
+  const captureOptions = {
     scale: Math.min(window.devicePixelRatio || 2, 2),
     useCORS: true,
-    allowTaint: false,
     backgroundColor: '#fdfbf7',
     logging: false,
     width: element.offsetWidth,
     height: element.offsetHeight,
-  })
+  } as const
+
+  let canvas: HTMLCanvasElement
+  try {
+    canvas = await html2canvas(element, {
+      ...captureOptions,
+      allowTaint: false,
+    })
+  } catch {
+    canvas = await html2canvas(element, {
+      ...captureOptions,
+      allowTaint: true,
+    })
+  }
 
   const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92)
   const jpegBlob = await new Promise<Blob>((resolve, reject) => {
@@ -183,13 +195,80 @@ export function openVisitorCertificatePrintWindow(
   return true
 }
 
-export type VisitorCertificateShareMode = 'shared' | 'downloaded'
+export type VisitorCertificateShareMode =
+  | 'native-shared'
+  | 'whatsapp-with-downloads'
+  | 'cancelled'
+
+export function buildVisitorCertificateWhatsAppMessage(params: {
+  visitorName: string
+  lodgeTitle: string
+  includeAttachmentHint?: boolean
+}): string {
+  const lines = [
+    '*Certificado de Presença*',
+    `*${params.lodgeTitle}*`,
+    '',
+    `Certificado do Ir∴ *${params.visitorName}*.`,
+  ]
+
+  if (params.includeAttachmentHint) {
+    lines.push(
+      '',
+      '_Anexe nesta conversa os arquivos PDF e JPEG que foram baixados no seu dispositivo._',
+    )
+  }
+
+  return lines.join('\n')
+}
+
+export function openWhatsAppShare(text: string): void {
+  const encoded = encodeURIComponent(text)
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const url = isMobile
+    ? `https://api.whatsapp.com/send?text=${encoded}`
+    : `https://web.whatsapp.com/send?text=${encoded}`
+
+  const link = document.createElement('a')
+  link.href = url
+  link.target = '_blank'
+  link.rel = 'noopener noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+type NativeShareAttempt = 'shared' | 'failed' | 'cancelled'
+
+async function tryNativeFileShare(
+  files: File[],
+  title: string,
+  text: string,
+): Promise<NativeShareAttempt> {
+  if (typeof navigator.share !== 'function') return 'failed'
+  if (
+    typeof navigator.canShare === 'function' &&
+    !navigator.canShare({ files })
+  ) {
+    return 'failed'
+  }
+
+  try {
+    await navigator.share({ title, text, files })
+    return 'shared'
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') return 'cancelled'
+    return 'failed'
+  }
+}
 
 export async function shareVisitorCertificateFiles(params: {
   jpegBlob: Blob
   pdfBlob: Blob
   baseName: string
   title: string
+  visitorName: string
+  lodgeTitle: string
 }): Promise<VisitorCertificateShareMode> {
   const jpegFile = new File([params.jpegBlob], `${params.baseName}.jpg`, {
     type: 'image/jpeg',
@@ -197,22 +276,32 @@ export async function shareVisitorCertificateFiles(params: {
   const pdfFile = new File([params.pdfBlob], `${params.baseName}.pdf`, {
     type: 'application/pdf',
   })
-  const files = [jpegFile, pdfFile]
 
-  if (
-    typeof navigator.share === 'function' &&
-    typeof navigator.canShare === 'function' &&
-    navigator.canShare({ files })
-  ) {
-    await navigator.share({
-      title: params.title,
-      text: params.title,
-      files,
-    })
-    return 'shared'
+  const plainMessage = buildVisitorCertificateWhatsAppMessage({
+    visitorName: params.visitorName,
+    lodgeTitle: params.lodgeTitle,
+  })
+
+  const shareAttempts: File[][] = [[jpegFile], [pdfFile], [jpegFile, pdfFile]]
+
+  for (const files of shareAttempts) {
+    const result = await tryNativeFileShare(files, params.title, plainMessage)
+    if (result === 'shared') return 'native-shared'
+    if (result === 'cancelled') return 'cancelled'
   }
 
   downloadBlob(params.jpegBlob, `${params.baseName}.jpg`)
-  downloadBlob(params.pdfBlob, `${params.baseName}.pdf`)
-  return 'downloaded'
+  window.setTimeout(() => {
+    downloadBlob(params.pdfBlob, `${params.baseName}.pdf`)
+  }, 350)
+
+  openWhatsAppShare(
+    buildVisitorCertificateWhatsAppMessage({
+      visitorName: params.visitorName,
+      lodgeTitle: params.lodgeTitle,
+      includeAttachmentHint: true,
+    }),
+  )
+
+  return 'whatsapp-with-downloads'
 }

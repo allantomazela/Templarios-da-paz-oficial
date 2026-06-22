@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Download, FileText, Loader2, Share2 } from 'lucide-react'
+import { Download, FileText, Loader2, MessageCircle, Share2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
@@ -93,6 +93,7 @@ export function VisitorCertificate() {
 
   const fileBaseName = buildVisitorCertificateFileBaseName(normalizedVisitor.name)
   const shareTitle = `Certificado de Presença — ${normalizedVisitor.name}`
+  const lodgeTitle = siteTitle || 'Templários da Paz'
 
   const getCaptureElement = () =>
     getVisitorCertificateCaptureElement(certificateRef.current)
@@ -123,18 +124,21 @@ export function VisitorCertificate() {
         pdfBlob: assets.pdfBlob,
         baseName: fileBaseName,
         title: shareTitle,
+        visitorName: normalizedVisitor.name,
+        lodgeTitle,
       })
 
-      if (mode === 'shared') {
+      if (mode === 'native-shared') {
         toast({
           title: 'Certificado compartilhado',
-          description: 'PDF e JPEG enviados pelo compartilhamento do dispositivo.',
-        })
-      } else {
-        toast({
-          title: 'Arquivos baixados',
           description:
-            'PDF e JPEG salvos no dispositivo. Anexe-os no WhatsApp ou outro app.',
+            'Escolha o WhatsApp (ou outro app) na lista de compartilhamento.',
+        })
+      } else if (mode === 'whatsapp-with-downloads') {
+        toast({
+          title: 'WhatsApp aberto',
+          description:
+            'PDF e JPEG foram baixados. Anexe os arquivos na conversa do WhatsApp.',
         })
       }
     } catch (error) {
@@ -202,7 +206,7 @@ export function VisitorCertificate() {
           </CardTitle>
           <CardDescription>
             Gere certificados em meia folha A4, imprima com visualização fiel ao
-            modelo e compartilhe em PDF e JPEG.
+            modelo e compartilhe no WhatsApp em PDF e JPEG.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -361,9 +365,9 @@ export function VisitorCertificate() {
               {isExporting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Share2 className="h-4 w-4" />
+                <MessageCircle className="h-4 w-4" />
               )}
-              Compartilhar PDF e JPEG
+              Compartilhar no WhatsApp
             </Button>
             <Button
               type="button"

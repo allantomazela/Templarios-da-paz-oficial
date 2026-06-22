@@ -26,6 +26,13 @@ describe('visitor-attendance validation', () => {
     )
   })
 
+  it('preserves trailing spaces while typing lodge name', () => {
+    expect(stripLodgeNamePrefix('Templarios da ')).toBe('Templarios da ')
+    expect(formatLodgeNameWithPrefix('Templarios da Paz')).toBe(
+      'A∴ R∴ L∴ S∴ Templarios da Paz',
+    )
+  })
+
   it('validates a correct visitor input', () => {
     const input = {
       name: 'Joao da Silva',

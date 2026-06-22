@@ -129,19 +129,28 @@ export function VisitorCertificate() {
       })
     : ''
 
-  const handleShareWhatsApp = async () => {
-    if (!canGenerate || !shareText) return
+  const handleShareWhatsApp = () => {
+    if (!canGenerate || !shareText) {
+      toast({
+        title: 'Dados incompletos',
+        description: 'Preencha todos os campos obrigatórios antes de compartilhar.',
+        variant: 'destructive',
+      })
+      return
+    }
 
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({
-          title: 'Certificado de Presença — Visitante',
-          text: shareText.replace(/\*/g, ''),
-        })
-        return
-      } catch (error) {
+    const plainText = shareText.replace(/\*/g, '')
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+    if (isMobile && typeof navigator.share === 'function') {
+      void navigator.share({
+        title: 'Certificado de Presença — Visitante',
+        text: plainText,
+      }).catch((error: unknown) => {
         if (error instanceof Error && error.name === 'AbortError') return
-      }
+        openVisitorCertificateWhatsApp(shareText)
+      })
+      return
     }
 
     openVisitorCertificateWhatsApp(shareText)
@@ -149,6 +158,21 @@ export function VisitorCertificate() {
       title: 'WhatsApp',
       description: 'O texto do certificado foi aberto para compartilhamento.',
     })
+  }
+
+  const triggerPrint = () => {
+    if (!canGenerate || !selectedEvent) {
+      toast({
+        title: 'Dados incompletos',
+        description: 'Preencha todos os campos obrigatórios antes de imprimir.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    window.setTimeout(() => {
+      void handlePrint()
+    }, 0)
   }
 
   return (
@@ -322,7 +346,7 @@ export function VisitorCertificate() {
             </Button>
             <Button
               type="button"
-              onClick={handlePrint}
+              onClick={triggerPrint}
               disabled={!canGenerate}
               className="gap-2"
             >
@@ -334,22 +358,35 @@ export function VisitorCertificate() {
       </Card>
 
       {canGenerate && selectedEvent && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Share2 className="h-4 w-4" />
-              Pré-visualização (meia folha A4)
-            </CardTitle>
-            <CardDescription>
-              Formato compacto para caber dois certificados por folha na impressão.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">
-            <div
-              className="visitor-certificate-print-sheet mx-auto shadow-lg"
-              style={{ width: '210mm' }}
-            >
-              <div ref={certificateRef}>
+        <>
+          <div
+            ref={certificateRef}
+            aria-hidden
+            className="pointer-events-none fixed left-[-10000px] top-0 w-[210mm] opacity-0"
+          >
+            <VisitorCertificateDocument
+              visitor={certificateVisitor}
+              event={selectedEvent}
+              venerableMaster={venerableMaster}
+              chancellor={chancellor}
+            />
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Share2 className="h-4 w-4" />
+                Pré-visualização (meia folha A4)
+              </CardTitle>
+              <CardDescription>
+                Formato compacto para caber dois certificados por folha na impressão.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">
+              <div
+                className="visitor-certificate-print-sheet mx-auto shadow-lg"
+                style={{ width: '210mm' }}
+              >
                 <VisitorCertificateDocument
                   visitor={certificateVisitor}
                   event={selectedEvent}
@@ -357,9 +394,9 @@ export function VisitorCertificate() {
                   chancellor={chancellor}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   )

@@ -17,17 +17,15 @@ export type VisitorAttendanceInput = Pick<
   'name' | 'degree' | 'lodge' | 'lodgeNumber' | 'obedience' | 'masonicNumber'
 >
 
-/** Remove o prefixo maçônico para edição no formulário. */
+/** Remove o prefixo maçônico para edição no formulário (preserva espaços digitados). */
 export function stripLodgeNamePrefix(lodge: string): string {
-  const trimmed = lodge.trim()
-  if (!trimmed) return ''
-  const normalized = trimmed.replace(/^A\s*[∴.]\s*R\s*[∴.]\s*L\s*[∴.]\s*S\s*[∴.]\s*/i, '')
-  return normalized.trim()
+  if (!lodge) return ''
+  return lodge.replace(/^A\s*[∴.]\s*R\s*[∴.]\s*L\s*[∴.]\s*S\s*[∴.]\s*/i, '')
 }
 
 /** Garante o prefixo A∴ R∴ L∴ S∴ uma única vez no nome da loja. */
 export function formatLodgeNameWithPrefix(lodge: string): string {
-  const name = stripLodgeNamePrefix(lodge)
+  const name = stripLodgeNamePrefix(lodge).trim()
   if (!name) return LODGE_NAME_PREFIX.trim()
   return `${LODGE_NAME_PREFIX}${name}`
 }
@@ -130,9 +128,12 @@ export function buildVisitorCertificateShareText(
 }
 
 export function openVisitorCertificateWhatsApp(text: string): void {
-  window.open(
-    `https://wa.me/?text=${encodeURIComponent(text)}`,
-    '_blank',
-    'noopener,noreferrer',
-  )
+  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`
+  const link = document.createElement('a')
+  link.href = url
+  link.target = '_blank'
+  link.rel = 'noopener noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
 }

@@ -35,6 +35,7 @@ import { Input } from '@/components/ui/input'
 import { useReactToPrint } from 'react-to-print'
 import { format } from 'date-fns'
 import { ReportHeader } from './ReportHeader'
+import { computeBrotherAttendancePercentage } from '@/lib/chancellor-attendance'
 
 export function CustomReportBuilder() {
   const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
@@ -79,21 +80,11 @@ export function CustomReportBuilder() {
   const brotherStats = brothers
     .filter((b) => degreeFilter === 'all' || b.degree === degreeFilter)
     .map((brother) => {
-      const totalSessions = sessionRecords.filter(
-        (s) => s.status === 'Finalizada',
-      ).length
-
-      if (totalSessions === 0) {
-        return { ...brother, presences: 0, percentage: 0 }
-      }
-
-      const presences = attendanceRecords.filter(
-        (ar) =>
-          ar.brotherId === brother.id &&
-          (ar.status === 'Presente' || ar.status === 'Justificado'),
-      ).length
-
-      const percentage = Math.round((presences / totalSessions) * 100)
+      const { presences, percentage } = computeBrotherAttendancePercentage(
+        brother,
+        attendanceRecords,
+        sessionRecords,
+      )
 
       return {
         ...brother,

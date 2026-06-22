@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/chart'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
+import { countSessionPresentAttendances } from '@/lib/chancellor-attendance'
 import { Users, UserCheck, Calendar } from 'lucide-react'
 import { subDays, isAfter } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -71,11 +72,10 @@ export function AnalyticsDashboard() {
 
   const chartData = useMemo(() => {
     return filteredSessions.map((session) => {
-      const presentCount = attendanceRecords.filter(
-        (ar) =>
-          ar.sessionRecordId === session.id &&
-          (ar.status === 'Presente' || ar.status === 'Justificado'),
-      ).length
+      const presentCount = countSessionPresentAttendances(
+        session.id,
+        attendanceRecords,
+      )
 
       const percentage =
         activeBrothersCount > 0

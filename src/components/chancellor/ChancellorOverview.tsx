@@ -15,6 +15,11 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'recharts'
 import useChancellorStore from '@/stores/useChancellorStore'
 import {
+  countSessionPresentAttendances,
+  findBrotherAttendanceForSession,
+  isAttendancePresent,
+} from '@/lib/chancellor-attendance'
+import {
   formatCalendarDate,
   formatCurrencyBRL,
   getCalendarDateTimestamp,
@@ -57,12 +62,11 @@ export function ChancellorOverview() {
   let totalAttendancePercentage = 0
   if (last5Sessions.length > 0) {
     last5Sessions.forEach((session) => {
-      const sessionAttendance = attendanceRecords.filter(
-        (ar) =>
-          ar.sessionRecordId === session.id &&
-          (ar.status === 'Presente' || ar.status === 'Justificado'),
+      const presentCount = countSessionPresentAttendances(
+        session.id,
+        attendanceRecords,
       )
-      const percentage = (sessionAttendance.length / brothers.length) * 100
+      const percentage = (presentCount / brothers.length) * 100
       totalAttendancePercentage += percentage
     })
     totalAttendancePercentage = totalAttendancePercentage / last5Sessions.length
@@ -78,11 +82,12 @@ export function ChancellorOverview() {
 
       let unjustifiedCount = 0
       for (const session of last3Sessions) {
-        const record = attendanceRecords.find(
-          (ar) =>
-            ar.sessionRecordId === session.id && ar.brotherId === brother.id,
+        const record = findBrotherAttendanceForSession(
+          brother,
+          session.id,
+          attendanceRecords,
         )
-        if (!record || record.status === 'Ausente') {
+        if (!record || !isAttendancePresent(record.status)) {
           unjustifiedCount++
         }
       }
@@ -113,9 +118,10 @@ export function ChancellorOverview() {
 
   const attendanceHistory = last5Sessions
     .map((session) => {
-      const present = attendanceRecords.filter(
-        (ar) => ar.sessionRecordId === session.id && ar.status === 'Presente',
-      ).length
+      const present = countSessionPresentAttendances(
+        session.id,
+        attendanceRecords,
+      )
       const justified = attendanceRecords.filter(
         (ar) =>
           ar.sessionRecordId === session.id && ar.status === 'Justificado',

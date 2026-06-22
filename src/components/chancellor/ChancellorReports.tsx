@@ -31,6 +31,7 @@ import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { format } from 'date-fns'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import { computeBrotherAttendancePercentage } from '@/lib/chancellor-attendance'
 
 export const ChancellorReports = memo(function ChancellorReports() {
   const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
@@ -134,21 +135,11 @@ export const ChancellorReports = memo(function ChancellorReports() {
     return brothers
       .filter((b) => degreeFilter === 'all' || b.degree === degreeFilter)
       .map((brother) => {
-        const totalSessions = sessionRecords.filter(
-          (s) => s.status === 'Finalizada',
-        ).length
-
-        if (totalSessions === 0) {
-          return { ...brother, presences: 0, percentage: 0 }
-        }
-
-        const presences = attendanceRecords.filter(
-          (ar) =>
-            ar.brotherId === brother.id &&
-            (ar.status === 'Presente' || ar.status === 'Justificado'),
-        ).length
-
-        const percentage = Math.round((presences / totalSessions) * 100)
+        const { presences, percentage } = computeBrotherAttendancePercentage(
+          brother,
+          attendanceRecords,
+          sessionRecords,
+        )
 
         return {
           ...brother,

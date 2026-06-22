@@ -36,6 +36,10 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { ReportHeader } from './ReportHeader'
+import {
+  findBrotherAttendanceForSession,
+  isAttendancePresent,
+} from '@/lib/chancellor-attendance'
 
 export function GOBAttendanceReport() {
   const { events, sessionRecords, attendanceRecords, brothers, locations } =
@@ -94,10 +98,10 @@ export function GOBAttendanceReport() {
           .map((brother) => {
             let status = 'Pendente'
             if (record) {
-              const att = attendanceRecords.find(
-                (ar) =>
-                  ar.sessionRecordId === record.id &&
-                  ar.brotherId === brother.id,
+              const att = findBrotherAttendanceForSession(
+                brother,
+                record.id,
+                attendanceRecords,
               )
               if (att) status = att.status
               else status = 'Ausente'
@@ -115,8 +119,8 @@ export function GOBAttendanceReport() {
     ? locations.find((l) => l.id === selectedEvent.locationId)?.name
     : selectedEvent?.location
 
-  const presentCount = eventAttendance.filter(
-    (a) => a.status === 'Presente',
+  const presentCount = eventAttendance.filter((a) =>
+    isAttendancePresent(a.status),
   ).length
   const totalCount = eventAttendance.length
   const percentage =

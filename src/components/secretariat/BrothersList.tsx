@@ -42,6 +42,10 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import {
+  toBrotherSaveInput,
+  type BrotherFormValues,
+} from '@/lib/brother-form-schema'
+import {
   createBrother,
   deleteBrother,
   fetchBrothers,
@@ -162,13 +166,14 @@ export function BrothersList() {
   )
 
   const handleSave = useCallback(
-    async (data: BrotherSaveInput) => {
+    async (data: BrotherFormValues) => {
       const brotherToUpdate =
         editingBrotherRef.current ?? selectedBrother
+      const payload = toBrotherSaveInput(data) as BrotherSaveInput
 
       setIsSavingBrother(true)
       try {
-        const result = await saveOperation.execute(data, brotherToUpdate)
+        const result = await saveOperation.execute(payload, brotherToUpdate)
         if (result !== null) {
           dialog.closeDialog()
           setSelectedBrother(null)

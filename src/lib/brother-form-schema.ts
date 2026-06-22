@@ -70,6 +70,43 @@ export const brotherFormSchema = z.object({
 
 export type BrotherFormValues = z.infer<typeof brotherFormSchema>
 
+/** Garante mapeamento explícito dos campos do formulário para persistência. */
+export function toBrotherSaveInput(values: BrotherFormValues) {
+  return {
+    name: values.name.trim(),
+    email: values.email.trim(),
+    phone: values.phone,
+    cpf: values.cpf?.trim() || undefined,
+    dob: values.dob || undefined,
+    photoUrl: values.photoUrl?.trim() || undefined,
+    initiationDate: values.initiationDate,
+    elevationDate: values.elevationDate?.trim() || undefined,
+    exaltationDate: values.exaltationDate?.trim() || undefined,
+    degree: values.degree,
+    cim: values.cim?.trim() || undefined,
+    masonicRegistrationNumber: values.masonicRegistrationNumber?.trim() || undefined,
+    obedience: values.obedience?.trim() || undefined,
+    originLodge: values.originLodge?.trim() || undefined,
+    originLodgeNumber: values.originLodgeNumber?.trim() || undefined,
+    currentLodgeNumber: values.currentLodgeNumber?.trim() || undefined,
+    affiliationDate: values.affiliationDate?.trim() || undefined,
+    regularStatus: values.regularStatus?.trim() || undefined,
+    notes: values.notes?.trim() || undefined,
+    spouseName: values.spouseName?.trim() || undefined,
+    spouseDob: values.spouseDob?.trim() || undefined,
+    children: values.children,
+    addressStreet: values.addressStreet?.trim() || undefined,
+    addressNumber: values.addressNumber?.trim() || undefined,
+    addressComplement: values.addressComplement?.trim() || undefined,
+    addressNeighborhood: values.addressNeighborhood?.trim() || undefined,
+    addressCity: values.addressCity?.trim() || undefined,
+    addressState: values.addressState?.trim() || undefined,
+    addressZipcode: values.addressZipcode?.trim() || undefined,
+    address: values.address?.trim() || undefined,
+    profileId: values.profileId,
+  }
+}
+
 export const BRAZILIAN_STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
   'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',

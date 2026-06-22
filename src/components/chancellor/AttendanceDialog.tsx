@@ -28,6 +28,7 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { formatDateBR } from '@/lib/format-utils'
+import { logError } from '@/lib/logger'
 import { Check, X, FileText, Users, QrCode, Download } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
@@ -37,6 +38,7 @@ import { useToast } from '@/hooks/use-toast'
 import {
   brothersWithoutProfileForAttendance,
   profileIdForAttendanceDb,
+  attendanceBelongsToBrother,
 } from '@/lib/chancellor-attendance'
 
 interface AttendanceDialogProps {
@@ -89,6 +91,8 @@ export function AttendanceDialog({
   >([])
   const [qrSessionRecordId, setQrSessionRecordId] = useState<string | null>(null)
   const [checkinToken, setCheckinToken] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const initSessionKeyRef = useRef<string | null>(null)
 
   const sessionRecordId = qrSessionRecordId ?? existingSessionRecord?.id
   const checkInUrl =
@@ -160,72 +164,90 @@ export function AttendanceDialog({
   }, [open, initialized, fetchPositions])
 
   useEffect(() => {
-    if (open) {
-      // Initialize state
-      if (existingSessionRecord) {
-        setObservations(existingSessionRecord.observations)
-
-        const existing = attendanceRecords.filter(
-          (ar) => ar.sessionRecordId === existingSessionRecord.id,
-        )
-        setAttendances(
-          brothers.map((b) => {
-            const found = existing.find((e) => e.brotherId === b.id)
-            return {
-              brotherId: b.id,
-              status: found ? found.status : 'Ausente',
-              justification: found ? found.justification || '' : '',
-            }
-          }),
-        )
-        setQrOnlyAttendances([])
-        void fetchAttendanceFromSupabase(existingSessionRecord.id).then(
-          (dbRows) => {
-            if (dbRows === null) return
-            setAttendances((prev) =>
-              prev.map((p) => {
-                const fromDb = dbRows.find((r) => r.brotherId === p.brotherId)
-                return fromDb
-                  ? {
-                      ...p,
-                      status: fromDb.status as 'Presente' | 'Ausente' | 'Justificado',
-                      justification: fromDb.justification ?? '',
-                    }
-                  : p
-              }),
-            )
-            const brotherIds = new Set(brothers.map((b) => b.id))
-            setQrOnlyAttendances(
-              dbRows
-                .filter((r) => !brotherIds.has(r.brotherId))
-                .map((r) => ({
-                  brotherId: r.brotherId,
-                  status: r.status,
-                  name: r.name,
-                })),
-            )
-          },
-        )
-        void fetchVisitorAttendances(existingSessionRecord.id).then(
-          (visitors) => {
-            if (visitors === null) return
-            setVisitorList(visitors)
-          },
-        )
-      } else {
-        setObservations('')
-        setAttendances(
-          brothers.map((b) => ({
-            brotherId: b.id,
-            status: 'Ausente', // Default to absent until checked
-            justification: '',
-          })),
-        )
-        setVisitorList([])
-        setQrOnlyAttendances([])
-      }
+    if (!open) {
+      initSessionKeyRef.current = null
+      return
     }
-  }, [open, existingSessionRecord, attendanceRecords, brothers, fetchVisitorAttendances, fetchAttendanceFromSupabase])
+
+    const initKey = `${event?.id ?? 'no-event'}:${existingSessionRecord?.id ?? 'new'}:${brothers.length}`
+    if (initSessionKeyRef.current === initKey) return
+    initSessionKeyRef.current = initKey
+
+    if (existingSessionRecord) {
+      setObservations(existingSessionRecord.observations)
+
+      const existing = attendanceRecords.filter(
+        (ar) => ar.sessionRecordId === existingSessionRecord.id,
+      )
+      setAttendances(
+        brothers.map((b) => {
+          const found = existing.find((e) =>
+            attendanceBelongsToBrother(b, e.brotherId),
+          )
+          return {
+            brotherId: b.id,
+            status: found ? found.status : 'Ausente',
+            justification: found ? found.justification || '' : '',
+          }
+        }),
+      )
+      setQrOnlyAttendances([])
+      void fetchAttendanceFromSupabase(existingSessionRecord.id).then(
+        (dbRows) => {
+          if (dbRows === null) return
+          if (initSessionKeyRef.current !== initKey) return
+          setAttendances((prev) =>
+            prev.map((p) => {
+              const brother = brothers.find((b) => b.id === p.brotherId)
+              if (!brother) return p
+              const fromDb = dbRows.find((r) =>
+                attendanceBelongsToBrother(brother, r.brotherId),
+              )
+              return fromDb
+                ? {
+                    ...p,
+                    status: fromDb.status as
+                      | 'Presente'
+                      | 'Ausente'
+                      | 'Justificado',
+                    justification: fromDb.justification ?? '',
+                  }
+                : p
+            }),
+          )
+          const brotherIds = new Set(brothers.map((b) => b.id))
+          setQrOnlyAttendances(
+            dbRows
+              .filter((r) => !brotherIds.has(r.brotherId))
+              .map((r) => ({
+                brotherId: r.brotherId,
+                status: r.status,
+                name: r.name,
+              })),
+          )
+        },
+      )
+      void fetchVisitorAttendances(existingSessionRecord.id).then(
+        (visitors) => {
+          if (visitors === null) return
+          if (initSessionKeyRef.current !== initKey) return
+          setVisitorList(visitors)
+        },
+      )
+    } else {
+      setObservations('')
+      setAttendances(
+        brothers.map((b) => ({
+          brotherId: b.id,
+          status: 'Ausente',
+          justification: '',
+        })),
+      )
+      setVisitorList([])
+      setQrOnlyAttendances([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- inicializa só ao abrir o diálogo
+  }, [open, event?.id, existingSessionRecord?.id])
 
   const handleStatusChange = (
     brotherId: string,
@@ -245,7 +267,7 @@ export function AttendanceDialog({
   }
 
   const handleSaveInternal = async () => {
-    if (!event) return
+    if (!event || isSaving) return
 
     const missingProfiles = brothersWithoutProfileForAttendance(
       brothers,
@@ -263,9 +285,60 @@ export function AttendanceDialog({
       status: 'Finalizada',
     }
 
+    const rowsToSync = attendances
+      .map((a) => {
+        const profileId = profileIdForAttendanceDb(brothers, a.brotherId)
+        if (!profileId) return null
+        return {
+          brotherId: profileId,
+          status: a.status,
+          justification: a.justification,
+        }
+      })
+      .filter(
+        (
+          row,
+        ): row is {
+          brotherId: string
+          status: 'Presente' | 'Ausente' | 'Justificado'
+          justification: string
+        } => row !== null,
+      )
+
+    if (rowsToSync.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível salvar',
+        description:
+          'Nenhum irmão com conta vinculada na Secretaria. Vincule o perfil de usuário antes de registrar presença.',
+      })
+      return
+    }
+
+    setIsSaving(true)
     try {
       const dbRecordId = await ensureSessionRecordInSupabase(event, sessionRecord)
       recordId = dbRecordId
+
+      await saveAttendanceToSupabase(recordId, rowsToSync)
+
+      const newVisitorAttendances: VisitorAttendance[] = visitorList.map(
+        (visitor) => ({
+          ...visitor,
+          sessionRecordId: recordId,
+        }),
+      )
+
+      try {
+        await saveVisitorAttendances(recordId, newVisitorAttendances)
+      } catch (visitorError) {
+        logError('Erro ao salvar visitantes da sessão', visitorError)
+        toast({
+          title: 'Presença salva com ressalvas',
+          description:
+            'Os irmãos foram salvos, mas houve falha ao gravar visitantes.',
+        })
+      }
 
       const finalSessionRecord: SessionRecord = {
         ...sessionRecord,
@@ -290,46 +363,19 @@ export function AttendanceDialog({
         justification: a.justification,
       }))
       bulkAddAttendance(newAttendances)
-
-      const rowsToSync = attendances
-        .map((a) => {
-          const profileId = profileIdForAttendanceDb(brothers, a.brotherId)
-          if (!profileId) return null
-          return {
-            brotherId: profileId,
-            status: a.status,
-            justification: a.justification,
-          }
-        })
-        .filter(
-          (
-            row,
-          ): row is {
-            brotherId: string
-            status: 'Presente' | 'Ausente' | 'Justificado'
-            justification: string
-          } => row !== null,
-        )
-
-      if (rowsToSync.length > 0) {
-        await saveAttendanceToSupabase(recordId, rowsToSync)
-      }
-
-      const newVisitorAttendances: VisitorAttendance[] = visitorList.map(
-        (visitor) => ({
-          ...visitor,
-          sessionRecordId: recordId,
-        }),
-      )
       bulkAddVisitorAttendance(newVisitorAttendances)
-      await saveVisitorAttendances(recordId, newVisitorAttendances)
 
-      await useChancellorStore.getState().fetchChancellorData({ force: true })
+      void useChancellorStore.getState().fetchChancellorData({ force: true })
 
       if (missingProfiles.length > 0) {
         toast({
           title: 'Registro salvo com ressalvas',
           description: `${missingProfiles.length} irmão(s) sem conta vinculada não foram sincronizados: ${missingProfiles.map((b) => b.name).join(', ')}. Vincule em Secretaria.`,
+        })
+      } else {
+        toast({
+          title: 'Registro salvo',
+          description: 'A presença desta sessão foi atualizada com sucesso.',
         })
       }
 
@@ -344,6 +390,8 @@ export function AttendanceDialog({
             ? error.message
             : 'Não foi possível salvar o registro. Tente novamente.',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -540,7 +588,9 @@ export function AttendanceDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSaveInternal}>Salvar Registro</Button>
+          <Button onClick={handleSaveInternal} disabled={isSaving}>
+            {isSaving ? 'Salvando...' : 'Salvar Registro'}
+          </Button>
         </DialogFooter>
 
         {certificateVisitor && event && (

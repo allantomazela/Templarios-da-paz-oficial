@@ -157,7 +157,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
   fetchChancellorData: async (options?: { force?: boolean }) => {
     const state = get()
-    if (state.chancellorDataLoading) return
+    if (state.chancellorDataLoading && !options?.force) return
     if (
       !options?.force &&
       state.events.length > 0 &&

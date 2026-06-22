@@ -1,13 +1,38 @@
-import { MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatCalendarDate } from '@/lib/format-utils'
+import { formatLodgeNameWithPrefix } from '@/lib/visitor-attendance'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
   BrandLogoImg,
   BRAND_LOGO_INTRINSIC_SIZE,
 } from '@/components/brand/BrandLogoImg'
 import type { Event, VisitorAttendance } from '@/lib/data'
+
+/** Meia folha A4 (210 × 148,5 mm) — permite 2 certificados por página na impressão. */
+export const VISITOR_CERTIFICATE_PRINT_CLASS = 'visitor-certificate-half-a4'
+
+export const VISITOR_CERTIFICATE_PAGE_STYLE = `
+  @page {
+    size: A4 portrait;
+    margin: 6mm;
+  }
+  @media print {
+    html, body {
+      height: auto !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .${VISITOR_CERTIFICATE_PRINT_CLASS} {
+      width: 210mm !important;
+      height: 148.5mm !important;
+      min-height: 148.5mm !important;
+      max-height: 148.5mm !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+  }
+`
 
 export function VisitorCertificateDocument({
   visitor,
@@ -16,167 +41,143 @@ export function VisitorCertificateDocument({
   chancellor,
 }: VisitorCertificateDocumentProps) {
   const { logoUrl, contact, siteTitle } = useSiteSettingsStore()
+  const lodgeDisplay = formatLodgeNameWithPrefix(visitor.lodge)
+  const lodgeName = siteTitle || 'Templários da Paz'
 
   return (
-    <div className="bg-white text-black min-h-[297mm] w-[210mm] mx-auto p-16 print:p-12 flex flex-col justify-between relative">
-      {/* Bordas decorativas */}
-      <div className="absolute inset-0 border-4 border-black pointer-events-none" />
-      <div className="absolute inset-4 border border-gray-400 print:border-gray-600 pointer-events-none" />
+    <div
+      className={`${VISITOR_CERTIFICATE_PRINT_CLASS} relative mx-auto box-border flex w-[210mm] flex-col justify-between overflow-hidden bg-[#fdfbf7] p-6 font-serif text-[#1a1510] print:p-5`}
+      style={{ minHeight: '148.5mm', height: '148.5mm' }}
+    >
+      {/* Moldura maçônica */}
+      <div
+        className="pointer-events-none absolute inset-2 border-2 border-[#8b6914] print:inset-1.5"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-3 border border-[#c9a227]/60 print:inset-2.5"
+        aria-hidden
+      />
 
-      {/* Cabeçalho com Logo e Informações */}
-      <div className="text-center mb-8 print:mb-6 relative z-10">
-        <div className="flex justify-center mb-6 print:mb-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-50 to-amber-100 print:from-transparent print:to-transparent rounded-full blur-sm print:blur-0" />
-            <BrandLogoImg
-              logoUrl={logoUrl}
-              alt="Logo da Loja"
-              className="relative z-10 h-28 w-28 print:h-24 print:w-24 object-contain drop-shadow-lg print:drop-shadow-none"
-              fallbackClassName="h-20 w-20 print:h-16 print:w-16 text-black"
-              width={BRAND_LOGO_INTRINSIC_SIZE}
-              height={BRAND_LOGO_INTRINSIC_SIZE}
-              sizes="(max-width: 640px) 112px, 96px"
-            />
-          </div>
+      {/* Cantoneiras decorativas */}
+      {(['top-3 left-3', 'top-3 right-3', 'bottom-3 left-3', 'bottom-3 right-3'] as const).map(
+        (position) => (
+          <span
+            key={position}
+            className={`pointer-events-none absolute ${position} text-[10px] text-[#8b6914]/80 print:text-[9px]`}
+            aria-hidden
+          >
+            ∴
+          </span>
+        ),
+      )}
+
+      {/* Cabeçalho */}
+      <header className="relative z-10 text-center">
+        <div className="mb-2 flex justify-center">
+          <BrandLogoImg
+            logoUrl={logoUrl}
+            alt="Brasão da Loja"
+            className="h-14 w-14 object-contain print:h-12 print:w-12"
+            fallbackClassName="h-10 w-10 text-[#8b6914]"
+            width={BRAND_LOGO_INTRINSIC_SIZE}
+            height={BRAND_LOGO_INTRINSIC_SIZE}
+            sizes="56px"
+          />
         </div>
-
-        <h1 className="text-3xl print:text-2xl font-bold text-black mb-2 print:mb-1 tracking-tight">
-          {siteTitle || 'Templários da Paz'}
+        <p className="text-[9px] uppercase tracking-[0.35em] text-[#8b6914] print:text-[8px]">
+          Grande Oriente · Luz · Fraternidade
+        </p>
+        <h1 className="mt-1 text-lg font-bold tracking-wide text-[#1a1510] print:text-base">
+          {lodgeName}
         </h1>
-
         {contact.address && (
-          <div className="flex items-center justify-center gap-2 text-sm print:text-xs text-black mb-4 print:mb-2">
-            <MapPin className="h-4 w-4 print:h-3 print:w-3" />
-            <span>
-              {contact.address}
-              {contact.city && `, ${contact.city}`}
-              {contact.zip && ` - CEP: ${contact.zip}`}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Título do Certificado */}
-      <div className="text-center mb-12 print:mb-8 relative z-10">
-        <div className="relative mb-6 print:mb-4">
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 print:w-24 h-0.5 print:h-px bg-gradient-to-r from-transparent via-black to-transparent" />
-
-          <div className="border-t-2 border-b-2 border-black py-5 print:py-4 px-8 print:px-6 bg-gradient-to-b from-amber-50/50 to-transparent print:from-transparent print:to-transparent">
-            <h2 className="text-4xl print:text-3xl font-bold text-black uppercase tracking-wider">
-              Certificado de Presença
-            </h2>
-          </div>
-
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 print:w-24 h-0.5 print:h-px bg-gradient-to-r from-transparent via-black to-transparent" />
-        </div>
-
-        <div className="max-w-3xl mx-auto">
-          <p className="text-lg print:text-base text-black leading-relaxed">
-            Certificamos que o{' '}
-            <strong className="font-bold text-black">{visitor.name}</strong>, no
-            Grau de{' '}
-            <strong className="font-bold text-black">{visitor.degree}</strong>,
-            da{' '}
-            <strong className="font-bold text-black">
-              {visitor.lodge} Nº {visitor.lodgeNumber}
-            </strong>
-            , filiada à{' '}
-            <strong className="font-bold text-black">{visitor.obedience}</strong>
-            {visitor.masonicNumber && (
-              <>
-                , portador do Registro Maçônico Nº{' '}
-                <strong className="font-bold text-black">
-                  {visitor.masonicNumber}
-                </strong>
-              </>
-            )}
-            , esteve presente na sessão realizada em{' '}
-            <strong className="font-bold text-black">
-              {formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
-                locale: ptBR,
-              })}
-            </strong>
-            , na qualidade de{' '}
-            <strong className="font-bold text-black">Visitante</strong>.
+          <p className="mt-0.5 text-[9px] leading-snug text-[#5c5348] print:text-[8px]">
+            {contact.address}
+            {contact.city ? ` · ${contact.city}` : ''}
           </p>
+        )}
+      </header>
+
+      {/* Título */}
+      <div className="relative z-10 my-2 text-center">
+        <div className="mx-auto flex max-w-md items-center gap-2">
+          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a227]" />
+          <span className="text-[8px] text-[#8b6914]">∴</span>
+          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a227]" />
+        </div>
+        <h2 className="my-1.5 text-xl font-bold uppercase tracking-[0.2em] text-[#1a1510] print:text-lg">
+          Certificado de Presença
+        </h2>
+        <div className="mx-auto flex max-w-md items-center gap-2">
+          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a227]" />
+          <span className="text-[8px] text-[#8b6914]">∴</span>
+          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a227]" />
         </div>
       </div>
 
-      {/* Informações do Evento */}
-      <div className="bg-gradient-to-br from-amber-50/30 to-amber-100/20 print:from-gray-50 print:to-gray-100 border-2 border-gray-300 print:border-black rounded-lg p-6 print:p-4 mb-12 print:mb-8 relative z-10 shadow-sm print:shadow-none">
-        <div className="flex items-center gap-2 mb-4 print:mb-2">
-          <div className="h-1 w-12 print:h-0.5 print:w-8 bg-black" />
-          <h3 className="text-lg print:text-base font-bold text-black uppercase tracking-wide">
-            Detalhes da Sessão
-          </h3>
-          <div className="flex-1 h-1 print:h-0.5 bg-black" />
-        </div>
-        <div className="grid grid-cols-1 gap-3 print:gap-2 text-sm print:text-xs">
-          <div className="flex items-start gap-2">
-            <span className="font-bold text-black min-w-[120px] print:min-w-[100px]">
-              Tipo de Sessão:
-            </span>
-            <span className="text-black">{event.type}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="font-bold text-black min-w-[120px] print:min-w-[100px]">
-              Título:
-            </span>
-            <span className="text-black">{event.title}</span>
-          </div>
-          {event.description && (
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-black min-w-[120px] print:min-w-[100px]">
-                Descrição:
-              </span>
-              <span className="text-black">{event.description}</span>
-            </div>
-          )}
-        </div>
+      {/* Corpo */}
+      <div className="relative z-10 flex-1 px-2 text-center text-[11px] leading-relaxed text-[#2a2420] print:text-[10px]">
+        <p>
+          Certificamos que o Ir∴{' '}
+          <strong className="font-semibold text-[#1a1510]">{visitor.name}</strong>, no
+          Grau de{' '}
+          <strong className="font-semibold text-[#1a1510]">{visitor.degree}</strong>, da{' '}
+          <strong className="font-semibold text-[#1a1510]">
+            {lodgeDisplay} Nº {visitor.lodgeNumber}
+          </strong>
+          , filiada à{' '}
+          <strong className="font-semibold text-[#1a1510]">{visitor.obedience}</strong>
+          {visitor.masonicNumber ? (
+            <>
+              , portador do Registro Maçônico Nº{' '}
+              <strong className="font-semibold text-[#1a1510]">
+                {visitor.masonicNumber}
+              </strong>
+            </>
+          ) : null}
+          , esteve presente na sessão realizada em{' '}
+          <strong className="font-semibold text-[#1a1510]">
+            {formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
+              locale: ptBR,
+            })}
+          </strong>
+          , na qualidade de{' '}
+          <strong className="font-semibold text-[#1a1510]">Visitante</strong>.
+        </p>
+
+        <p className="mt-2 text-[10px] italic text-[#5c5348] print:text-[9px]">
+          {event.type} — {event.title}
+        </p>
       </div>
 
       {/* Assinaturas */}
-      <div className="mt-auto relative z-10">
-        <div className="grid grid-cols-2 gap-16 print:gap-12 mt-16 print:mt-12">
-          <div className="text-center">
-            <div className="relative">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 print:w-16 h-0.5 print:h-px bg-gradient-to-r from-transparent via-gray-400 print:via-gray-600 to-transparent" />
-              <div className="border-t-2 border-black pt-4 print:pt-3 mt-24 print:mt-20 min-h-[80px] print:min-h-[60px]">
-                <p className="text-base print:text-sm font-bold text-black mb-2 print:mb-1">
-                  {venerableMaster}
-                </p>
-                <p className="text-sm print:text-xs text-black font-semibold uppercase tracking-wide">
-                  Venerável Mestre
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="relative">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 print:w-16 h-0.5 print:h-px bg-gradient-to-r from-transparent via-gray-400 print:via-gray-600 to-transparent" />
-              <div className="border-t-2 border-black pt-4 print:pt-3 mt-24 print:mt-20 min-h-[80px] print:min-h-[60px]">
-                <p className="text-base print:text-sm font-bold text-black mb-2 print:mb-1">
-                  {chancellor}
-                </p>
-                <p className="text-sm print:text-xs text-black font-semibold uppercase tracking-wide">
-                  Chanceler
-                </p>
-              </div>
-            </div>
-          </div>
+      <footer className="relative z-10 mt-2 grid grid-cols-2 gap-6 print:gap-4">
+        <div className="text-center">
+          <div className="mx-auto mb-1 h-8 w-28 border-t border-[#1a1510] print:h-6 print:w-24" />
+          <p className="text-[10px] font-semibold text-[#1a1510] print:text-[9px]">
+            {venerableMaster}
+          </p>
+          <p className="text-[8px] uppercase tracking-wider text-[#8b6914] print:text-[7px]">
+            Venerável Mestre
+          </p>
         </div>
-      </div>
+        <div className="text-center">
+          <div className="mx-auto mb-1 h-8 w-28 border-t border-[#1a1510] print:h-6 print:w-24" />
+          <p className="text-[10px] font-semibold text-[#1a1510] print:text-[9px]">
+            {chancellor}
+          </p>
+          <p className="text-[8px] uppercase tracking-wider text-[#8b6914] print:text-[7px]">
+            Chanceler
+          </p>
+        </div>
+      </footer>
 
-      {/* Rodapé */}
-      <div className="mt-8 print:mt-6 pt-4 print:pt-3 border-t text-center text-xs print:text-[10px] text-gray-600 print:text-black relative z-10">
-        <p>Documento gerado eletronicamente pelo sistema Templários da Paz</p>
-        <p className="mt-1 print:mt-0.5">
-          Data de emissão:{' '}
-          {format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
-            locale: ptBR,
-          })}
-        </p>
-      </div>
+      <p className="relative z-10 mt-1 text-center text-[7px] text-[#8a8075] print:text-[6px]">
+        Emitido em{' '}
+        {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} · Documento
+        eletrônico
+      </p>
     </div>
   )
 }

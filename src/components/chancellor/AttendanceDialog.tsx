@@ -32,7 +32,7 @@ import { logError } from '@/lib/logger'
 import { Check, X, FileText, Users, QrCode, Download } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
-import { VisitorCertificateDocument } from './VisitorCertificateDocument'
+import { VisitorCertificateDocument, VISITOR_CERTIFICATE_PAGE_STYLE } from './VisitorCertificateDocument'
 import { VisitorAttendanceSection } from './VisitorAttendanceSection'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -129,18 +129,7 @@ export function AttendanceDialog({
     documentTitle: certificateVisitor
       ? `Certificado_Presenca_${certificateVisitor.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}`
       : 'Certificado_Presenca',
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 0;
-      }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
+    pageStyle: VISITOR_CERTIFICATE_PAGE_STYLE,
   })
 
   const handleAddVisitor = (visitor: VisitorAttendance) => {

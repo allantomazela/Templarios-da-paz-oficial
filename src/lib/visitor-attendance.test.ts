@@ -1,10 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatLodgeNameWithPrefix,
   normalizeVisitorAttendanceInput,
+  stripLodgeNamePrefix,
   validateVisitorAttendanceInput,
 } from './visitor-attendance'
 
 describe('visitor-attendance validation', () => {
+  it('adds masonic lodge prefix on normalize', () => {
+    const normalized = normalizeVisitorAttendanceInput({
+      name: 'Joao',
+      degree: 'Mestre',
+      lodge: 'Templarios da Paz',
+      lodgeNumber: '123',
+      obedience: 'GOB',
+      masonicNumber: '',
+    })
+    expect(normalized.lodge).toBe('A∴ R∴ L∴ S∴ Templarios da Paz')
+  })
+
+  it('strips duplicate lodge prefix before re-applying', () => {
+    expect(stripLodgeNamePrefix('A∴ R∴ L∴ S∴ Harmonia')).toBe('Harmonia')
+    expect(formatLodgeNameWithPrefix('A∴ R∴ L∴ S∴ Harmonia')).toBe(
+      'A∴ R∴ L∴ S∴ Harmonia',
+    )
+  })
+
   it('validates a correct visitor input', () => {
     const input = {
       name: 'Joao da Silva',

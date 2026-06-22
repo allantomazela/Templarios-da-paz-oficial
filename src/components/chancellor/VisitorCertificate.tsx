@@ -17,27 +17,40 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Download, FileText } from 'lucide-react'
+import { Download, FileText, MessageCircle, Share2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import {
+  formatCalendarDate,
   formatDateBR,
   getCalendarDateTimestamp,
 } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
-import { VisitorCertificateDocument } from './VisitorCertificateDocument'
+import {
+  VisitorCertificateDocument,
+  VISITOR_CERTIFICATE_PAGE_STYLE,
+} from './VisitorCertificateDocument'
 import type { VisitorAttendance } from '@/lib/data'
 import {
   DEGREE_OPTIONS,
+  LODGE_NAME_PREFIX,
   OBEDIENCE_OPTIONS,
+  buildVisitorCertificateShareText,
   normalizeVisitorAttendanceInput,
+  openVisitorCertificateWhatsApp,
+  stripLodgeNamePrefix,
   validateVisitorAttendanceInput,
 } from '@/lib/visitor-attendance'
+
+const CERTIFICATE_PRINT_PAGE_STYLE = VISITOR_CERTIFICATE_PAGE_STYLE
 
 export function VisitorCertificate() {
   const { events, sessionRecords } = useChancellorStore()
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
+  const siteTitle = useSiteSettingsStore((s) => s.siteTitle)
   const { toast } = useToast()
   const certificateRef = useRef<HTMLDivElement>(null)
 
@@ -57,14 +70,13 @@ export function VisitorCertificate() {
     if (!initialized) void fetchPositions()
   }, [initialized, fetchPositions])
 
-  // Obter nomes do Venerável Mestre e Chanceler
-  const venerableMaster = positions.find(
-    (p) => p.position_type === 'veneravel_mestre'
-  )?.user?.full_name || 'Venerável Mestre'
+  const venerableMaster =
+    positions.find((p) => p.position_type === 'veneravel_mestre')?.user
+      ?.full_name || 'Venerável Mestre'
 
-  const chancellor = positions.find(
-    (p) => p.position_type === 'chanceler'
-  )?.user?.full_name || 'Chanceler'
+  const chancellor =
+    positions.find((p) => p.position_type === 'chanceler')?.user?.full_name ||
+    'Chanceler'
 
   const selectedEvent = events.find((e) => e.id === selectedEventId)
   const selectedSession = selectedEvent
@@ -74,31 +86,21 @@ export function VisitorCertificate() {
   const handlePrint = useReactToPrint({
     contentRef: certificateRef,
     documentTitle: `Certificado_Presenca_${visitorInfo.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}`,
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 0;
-      }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
+    pageStyle: CERTIFICATE_PRINT_PAGE_STYLE,
     onAfterPrint: () => {
       toast({
-        title: 'Certificado Gerado',
-        description: 'O certificado foi enviado para impressão/PDF. Use "Salvar como PDF" na janela de impressão para salvar o arquivo.',
+        title: 'Certificado enviado à impressão',
+        description:
+          'Cada certificado ocupa metade da folha A4 — você pode imprimir dois por página.',
       })
     },
     onPrintError: (error) => {
       toast({
-        title: 'Erro ao Gerar PDF',
-        description: 'Não foi possível gerar o PDF. Tente novamente.',
+        title: 'Erro ao gerar impressão',
+        description: 'Não foi possível imprimir o certificado. Tente novamente.',
         variant: 'destructive',
       })
-      console.error('Erro ao imprimir:', error)
+      console.error('Erro ao imprimir certificado:', error)
     },
   })
 
@@ -108,7 +110,45 @@ export function VisitorCertificate() {
 
   const certificateVisitor: VisitorAttendance = {
     ...normalizedVisitor,
+    id: 'preview',
     sessionRecordId: selectedSession?.id || 'manual',
+  }
+
+  const shareText = selectedEvent
+    ? buildVisitorCertificateShareText({
+        visitor: normalizedVisitor,
+        eventTitle: selectedEvent.title,
+        eventDateLabel: formatCalendarDate(
+          selectedEvent.date,
+          "dd 'de' MMMM 'de' yyyy",
+          { locale: ptBR },
+        ),
+        lodgeTitle: siteTitle || 'Templários da Paz',
+        venerableMaster,
+        chancellor,
+      })
+    : ''
+
+  const handleShareWhatsApp = async () => {
+    if (!canGenerate || !shareText) return
+
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: 'Certificado de Presença — Visitante',
+          text: shareText.replace(/\*/g, ''),
+        })
+        return
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return
+      }
+    }
+
+    openVisitorCertificateWhatsApp(shareText)
+    toast({
+      title: 'WhatsApp',
+      description: 'O texto do certificado foi aberto para compartilhamento.',
+    })
   }
 
   return (
@@ -120,12 +160,12 @@ export function VisitorCertificate() {
             Certificado de Presença para Visitantes
           </CardTitle>
           <CardDescription>
-            Gere certificados de presença para irmãos visitantes de outras lojas que participaram das sessões.
+            Gere certificados em meia folha A4 (dois por página na impressão), com
+            modelo maçônico e compartilhamento por WhatsApp.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Formulário de Dados */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="event">Evento/Sessão *</Label>
               <Select value={selectedEventId} onValueChange={setSelectedEventId}>
@@ -135,7 +175,9 @@ export function VisitorCertificate() {
                 <SelectContent>
                   {events
                     .filter((e) => {
-                      const record = sessionRecords.find((sr) => sr.eventId === e.id)
+                      const record = sessionRecords.find(
+                        (sr) => sr.eventId === e.id,
+                      )
                       return record && record.status === 'Finalizada'
                     })
                     .sort(
@@ -208,14 +250,30 @@ export function VisitorCertificate() {
 
             <div className="space-y-2">
               <Label htmlFor="lodge">Nome da Loja de Origem *</Label>
-              <Input
-                id="lodge"
-                placeholder="Nome da loja"
-                value={visitorInfo.lodge}
-                onChange={(e) =>
-                  setVisitorInfo((prev) => ({ ...prev, lodge: e.target.value }))
-                }
-              />
+              <div className="flex">
+                <span
+                  className="inline-flex shrink-0 items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-medium text-muted-foreground"
+                  aria-hidden
+                >
+                  {LODGE_NAME_PREFIX.trim()}
+                </span>
+                <Input
+                  id="lodge"
+                  className="rounded-l-none"
+                  placeholder="Ex: Templários da Paz"
+                  value={visitorInfo.lodge}
+                  onChange={(e) =>
+                    setVisitorInfo((prev) => ({
+                      ...prev,
+                      lodge: stripLodgeNamePrefix(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O prefixo maçônico A∴ R∴ L∴ S∴ é incluído automaticamente no
+                certificado.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -225,52 +283,83 @@ export function VisitorCertificate() {
                 placeholder="Ex: 123"
                 value={visitorInfo.lodgeNumber}
                 onChange={(e) =>
-                  setVisitorInfo((prev) => ({ ...prev, lodgeNumber: e.target.value }))
+                  setVisitorInfo((prev) => ({
+                    ...prev,
+                    lodgeNumber: e.target.value,
+                  }))
                 }
               />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="masonicNumber">Número de Registro Maçônico (Opcional)</Label>
+              <Label htmlFor="masonicNumber">
+                Número de Registro Maçônico (Opcional)
+              </Label>
               <Input
                 id="masonicNumber"
                 placeholder="Número de registro maçônico"
                 value={visitorInfo.masonicNumber}
                 onChange={(e) =>
-                  setVisitorInfo((prev) => ({ ...prev, masonicNumber: e.target.value }))
+                  setVisitorInfo((prev) => ({
+                    ...prev,
+                    masonicNumber: e.target.value,
+                  }))
                 }
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button
+              type="button"
+              variant="outline"
+              onClick={handleShareWhatsApp}
+              disabled={!canGenerate}
+              className="gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Compartilhar no WhatsApp
+            </Button>
+            <Button
+              type="button"
               onClick={handlePrint}
               disabled={!canGenerate}
               className="gap-2"
-              title="Imprimir ou salvar como PDF"
             >
               <Download className="h-4 w-4" />
-              Gerar Certificado / Salvar PDF
+              Imprimir / Salvar PDF
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Certificado formatado para impressão/PDF */}
       {canGenerate && selectedEvent && (
-        <div
-          id="visitor-certificate-container"
-          className="hidden print:block"
-          ref={certificateRef}
-        >
-          <VisitorCertificateDocument
-            visitor={certificateVisitor}
-            event={selectedEvent}
-            venerableMaster={venerableMaster}
-            chancellor={chancellor}
-          />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Share2 className="h-4 w-4" />
+              Pré-visualização (meia folha A4)
+            </CardTitle>
+            <CardDescription>
+              Formato compacto para caber dois certificados por folha na impressão.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">
+            <div
+              className="visitor-certificate-print-sheet mx-auto shadow-lg"
+              style={{ width: '210mm' }}
+            >
+              <div ref={certificateRef}>
+                <VisitorCertificateDocument
+                  visitor={certificateVisitor}
+                  event={selectedEvent}
+                  venerableMaster={venerableMaster}
+                  chancellor={chancellor}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

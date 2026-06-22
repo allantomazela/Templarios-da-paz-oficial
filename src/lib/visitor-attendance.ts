@@ -1,5 +1,8 @@
 import type { VisitorAttendance } from '@/lib/data'
 
+/** Prefixo maçônico padrão para o nome da Loja de Origem. */
+export const LODGE_NAME_PREFIX = 'A∴ R∴ L∴ S∴ '
+
 export const DEGREE_OPTIONS = ['Aprendiz', 'Companheiro', 'Mestre'] as const
 
 export const OBEDIENCE_OPTIONS = [
@@ -14,6 +17,21 @@ export type VisitorAttendanceInput = Pick<
   'name' | 'degree' | 'lodge' | 'lodgeNumber' | 'obedience' | 'masonicNumber'
 >
 
+/** Remove o prefixo maçônico para edição no formulário. */
+export function stripLodgeNamePrefix(lodge: string): string {
+  const trimmed = lodge.trim()
+  if (!trimmed) return ''
+  const normalized = trimmed.replace(/^A\s*[∴.]\s*R\s*[∴.]\s*L\s*[∴.]\s*S\s*[∴.]\s*/i, '')
+  return normalized.trim()
+}
+
+/** Garante o prefixo A∴ R∴ L∴ S∴ uma única vez no nome da loja. */
+export function formatLodgeNameWithPrefix(lodge: string): string {
+  const name = stripLodgeNamePrefix(lodge)
+  if (!name) return LODGE_NAME_PREFIX.trim()
+  return `${LODGE_NAME_PREFIX}${name}`
+}
+
 export function normalizeVisitorAttendanceInput(
   input: VisitorAttendanceInput,
 ): VisitorAttendanceInput {
@@ -21,7 +39,7 @@ export function normalizeVisitorAttendanceInput(
   return {
     ...input,
     name: normalizeText(input.name),
-    lodge: normalizeText(input.lodge),
+    lodge: formatLodgeNameWithPrefix(normalizeText(input.lodge)),
     lodgeNumber: normalizeText(input.lodgeNumber),
     obedience: normalizeText(input.obedience),
     masonicNumber: input.masonicNumber
@@ -35,7 +53,7 @@ export function validateVisitorAttendanceInput(
 ): string[] {
   const errors: string[] = []
   const name = input.name.trim()
-  const lodge = input.lodge.trim()
+  const lodgeName = stripLodgeNamePrefix(input.lodge.trim())
   const lodgeNumber = input.lodgeNumber.trim()
   const obedience = input.obedience.trim()
   const masonicNumber = input.masonicNumber?.trim() || ''
@@ -46,10 +64,10 @@ export function validateVisitorAttendanceInput(
   if (name.length > 120) {
     errors.push('Nome do visitante deve ter no maximo 120 caracteres.')
   }
-  if (lodge.length < 2) {
+  if (lodgeName.length < 2) {
     errors.push('Nome da loja precisa ter pelo menos 2 caracteres.')
   }
-  if (lodge.length > 120) {
+  if (lodgeName.length > 120) {
     errors.push('Nome da loja deve ter no maximo 120 caracteres.')
   }
   if (!/^\d+$/.test(lodgeNumber)) {
@@ -71,4 +89,50 @@ export function validateVisitorAttendanceInput(
   }
 
   return errors
+}
+
+export interface VisitorCertificateShareParams {
+  visitor: VisitorAttendanceInput
+  eventTitle: string
+  eventDateLabel: string
+  lodgeTitle: string
+  venerableMaster: string
+  chancellor: string
+}
+
+/** Texto formatado para compartilhamento do certificado (WhatsApp / Web Share). */
+export function buildVisitorCertificateShareText(
+  params: VisitorCertificateShareParams,
+): string {
+  const lodgeDisplay = formatLodgeNameWithPrefix(params.visitor.lodge)
+  let body = `Certificamos que o Ir∴ *${params.visitor.name}*, no Grau de *${params.visitor.degree}*, da *${lodgeDisplay}* Nº *${params.visitor.lodgeNumber}*, filiada à *${params.visitor.obedience}*`
+
+  if (params.visitor.masonicNumber?.trim()) {
+    body += `, portador do Registro Maçônico Nº *${params.visitor.masonicNumber.trim()}*`
+  }
+
+  body += `, esteve presente na sessão realizada em *${params.eventDateLabel}* (*${params.eventTitle}*), na qualidade de *Visitante*.`
+
+  return [
+    '*Certificado de Presença*',
+    `*${params.lodgeTitle}*`,
+    '',
+    body,
+    '',
+    `_${params.venerableMaster}_`,
+    'Venerável Mestre',
+    '',
+    `_${params.chancellor}_`,
+    'Chanceler',
+    '',
+    `Emitido em ${new Date().toLocaleDateString('pt-BR')} pelo sistema ${params.lodgeTitle}.`,
+  ].join('\n')
+}
+
+export function openVisitorCertificateWhatsApp(text: string): void {
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(text)}`,
+    '_blank',
+    'noopener,noreferrer',
+  )
 }

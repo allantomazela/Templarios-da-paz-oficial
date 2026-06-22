@@ -66,9 +66,7 @@ export function AttendanceManager() {
   }, [events, sessionRecords])
 
   const saveOperation = useAsyncOperation(
-    async () => {
-      return 'As informações de presença e tronco foram atualizadas com sucesso.'
-    },
+    async () => 'As informações de presença foram atualizadas com sucesso.',
     {
       successMessage: 'Registro salvo com sucesso!',
       errorMessage: 'Falha ao salvar o registro.',

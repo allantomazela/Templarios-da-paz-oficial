@@ -24,6 +24,7 @@ import {
 } from '@/lib/chancellor-data'
 import { devLog, logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
+import { brotherRowIdFromAttendanceRef } from '@/lib/chancellor-attendance'
 
 const visitorAttendancesSeqBySession = new Map<
   string,
@@ -74,6 +75,7 @@ interface ChancellorState {
 
   addSessionRecord: (record: SessionRecord) => void
   updateSessionRecord: (record: SessionRecord) => void
+  replaceSessionRecord: (previousId: string, record: SessionRecord) => void
   addAttendanceRecord: (record: Attendance) => void
   updateAttendanceRecord: (record: Attendance) => void
   bulkAddAttendance: (records: Attendance[]) => void
@@ -173,10 +175,14 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
           fetchChancellorAttendance(),
           fetchChancellorBrothers(),
         ])
+      const normalizedAttendance = attendanceRecords.map((record) => ({
+        ...record,
+        brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),
+      }))
       set({
         events,
         sessionRecords,
-        attendanceRecords,
+        attendanceRecords: normalizedAttendance,
         brothers,
         locations: loadLocationsFromStorage(),
       })
@@ -200,6 +206,26 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     set((state) => ({
       sessionRecords: state.sessionRecords.map((r) =>
         r.id === record.id ? record : r,
+      ),
+    })),
+
+  replaceSessionRecord: (previousId, record) =>
+    set((state) => ({
+      sessionRecords: [
+        ...state.sessionRecords.filter(
+          (r) => r.id !== previousId && r.id !== record.id,
+        ),
+        record,
+      ],
+      attendanceRecords: state.attendanceRecords.map((ar) =>
+        ar.sessionRecordId === previousId
+          ? { ...ar, sessionRecordId: record.id }
+          : ar,
+      ),
+      visitorAttendances: state.visitorAttendances.map((vr) =>
+        vr.sessionRecordId === previousId
+          ? { ...vr, sessionRecordId: record.id }
+          : vr,
       ),
     })),
 
@@ -300,6 +326,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Erro ao salvar visitantes da sessao', error)
+      throw error
     }
   },
 
@@ -423,45 +450,67 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
   ensureSessionRecordInSupabase: async (event, sessionRecord) => {
     try {
-      const { data: existing } = await supabase
-        .from('session_records')
-        .select('id')
-        .eq('id', sessionRecord.id)
-        .single()
-      if (existing) return existing.id
-
       const { data: existingEvent } = await supabase
         .from('events')
         .select('id')
-        .eq('date', event.date)
-        .eq('time', event.time)
-        .eq('title', event.title)
+        .eq('id', event.id)
         .maybeSingle()
+
       let eventId = existingEvent?.id
       if (!eventId) {
         const { data: eventRow, error: eventErr } = await supabase
           .from('events')
-          .insert({
-            title: event.title,
-            date: event.date,
-            time: event.time,
-            type: event.type,
-            location: event.location,
-            description: event.description || '',
-          })
+          .insert(eventToDbPayload(event))
           .select('id')
           .single()
         if (eventErr) throw eventErr
         eventId = eventRow.id
       }
 
+      const sessionPayload = {
+        event_id: eventId,
+        date: sessionRecord.date,
+        charity_collection: sessionRecord.charityCollection ?? 0,
+        observations: sessionRecord.observations || '',
+        status: sessionRecord.status,
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data: existingById } = await supabase
+        .from('session_records')
+        .select('id')
+        .eq('id', sessionRecord.id)
+        .maybeSingle()
+
+      if (existingById) {
+        const { error: updateErr } = await supabase
+          .from('session_records')
+          .update(sessionPayload)
+          .eq('id', existingById.id)
+        if (updateErr) throw updateErr
+        return existingById.id
+      }
+
+      const { data: existingByEvent } = await supabase
+        .from('session_records')
+        .select('id')
+        .eq('event_id', eventId)
+        .maybeSingle()
+
+      if (existingByEvent) {
+        const { error: updateErr } = await supabase
+          .from('session_records')
+          .update(sessionPayload)
+          .eq('id', existingByEvent.id)
+        if (updateErr) throw updateErr
+        return existingByEvent.id
+      }
+
       const { data: recordRow, error: recordErr } = await supabase
         .from('session_records')
         .insert({
-          event_id: eventId,
-          date: sessionRecord.date,
-          observations: sessionRecord.observations || '',
-          status: sessionRecord.status,
+          id: sessionRecord.id,
+          ...sessionPayload,
         })
         .select('id')
         .single()
@@ -493,7 +542,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
         .in('id', ids)
       const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name || '']))
       const mapped = rows.map((r) => ({
-        brotherId: r.brother_id,
+        brotherId: brotherRowIdFromAttendanceRef(get().brothers, r.brother_id),
         status: r.status,
         justification: r.justification,
         name: nameMap.get(r.brother_id) || r.brother_id,

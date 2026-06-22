@@ -33,6 +33,11 @@ import { useReactToPrint } from 'react-to-print'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { VisitorCertificateDocument } from './VisitorCertificateDocument'
 import { VisitorAttendanceSection } from './VisitorAttendanceSection'
+import { useToast } from '@/hooks/use-toast'
+import {
+  brothersWithoutProfileForAttendance,
+  profileIdForAttendanceDb,
+} from '@/lib/chancellor-attendance'
 
 interface AttendanceDialogProps {
   open: boolean
@@ -52,6 +57,7 @@ export function AttendanceDialog({
   const {
     addSessionRecord,
     updateSessionRecord,
+    replaceSessionRecord,
     bulkAddAttendance,
     attendanceRecords,
     brothers,
@@ -63,6 +69,7 @@ export function AttendanceDialog({
     saveAttendanceToSupabase,
   } = useChancellorStore()
   const { positions, fetchPositions } = useLodgePositionsStore()
+  const { toast } = useToast()
   const certificateRef = useRef<HTMLDivElement>(null)
 
   const [observations, setObservations] = useState<string>('')
@@ -238,64 +245,104 @@ export function AttendanceDialog({
   const handleSaveInternal = async () => {
     if (!event) return
 
-    let recordId = existingSessionRecord
-      ? existingSessionRecord.id
-      : crypto.randomUUID()
+    const missingProfiles = brothersWithoutProfileForAttendance(
+      brothers,
+      attendances.map((a) => a.brotherId),
+    )
+
+    let recordId = existingSessionRecord?.id ?? crypto.randomUUID()
 
     const sessionRecord: SessionRecord = {
       id: recordId,
       eventId: event.id,
       date: event.date,
-      charityCollection: 0,
-      observations: observations,
+      charityCollection: existingSessionRecord?.charityCollection ?? 0,
+      observations,
       status: 'Finalizada',
     }
 
-    if (existingSessionRecord) {
-      updateSessionRecord(sessionRecord)
-    } else {
-      addSessionRecord(sessionRecord)
-    }
+    try {
+      const dbRecordId = await ensureSessionRecordInSupabase(event, sessionRecord)
+      recordId = dbRecordId
 
-    const newAttendances: Attendance[] = attendances.map((a) => ({
-      id: crypto.randomUUID(),
-      sessionRecordId: recordId,
-      brotherId: a.brotherId,
-      status: a.status,
-      justification: a.justification,
-    }))
-    bulkAddAttendance(newAttendances)
-
-    const isUuid = (s: string) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
-    if (isUuid(recordId)) {
-      const rowsToSync = attendances
-        .filter((a) => isUuid(a.brotherId))
-        .map((a) => ({
-          brotherId: a.brotherId,
-          status: a.status,
-          justification: a.justification,
-        }))
-      if (rowsToSync.length > 0) {
-        try {
-          await saveAttendanceToSupabase(recordId, rowsToSync)
-        } catch {
-          // Ignora se ainda estiver usando lista de irmãos mock
-        }
+      const finalSessionRecord: SessionRecord = {
+        ...sessionRecord,
+        id: dbRecordId,
       }
-    }
 
-    const newVisitorAttendances: VisitorAttendance[] = visitorList.map(
-      (visitor) => ({
-        ...visitor,
+      if (existingSessionRecord) {
+        if (existingSessionRecord.id !== dbRecordId) {
+          replaceSessionRecord(existingSessionRecord.id, finalSessionRecord)
+        } else {
+          updateSessionRecord(finalSessionRecord)
+        }
+      } else {
+        addSessionRecord(finalSessionRecord)
+      }
+
+      const newAttendances: Attendance[] = attendances.map((a) => ({
+        id: crypto.randomUUID(),
         sessionRecordId: recordId,
-      }),
-    )
-    bulkAddVisitorAttendance(newVisitorAttendances)
-    await saveVisitorAttendances(recordId, newVisitorAttendances)
+        brotherId: a.brotherId,
+        status: a.status,
+        justification: a.justification,
+      }))
+      bulkAddAttendance(newAttendances)
 
-    await onSave()
-    onOpenChange(false)
+      const rowsToSync = attendances
+        .map((a) => {
+          const profileId = profileIdForAttendanceDb(brothers, a.brotherId)
+          if (!profileId) return null
+          return {
+            brotherId: profileId,
+            status: a.status,
+            justification: a.justification,
+          }
+        })
+        .filter(
+          (
+            row,
+          ): row is {
+            brotherId: string
+            status: 'Presente' | 'Ausente' | 'Justificado'
+            justification: string
+          } => row !== null,
+        )
+
+      if (rowsToSync.length > 0) {
+        await saveAttendanceToSupabase(recordId, rowsToSync)
+      }
+
+      const newVisitorAttendances: VisitorAttendance[] = visitorList.map(
+        (visitor) => ({
+          ...visitor,
+          sessionRecordId: recordId,
+        }),
+      )
+      bulkAddVisitorAttendance(newVisitorAttendances)
+      await saveVisitorAttendances(recordId, newVisitorAttendances)
+
+      await useChancellorStore.getState().fetchChancellorData({ force: true })
+
+      if (missingProfiles.length > 0) {
+        toast({
+          title: 'Registro salvo com ressalvas',
+          description: `${missingProfiles.length} irmão(s) sem conta vinculada não foram sincronizados: ${missingProfiles.map((b) => b.name).join(', ')}. Vincule em Secretaria.`,
+        })
+      }
+
+      await onSave()
+      onOpenChange(false)
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar presença',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível salvar o registro. Tente novamente.',
+      })
+    }
   }
 
   const presentCount = attendances.filter((a) => a.status === 'Presente').length

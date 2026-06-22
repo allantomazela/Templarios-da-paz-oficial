@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { useReactToPrint } from 'react-to-print'
 import {
   Card,
   CardContent,
@@ -17,35 +16,33 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Download, FileText, MessageCircle, Share2 } from 'lucide-react'
+import { Download, FileText, Loader2, Share2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import {
-  formatCalendarDate,
   formatDateBR,
   getCalendarDateTimestamp,
 } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
-import {
-  VisitorCertificateDocument,
-  VISITOR_CERTIFICATE_PAGE_STYLE,
-} from './VisitorCertificateDocument'
+import { VisitorCertificateDocument } from './VisitorCertificateDocument'
 import type { VisitorAttendance } from '@/lib/data'
 import {
   DEGREE_OPTIONS,
   LODGE_NAME_PREFIX,
   OBEDIENCE_OPTIONS,
-  buildVisitorCertificateShareText,
   normalizeVisitorAttendanceInput,
-  openVisitorCertificateWhatsApp,
   stripLodgeNamePrefix,
   validateVisitorAttendanceInput,
 } from '@/lib/visitor-attendance'
-
-const CERTIFICATE_PRINT_PAGE_STYLE = VISITOR_CERTIFICATE_PAGE_STYLE
+import {
+  buildVisitorCertificateFileBaseName,
+  exportVisitorCertificateAssets,
+  getVisitorCertificateCaptureElement,
+  openVisitorCertificatePrintWindow,
+  shareVisitorCertificateFiles,
+} from '@/lib/visitor-certificate-export'
 
 export function VisitorCertificate() {
   const { events, sessionRecords } = useChancellorStore()
@@ -53,6 +50,7 @@ export function VisitorCertificate() {
   const siteTitle = useSiteSettingsStore((s) => s.siteTitle)
   const { toast } = useToast()
   const certificateRef = useRef<HTMLDivElement>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   const [selectedEventId, setSelectedEventId] = useState<string>('')
   const [visitorInfo, setVisitorInfo] = useState<VisitorAttendance>({
@@ -83,27 +81,6 @@ export function VisitorCertificate() {
     ? sessionRecords.find((sr) => sr.eventId === selectedEvent.id)
     : null
 
-  const handlePrint = useReactToPrint({
-    contentRef: certificateRef,
-    documentTitle: `Certificado_Presenca_${visitorInfo.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}`,
-    pageStyle: CERTIFICATE_PRINT_PAGE_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Certificado enviado à impressão',
-        description:
-          'Cada certificado ocupa metade da folha A4 — você pode imprimir dois por página.',
-      })
-    },
-    onPrintError: (error) => {
-      toast({
-        title: 'Erro ao gerar impressão',
-        description: 'Não foi possível imprimir o certificado. Tente novamente.',
-        variant: 'destructive',
-      })
-      console.error('Erro ao imprimir certificado:', error)
-    },
-  })
-
   const normalizedVisitor = normalizeVisitorAttendanceInput(visitorInfo)
   const validationErrors = validateVisitorAttendanceInput(normalizedVisitor)
   const canGenerate = Boolean(selectedEventId) && validationErrors.length === 0
@@ -114,23 +91,22 @@ export function VisitorCertificate() {
     sessionRecordId: selectedSession?.id || 'manual',
   }
 
-  const shareText = selectedEvent
-    ? buildVisitorCertificateShareText({
-        visitor: normalizedVisitor,
-        eventTitle: selectedEvent.title,
-        eventDateLabel: formatCalendarDate(
-          selectedEvent.date,
-          "dd 'de' MMMM 'de' yyyy",
-          { locale: ptBR },
-        ),
-        lodgeTitle: siteTitle || 'Templários da Paz',
-        venerableMaster,
-        chancellor,
-      })
-    : ''
+  const fileBaseName = buildVisitorCertificateFileBaseName(normalizedVisitor.name)
+  const shareTitle = `Certificado de Presença — ${normalizedVisitor.name}`
 
-  const handleShareWhatsApp = () => {
-    if (!canGenerate || !shareText) {
+  const getCaptureElement = () =>
+    getVisitorCertificateCaptureElement(certificateRef.current)
+
+  const runExport = async () => {
+    const element = getCaptureElement()
+    if (!element) {
+      throw new Error('Pré-visualização do certificado não encontrada.')
+    }
+    return exportVisitorCertificateAssets(element)
+  }
+
+  const handleShare = async () => {
+    if (!canGenerate || !selectedEvent) {
       toast({
         title: 'Dados incompletos',
         description: 'Preencha todos os campos obrigatórios antes de compartilhar.',
@@ -139,28 +115,41 @@ export function VisitorCertificate() {
       return
     }
 
-    const plainText = shareText.replace(/\*/g, '')
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-
-    if (isMobile && typeof navigator.share === 'function') {
-      void navigator.share({
-        title: 'Certificado de Presença — Visitante',
-        text: plainText,
-      }).catch((error: unknown) => {
-        if (error instanceof Error && error.name === 'AbortError') return
-        openVisitorCertificateWhatsApp(shareText)
+    setIsExporting(true)
+    try {
+      const assets = await runExport()
+      const mode = await shareVisitorCertificateFiles({
+        jpegBlob: assets.jpegBlob,
+        pdfBlob: assets.pdfBlob,
+        baseName: fileBaseName,
+        title: shareTitle,
       })
-      return
-    }
 
-    openVisitorCertificateWhatsApp(shareText)
-    toast({
-      title: 'WhatsApp',
-      description: 'O texto do certificado foi aberto para compartilhamento.',
-    })
+      if (mode === 'shared') {
+        toast({
+          title: 'Certificado compartilhado',
+          description: 'PDF e JPEG enviados pelo compartilhamento do dispositivo.',
+        })
+      } else {
+        toast({
+          title: 'Arquivos baixados',
+          description:
+            'PDF e JPEG salvos no dispositivo. Anexe-os no WhatsApp ou outro app.',
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao compartilhar certificado:', error)
+      toast({
+        title: 'Erro ao compartilhar',
+        description: 'Não foi possível gerar PDF e JPEG. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
-  const triggerPrint = () => {
+  const handlePrint = async () => {
     if (!canGenerate || !selectedEvent) {
       toast({
         title: 'Dados incompletos',
@@ -170,9 +159,37 @@ export function VisitorCertificate() {
       return
     }
 
-    window.setTimeout(() => {
-      void handlePrint()
-    }, 0)
+    setIsExporting(true)
+    try {
+      const assets = await runExport()
+      const opened = openVisitorCertificatePrintWindow(
+        assets.jpegDataUrl,
+        fileBaseName,
+      )
+      if (!opened) {
+        toast({
+          title: 'Pop-up bloqueado',
+          description:
+            'Permita pop-ups para abrir o visualizador de impressão do certificado.',
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({
+        title: 'Visualizador de impressão',
+        description:
+          'O certificado foi aberto em nova janela. Use "Salvar como PDF" se desejar.',
+      })
+    } catch (error) {
+      console.error('Erro ao imprimir certificado:', error)
+      toast({
+        title: 'Erro ao imprimir',
+        description: 'Não foi possível gerar o certificado para impressão.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -184,8 +201,8 @@ export function VisitorCertificate() {
             Certificado de Presença para Visitantes
           </CardTitle>
           <CardDescription>
-            Gere certificados em meia folha A4 (dois por página na impressão), com
-            modelo maçônico e compartilhamento por WhatsApp.
+            Gere certificados em meia folha A4, imprima com visualização fiel ao
+            modelo e compartilhe em PDF e JPEG.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -337,20 +354,28 @@ export function VisitorCertificate() {
             <Button
               type="button"
               variant="outline"
-              onClick={handleShareWhatsApp}
-              disabled={!canGenerate}
+              onClick={() => void handleShare()}
+              disabled={!canGenerate || isExporting}
               className="gap-2"
             >
-              <MessageCircle className="h-4 w-4" />
-              Compartilhar no WhatsApp
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
+              Compartilhar PDF e JPEG
             </Button>
             <Button
               type="button"
-              onClick={triggerPrint}
-              disabled={!canGenerate}
+              onClick={() => void handlePrint()}
+              disabled={!canGenerate || isExporting}
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               Imprimir / Salvar PDF
             </Button>
           </div>
@@ -358,46 +383,33 @@ export function VisitorCertificate() {
       </Card>
 
       {canGenerate && selectedEvent && (
-        <>
-          <div
-            ref={certificateRef}
-            id="visitor-certificate-container"
-            aria-hidden
-            className="pointer-events-none fixed left-[-10000px] top-0 w-[210mm] opacity-0"
-          >
-            <VisitorCertificateDocument
-              visitor={certificateVisitor}
-              event={selectedEvent}
-              venerableMaster={venerableMaster}
-              chancellor={chancellor}
-            />
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Share2 className="h-4 w-4" />
-                Pré-visualização (meia folha A4)
-              </CardTitle>
-              <CardDescription>
-                Formato compacto para caber dois certificados por folha na impressão.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">
-              <div
-                className="visitor-certificate-print-sheet mx-auto shadow-lg"
-                style={{ width: '210mm' }}
-              >
-                <VisitorCertificateDocument
-                  visitor={certificateVisitor}
-                  event={selectedEvent}
-                  venerableMaster={venerableMaster}
-                  chancellor={chancellor}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Share2 className="h-4 w-4" />
+              Pré-visualização (meia folha A4)
+            </CardTitle>
+            <CardDescription>
+              O que você vê aqui é o mesmo conteúdo enviado à impressão e aos
+              arquivos PDF/JPEG.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">
+            <div
+              ref={certificateRef}
+              id="visitor-certificate-container"
+              className="visitor-certificate-print-sheet mx-auto shadow-lg"
+              style={{ width: '210mm' }}
+            >
+              <VisitorCertificateDocument
+                visitor={certificateVisitor}
+                event={selectedEvent}
+                venerableMaster={venerableMaster}
+                chancellor={chancellor}
+              />
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

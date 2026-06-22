@@ -26,6 +26,8 @@ interface BrandLogoImgProps {
   height?: number
   /** Força nova requisição da imagem (ex.: após upload). */
   cacheBustKey?: string | number
+  /** Necessário para captura em canvas (certificado/exportação). */
+  crossOrigin?: 'anonymous' | 'use-credentials'
 }
 
 export function BrandLogoImg({
@@ -41,6 +43,7 @@ export function BrandLogoImg({
   width,
   height,
   cacheBustKey,
+  crossOrigin,
 }: BrandLogoImgProps) {
   const resolved = resolveSiteLogoUrl(logoUrl)
   const src =
@@ -73,6 +76,7 @@ export function BrandLogoImg({
       style={style}
       width={width}
       height={height}
+      crossOrigin={crossOrigin}
       {...(fetchPriority ? { fetchPriority } : {})}
       onError={() => setFailed(true)}
     />

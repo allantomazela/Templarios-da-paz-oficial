@@ -86,6 +86,7 @@ export function VisitorCertificateDocument({
             width={BRAND_LOGO_INTRINSIC_SIZE}
             height={BRAND_LOGO_INTRINSIC_SIZE}
             sizes="56px"
+            crossOrigin="anonymous"
           />
         </div>
         <p className="certificate-accent text-[9px] uppercase tracking-[0.35em] text-[#8b6914] print:text-[8px]">

@@ -274,19 +274,21 @@
     box-sizing: border-box;
   }
 
-  /* Container do certificado de visitante */
+  /* Container do certificado de visitante — meia folha A4 */
   #visitor-certificate-container {
     position: absolute;
     left: 0;
     top: 0;
     width: 210mm;
-    min-height: 297mm;
+    min-height: 148.5mm;
+    height: auto;
     margin: 0;
     padding: 0;
     background: white !important;
     color: black !important;
     z-index: 9999;
     box-sizing: border-box;
+    opacity: 1 !important;
   }
 
   #visitor-certificate-dialog-container {
@@ -294,13 +296,25 @@
     left: 0;
     top: 0;
     width: 210mm;
-    min-height: 297mm;
+    min-height: 148.5mm;
+    height: auto;
     margin: 0;
     padding: 0;
     background: white !important;
     color: black !important;
     z-index: 9999;
     box-sizing: border-box;
+    opacity: 1 !important;
+  }
+
+  #visitor-certificate-container .visitor-certificate-half-a4,
+  #visitor-certificate-dialog-container .visitor-certificate-half-a4 {
+    width: 210mm !important;
+    height: 148.5mm !important;
+    min-height: 148.5mm !important;
+    max-height: 148.5mm !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   /* Mostrar relatório do chanceler na impressão */

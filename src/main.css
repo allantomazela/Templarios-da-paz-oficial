@@ -411,6 +411,23 @@
   }
 }
 
+/* Certificado de visitante — texto preto na tela (regras globais p/h* usam branco no tema escuro) */
+.visitor-certificate-document,
+.visitor-certificate-document p,
+.visitor-certificate-document h1,
+.visitor-certificate-document h2,
+.visitor-certificate-document h3,
+.visitor-certificate-document strong,
+.visitor-certificate-document em,
+.visitor-certificate-document footer,
+.visitor-certificate-document header {
+  color: #000000 !important;
+}
+
+.visitor-certificate-document .certificate-accent {
+  color: #8b6914 !important;
+}
+
 /* Melhor espaçamento de texto global - Usando variáveis CSS customizáveis */
 p {
   letter-spacing: var(--typography-letter-spacing, 0.025em);

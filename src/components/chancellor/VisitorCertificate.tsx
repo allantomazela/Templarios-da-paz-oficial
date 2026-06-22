@@ -361,6 +361,7 @@ export function VisitorCertificate() {
         <>
           <div
             ref={certificateRef}
+            id="visitor-certificate-container"
             aria-hidden
             className="pointer-events-none fixed left-[-10000px] top-0 w-[210mm] opacity-0"
           >

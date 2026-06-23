@@ -492,6 +492,8 @@ export default function Agenda() {
           <div className="p-4 flex justify-center border-b bg-muted/5">
             <Calendar
               mode="single"
+              locale={ptBR}
+              weekStartsOn={0}
               selected={selectedDate}
               onSelect={(d) => {
                 if (d) {

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Transaction } from '@/lib/data'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { Transaction, BankAccount } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -9,10 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
 import {
-  Plus,
-  Search,
   Pencil,
   Trash2,
   Calendar,
@@ -25,6 +22,8 @@ import {
   type TransactionFormValues,
 } from './TransactionDialog'
 import { TransactionAttachmentIndicator } from './TransactionAttachmentIndicator'
+import { TransactionListToolbar } from './TransactionListToolbar'
+import { FinancialCashSummaryBar } from './FinancialCashSummaryBar'
 import { formatDateBR } from '@/lib/format-utils'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -38,9 +37,16 @@ import {
   loadTransactionsByType,
   saveFinancialTransaction,
 } from '@/lib/financial-transaction-api'
+import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
+import {
+  computeCashAvailability,
+  sumTransactionAmounts,
+} from '@/lib/financial-balance-math'
 
 export function IncomeList() {
   const [incomes, setIncomes] = useState<Transaction[]>([])
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
   const [accountNames, setAccountNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -54,13 +60,15 @@ export function IncomeList() {
   const loadIncomes = useAsyncOperation(
     async () => {
       setLoading(true)
-      const { transactions, accountNames: namesById } = await loadTransactionsByType(
-        'Receita',
-        { includeAttachmentCounts: canManageAttachments },
-      )
+      const [{ transactions, accountNames: namesById }, cashData] = await Promise.all([
+        loadTransactionsByType('Receita', { includeAttachmentCounts: canManageAttachments }),
+        fetchFinancialAccountsAndTransactions(),
+      ])
 
       setAccountNames(namesById)
       setIncomes(transactions)
+      setAccounts(cashData.accounts)
+      setAllTransactions(cashData.transactions)
       setLoading(false)
       return null
     },
@@ -79,6 +87,16 @@ export function IncomeList() {
     (income) =>
       income.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       income.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const filteredTotal = useMemo(
+    () => sumTransactionAmounts(filteredIncomes),
+    [filteredIncomes],
+  )
+
+  const cashSummary = useMemo(
+    () => computeCashAvailability(accounts, allTransactions),
+    [accounts, allTransactions],
   )
 
   const refreshIncomes = async () => {
@@ -141,20 +159,19 @@ export function IncomeList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar receitas..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Button onClick={openNew} className="bg-green-600 hover:bg-green-700">
-          <Plus className="mr-2 h-4 w-4" /> Nova Receita
-        </Button>
-      </div>
+      <TransactionListToolbar
+        searchPlaceholder="Buscar receitas..."
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        listTotalLabel={searchTerm ? 'Total filtrado' : 'Total de receitas'}
+        listTotal={filteredTotal}
+        listTotalClassName="text-green-600"
+        actionLabel="Nova Receita"
+        onAction={openNew}
+        actionClassName="bg-green-600 hover:bg-green-700"
+      />
+
+      {!loading ? <FinancialCashSummaryBar summary={cashSummary} highlight="income" /> : null}
 
       {/* Desktop Table */}
       <div className="hidden md:block rounded-md border bg-card">

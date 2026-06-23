@@ -5,6 +5,10 @@ import { createRequestSequence } from '@/lib/request-sequence'
 import { createAsyncLoadingGate } from '@/lib/async-loading'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+import {
+  buildAgapeSessionFromAgendaEvent,
+  type AgendaEventRow,
+} from '@/lib/agape-agenda-import'
 
 const agapeFetchSeq = {
   sessions: createRequestSequence(),
@@ -52,11 +56,15 @@ function handleAuthError(error: unknown): boolean {
   return false
 }
 
+export type AgapeSessionSource = 'agenda' | 'manual'
+
 export interface AgapeSession {
   id: string
   date: string
   description: string | null
   status: 'open' | 'closed' | 'finalized'
+  source: AgapeSessionSource
+  event_id: string | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -108,6 +116,8 @@ interface AgapeState {
   // Sessions
   fetchSessions: () => Promise<void>
   createSession: (session: Omit<AgapeSession, 'id' | 'created_at' | 'updated_at'>) => Promise<{ error: any }>
+  fetchAgendaEventsForImport: () => Promise<AgendaEventRow[]>
+  importSessionsFromAgenda: (eventIds: string[]) => Promise<{ error: any; importedCount: number }>
   updateSession: (id: string, updates: Partial<AgapeSession>) => Promise<{ error: any }>
   closeSession: (id: string) => Promise<{ error: any }>
   finalizeSession: (id: string) => Promise<{ error: any }>
@@ -175,7 +185,13 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (error) throw error
 
       if (agapeFetchSeq.sessions.isCurrent(reqId)) {
-        set({ sessions: data || [] })
+        set({
+          sessions: (data || []).map((session) => ({
+            ...session,
+            source: session.source ?? 'manual',
+            event_id: session.event_id ?? null,
+          })),
+        })
         devLog(`Agape: Carregadas ${data?.length || 0} sessões`)
       }
     } catch (error) {
@@ -196,6 +212,8 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
         .from('agape_sessions')
         .insert({
           ...session,
+          source: session.source ?? 'manual',
+          event_id: session.event_id ?? null,
           created_by: user.id,
         })
         .select()
@@ -209,6 +227,81 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       if (handleAuthError(error)) return { error }
       logError('Error creating agape session', error)
       return { error }
+    } finally {
+      endAgapeLoading(set)
+    }
+  },
+
+  fetchAgendaEventsForImport: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, date, time, type, description, location')
+        .in('type', ['Sessão', 'Evento Social'])
+        .order('date', { ascending: false })
+        .order('time', { ascending: false })
+
+      if (error) throw error
+      return (data || []) as AgendaEventRow[]
+    } catch (error) {
+      if (handleAuthError(error)) return []
+      logError('Error fetching agenda events for agape import', error)
+      return []
+    }
+  },
+
+  importSessionsFromAgenda: async (eventIds) => {
+    if (eventIds.length === 0) {
+      return { error: new Error('Nenhum evento selecionado'), importedCount: 0 }
+    }
+
+    beginAgapeLoading(set)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Usuário não autenticado')
+
+      const linkedIds = new Set(
+        get()
+          .sessions.map((session) => session.event_id)
+          .filter((eventId): eventId is string => Boolean(eventId)),
+      )
+
+      const { data: events, error: fetchError } = await supabase
+        .from('events')
+        .select('id, title, date, time, type, description, location')
+        .in('id', eventIds)
+
+      if (fetchError) throw fetchError
+      if (!events?.length) {
+        return { error: new Error('Eventos não encontrados'), importedCount: 0 }
+      }
+
+      const rowsToInsert = (events as AgendaEventRow[])
+        .filter((event) => !linkedIds.has(event.id))
+        .map((event) => ({
+          ...buildAgapeSessionFromAgendaEvent(event),
+          created_by: user.id,
+        }))
+
+      if (rowsToInsert.length === 0) {
+        return {
+          error: new Error('Os eventos selecionados já possuem sessão de ágape'),
+          importedCount: 0,
+        }
+      }
+
+      const { error: insertError } = await supabase
+        .from('agape_sessions')
+        .insert(rowsToInsert)
+
+      if (insertError) throw insertError
+
+      await get().fetchSessions()
+      return { error: null, importedCount: rowsToInsert.length }
+    } catch (error) {
+      if (handleAuthError(error)) return { error, importedCount: 0 }
+      logError('Error importing agape sessions from agenda', error)
+      return { error, importedCount: 0 }
     } finally {
       endAgapeLoading(set)
     }

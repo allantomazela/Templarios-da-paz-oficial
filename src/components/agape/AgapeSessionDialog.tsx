@@ -47,6 +47,7 @@ export function AgapeSessionDialog({
   const { createSession, updateSession, loading } = useAgapeStore()
   const { toast } = useToast()
   const isEditing = Boolean(sessionToEdit?.id)
+  const isAgendaLinked = sessionToEdit?.source === 'agenda'
 
   const form = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
@@ -72,10 +73,15 @@ export function AgapeSessionDialog({
 
   const onSubmit = async (data: SessionFormValues) => {
     if (isEditing && sessionToEdit) {
-      const { error } = await updateSession(sessionToEdit.id, {
-        date: data.date,
-        description: data.description || null,
-      })
+      const updates =
+        sessionToEdit.source === 'agenda'
+          ? { description: data.description || null }
+          : {
+              date: data.date,
+              description: data.description || null,
+            }
+
+      const { error } = await updateSession(sessionToEdit.id, updates)
 
       if (error) {
         toast({
@@ -95,6 +101,8 @@ export function AgapeSessionDialog({
       date: data.date,
       description: data.description || null,
       status: 'open',
+      source: 'manual',
+      event_id: null,
       created_by: null,
     })
 
@@ -121,8 +129,10 @@ export function AgapeSessionDialog({
           title={isEditing ? 'Editar sessão de Ágape' : 'Nova sessão de Ágape'}
           description={
             isEditing
-              ? 'Corrija a data ou a descrição da sessão.'
-              : 'Crie uma sessão para registrar os consumos dos irmãos.'
+              ? isAgendaLinked
+                ? 'Sessão vinculada à Agenda. A data vem do evento; você pode ajustar a descrição local.'
+                : 'Corrija a data ou a descrição da sessão.'
+              : 'Crie uma sessão manual para registrar consumos fora da Agenda.'
           }
           icon={<Calendar className="h-5 w-5" />}
         />
@@ -136,7 +146,7 @@ export function AgapeSessionDialog({
                 <FormItem>
                   <FormLabel>Data</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} disabled={isAgendaLinked} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -22,6 +22,7 @@ import {
 import {
   Plus,
   Calendar,
+  CalendarDays,
   Eye,
   Lock,
   CheckCircle2,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react'
 import { useAgapeStore, type AgapeSession } from '@/stores/useAgapeStore'
 import { AgapeSessionDialog } from './AgapeSessionDialog'
+import { AgapeImportFromAgendaDialog } from './AgapeImportFromAgendaDialog'
 import { ConsumptionManager } from './ConsumptionManager'
 import { useDialog } from '@/hooks/use-dialog'
 import { ptBR } from 'date-fns/locale'
@@ -43,6 +45,7 @@ export function AgapeSessionsList() {
   const { sessions, loading, closeSession, finalizeSession, reopenSession, deleteSession } =
     useAgapeStore()
   const dialog = useDialog()
+  const importDialog = useDialog()
   const consumptionDialog = useDialog()
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [sessionToEdit, setSessionToEdit] = useState<AgapeSession | null>(null)
@@ -147,14 +150,31 @@ export function AgapeSessionsList() {
     }
   }
 
+  const getOriginBadge = (session: AgapeSession) => {
+    if (session.source === 'agenda') {
+      return <Badge variant="secondary">Agenda</Badge>
+    }
+    return <Badge variant="outline">Manual</Badge>
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold">Sessões de Ágape</h3>
-        <Button onClick={openCreateDialog} type="button">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Sessão
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => importDialog.openDialog()}
+          >
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Importar da Agenda
+          </Button>
+          <Button onClick={openCreateDialog} type="button">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Sessão Manual
+          </Button>
+        </div>
       </div>
 
       {loading && sessions.length === 0 && !consumptionDialog.open ? (
@@ -168,6 +188,7 @@ export function AgapeSessionsList() {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -175,8 +196,8 @@ export function AgapeSessionsList() {
             <TableBody>
               {sessions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    Nenhuma sessão encontrada. Crie uma nova sessão para começar.
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    Nenhuma sessão encontrada. Importe da Agenda ou crie uma sessão manual.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -191,6 +212,7 @@ export function AgapeSessionsList() {
                       </div>
                     </TableCell>
                     <TableCell>{session.description || '-'}</TableCell>
+                    <TableCell>{getOriginBadge(session)}</TableCell>
                     <TableCell>{getStatusBadge(session.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -271,6 +293,11 @@ export function AgapeSessionsList() {
           if (!open) setSessionToEdit(null)
         }}
         sessionToEdit={sessionToEdit}
+      />
+
+      <AgapeImportFromAgendaDialog
+        open={importDialog.open}
+        onOpenChange={importDialog.onOpenChange}
       />
 
       {selectedSession ? (

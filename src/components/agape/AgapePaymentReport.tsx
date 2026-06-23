@@ -3,13 +3,11 @@ import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { Download, QrCode } from 'lucide-react'
 import { ReportHeader } from '@/components/reports/ReportHeader'
-import { ptBR } from 'date-fns/locale'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
-  formatCalendarDate,
   formatCurrencyBRL,
   formatDateBR,
 } from '@/lib/format-utils'
-import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
   Table,
   TableBody,
@@ -34,7 +32,7 @@ interface BrotherReportData {
 
 interface AgapePaymentReportProps {
   reportData: BrotherReportData[]
-  selectedMonth: string
+  periodLabel: string
   paymentType: 'monthly' | 'per_session'
   onPrint?: () => void
 }
@@ -76,18 +74,14 @@ const generatePixCode = (
 
 export function AgapePaymentReport({
   reportData,
-  selectedMonth,
+  periodLabel,
   paymentType,
   onPrint,
 }: AgapePaymentReportProps) {
   const componentRef = useRef<HTMLDivElement>(null)
   const { agapePix, siteTitle } = useSiteSettingsStore()
 
-  const monthName = useMemo(
-    () =>
-      formatCalendarDate(`${selectedMonth}-01`, 'MMMM yyyy', { locale: ptBR }),
-    [selectedMonth]
-  )
+  const periodName = useMemo(() => periodLabel, [periodLabel])
 
   // Memoizar valores do store para evitar re-renders
   const pixKey = useMemo(() => agapePix.pixKey, [agapePix.pixKey])
@@ -96,7 +90,7 @@ export function AgapePaymentReport({
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    documentTitle: `Relatorio_Agape_Pagamento_${selectedMonth}`,
+    documentTitle: `Relatorio_Agape_Pagamento_${periodName.replace(/\s+/g, '_')}`,
     onAfterPrint: () => {
       if (onPrint) onPrint()
     },
@@ -116,11 +110,11 @@ export function AgapePaymentReport({
       pixKey,
       pixName,
       amount,
-      `Ágape ${monthName} - ${brother.brotherName}`
+      `Ágape ${periodName} - ${brother.brotherName}`
     )
 
     return pixCode
-  }, [pixKey, pixName, paymentType, monthName])
+  }, [pixKey, pixName, paymentType, periodName])
 
   const reportPages = useMemo(() => {
     return reportData.map((brother, index) => {
@@ -146,7 +140,7 @@ export function AgapePaymentReport({
           <ReportHeader
             title="RELATÓRIO DE PAGAMENTO - ÁGAPE"
             subtitle={memoizedSiteTitle || 'Templários da Paz'}
-            description={`${monthName} - ${brother.brotherName}`}
+            description={`${periodName} - ${brother.brotherName}`}
           />
 
           <div className="mt-8 space-y-6">
@@ -156,7 +150,7 @@ export function AgapePaymentReport({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Período</p>
-                  <p className="font-semibold">{monthName}</p>
+                  <p className="font-semibold">{periodName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Tipo de Pagamento</p>
@@ -259,7 +253,7 @@ export function AgapePaymentReport({
   }, [
     reportData,
     paymentType,
-    monthName,
+    periodName,
     memoizedSiteTitle,
     pixKey,
     pixName,

@@ -248,8 +248,8 @@
 
   #gob-report-container,
   #gob-report-container *,
-  #agape-monthly-report-container,
-  #agape-monthly-report-container *,
+  #agape-report-container,
+  #agape-report-container *,
   #agenda-monthly-report-container,
   #agenda-monthly-report-container *,
   #agenda-report-container,
@@ -266,7 +266,7 @@
   }
 
   #gob-report-container,
-  #agape-monthly-report-container,
+  #agape-report-container,
   #agenda-monthly-report-container,
   #agenda-report-container,
   #custom-report-container,
@@ -351,40 +351,40 @@
   }
 
   /* Ajustes específicos para o relatório do ágape */
-  #agape-monthly-report-container {
+  #agape-report-container {
     font-size: 10pt;
     line-height: 1.3;
   }
 
-  #agape-monthly-report-container table {
+  #agape-report-container table {
     width: 100%;
     border-collapse: collapse;
     font-size: 9pt;
     margin-top: 4pt;
   }
 
-  #agape-monthly-report-container th,
-  #agape-monthly-report-container td {
+  #agape-report-container th,
+  #agape-report-container td {
     padding: 4pt 6pt;
   }
 
   /* Reduzir espaçamentos gerais */
-  #agape-monthly-report-container > * + * {
+  #agape-report-container > * + * {
     margin-top: 6pt;
   }
 
   /* Garantir que imagens não ultrapassem as margens */
-  #agape-monthly-report-container img {
+  #agape-report-container img {
     max-width: 100%;
     height: auto;
   }
 
   /* Evitar quebra de página no meio de elementos importantes */
-  #agape-monthly-report-container table {
+  #agape-report-container table {
     page-break-inside: auto;
   }
 
-  #agape-monthly-report-container tr {
+  #agape-report-container tr {
     page-break-inside: avoid;
     page-break-after: auto;
   }
@@ -414,7 +414,7 @@
 
   /* Force background colors for print if needed */
   #gob-report-container .bg-muted,
-  #agape-monthly-report-container .bg-muted,
+  #agape-report-container .bg-muted,
   #custom-report-container .bg-muted,
   #chancellor-report-container .bg-muted,
   #visitor-certificate-container .bg-muted,

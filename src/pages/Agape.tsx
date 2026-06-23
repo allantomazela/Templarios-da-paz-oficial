@@ -5,7 +5,7 @@ import { useModuleActivation } from '@/hooks/use-module-activation'
 import { AgapeOverview } from '@/components/agape/AgapeOverview'
 import { AgapeSessionsList } from '@/components/agape/AgapeSessionsList'
 import { MenuItemsList } from '@/components/agape/MenuItemsList'
-import { MonthlyReports } from '@/components/agape/MonthlyReports'
+import { AgapeReports } from '@/components/agape/AgapeReports'
 import { AgapeConsumptionSimple } from '@/components/agape/AgapeConsumptionSimple'
 import { AgapeRecordPanel } from '@/components/agape/AgapeRecordPanel'
 import { AgapeMaintenancePanel } from '@/components/agape/AgapeMaintenancePanel'
@@ -55,7 +55,7 @@ export default function Agape() {
               <TabsTrigger value="sessions">Sessões</TabsTrigger>
               <TabsTrigger value="menu">Cardápio</TabsTrigger>
               <TabsTrigger value="record">Registrar consumos</TabsTrigger>
-              <TabsTrigger value="reports">Relatórios Mensais</TabsTrigger>
+              <TabsTrigger value="reports">Relatórios</TabsTrigger>
               <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
             </TabsList>
           </div>
@@ -77,7 +77,7 @@ export default function Agape() {
           </TabsContent>
 
           <TabsContent value="reports">
-            {activeTab === 'reports' ? <MonthlyReports /> : null}
+            {activeTab === 'reports' ? <AgapeReports /> : null}
           </TabsContent>
 
           <TabsContent value="maintenance">

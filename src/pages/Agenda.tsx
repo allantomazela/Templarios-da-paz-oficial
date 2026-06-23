@@ -52,7 +52,7 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { CalendarGrid } from '@/components/agenda/CalendarGrid'
 import { WeeklyCalendar } from '@/components/agenda/WeeklyCalendar'
 import { AgendaEventDialog } from '@/components/agenda/AgendaEventDialog'
-import { AgendaMonthlyReport } from '@/components/agenda/AgendaMonthlyReport'
+import { AgendaReport } from '@/components/agenda/AgendaReport'
 import {
   EventDetailsSheet,
 } from '@/components/agenda/EventDetailsSheet'
@@ -86,7 +86,6 @@ export default function Agenda() {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'report'>(
     'month',
   )
-  const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
   // Dialogs State
@@ -292,9 +291,7 @@ export default function Agenda() {
 
   const getHeaderTitle = () => {
     if (viewMode === 'report') {
-      return format(new Date(`${reportMonth}-01T12:00:00`), 'MMMM yyyy', {
-        locale: ptBR,
-      })
+      return 'Relatórios da Agenda'
     }
     if (viewMode === 'day')
       return format(currentDate, "dd 'de' MMMM", { locale: ptBR })
@@ -717,10 +714,7 @@ export default function Agenda() {
 
           <TabsContent value="report" className="mt-0 h-full overflow-auto p-4">
             <ErrorBoundary>
-              <AgendaMonthlyReport
-                selectedMonth={reportMonth}
-                onMonthChange={setReportMonth}
-              />
+              <AgendaReport />
             </ErrorBoundary>
           </TabsContent>
         </div>

@@ -4,6 +4,42 @@
 
 import { todayLocalISODate } from '@/lib/format-utils'
 
+function escapeCsvCell(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`
+}
+
+/**
+ * Gera e baixa um arquivo CSV compatível com Excel (UTF-8 com BOM).
+ */
+export function downloadCsvFile(
+  headers: string[],
+  rows: string[][],
+  filename: string,
+): void {
+  if (rows.length === 0) {
+    throw new Error('Nenhum dado para exportar')
+  }
+
+  const csvContent = [
+    headers.map(escapeCsvCell).join(','),
+    ...rows.map((row) => row.map((cell) => escapeCsvCell(cell)).join(',')),
+  ].join('\n')
+
+  const blob = new Blob(['\uFEFF' + csvContent], {
+    type: 'text/csv;charset=utf-8;',
+  })
+
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `${filename}-${todayLocalISODate()}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export interface ExportableMessage {
   id: string
   name: string

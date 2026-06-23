@@ -1,9 +1,12 @@
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
-/** Meia folha A4 em retrato (mm). */
-export const VISITOR_CERTIFICATE_WIDTH_MM = 210
-export const VISITOR_CERTIFICATE_HEIGHT_MM = 148.5
+/** Cartão de presença: 20 cm × 15 cm (paisagem). */
+export const VISITOR_CERTIFICATE_WIDTH_MM = 200
+export const VISITOR_CERTIFICATE_HEIGHT_MM = 150
+
+export const VISITOR_CERTIFICATE_WIDTH_CSS = `${VISITOR_CERTIFICATE_WIDTH_MM}mm`
+export const VISITOR_CERTIFICATE_HEIGHT_CSS = `${VISITOR_CERTIFICATE_HEIGHT_MM}mm`
 
 export interface VisitorCertificateExportResult {
   jpegBlob: Blob
@@ -49,7 +52,7 @@ export function getVisitorCertificateCaptureElement(
 ): HTMLElement | null {
   if (!root) return null
   return (
-    root.querySelector<HTMLElement>(`.visitor-certificate-half-a4`) ?? root
+    root.querySelector<HTMLElement>(`.visitor-presence-card`) ?? root
   )
 }
 
@@ -90,7 +93,7 @@ export async function exportVisitorCertificateAssets(
   })
 
   const pdf = new jsPDF({
-    orientation: 'portrait',
+    orientation: 'landscape',
     unit: 'mm',
     format: [VISITOR_CERTIFICATE_WIDTH_MM, VISITOR_CERTIFICATE_HEIGHT_MM],
   })

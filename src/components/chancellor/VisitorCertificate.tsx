@@ -42,6 +42,7 @@ import {
   getVisitorCertificateCaptureElement,
   openVisitorCertificatePrintWindow,
   shareVisitorCertificateFiles,
+  VISITOR_CERTIFICATE_WIDTH_CSS,
 } from '@/lib/visitor-certificate-export'
 
 export function VisitorCertificate() {
@@ -205,8 +206,8 @@ export function VisitorCertificate() {
             Certificado de Presença para Visitantes
           </CardTitle>
           <CardDescription>
-            Gere certificados em meia folha A4, imprima com visualização fiel ao
-            modelo e compartilhe no WhatsApp em PDF e JPEG.
+            Gere cartões de presença no formato 20 cm × 15 cm, imprima com
+            visualização fiel ao modelo e compartilhe no WhatsApp em PDF e JPEG.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -391,7 +392,7 @@ export function VisitorCertificate() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Share2 className="h-4 w-4" />
-              Pré-visualização (meia folha A4)
+              Pré-visualização (20 cm × 15 cm)
             </CardTitle>
             <CardDescription>
               O que você vê aqui é o mesmo conteúdo enviado à impressão e aos
@@ -403,7 +404,7 @@ export function VisitorCertificate() {
               ref={certificateRef}
               id="visitor-certificate-container"
               className="visitor-certificate-print-sheet mx-auto shadow-lg"
-              style={{ width: '210mm' }}
+              style={{ width: VISITOR_CERTIFICATE_WIDTH_CSS }}
             >
               <VisitorCertificateDocument
                 visitor={certificateVisitor}

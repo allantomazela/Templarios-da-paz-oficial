@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+:root {
+  --presence-card-width: 200mm;
+  --presence-card-height: 150mm;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -274,13 +278,13 @@
     box-sizing: border-box;
   }
 
-  /* Container do certificado de visitante — meia folha A4 */
+  /* Container do cartão de presença — 20 cm × 15 cm */
   #visitor-certificate-container {
     position: absolute;
     left: 0;
     top: 0;
-    width: 210mm;
-    min-height: 148.5mm;
+    width: var(--presence-card-width);
+    min-height: var(--presence-card-height);
     height: auto;
     margin: 0;
     padding: 0;
@@ -295,8 +299,8 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 210mm;
-    min-height: 148.5mm;
+    width: var(--presence-card-width);
+    min-height: var(--presence-card-height);
     height: auto;
     margin: 0;
     padding: 0;
@@ -307,12 +311,12 @@
     opacity: 1 !important;
   }
 
-  #visitor-certificate-container .visitor-certificate-half-a4,
-  #visitor-certificate-dialog-container .visitor-certificate-half-a4 {
-    width: 210mm !important;
-    height: 148.5mm !important;
-    min-height: 148.5mm !important;
-    max-height: 148.5mm !important;
+  #visitor-certificate-container .visitor-presence-card,
+  #visitor-certificate-dialog-container .visitor-presence-card {
+    width: var(--presence-card-width) !important;
+    height: var(--presence-card-height) !important;
+    min-height: var(--presence-card-height) !important;
+    max-height: var(--presence-card-height) !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }

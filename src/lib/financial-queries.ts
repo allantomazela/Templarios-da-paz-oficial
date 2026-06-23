@@ -14,6 +14,7 @@ export type FinancialTransactionRow = {
   type: 'Receita' | 'Despesa'
   amount: number | string
   account_id: string | null
+  attachment_notes?: string | null
 }
 
 /**

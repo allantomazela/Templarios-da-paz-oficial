@@ -128,6 +128,8 @@ export interface Transaction {
   type: 'Receita' | 'Despesa'
   amount: number
   accountId?: string
+  attachmentNotes?: string
+  attachmentCount?: number
 }
 
 export interface Contribution {

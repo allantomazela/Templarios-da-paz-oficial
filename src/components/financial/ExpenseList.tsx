@@ -20,16 +20,23 @@ import {
   Wallet,
   Loader2,
 } from 'lucide-react'
-import { TransactionDialog } from './TransactionDialog'
-import { formatDateBR } from '@/lib/format-utils'
+import {
+  TransactionDialog,
+  type TransactionFormValues,
+} from './TransactionDialog'
+import { TransactionAttachmentIndicator } from './TransactionAttachmentIndicator'
+import { formatDateBR, formatCurrencyBRL } from '@/lib/format-utils'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
-import { supabase } from '@/lib/supabase/client'
-import { fetchTransactionsWithAccountNames } from '@/lib/financial-queries'
-import { formatCurrencyBRL } from '@/lib/format-utils'
 import useFinancialStore, { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import { useFinancialAttachmentAccess } from '@/hooks/use-financial-attachment-access'
+import {
+  deleteFinancialTransaction,
+  loadTransactionsByType,
+  saveFinancialTransaction,
+} from '@/lib/financial-transaction-api'
 
 export function ExpenseList() {
   const [expenses, setExpenses] = useState<Transaction[]>([])
@@ -41,29 +48,20 @@ export function ExpenseList() {
     null,
   )
   const createIdempotencyKeyRef = useRef<string | null>(null)
-  const supabaseAny = supabase as any
   const dataRevision = useFinancialStore((s) => s.dataRevision)
+  const canManageAttachments = useFinancialAttachmentAccess()
 
   // Load expenses from Supabase
   const loadExpenses = useAsyncOperation(
     async () => {
       setLoading(true)
-      const { transactions, accountNames: namesById } =
-        await fetchTransactionsWithAccountNames('Despesa')
-
-      const mapped: Transaction[] = transactions.map((t) => ({
-        id: t.id,
-        date: t.date,
-        description: t.description,
-        category: t.category || 'Sem categoria',
-        type: t.type,
-        amount: parseFloat(String(t.amount)),
-        accountId: t.account_id || undefined,
-      }))
+      const { transactions, accountNames: namesById } = await loadTransactionsByType(
+        'Despesa',
+        { includeAttachmentCounts: canManageAttachments },
+      )
 
       setAccountNames(namesById)
-
-      setExpenses(mapped)
+      setExpenses(transactions)
       setLoading(false)
       return null
     },
@@ -90,87 +88,26 @@ export function ExpenseList() {
   }
 
   const saveOperation = useAsyncOperation(
-    async (data: any) => {
-      // Find category by name
-      const { data: categoryData, error: categoryError } = await supabaseAny
-        .from('financial_categories')
-        .select('id')
-        .eq('name', data.category)
-        .eq('type', 'Despesa')
-        .maybeSingle()
+    async (data: TransactionFormValues): Promise<string | null> => {
+      const transactionId = await saveFinancialTransaction({
+        type: 'Despesa',
+        data,
+        existingId: selectedExpense?.id,
+        idempotencyKeyRef: createIdempotencyKeyRef,
+      })
 
-      if (categoryError || !categoryData) {
-        throw new Error('Categoria não encontrada.')
-      }
-
-      if (selectedExpense) {
-        // Update (financial_transactions usa category TEXT)
-        const { error } = await supabaseAny
-          .from('financial_transactions')
-          .update({
-            description: data.description,
-            amount: data.amount,
-            date: data.date,
-            category: data.category,
-            account_id: data.accountId || null,
-          })
-          .eq('id', selectedExpense.id)
-
-        if (error) throw error
-
-        await refreshExpenses()
-        return 'Despesa atualizada com sucesso.'
-      } else {
-        // Create com idempotência: mesma chave enquanto a operação estiver em andamento (evita duplo clique)
-        const idempotencyKey =
-          typeof crypto !== 'undefined' && crypto.randomUUID
-            ? createIdempotencyKeyRef.current ?? crypto.randomUUID()
-            : undefined
-        if (idempotencyKey) createIdempotencyKeyRef.current = idempotencyKey
-        try {
-          const { error } = await supabaseAny
-            .from('financial_transactions')
-            .insert({
-              description: data.description,
-              amount: data.amount,
-              date: data.date,
-              category: data.category,
-              type: 'Despesa',
-              account_id: data.accountId || null,
-              ...(idempotencyKey && { idempotency_key: idempotencyKey }),
-            })
-
-          if (error) {
-            const pgErr = error as { code?: string }
-            if (pgErr.code === '23505' && idempotencyKey) {
-              await refreshExpenses()
-              return 'Despesa já registrada (envio duplicado ignorado).'
-            }
-            throw error
-          }
-
-          await refreshExpenses()
-          return 'Despesa registrada com sucesso.'
-        } finally {
-          createIdempotencyKeyRef.current = null
-        }
-      }
+      await refreshExpenses()
+      return transactionId
     },
     {
-      successMessage: 'Operação realizada com sucesso!',
+      successMessage: 'Despesa salva com sucesso!',
       errorMessage: 'Falha ao salvar a despesa.',
     },
   )
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      const { error } = await supabaseAny
-        .from('financial_transactions')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-
+      await deleteFinancialTransaction(id)
       await refreshExpenses()
       return 'Despesa removida.'
     },
@@ -180,11 +117,8 @@ export function ExpenseList() {
     },
   )
 
-  const handleSave = async (data: any) => {
-    const result = await saveOperation.execute(data)
-    if (result) {
-      dialog.closeDialog()
-    }
+  const handleSave = async (data: TransactionFormValues) => {
+    return saveOperation.execute(data)
   }
 
   const handleDelete = (id: string) => {
@@ -261,7 +195,14 @@ export function ExpenseList() {
                     {formatDateBR(expense.date)}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {expense.description}
+                    <div className="flex flex-col gap-1">
+                      <span>{expense.description}</span>
+                      <TransactionAttachmentIndicator
+                        transaction={expense}
+                        visible={canManageAttachments}
+                        showMissingReceiptWarning
+                      />
+                    </div>
                   </TableCell>
                   <TableCell>{expense.category}</TableCell>
                   <TableCell>
@@ -319,6 +260,11 @@ export function ExpenseList() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <h4 className="font-medium">{expense.description}</h4>
+                    <TransactionAttachmentIndicator
+                      transaction={expense}
+                      visible={canManageAttachments}
+                      showMissingReceiptWarning
+                    />
                     <span className="text-lg font-bold text-destructive">
                       {formatCurrencyBRL(expense.amount)}
                     </span>

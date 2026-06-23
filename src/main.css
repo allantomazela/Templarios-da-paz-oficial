@@ -250,6 +250,8 @@
   #gob-report-container *,
   #agape-monthly-report-container,
   #agape-monthly-report-container *,
+  #agenda-monthly-report-container,
+  #agenda-monthly-report-container *,
   #custom-report-container,
   #custom-report-container *,
   #chancellor-report-container,
@@ -263,6 +265,7 @@
 
   #gob-report-container,
   #agape-monthly-report-container,
+  #agenda-monthly-report-container,
   #custom-report-container,
   #chancellor-report-container {
     position: absolute;

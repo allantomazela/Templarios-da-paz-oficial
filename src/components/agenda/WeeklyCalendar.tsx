@@ -8,7 +8,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { CalendarEvent } from './EventDetailsSheet'
+import { CalendarEvent } from '@/lib/agenda-events'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface WeeklyCalendarProps {

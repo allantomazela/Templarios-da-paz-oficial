@@ -4,7 +4,6 @@ import {
   addMonths,
   subMonths,
   isSameDay,
-  setYear,
   getYear,
   addWeeks,
   subWeeks,
@@ -14,7 +13,6 @@ import {
   endOfWeek,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { parseCalendarDate } from '@/lib/format-utils'
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,6 +24,7 @@ import {
   MapPin,
   Clock,
   CalendarDays,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
@@ -53,10 +52,14 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { CalendarGrid } from '@/components/agenda/CalendarGrid'
 import { WeeklyCalendar } from '@/components/agenda/WeeklyCalendar'
 import { AgendaEventDialog } from '@/components/agenda/AgendaEventDialog'
+import { AgendaMonthlyReport } from '@/components/agenda/AgendaMonthlyReport'
 import {
   EventDetailsSheet,
-  CalendarEvent,
 } from '@/components/agenda/EventDetailsSheet'
+import {
+  buildMilestoneEvents,
+  type CalendarEvent,
+} from '@/lib/agenda-events'
 import { LocationManagerDialog } from '@/components/agenda/LocationManagerDialog'
 import { useToast } from '@/hooks/use-toast'
 import { logError, devLog } from '@/lib/logger'
@@ -80,7 +83,10 @@ export default function Agenda() {
   const { toast } = useToast()
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month')
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'report'>(
+    'month',
+  )
+  const [reportMonth, setReportMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
   // Dialogs State
@@ -125,42 +131,11 @@ export default function Agenda() {
     description: h.description,
     originalEvent: undefined,
   }))
-  const milestoneEvents: CalendarEvent[] = []
-
-  brothers.forEach((brother) => {
-    if (brother.dob && filters.birthday) {
-      const dob = parseCalendarDate(brother.dob)
-      if (dob) {
-        const birthdayThisYear = setYear(dob, currentYear)
-        milestoneEvents.push({
-          id: `dob-${brother.id}-${currentYear}`,
-          title: `Aniv. Ir. ${brother.name}`,
-          date: format(birthdayThisYear, 'yyyy-MM-dd'),
-          type: 'Aniversário',
-          description: `Aniversário natalício do Irmão ${brother.name} (${brother.degree})`,
-          brotherId: brother.id,
-        })
-      }
-    }
-
-    if (brother.initiationDate && filters.masonic) {
-      const init = parseCalendarDate(brother.initiationDate)
-      if (init) {
-        const initThisYear = setYear(init, currentYear)
-        const years = currentYear - getYear(init)
-
-        if (years > 0) {
-          milestoneEvents.push({
-            id: `init-${brother.id}-${currentYear}`,
-            title: `Iniciação Ir. ${brother.name}`,
-            date: format(initThisYear, 'yyyy-MM-dd'),
-            type: 'Maçônico',
-            description: `Completando ${years} anos de vida maçônica.`,
-            brotherId: brother.id,
-          })
-        }
-      }
-    }
+  const milestoneEvents = buildMilestoneEvents(brothers, currentYear, {
+    includeBrotherBirthdays: filters.birthday,
+    includeMasonic: filters.masonic,
+    includeSpouse: filters.birthday,
+    includeChildren: filters.birthday,
   })
 
   const allEvents = [...standardEvents, ...milestoneEvents, ...holidayEvents].filter((e) => {
@@ -168,6 +143,9 @@ export default function Agenda() {
     if (e.type === 'Evento Social' && !filters.social) return false
     if (e.type === 'Reunião' && !filters.meeting) return false
     if (e.type === 'Outro' && !filters.meeting) return false
+    if ((e.type === 'Cônjuge' || e.type === 'Filho(a)') && !filters.birthday) return false
+    if (e.type === 'Aniversário' && !filters.birthday) return false
+    if (e.type === 'Maçônico' && !filters.masonic) return false
     if ((e.type === 'Feriado' || e.type === 'Comemorativo') && !filters.holidays) return false
     return true
   })
@@ -313,6 +291,11 @@ export default function Agenda() {
     .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'))
 
   const getHeaderTitle = () => {
+    if (viewMode === 'report') {
+      return format(new Date(`${reportMonth}-01T12:00:00`), 'MMMM yyyy', {
+        locale: ptBR,
+      })
+    }
     if (viewMode === 'day')
       return format(currentDate, "dd 'de' MMMM", { locale: ptBR })
     if (viewMode === 'week') {
@@ -333,6 +316,10 @@ export default function Agenda() {
         return 'bg-green-500'
       case 'Aniversário':
         return 'bg-yellow-500'
+      case 'Cônjuge':
+        return 'bg-pink-500'
+      case 'Filho(a)':
+        return 'bg-orange-500'
       case 'Maçônico':
         return 'bg-purple-500'
       case 'Feriado':
@@ -347,7 +334,7 @@ export default function Agenda() {
   return (
     <Tabs
       value={viewMode}
-      onValueChange={(v) => setViewMode(v as 'month' | 'week' | 'day')}
+      onValueChange={(v) => setViewMode(v as 'month' | 'week' | 'day' | 'report')}
       className="flex flex-col h-[calc(100vh-8rem)]"
     >
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm shrink-0 mb-4 min-w-0 overflow-hidden">
@@ -389,6 +376,10 @@ export default function Agenda() {
             <TabsTrigger value="day">
               <List className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Dia</span>
+            </TabsTrigger>
+            <TabsTrigger value="report">
+              <FileText className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Relatório</span>
             </TabsTrigger>
           </TabsList>
 
@@ -442,7 +433,7 @@ export default function Agenda() {
                         setFilters((p) => ({ ...p, birthday: !!c }))
                       }
                     />
-                    <Label htmlFor="f-bday">Aniversários</Label>
+                    <Label htmlFor="f-bday">Aniversários e família</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -487,7 +478,7 @@ export default function Agenda() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 flex-1 overflow-hidden min-h-0">
-        {/* Sidebar */}
+        {viewMode !== 'report' && (
         <div className="w-full lg:w-80 flex-shrink-0 flex flex-col bg-card border rounded-lg shadow-sm h-full overflow-hidden">
           <div className="p-4 flex justify-center border-b bg-muted/5">
             <Calendar
@@ -597,6 +588,7 @@ export default function Agenda() {
             )}
           </div>
         </div>
+        )}
 
         {/* Main Content Area */}
         <div className="flex-1 bg-card border rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
@@ -720,6 +712,15 @@ export default function Agenda() {
                   )}
                 </CardContent>
               </Card>
+            </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="report" className="mt-0 h-full overflow-auto p-4">
+            <ErrorBoundary>
+              <AgendaMonthlyReport
+                selectedMonth={reportMonth}
+                onMonthChange={setReportMonth}
+              />
             </ErrorBoundary>
           </TabsContent>
         </div>

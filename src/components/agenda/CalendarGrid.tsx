@@ -10,7 +10,7 @@ import {
   isToday,
 } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { CalendarEvent } from './EventDetailsSheet'
+import { CalendarEvent } from '@/lib/agenda-events'
 
 interface CalendarGridProps {
   currentDate: Date
@@ -58,6 +58,10 @@ export function CalendarGrid({
         return 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
       case 'Aniversário':
         return 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border-yellow-200'
+      case 'Cônjuge':
+        return 'bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200'
+      case 'Filho(a)':
+        return 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200'
       case 'Maçônico':
         return 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200'
       case 'Feriado':

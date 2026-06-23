@@ -36,6 +36,7 @@ import {
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import { fetchAccountsWithBalances, type BankAccountWithBalance } from '@/lib/financial-balances'
 import useFinancialStore from '@/stores/useFinancialStore'
+import { AccountReconciliationPanel } from './AccountReconciliationPanel'
 
 export function BankAccounts() {
   const [accounts, setAccounts] = useState<BankAccountWithBalance[]>([])
@@ -289,6 +290,8 @@ export function BankAccounts() {
           })}
         </div>
       )}
+
+      {accounts.length > 0 && <AccountReconciliationPanel />}
 
       <BankAccountDialog
         open={dialog.open}

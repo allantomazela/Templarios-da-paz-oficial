@@ -4,25 +4,17 @@ import {
   mapBankAccountFromDB,
   mapTransactionFromDB,
 } from '@/lib/financial-mappers'
+import {
+  computeAccountBalance,
+  computeGlobalBalance,
+  type BalanceTransaction,
+} from '@/lib/financial-balance-math'
 
-export type BalanceTransaction = Pick<Transaction, 'accountId' | 'type' | 'amount'>
+export type { BalanceTransaction } from '@/lib/financial-balance-math'
+export { computeAccountBalance, computeGlobalBalance } from '@/lib/financial-balance-math'
 
 export interface BankAccountWithBalance extends BankAccount {
   currentBalance: number
-}
-
-/** Saldo atual = saldo inicial + receitas − despesas da conta. */
-export function computeAccountBalance(
-  initialBalance: number,
-  accountId: string,
-  transactions: BalanceTransaction[],
-): number {
-  return transactions
-    .filter((t) => t.accountId === accountId)
-    .reduce(
-      (sum, t) => sum + (t.type === 'Receita' ? t.amount : -t.amount),
-      initialBalance,
-    )
 }
 
 export function attachBalancesToAccounts(
@@ -37,17 +29,6 @@ export function attachBalancesToAccounts(
       transactions,
     ),
   }))
-}
-
-export function computeGlobalBalance(
-  accounts: Pick<BankAccount, 'id' | 'initialBalance'>[],
-  transactions: BalanceTransaction[],
-): number {
-  return accounts.reduce(
-    (total, account) =>
-      total + computeAccountBalance(account.initialBalance, account.id, transactions),
-    0,
-  )
 }
 
 export async function fetchAccountsWithBalances(): Promise<BankAccountWithBalance[]> {

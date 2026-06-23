@@ -37,6 +37,39 @@ export function isAttendancePresent(status: string): boolean {
   return status === 'Presente'
 }
 
+/** Ausência que deve gerar alerta na Visão Geral da Chancelaria. */
+export function isUnjustifiedAbsenceForAlert(
+  record: Pick<Attendance, 'status' | 'justification'> | undefined,
+): boolean {
+  if (!record) return true
+  if (record.status === 'Presente' || record.status === 'Justificado') {
+    return false
+  }
+  if (record.status === 'Ausente' && record.justification?.trim()) {
+    return false
+  }
+  return true
+}
+
+export function countUnjustifiedAbsencesForSessions(
+  brother: Brother,
+  sessionIds: string[],
+  attendanceRecords: Attendance[],
+): number {
+  let count = 0
+  for (const sessionId of sessionIds) {
+    const record = findBrotherAttendanceForSession(
+      brother,
+      sessionId,
+      attendanceRecords,
+    )
+    if (isUnjustifiedAbsenceForAlert(record)) {
+      count++
+    }
+  }
+  return count
+}
+
 export function attendanceBelongsToBrother(
   brother: Brother,
   attendanceBrotherRef: string,

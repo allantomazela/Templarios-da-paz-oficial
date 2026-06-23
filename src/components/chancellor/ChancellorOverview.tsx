@@ -16,8 +16,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell } from 'rechar
 import useChancellorStore from '@/stores/useChancellorStore'
 import {
   countSessionPresentAttendances,
-  findBrotherAttendanceForSession,
-  isAttendancePresent,
+  countUnjustifiedAbsencesForSessions,
 } from '@/lib/chancellor-attendance'
 import {
   formatCalendarDate,
@@ -75,29 +74,27 @@ export function ChancellorOverview() {
   // --- Presence Notifications Logic ---
   // Identify brothers with unjustified absences in the last 3 sessions
   const last3Sessions = last5Sessions.slice(0, 3)
+  const last3SessionIds = last3Sessions.map((session) => session.id)
   const alertBrothers = brothers
     .filter((brother) => {
       if (reviewedAlerts.includes(brother.id)) return false
       if (last3Sessions.length === 0) return false
 
-      let unjustifiedCount = 0
-      for (const session of last3Sessions) {
-        const record = findBrotherAttendanceForSession(
-          brother,
-          session.id,
-          attendanceRecords,
-        )
-        if (!record || !isAttendancePresent(record.status)) {
-          unjustifiedCount++
-        }
-      }
-      // Alert if absent in all checked sessions (or > 50% if logic requires)
-      // Let's say: absent in all of the last 3 (or available) sessions
+      const unjustifiedCount = countUnjustifiedAbsencesForSessions(
+        brother,
+        last3SessionIds,
+        attendanceRecords,
+      )
+
       return unjustifiedCount === last3Sessions.length
     })
-    .map((b) => ({
-      ...b,
-      absenceCount: last3Sessions.length,
+    .map((brother) => ({
+      ...brother,
+      absenceCount: countUnjustifiedAbsencesForSessions(
+        brother,
+        last3SessionIds,
+        attendanceRecords,
+      ),
     }))
   // ------------------------------------
 

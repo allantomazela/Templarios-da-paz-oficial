@@ -32,6 +32,7 @@ import { ReportHeader } from '@/components/reports/ReportHeader'
 import { format } from 'date-fns'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { computeBrotherAttendancePercentage } from '@/lib/chancellor-attendance'
+import { downloadCsvFile } from '@/lib/export-utils'
 
 export const ChancellorReports = memo(function ChancellorReports() {
   const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
@@ -95,7 +96,12 @@ export const ChancellorReports = memo(function ChancellorReports() {
   })
 
   const handleExport = () => {
-    const csv = [
+    const totalSessions = sessionRecords
+      .filter((session) => session.status === 'Finalizada')
+      .length
+      .toString()
+
+    downloadCsvFile(
       [
         'Irmão',
         'Grau',
@@ -104,25 +110,18 @@ export const ChancellorReports = memo(function ChancellorReports() {
         'Presenças',
         'Total Sessões',
         '% Frequência',
-      ].join(','),
-      ...brotherStats.map((b) =>
-        [
-          b.name,
-          b.degree,
-          b.role || '',
-          b.status || '',
-          b.presences.toString(),
-          sessionRecords.filter((s) => s.status === 'Finalizada').length.toString(),
-          b.percentage.toString(),
-        ].join(',')
-      ),
-    ].join('\n')
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `relatorio-frequencia-${format(new Date(), 'yyyy-MM-dd')}.csv`
-    link.click()
+      ],
+      brotherStats.map((brother) => [
+        brother.name,
+        brother.degree,
+        brother.role || '',
+        brother.status || '',
+        brother.presences.toString(),
+        totalSessions,
+        brother.percentage.toString(),
+      ]),
+      'relatorio-frequencia',
+    )
 
     toast({
       title: 'CSV Exportado',

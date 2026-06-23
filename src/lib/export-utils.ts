@@ -8,6 +8,11 @@ function escapeCsvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`
 }
 
+export interface DownloadCsvOptions {
+  /** Se false, usa apenas `${filename}.csv` (padrão: acrescenta a data de hoje). */
+  appendDate?: boolean
+}
+
 /**
  * Gera e baixa um arquivo CSV compatível com Excel (UTF-8 com BOM).
  */
@@ -15,6 +20,7 @@ export function downloadCsvFile(
   headers: string[],
   rows: string[][],
   filename: string,
+  options?: DownloadCsvOptions,
 ): void {
   if (rows.length === 0) {
     throw new Error('Nenhum dado para exportar')
@@ -29,10 +35,15 @@ export function downloadCsvFile(
     type: 'text/csv;charset=utf-8;',
   })
 
+  const downloadName =
+    options?.appendDate === false
+      ? `${filename}.csv`
+      : `${filename}-${todayLocalISODate()}.csv`
+
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}-${todayLocalISODate()}.csv`)
+  link.setAttribute('download', downloadName)
   link.style.visibility = 'hidden'
   document.body.appendChild(link)
   link.click()
@@ -64,57 +75,35 @@ export function exportToCSV(
     throw new Error('Nenhuma mensagem para exportar')
   }
 
-  // Cabeçalhos
-  const headers = [
-    'ID',
-    'Nome',
-    'Email',
-    'Mensagem',
-    'Status',
-    'Categoria',
-    'Data de Envio',
-    'Data de Atualização',
-    'Resposta',
-    'Data de Resposta',
-  ]
-
-  // Converter dados para CSV
-  const rows = messages.map((msg) => [
-    msg.id,
-    `"${msg.name.replace(/"/g, '""')}"`,
-    `"${msg.email.replace(/"/g, '""')}"`,
-    `"${msg.message.replace(/"/g, '""')}"`,
-    msg.status,
-    msg.category || '',
-    new Date(msg.created_at).toLocaleString('pt-BR'),
-    new Date(msg.updated_at).toLocaleString('pt-BR'),
-    msg.reply_text ? `"${msg.reply_text.replace(/"/g, '""')}"` : '',
-    msg.replied_at
-      ? new Date(msg.replied_at).toLocaleString('pt-BR')
-      : '',
-  ])
-
-  // Combinar cabeçalhos e linhas
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((row) => row.join(',')),
-  ].join('\n')
-
-  // Adicionar BOM para Excel
-  const BOM = '\uFEFF'
-  const blob = new Blob([BOM + csvContent], {
-    type: 'text/csv;charset=utf-8;',
-  })
-
-  // Criar link de download
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}-${todayLocalISODate()}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  downloadCsvFile(
+    [
+      'ID',
+      'Nome',
+      'Email',
+      'Mensagem',
+      'Status',
+      'Categoria',
+      'Data de Envio',
+      'Data de Atualização',
+      'Resposta',
+      'Data de Resposta',
+    ],
+    messages.map((msg) => [
+      msg.id,
+      msg.name,
+      msg.email,
+      msg.message,
+      msg.status,
+      msg.category || '',
+      new Date(msg.created_at).toLocaleString('pt-BR'),
+      new Date(msg.updated_at).toLocaleString('pt-BR'),
+      msg.reply_text || '',
+      msg.replied_at
+        ? new Date(msg.replied_at).toLocaleString('pt-BR')
+        : '',
+    ]),
+    filename,
+  )
 }
 
 /**

@@ -31,6 +31,7 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { useReactToPrint } from 'react-to-print'
 import { useToast } from '@/hooks/use-toast'
+import { downloadCsvFile } from '@/lib/export-utils'
 
 export function MonthlyReports() {
   const { sessions, fetchSessions, fetchConsumptions } = useAgapeStore()
@@ -201,22 +202,16 @@ export function MonthlyReports() {
   })
 
   const handleExport = () => {
-    const csv = [
-      ['Irmão', 'Total de Itens', 'Valor Total'].join(','),
-      ...reportData.map((r) =>
-        [
-          r.brotherName,
-          r.totalItems.toString(),
-          r.totalAmount.toFixed(2),
-        ].join(',')
-      ),
-    ].join('\n')
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `relatorio-agape-${monthName}.csv`
-    link.click()
+    downloadCsvFile(
+      ['Irmão', 'Total de Itens', 'Valor Total'],
+      reportData.map((row) => [
+        row.brotherName,
+        row.totalItems.toString(),
+        row.totalAmount.toFixed(2),
+      ]),
+      `relatorio-agape-${selectedMonth}`,
+      { appendDate: false },
+    )
   }
 
   const totalAmount = reportData.reduce((sum, r) => sum + r.totalAmount, 0)

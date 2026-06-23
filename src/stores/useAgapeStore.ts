@@ -180,7 +180,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
       const { data, error } = await supabase
         .from('agape_sessions')
         .select('*')
-        .order('date', { ascending: false })
+        .order('date', { ascending: true })
 
       if (error) throw error
 

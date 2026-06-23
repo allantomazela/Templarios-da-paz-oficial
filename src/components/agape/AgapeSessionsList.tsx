@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -52,6 +52,11 @@ export function AgapeSessionsList() {
   const [deleteTarget, setDeleteTarget] = useState<AgapeSession | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
+
+  const orderedSessions = useMemo(
+    () => [...sessions].sort((a, b) => a.date.localeCompare(b.date)),
+    [sessions],
+  )
 
   const handleCloseSession = async (id: string) => {
     const { error } = await closeSession(id)
@@ -177,7 +182,7 @@ export function AgapeSessionsList() {
         </div>
       </div>
 
-      {loading && sessions.length === 0 && !consumptionDialog.open ? (
+      {loading && orderedSessions.length === 0 && !consumptionDialog.open ? (
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -194,14 +199,14 @@ export function AgapeSessionsList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sessions.length === 0 ? (
+              {orderedSessions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground">
                     Nenhuma sessão encontrada. Importe da Agenda ou crie uma sessão manual.
                   </TableCell>
                 </TableRow>
               ) : (
-                sessions.map((session) => (
+                orderedSessions.map((session) => (
                   <TableRow key={session.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">

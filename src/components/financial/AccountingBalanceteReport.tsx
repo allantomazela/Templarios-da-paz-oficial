@@ -12,9 +12,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Download, Filter, Loader2, Package } from 'lucide-react'
 import type { BankAccount, Transaction } from '@/lib/data'
 import {
+  BALANCETE_TYPE_FILTER_LABELS,
   buildAccountingBalancete,
   buildAccountingBalanceteAllPeriods,
   filterTransactionsForBalancetePeriod,
+  type BalanceteTypeFilter,
 } from '@/lib/accounting-balancete'
 import {
   fetchAttachmentsByTransactionIds,
@@ -46,6 +48,7 @@ export function AccountingBalanceteReport({
   loading = false,
 }: AccountingBalanceteReportProps) {
   const [accountFilter, setAccountFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState<BalanceteTypeFilter>('all')
   const [attachmentsByTransactionId, setAttachmentsByTransactionId] = useState<
     Record<string, FinancialTransactionAttachment[]>
   >({})
@@ -58,8 +61,14 @@ export function AccountingBalanceteReport({
   const periodLabel = useMemo(() => getFinancialReportPeriodLabel(period), [period])
 
   const relevantTransactions = useMemo(
-    () => filterTransactionsForBalancetePeriod(transactions, dateRange, accountFilter),
-    [transactions, dateRange, accountFilter],
+    () =>
+      filterTransactionsForBalancetePeriod(
+        transactions,
+        dateRange,
+        accountFilter,
+        typeFilter,
+      ),
+    [transactions, dateRange, accountFilter, typeFilter],
   )
 
   useEffect(() => {
@@ -103,6 +112,7 @@ export function AccountingBalanceteReport({
         attachmentsByTransactionId,
         dateRange,
         accountFilter,
+        typeFilter,
       )
     }
 
@@ -111,8 +121,16 @@ export function AccountingBalanceteReport({
       transactions,
       attachmentsByTransactionId,
       accountFilter,
+      typeFilter,
     )
-  }, [accounts, transactions, attachmentsByTransactionId, dateRange, accountFilter])
+  }, [
+    accounts,
+    transactions,
+    attachmentsByTransactionId,
+    dateRange,
+    accountFilter,
+    typeFilter,
+  ])
 
   const accountFilterLabel =
     accountFilter === 'all'
@@ -121,10 +139,14 @@ export function AccountingBalanceteReport({
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Balancete_Contabil_${period}`,
+    documentTitle: `Balancete_Contabil_${period}_${typeFilter}`,
     pageStyle: `
-      @page { size: A4; margin: 12mm 15mm; }
+      @page { size: A4 landscape; margin: 10mm 12mm; }
       @media print {
+        html, body {
+          width: 297mm;
+          height: 210mm;
+        }
         body {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
@@ -147,7 +169,7 @@ export function AccountingBalanceteReport({
   })
 
   const isBusy = loading || attachmentsLoading
-  const hasData = balancete.periodTransactionCount > 0 || accounts.length > 0
+  const hasData = balancete.periodTransactionCount > 0
 
   const handleExportZip = async () => {
     setExportingZip(true)
@@ -156,6 +178,7 @@ export function AccountingBalanceteReport({
         balancete,
         periodLabel,
         accountFilterLabel,
+        typeFilterLabel: BALANCETE_TYPE_FILTER_LABELS[typeFilter],
         attachmentsByTransactionId,
       })
       toast({
@@ -175,88 +198,119 @@ export function AccountingBalanceteReport({
     }
   }
 
+  const previewDescription = [
+    periodLabel,
+    BALANCETE_TYPE_FILTER_LABELS[typeFilter],
+    accountFilterLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between no-print">
+      <div className="no-print space-y-4">
         <div>
           <h3 className="text-lg font-medium">Balancete Contábil</h3>
           <p className="text-sm text-muted-foreground">
-            Relatório completo para contabilidade com saldos por conta, razão analítico,
-            observações e comprovantes anexados. Exporte um ZIP com planilhas e arquivos.
+            Relatório para contabilidade com filtros por período, conta e tipo de lançamento.
+            Imprima em PDF ou exporte ZIP com planilhas e comprovantes.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={period} onValueChange={(value) => onPeriodChange(value as FinancialReportPeriodKey)}>
-            <SelectTrigger className="w-[180px]">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(FINANCIAL_REPORT_PERIOD_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Conta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as contas</SelectItem>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={() => handlePrint()}
-            disabled={!hasData || isBusy || exportingZip}
-            className="gap-2"
-            variant="outline"
-          >
-            {isBusy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            Imprimir / Salvar PDF
-          </Button>
-          <Button
-            onClick={() => void handleExportZip()}
-            disabled={!hasData || isBusy || exportingZip}
-            className="gap-2"
-          >
-            {exportingZip ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Package className="h-4 w-4" />
-            )}
-            Exportar ZIP
-          </Button>
+
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:max-w-3xl">
+            <Select
+              value={period}
+              onValueChange={(value) => onPeriodChange(value as FinancialReportPeriodKey)}
+            >
+              <SelectTrigger>
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(FINANCIAL_REPORT_PERIOD_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as BalanceteTypeFilter)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(BALANCETE_TYPE_FILTER_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={accountFilter} onValueChange={setAccountFilter}>
+              <SelectTrigger className="sm:col-span-2 lg:col-span-1">
+                <SelectValue placeholder="Conta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as contas</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => handlePrint()}
+              disabled={!hasData || isBusy || exportingZip}
+              className="gap-2"
+              variant="outline"
+            >
+              {isBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Imprimir / Salvar PDF
+            </Button>
+            <Button
+              onClick={() => void handleExportZip()}
+              disabled={!hasData || isBusy || exportingZip}
+              className="gap-2"
+            >
+              {exportingZip ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Package className="h-4 w-4" />
+              )}
+              Exportar ZIP
+            </Button>
+          </div>
         </div>
       </div>
 
-      <Card className="no-print">
+      <Card className="no-print overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">Pré-visualização</CardTitle>
-          <CardDescription>{periodLabel}</CardDescription>
+          <CardDescription>{previewDescription}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {isBusy ? (
             <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
               Carregando balancete...
             </div>
           ) : !hasData ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum lançamento encontrado para o período selecionado.
+            <p className="px-6 py-8 text-center text-sm text-muted-foreground sm:px-0">
+              Nenhum lançamento encontrado para os filtros selecionados.
             </p>
           ) : (
-            <div className="max-h-[70vh] overflow-auto rounded-md border p-4">
+            <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
               <BalancetePrintDocument
                 title="Balancete Contábil"
                 periodLabel={periodLabel}
@@ -268,11 +322,7 @@ export function AccountingBalanceteReport({
         </CardContent>
       </Card>
 
-      <div
-        id="financial-balancete-container"
-        className="hidden print:block"
-        ref={printRef}
-      >
+      <div id="financial-balancete-container" className="hidden print:block" ref={printRef}>
         <BalancetePrintDocument
           title="Balancete Contábil"
           periodLabel={periodLabel}

@@ -30,7 +30,7 @@ const FINANCIAL_TABS = [
   { value: 'agape', label: 'Fechamento Ágape' },
   { value: 'contributions', label: 'Mensalidades' },
   { value: 'budgets', label: 'Metas e Orçamentos' },
-  { value: 'reports', label: 'Outros Relatórios' },
+  { value: 'reports', label: 'Relatório' },
   { value: 'categories', label: 'Categorias' },
   { value: 'settings', label: 'Configurações' },
 ] as const

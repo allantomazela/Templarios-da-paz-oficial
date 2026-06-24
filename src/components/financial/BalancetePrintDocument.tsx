@@ -1,14 +1,8 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
-import type { AccountingBalanceteData } from '@/lib/accounting-balancete'
+import type { AccountingBalanceteData, BalanceteTypeFilter } from '@/lib/accounting-balancete'
+import { BALANCETE_TYPE_FILTER_LABELS } from '@/lib/accounting-balancete'
+import { cn } from '@/lib/utils'
 
 interface BalancetePrintDocumentProps {
   title: string
@@ -23,76 +17,36 @@ export function BalancetePrintDocument({
   accountFilterLabel,
   data,
 }: BalancetePrintDocumentProps) {
-  const subtitle = accountFilterLabel
-    ? `${periodLabel} — ${accountFilterLabel}`
-    : periodLabel
+  const subtitleParts = [periodLabel, BALANCETE_TYPE_FILTER_LABELS[data.typeFilter]]
+  if (accountFilterLabel) subtitleParts.push(accountFilterLabel)
 
   return (
-    <div className="bg-white text-black">
-      <ReportHeader title={title} subtitle={subtitle} />
+    <div className="balancete-document w-full min-w-0 bg-white text-black">
+      <ReportHeader title={title} subtitle={subtitleParts.join(' · ')} />
 
-      <section className="mb-6">
-        <h3 className="mb-2 text-sm font-bold uppercase tracking-wide">
-          Resumo consolidado
-        </h3>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-black">
-              <TableHead className="text-black">Conta</TableHead>
-              <TableHead className="text-right text-black">Saldo inicial</TableHead>
-              <TableHead className="text-right text-black">Créditos</TableHead>
-              <TableHead className="text-right text-black">Débitos</TableHead>
-              <TableHead className="text-right text-black">Saldo final</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.accountSections.map((section) => (
-              <TableRow key={section.accountId} className="border-gray-300">
-                <TableCell className="font-medium">{section.accountName}</TableCell>
-                <TableCell className="text-right">
-                  {formatCurrencyBRL(section.openingBalance)}
-                </TableCell>
-                <TableCell className="text-right text-green-700">
-                  {formatCurrencyBRL(section.totalCredits)}
-                </TableCell>
-                <TableCell className="text-right text-red-700">
-                  {formatCurrencyBRL(section.totalDebits)}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrencyBRL(section.closingBalance)}
-                </TableCell>
-              </TableRow>
-            ))}
-            <TableRow className="border-t-2 border-black font-bold">
-              <TableCell>{data.totalsRow.accountName}</TableCell>
-              <TableCell className="text-right">
-                {formatCurrencyBRL(data.totalsRow.openingBalance)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrencyBRL(data.totalsRow.totalCredits)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrencyBRL(data.totalsRow.totalDebits)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrencyBRL(data.totalsRow.closingBalance)}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+      <section className="balancete-section">
+        <h3 className="balancete-section-title">Resumo consolidado</h3>
+        <div className="balancete-table-wrap">
+          <SummaryTable data={data} />
+        </div>
       </section>
 
-      <div className="mb-6 grid grid-cols-2 gap-6">
-        <CategoryPrintBlock title="Receitas por categoria" data={data.incomeByCategory} />
-        <CategoryPrintBlock title="Despesas por categoria" data={data.expenseByCategory} />
-      </div>
+      <section className="balancete-section balancete-categories-grid">
+        {(data.typeFilter === 'all' || data.typeFilter === 'Receita') && (
+          <CategoryBlock title="Receitas por categoria" data={data.incomeByCategory} />
+        )}
+        {(data.typeFilter === 'all' || data.typeFilter === 'Despesa') && (
+          <CategoryBlock title="Despesas por categoria" data={data.expenseByCategory} />
+        )}
+      </section>
 
       {data.accountSections.map((section) => (
-        <AccountLedgerSection key={section.accountId} section={section} />
+        <LedgerSection key={section.accountId} section={section} typeFilter={data.typeFilter} />
       ))}
 
       {data.unassignedEntries.length > 0 && (
-        <AccountLedgerSection
+        <LedgerSection
+          typeFilter={data.typeFilter}
           section={{
             accountId: 'unassigned',
             accountName: 'Lançamentos sem conta vinculada',
@@ -110,109 +64,212 @@ export function BalancetePrintDocument({
         />
       )}
 
-      <p className="mt-8 border-t pt-4 text-[10px] text-gray-600">
-        Documento gerado pelo sistema financeiro. Comprovantes digitais (notas fiscais e recibos)
-        estão arquivados no sistema e listados por lançamento abaixo. Total de{' '}
-        {data.periodTransactionCount} movimentação(ões) no período.
+      <p className="balancete-footer">
+        Documento gerado pelo sistema financeiro. Comprovantes digitais estão arquivados no
+        sistema e listados por lançamento. Total de {data.periodTransactionCount}{' '}
+        movimentação(ões) no período filtrado.
       </p>
     </div>
   )
 }
 
-interface CategoryPrintBlockProps {
+function SummaryTable({ data }: { data: AccountingBalanceteData }) {
+  if (data.typeFilter === 'all') {
+    return (
+      <table className="balancete-table">
+        <thead>
+          <tr>
+            <th>Conta</th>
+            <th className="balancete-num">Saldo inicial</th>
+            <th className="balancete-num">Créditos</th>
+            <th className="balancete-num">Débitos</th>
+            <th className="balancete-num">Saldo final</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.accountSections.map((section) => (
+            <tr key={section.accountId}>
+              <td>{section.accountName}</td>
+              <td className="balancete-num">{formatCurrencyBRL(section.openingBalance)}</td>
+              <td className="balancete-num balancete-credit">
+                {formatCurrencyBRL(section.totalCredits)}
+              </td>
+              <td className="balancete-num balancete-debit">
+                {formatCurrencyBRL(section.totalDebits)}
+              </td>
+              <td className="balancete-num balancete-strong">
+                {formatCurrencyBRL(section.closingBalance)}
+              </td>
+            </tr>
+          ))}
+          <tr className="balancete-total-row">
+            <td>{data.totalsRow.accountName}</td>
+            <td className="balancete-num">{formatCurrencyBRL(data.totalsRow.openingBalance)}</td>
+            <td className="balancete-num">{formatCurrencyBRL(data.totalsRow.totalCredits)}</td>
+            <td className="balancete-num">{formatCurrencyBRL(data.totalsRow.totalDebits)}</td>
+            <td className="balancete-num">{formatCurrencyBRL(data.totalsRow.closingBalance)}</td>
+          </tr>
+        </tbody>
+      </table>
+    )
+  }
+
+  const amountLabel = data.typeFilter === 'Receita' ? 'Total receitas' : 'Total despesas'
+
+  return (
+    <table className="balancete-table">
+      <thead>
+        <tr>
+          <th>Conta</th>
+          <th className="balancete-num">Lançamentos</th>
+          <th className="balancete-num">{amountLabel}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.accountSections.map((section) => (
+          <tr key={section.accountId}>
+            <td>{section.accountName}</td>
+            <td className="balancete-num">{section.entries.length}</td>
+            <td
+              className={cn(
+                'balancete-num balancete-strong',
+                data.typeFilter === 'Receita' ? 'balancete-credit' : 'balancete-debit',
+              )}
+            >
+              {formatCurrencyBRL(section.closingBalance)}
+            </td>
+          </tr>
+        ))}
+        <tr className="balancete-total-row">
+          <td>{data.totalsRow.accountName}</td>
+          <td className="balancete-num">{data.periodTransactionCount}</td>
+          <td className="balancete-num">{formatCurrencyBRL(data.totalsRow.closingBalance)}</td>
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
+interface CategoryBlockProps {
   title: string
   data: Record<string, number>
 }
 
-function CategoryPrintBlock({ title, data }: CategoryPrintBlockProps) {
+function CategoryBlock({ title, data }: CategoryBlockProps) {
   const entries = Object.entries(data)
 
   return (
-    <div>
-      <h4 className="mb-2 text-sm font-bold">{title}</h4>
-      <Table>
-        <TableBody>
-          {entries.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={2} className="text-muted-foreground">
-                Sem lançamentos
-              </TableCell>
-            </TableRow>
-          ) : (
-            entries.map(([category, amount]) => (
-              <TableRow key={category} className="border-gray-200">
-                <TableCell>{category}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBRL(amount)}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+    <div className="balancete-category-block">
+      <h4 className="balancete-subsection-title">{title}</h4>
+      <div className="balancete-table-wrap">
+        <table className="balancete-table balancete-table-compact">
+          <tbody>
+            {entries.length === 0 ? (
+              <tr>
+                <td colSpan={2} className="balancete-muted">
+                  Sem lançamentos
+                </td>
+              </tr>
+            ) : (
+              entries.map(([category, amount]) => (
+                <tr key={category}>
+                  <td>{category}</td>
+                  <td className="balancete-num">{formatCurrencyBRL(amount)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
 
-interface AccountLedgerSectionProps {
+interface LedgerSectionProps {
   section: AccountingBalanceteData['accountSections'][number]
+  typeFilter: BalanceteTypeFilter
 }
 
-function AccountLedgerSection({ section }: AccountLedgerSectionProps) {
+function LedgerSection({ section, typeFilter }: LedgerSectionProps) {
   if (section.entries.length === 0) return null
 
+  const showBothAmountColumns = typeFilter === 'all'
+
   return (
-    <section className="mb-8 break-inside-avoid">
-      <h3 className="mb-2 border-b border-gray-300 pb-1 text-sm font-bold">
+    <section className="balancete-section balancete-ledger-section">
+      <h3 className="balancete-subsection-title">
         Razão analítico — {section.accountName}
         {section.accountType ? ` (${section.accountType})` : ''}
       </h3>
 
-      <Table className="text-[10px] print:text-[9px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[72px]">Data</TableHead>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead className="text-right">Crédito</TableHead>
-            <TableHead className="text-right">Débito</TableHead>
-            <TableHead>Observações / Comprovantes</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {section.entries.map((entry) => (
-            <TableRow key={entry.id} className="align-top border-gray-200">
-              <TableCell>{formatDateBR(entry.date)}</TableCell>
-              <TableCell>{entry.description}</TableCell>
-              <TableCell>{entry.category}</TableCell>
-              <TableCell className="text-right text-green-700">
-                {entry.credit > 0 ? formatCurrencyBRL(entry.credit) : '—'}
-              </TableCell>
-              <TableCell className="text-right text-red-700">
-                {entry.debit > 0 ? formatCurrencyBRL(entry.debit) : '—'}
-              </TableCell>
-              <TableCell>
-                {entry.attachmentNotes && (
-                  <p className="mb-1">
-                    <span className="font-medium">Obs:</span> {entry.attachmentNotes}
-                  </p>
-                )}
-                {entry.attachments.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {entry.attachments.map((attachment) => (
-                      <li key={`${entry.id}-${attachment.fileName}`}>
-                        {attachment.documentTypeLabel}: {attachment.fileName}
-                      </li>
-                    ))}
-                  </ul>
+      <div className="balancete-table-wrap">
+        <table className="balancete-table balancete-table-ledger">
+          <thead>
+            <tr>
+              <th className="balancete-col-date">Data</th>
+              <th className="balancete-col-description">Descrição</th>
+              <th className="balancete-col-category">Categoria</th>
+              {showBothAmountColumns ? (
+                <>
+                  <th className="balancete-num balancete-col-amount">Crédito</th>
+                  <th className="balancete-num balancete-col-amount">Débito</th>
+                </>
+              ) : (
+                <th className="balancete-num balancete-col-amount">Valor</th>
+              )}
+              <th className="balancete-col-notes">Observações / Comprovantes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {section.entries.map((entry) => (
+              <tr key={entry.id}>
+                <td className="balancete-col-date">{formatDateBR(entry.date)}</td>
+                <td className="balancete-col-description">{entry.description}</td>
+                <td className="balancete-col-category">{entry.category}</td>
+                {showBothAmountColumns ? (
+                  <>
+                    <td className="balancete-num balancete-credit">
+                      {entry.credit > 0 ? formatCurrencyBRL(entry.credit) : '—'}
+                    </td>
+                    <td className="balancete-num balancete-debit">
+                      {entry.debit > 0 ? formatCurrencyBRL(entry.debit) : '—'}
+                    </td>
+                  </>
                 ) : (
-                  !entry.attachmentNotes && (
-                    <span className="text-gray-500">Sem comprovante anexado</span>
-                  )
+                  <td
+                    className={cn(
+                      'balancete-num balancete-strong',
+                      entry.type === 'Receita' ? 'balancete-credit' : 'balancete-debit',
+                    )}
+                  >
+                    {formatCurrencyBRL(entry.amount)}
+                  </td>
                 )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                <td className="balancete-col-notes">
+                  {entry.attachmentNotes && (
+                    <p className="balancete-note-line">
+                      <span className="balancete-strong">Obs:</span> {entry.attachmentNotes}
+                    </p>
+                  )}
+                  {entry.attachments.length > 0 ? (
+                    <ul className="balancete-attachment-list">
+                      {entry.attachments.map((attachment) => (
+                        <li key={`${entry.id}-${attachment.fileName}`}>
+                          {attachment.documentTypeLabel}: {attachment.fileName}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    !entry.attachmentNotes && (
+                      <span className="balancete-muted">Sem comprovante anexado</span>
+                    )
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

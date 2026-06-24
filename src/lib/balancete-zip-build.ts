@@ -163,17 +163,22 @@ export function buildIndiceComprovantesCsv(plans: AttachmentZipPlanItem[]): stri
 export function buildBalanceteReadmeText(options: {
   periodLabel: string
   accountFilterLabel?: string
+  typeFilterLabel?: string
   attachmentCount: number
 }): string {
   const filterLine = options.accountFilterLabel
     ? `Conta filtrada: ${options.accountFilterLabel}`
     : 'Conta filtrada: Todas as contas'
+  const typeLine = options.typeFilterLabel
+    ? `Tipo: ${options.typeFilterLabel}`
+    : 'Tipo: Receitas e Despesas'
 
   return [
     'Pacote contábil — Templários da Paz',
     '================================',
     '',
     `Período: ${options.periodLabel}`,
+    typeLine,
     filterLine,
     `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
     '',

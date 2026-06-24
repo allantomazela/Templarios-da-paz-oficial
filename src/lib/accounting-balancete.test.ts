@@ -60,5 +60,21 @@ describe('accounting-balancete', () => {
       'nf-material.pdf',
     )
     expect(report.accountSections[0].entries[0].attachmentNotes).toBe('PIX confirmado')
+    expect(report.typeFilter).toBe('all')
+  })
+
+  it('filtra somente receitas quando solicitado', () => {
+    const period = {
+      start: startOfMonth(new Date(2026, 2, 1)),
+      end: endOfMonth(new Date(2026, 2, 1)),
+    }
+
+    const report = buildAccountingBalancete(accounts, transactions, {}, period, 'all', 'Receita')
+
+    expect(report.periodTransactionCount).toBe(1)
+    expect(report.accountSections[0].entries).toHaveLength(1)
+    expect(report.accountSections[0].entries[0].type).toBe('Receita')
+    expect(report.expenseByCategory).toEqual({})
+    expect(report.typeFilter).toBe('Receita')
   })
 })

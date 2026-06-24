@@ -494,3 +494,179 @@ h6 {
 .bg-sidebar .text-muted-foreground {
   color: hsl(var(--sidebar-foreground) / 0.78) !important;
 }
+
+/* Balancete contábil — tela e impressão */
+.balancete-document {
+  width: 100%;
+  min-width: 0;
+  color: #111827;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.balancete-section {
+  margin-bottom: 1.25rem;
+}
+
+.balancete-section-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.balancete-subsection-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.balancete-categories-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .balancete-categories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.balancete-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.balancete-table {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.balancete-table-compact {
+  min-width: 18rem;
+}
+
+.balancete-table-ledger {
+  min-width: 52rem;
+}
+
+.balancete-table th,
+.balancete-table td {
+  border: 1px solid #d1d5db;
+  padding: 0.45rem 0.5rem;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.balancete-table th {
+  background: #f3f4f6;
+  font-weight: 700;
+  text-align: left;
+}
+
+.balancete-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.balancete-col-date {
+  width: 5.5rem;
+}
+
+.balancete-col-category {
+  width: 7.5rem;
+}
+
+.balancete-col-amount {
+  width: 6.5rem;
+}
+
+.balancete-col-description {
+  width: 14rem;
+}
+
+.balancete-col-notes {
+  width: auto;
+}
+
+.balancete-credit {
+  color: #15803d;
+}
+
+.balancete-debit {
+  color: #b91c1c;
+}
+
+.balancete-strong {
+  font-weight: 700;
+}
+
+.balancete-muted {
+  color: #6b7280;
+}
+
+.balancete-total-row td {
+  border-top: 2px solid #111827;
+  font-weight: 700;
+}
+
+.balancete-note-line {
+  margin-bottom: 0.25rem;
+}
+
+.balancete-attachment-list {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.balancete-footer {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #d1d5db;
+  font-size: 0.6875rem;
+  color: #6b7280;
+}
+
+.balancete-ledger-section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  #financial-balancete-container {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+
+  #financial-balancete-container .balancete-document {
+    font-size: 8.5pt;
+  }
+
+  #financial-balancete-container .balancete-table-wrap {
+    overflow: visible;
+  }
+
+  #financial-balancete-container .balancete-table {
+    min-width: 0;
+    font-size: 8pt;
+  }
+
+  #financial-balancete-container .balancete-table th,
+  #financial-balancete-container .balancete-table td {
+    padding: 3pt 4pt;
+  }
+
+  #financial-balancete-container .balancete-credit,
+  #financial-balancete-container .balancete-debit {
+    color: #000 !important;
+  }
+
+  #financial-balancete-container .balancete-ledger-section tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

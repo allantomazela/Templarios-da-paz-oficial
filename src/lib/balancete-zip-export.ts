@@ -21,6 +21,7 @@ export interface ExportBalanceteZipInput {
   balancete: AccountingBalanceteData
   periodLabel: string
   accountFilterLabel?: string
+  typeFilterLabel?: string
   attachmentsByTransactionId: Record<string, FinancialTransactionAttachment[]>
 }
 
@@ -64,6 +65,7 @@ export async function exportBalanceteZip(input: ExportBalanceteZipInput): Promis
     buildBalanceteReadmeText({
       periodLabel: input.periodLabel,
       accountFilterLabel: input.accountFilterLabel,
+      typeFilterLabel: input.typeFilterLabel,
       attachmentCount: attachmentPlans.length,
     }),
   )

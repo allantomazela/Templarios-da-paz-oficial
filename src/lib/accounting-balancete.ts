@@ -8,6 +8,14 @@ import {
 } from '@/lib/cash-flow'
 import { getCalendarDateTimestamp } from '@/lib/format-utils'
 
+export type BalanceteTypeFilter = 'all' | 'Receita' | 'Despesa'
+
+export const BALANCETE_TYPE_FILTER_LABELS: Record<BalanceteTypeFilter, string> = {
+  all: 'Receitas e Despesas',
+  Receita: 'Somente Receitas',
+  Despesa: 'Somente Despesas',
+}
+
 export interface BalanceteAttachmentInput {
   documentType: FinancialDocumentType
   fileName: string
@@ -58,6 +66,7 @@ export interface AccountingBalanceteData {
   incomeByCategory: Record<string, number>
   expenseByCategory: Record<string, number>
   periodTransactionCount: number
+  typeFilter: BalanceteTypeFilter
 }
 
 function mapToLedgerEntry(
@@ -83,149 +92,25 @@ function mapToLedgerEntry(
   }
 }
 
-function sortTransactionsByDate(transactions: Transaction[]): Transaction[] {
-  return [...transactions].sort(
-    (left, right) =>
-      getCalendarDateTimestamp(left.date) - getCalendarDateTimestamp(right.date),
-  )
-}
-
-export function buildAccountingBalancete(
-  accounts: BankAccount[],
+function filterTransactionsByType(
   transactions: Transaction[],
-  attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
-  period: CashFlowPeriod,
-  accountFilter: string = 'all',
-): AccountingBalanceteData {
-  const cashFlow = buildCashFlowReport(accounts, transactions, period, accountFilter)
-  const periodTransactions = filterTransactionsInPeriod(
-    transactions,
-    period,
-    accountFilter === 'all' ? null : accountFilter,
-  )
-
-  const accountSections: BalanceteAccountSection[] = cashFlow.accountSummaries.map(
-    (summary) => ({
-      accountId: summary.accountId,
-      accountName: summary.accountName,
-      accountType: summary.accountType,
-      openingBalance: summary.openingBalance,
-      totalCredits: summary.periodIncome,
-      totalDebits: summary.periodExpense,
-      closingBalance: summary.closingBalance,
-      entries: sortTransactionsByDate(
-        periodTransactions.filter(
-          (transaction) => transaction.accountId === summary.accountId,
-        ),
-      ).map((transaction) =>
-        mapToLedgerEntry(
-          transaction,
-          summary.accountName,
-          attachmentsByTransactionId[transaction.id] ?? [],
-        ),
-      ),
-    }),
-  )
-
-  const unassignedEntries = sortTransactionsByDate(
-    periodTransactions.filter((transaction) => !transaction.accountId),
-  ).map((transaction) =>
-    mapToLedgerEntry(
-      transaction,
-      'Sem conta',
-      attachmentsByTransactionId[transaction.id] ?? [],
-    ),
-  )
-
-  return {
-    accountSections,
-    unassignedEntries,
-    totalsRow: {
-      accountName: cashFlow.totalsRow.accountName,
-      openingBalance: cashFlow.totalsRow.openingBalance,
-      totalCredits: cashFlow.totalsRow.periodIncome,
-      totalDebits: cashFlow.totalsRow.periodExpense,
-      closingBalance: cashFlow.totalsRow.closingBalance,
-    },
-    incomeByCategory: cashFlow.incomeByCategory,
-    expenseByCategory: cashFlow.expenseByCategory,
-    periodTransactionCount: periodTransactions.length,
-  }
-}
-
-export function filterTransactionsForBalancetePeriod(
-  transactions: Transaction[],
-  period: CashFlowPeriod | null,
-  accountFilter: string,
+  typeFilter: BalanceteTypeFilter,
 ): Transaction[] {
-  if (!period) {
-    if (accountFilter === 'all') return transactions
-    return transactions.filter((transaction) => transaction.accountId === accountFilter)
-  }
-
-  return filterTransactionsInPeriod(
-    transactions,
-    period,
-    accountFilter === 'all' ? null : accountFilter,
-  )
+  if (typeFilter === 'all') return transactions
+  return transactions.filter((transaction) => transaction.type === typeFilter)
 }
 
-export function buildAccountingBalanceteAllPeriods(
-  accounts: BankAccount[],
-  transactions: Transaction[],
-  attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
-  accountFilter: string = 'all',
-): AccountingBalanceteData {
-  const filteredAccounts =
-    accountFilter === 'all'
-      ? accounts
-      : accounts.filter((account) => account.id === accountFilter)
+function sumEntriesByType(
+  entries: BalanceteLedgerEntry[],
+  type: 'Receita' | 'Despesa',
+): number {
+  return entries
+    .filter((entry) => entry.type === type)
+    .reduce((sum, entry) => sum + entry.amount, 0)
+}
 
-  const filteredTransactions =
-    accountFilter === 'all'
-      ? transactions
-      : transactions.filter((transaction) => transaction.accountId === accountFilter)
-
-  const accountSections: BalanceteAccountSection[] = filteredAccounts.map((account) => {
-    const accountTransactions = filteredTransactions.filter(
-      (transaction) => transaction.accountId === account.id,
-    )
-    const totalCredits = accountTransactions
-      .filter((transaction) => transaction.type === 'Receita')
-      .reduce((sum, transaction) => sum + transaction.amount, 0)
-    const totalDebits = accountTransactions
-      .filter((transaction) => transaction.type === 'Despesa')
-      .reduce((sum, transaction) => sum + transaction.amount, 0)
-
-    return {
-      accountId: account.id,
-      accountName: account.name,
-      accountType: account.type,
-      openingBalance: account.initialBalance,
-      totalCredits,
-      totalDebits,
-      closingBalance: account.initialBalance + totalCredits - totalDebits,
-      entries: sortTransactionsByDate(accountTransactions).map((transaction) =>
-        mapToLedgerEntry(
-          transaction,
-          account.name,
-          attachmentsByTransactionId[transaction.id] ?? [],
-        ),
-      ),
-    }
-  })
-
-  const unassignedEntries = sortTransactionsByDate(
-    filteredTransactions.filter((transaction) => !transaction.accountId),
-  ).map((transaction) =>
-    mapToLedgerEntry(
-      transaction,
-      'Sem conta',
-      attachmentsByTransactionId[transaction.id] ?? [],
-    ),
-  )
-
-  const totalsRow = accountSections.reduce<BalanceteTotalsRow>(
+function buildTotalsRow(sections: BalanceteAccountSection[]): BalanceteTotalsRow {
+  return sections.reduce<BalanceteTotalsRow>(
     (accumulator, section) => ({
       accountName: 'TOTAL GERAL',
       openingBalance: accumulator.openingBalance + section.openingBalance,
@@ -241,29 +126,248 @@ export function buildAccountingBalanceteAllPeriods(
       closingBalance: 0,
     },
   )
+}
 
-  const incomeByCategory = filteredTransactions
-    .filter((transaction) => transaction.type === 'Receita')
+function buildCategoryTotals(
+  transactions: Transaction[],
+  type: 'Receita' | 'Despesa',
+): Record<string, number> {
+  return transactions
+    .filter((transaction) => transaction.type === type)
     .reduce<Record<string, number>>((accumulator, transaction) => {
       accumulator[transaction.category] =
         (accumulator[transaction.category] || 0) + transaction.amount
       return accumulator
     }, {})
+}
 
-  const expenseByCategory = filteredTransactions
-    .filter((transaction) => transaction.type === 'Despesa')
-    .reduce<Record<string, number>>((accumulator, transaction) => {
-      accumulator[transaction.category] =
-        (accumulator[transaction.category] || 0) + transaction.amount
-      return accumulator
-    }, {})
+function mapAccountSection(
+  summary: {
+    accountId: string
+    accountName: string
+    accountType: string
+    openingBalance: number
+    periodIncome: number
+    periodExpense: number
+    closingBalance: number
+  },
+  periodTransactions: Transaction[],
+  attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
+  typeFilter: BalanceteTypeFilter,
+): BalanceteAccountSection {
+  const accountTransactions = filterTransactionsByType(
+    periodTransactions.filter((transaction) => transaction.accountId === summary.accountId),
+    typeFilter,
+  )
+  const entries = sortTransactionsByDate(accountTransactions).map((transaction) =>
+    mapToLedgerEntry(
+      transaction,
+      summary.accountName,
+      attachmentsByTransactionId[transaction.id] ?? [],
+    ),
+  )
+
+  if (typeFilter === 'all') {
+    return {
+      accountId: summary.accountId,
+      accountName: summary.accountName,
+      accountType: summary.accountType,
+      openingBalance: summary.openingBalance,
+      totalCredits: summary.periodIncome,
+      totalDebits: summary.periodExpense,
+      closingBalance: summary.closingBalance,
+      entries,
+    }
+  }
+
+  const totalCredits = sumEntriesByType(entries, 'Receita')
+  const totalDebits = sumEntriesByType(entries, 'Despesa')
+  const movementTotal = typeFilter === 'Receita' ? totalCredits : totalDebits
 
   return {
+    accountId: summary.accountId,
+    accountName: summary.accountName,
+    accountType: summary.accountType,
+    openingBalance: 0,
+    totalCredits,
+    totalDebits,
+    closingBalance: movementTotal,
+    entries,
+  }
+}
+
+function sortTransactionsByDate(transactions: Transaction[]): Transaction[] {
+  return [...transactions].sort(
+    (left, right) =>
+      getCalendarDateTimestamp(left.date) - getCalendarDateTimestamp(right.date),
+  )
+}
+
+function buildUnassignedEntries(
+  periodTransactions: Transaction[],
+  attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
+  typeFilter: BalanceteTypeFilter,
+): BalanceteLedgerEntry[] {
+  return sortTransactionsByDate(
+    filterTransactionsByType(
+      periodTransactions.filter((transaction) => !transaction.accountId),
+      typeFilter,
+    ),
+  ).map((transaction) =>
+    mapToLedgerEntry(
+      transaction,
+      'Sem conta',
+      attachmentsByTransactionId[transaction.id] ?? [],
+    ),
+  )
+}
+
+function finalizeBalanceteData(
+  accountSections: BalanceteAccountSection[],
+  unassignedEntries: BalanceteLedgerEntry[],
+  periodTransactions: Transaction[],
+  typeFilter: BalanceteTypeFilter,
+): AccountingBalanceteData {
+  const filteredPeriodTransactions = filterTransactionsByType(periodTransactions, typeFilter)
+  const visibleSections =
+    typeFilter === 'all'
+      ? accountSections
+      : accountSections.filter((section) => section.entries.length > 0)
+
+  return {
+    accountSections: visibleSections,
+    unassignedEntries,
+    totalsRow:
+      typeFilter === 'all'
+        ? buildTotalsRow(accountSections)
+        : buildTotalsRow(visibleSections),
+    incomeByCategory: buildCategoryTotals(filteredPeriodTransactions, 'Receita'),
+    expenseByCategory: buildCategoryTotals(filteredPeriodTransactions, 'Despesa'),
+    periodTransactionCount: filteredPeriodTransactions.length,
+    typeFilter,
+  }
+}
+
+export function buildAccountingBalancete(
+  accounts: BankAccount[],
+  transactions: Transaction[],
+  attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
+  period: CashFlowPeriod,
+  accountFilter: string = 'all',
+  typeFilter: BalanceteTypeFilter = 'all',
+): AccountingBalanceteData {
+  const cashFlow = buildCashFlowReport(accounts, transactions, period, accountFilter)
+  const periodTransactions = filterTransactionsInPeriod(
+    transactions,
+    period,
+    accountFilter === 'all' ? null : accountFilter,
+  )
+
+  const accountSections = cashFlow.accountSummaries.map((summary) =>
+    mapAccountSection(
+      summary,
+      periodTransactions,
+      attachmentsByTransactionId,
+      typeFilter,
+    ),
+  )
+
+  const unassignedEntries = buildUnassignedEntries(
+    periodTransactions,
+    attachmentsByTransactionId,
+    typeFilter,
+  )
+
+  return finalizeBalanceteData(
     accountSections,
     unassignedEntries,
-    totalsRow,
-    incomeByCategory,
-    expenseByCategory,
-    periodTransactionCount: filteredTransactions.length,
+    periodTransactions,
+    typeFilter,
+  )
+}
+
+export function filterTransactionsForBalancetePeriod(
+  transactions: Transaction[],
+  period: CashFlowPeriod | null,
+  accountFilter: string,
+  typeFilter: BalanceteTypeFilter = 'all',
+): Transaction[] {
+  let filtered: Transaction[]
+
+  if (!period) {
+    filtered =
+      accountFilter === 'all'
+        ? transactions
+        : transactions.filter((transaction) => transaction.accountId === accountFilter)
+  } else {
+    filtered = filterTransactionsInPeriod(
+      transactions,
+      period,
+      accountFilter === 'all' ? null : accountFilter,
+    )
   }
+
+  return filterTransactionsByType(filtered, typeFilter)
+}
+
+export function buildAccountingBalanceteAllPeriods(
+  accounts: BankAccount[],
+  transactions: Transaction[],
+  attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
+  accountFilter: string = 'all',
+  typeFilter: BalanceteTypeFilter = 'all',
+): AccountingBalanceteData {
+  const filteredAccounts =
+    accountFilter === 'all'
+      ? accounts
+      : accounts.filter((account) => account.id === accountFilter)
+
+  const filteredTransactions =
+    accountFilter === 'all'
+      ? transactions
+      : transactions.filter((transaction) => transaction.accountId === accountFilter)
+
+  const accountSections = filteredAccounts.map((account) => {
+    const summary = {
+      accountId: account.id,
+      accountName: account.name,
+      accountType: account.type,
+      openingBalance: account.initialBalance,
+      periodIncome: filteredTransactions
+        .filter(
+          (transaction) =>
+            transaction.accountId === account.id && transaction.type === 'Receita',
+        )
+        .reduce((sum, transaction) => sum + transaction.amount, 0),
+      periodExpense: filteredTransactions
+        .filter(
+          (transaction) =>
+            transaction.accountId === account.id && transaction.type === 'Despesa',
+        )
+        .reduce((sum, transaction) => sum + transaction.amount, 0),
+      closingBalance: 0,
+    }
+    summary.closingBalance =
+      summary.openingBalance + summary.periodIncome - summary.periodExpense
+
+    return mapAccountSection(
+      summary,
+      filteredTransactions,
+      attachmentsByTransactionId,
+      typeFilter,
+    )
+  })
+
+  const unassignedEntries = buildUnassignedEntries(
+    filteredTransactions,
+    attachmentsByTransactionId,
+    typeFilter,
+  )
+
+  return finalizeBalanceteData(
+    accountSections,
+    unassignedEntries,
+    filteredTransactions,
+    typeFilter,
+  )
 }

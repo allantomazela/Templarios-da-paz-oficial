@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { logError } from '@/lib/logger'
 import { toError } from '@/lib/async-utils'
@@ -106,10 +106,12 @@ export function useAsyncOperation<T = unknown>(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [data, setData] = useState<T | null>(null)
+  const inFlightRef = useRef(0)
   const { toast } = useToast()
 
   const execute = useCallback(
     async (...args: any[]): Promise<T | null> => {
+      inFlightRef.current += 1
       setLoading(true)
       setError(null)
       setData(null)
@@ -143,13 +145,17 @@ export function useAsyncOperation<T = unknown>(
 
         return null
       } finally {
-        setLoading(false)
+        inFlightRef.current = Math.max(0, inFlightRef.current - 1)
+        if (inFlightRef.current === 0) {
+          setLoading(false)
+        }
       }
     },
     [operation, successMessage, errorMessage, showSuccessToast, showErrorToast, onSuccess, onError, toast],
   )
 
   const reset = useCallback(() => {
+    inFlightRef.current = 0
     setLoading(false)
     setError(null)
     setData(null)

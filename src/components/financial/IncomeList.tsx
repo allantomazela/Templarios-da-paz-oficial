@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { Transaction, BankAccount } from '@/lib/data'
+import { useState, useRef, useMemo } from 'react'
+import { Transaction } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -30,57 +30,31 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { formatCurrencyBRL } from '@/lib/format-utils'
-import useFinancialStore, { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { useFinancialAttachmentAccess } from '@/hooks/use-financial-attachment-access'
+import { useFinancialTransactionList } from '@/hooks/use-financial-transaction-list'
 import {
   deleteFinancialTransaction,
-  loadTransactionsByType,
   saveFinancialTransaction,
 } from '@/lib/financial-transaction-api'
-import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
 import {
   computeCashAvailability,
   sumTransactionAmounts,
 } from '@/lib/financial-balance-math'
 
 export function IncomeList() {
-  const [incomes, setIncomes] = useState<Transaction[]>([])
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
-  const [accountNames, setAccountNames] = useState<Record<string, string>>({})
+  const {
+    transactions: incomes,
+    accounts,
+    allTransactions,
+    accountNames,
+    loading,
+  } = useFinancialTransactionList('Receita')
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
-  const dataRevision = useFinancialStore((s) => s.dataRevision)
   const canManageAttachments = useFinancialAttachmentAccess()
-
-  // Load incomes from Supabase
-  const loadIncomes = useAsyncOperation(
-    async () => {
-      const [{ transactions, accountNames: namesById }, cashData] = await Promise.all([
-        loadTransactionsByType('Receita', { includeAttachmentCounts: canManageAttachments }),
-        fetchFinancialAccountsAndTransactions(),
-      ])
-
-      setAccountNames(namesById)
-      setIncomes(transactions)
-      setAccounts(cashData.accounts)
-      setAllTransactions(cashData.transactions)
-      return null
-    },
-    {
-      showSuccessToast: false,
-      errorMessage: 'Falha ao carregar receitas.',
-    },
-  )
-
-  const loading = loadIncomes.loading
-
-  useEffect(() => {
-    void loadIncomes.execute()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataRevision, canManageAttachments])
 
   const filteredIncomes = incomes.filter(
     (income) =>

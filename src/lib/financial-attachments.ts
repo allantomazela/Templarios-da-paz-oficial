@@ -24,6 +24,7 @@ export interface FinancialTransactionAttachment {
 }
 
 const UPLOAD_TIMEOUT_MS = 300000
+const ATTACHMENT_QUERY_TIMEOUT_MS = 15_000
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -98,11 +99,15 @@ export async function fetchAttachmentsByTransactionIds(
 
   for (let index = 0; index < transactionIds.length; index += ATTACHMENT_BATCH_SIZE) {
     const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
-    const { data, error } = await supabaseAny
-      .from('financial_transaction_attachments')
-      .select('*')
-      .in('transaction_id', batch)
-      .order('created_at', { ascending: true })
+    const { data, error } = await withTimeout(
+      supabaseAny
+        .from('financial_transaction_attachments')
+        .select('*')
+        .in('transaction_id', batch)
+        .order('created_at', { ascending: true }),
+      ATTACHMENT_QUERY_TIMEOUT_MS,
+      'Consulta de comprovantes demorou demais.',
+    )
 
     if (error) {
       logError('fetchAttachmentsByTransactionIds', error)
@@ -130,10 +135,14 @@ export async function fetchAttachmentCountsByTransaction(
 
   for (let index = 0; index < transactionIds.length; index += ATTACHMENT_BATCH_SIZE) {
     const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
-    const { data, error } = await supabaseAny
-      .from('financial_transaction_attachments')
-      .select('transaction_id')
-      .in('transaction_id', batch)
+    const { data, error } = await withTimeout(
+      supabaseAny
+        .from('financial_transaction_attachments')
+        .select('transaction_id')
+        .in('transaction_id', batch),
+      ATTACHMENT_QUERY_TIMEOUT_MS,
+      'Consulta de comprovantes demorou demais.',
+    )
 
     if (error) {
       logError('fetchAttachmentCountsByTransaction', error)

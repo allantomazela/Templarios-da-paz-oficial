@@ -1,8 +1,9 @@
 /* Main entry point for the application - renders the root React component */
 import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
 import './main.css'
 import { logDebug, logWarning } from '@/lib/logger'
+import { getEnvConfigError } from '@/lib/env-config'
+import { EnvConfigError } from '@/components/EnvConfigError'
 
 // Suppress browser extension errors that don't affect our application
 // These errors occur when browser extensions try to intercept messages
@@ -131,7 +132,34 @@ if ('serviceWorker' in navigator) {
   })
 }
 
-createRoot(document.getElementById('root')!).render(<App />)
+const rootElement = document.getElementById('root')
+if (!rootElement) {
+  throw new Error('Elemento #root não encontrado no HTML.')
+}
+
+const envConfigError = getEnvConfigError()
+const root = createRoot(rootElement)
+
+function renderBootstrapError(message: string) {
+  root.render(<EnvConfigError message={message} />)
+}
+
+if (envConfigError) {
+  renderBootstrapError(envConfigError)
+} else {
+  import('./App.tsx')
+    .then(({ default: App }) => {
+      root.render(<App />)
+    })
+    .catch((error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Falha ao carregar a aplicação.'
+      logWarning('Falha ao carregar App', error)
+      renderBootstrapError(message)
+    })
+}
 
 // Limpar flags de reload após carregamento ok (permite novo reload após próximo deploy)
 setTimeout(() => {

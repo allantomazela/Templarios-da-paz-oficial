@@ -34,7 +34,12 @@ jobs:
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      run: npm run build
+      run: |
+        if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+          echo "::error::Secrets VITE_SUPABASE_URL e/ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados em GitHub → Settings → Secrets → Actions."
+          exit 1
+        fi
+        npm run build
 
     # dist/ contém index.html, assets/ e tudo que está em public/ (favicon, icon-192, icon-512, manifest, sw.js)
     - name: 6. Enviando build para o servidor

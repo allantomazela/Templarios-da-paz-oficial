@@ -1,5 +1,6 @@
 /* Main entry point for the application - renders the root React component */
 import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
 import './main.css'
 import { logDebug, logWarning } from '@/lib/logger'
 import { getEnvConfigError } from '@/lib/env-config'
@@ -147,18 +148,7 @@ function renderBootstrapError(message: string) {
 if (envConfigError) {
   renderBootstrapError(envConfigError)
 } else {
-  import('./App.tsx')
-    .then(({ default: App }) => {
-      root.render(<App />)
-    })
-    .catch((error: unknown) => {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Falha ao carregar a aplicação.'
-      logWarning('Falha ao carregar App', error)
-      renderBootstrapError(message)
-    })
+  root.render(<App />)
 }
 
 // Limpar flags de reload após carregamento ok (permite novo reload após próximo deploy)

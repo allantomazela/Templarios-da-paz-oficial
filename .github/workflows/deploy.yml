@@ -52,11 +52,55 @@ jobs:
         echo "$SSH_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
         SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ConnectionAttempts=3 -i ~/.ssh/deploy_key"
+        REMOTE="${USERNAME}@${HOST}"
+        LIVE="/var/www/templarios"
+        NEXT="/var/www/templarios-next"
+
+        MAIN_JS=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -1 | sed 's/.*src="\/assets\///;s/"//')
+        MAIN_CSS=$(grep -oE 'href="/assets/index-[^"]+\.css"' dist/index.html | head -1 | sed 's/.*href="\/assets\///;s/"//')
+
+        if [ -z "$MAIN_JS" ] || [ ! -f "dist/assets/$MAIN_JS" ]; then
+          echo "::error::Bundle principal JS não encontrado em dist/"
+          exit 1
+        fi
+
+        JS_SIZE=$(stat -c%s "dist/assets/$MAIN_JS")
+        if [ "$JS_SIZE" -lt 100000 ]; then
+          echo "::error::Bundle principal muito pequeno ($JS_SIZE bytes): $MAIN_JS"
+          exit 1
+        fi
+
+        echo "Bundle principal local: assets/$MAIN_JS ($JS_SIZE bytes)"
+        if [ -n "$MAIN_CSS" ] && [ ! -f "dist/assets/$MAIN_CSS" ]; then
+          echo "::error::CSS principal não encontrado: $MAIN_CSS"
+          exit 1
+        fi
+
         deploy() {
-          ssh $SSH_OPTS ${USERNAME}@${HOST} "mkdir -p /var/www/templarios"
-          rsync -avz --delete -e "ssh $SSH_OPTS" dist/ ${USERNAME}@${HOST}:/var/www/templarios/
-          ssh $SSH_OPTS ${USERNAME}@${HOST} "chown -R www-data:www-data /var/www/templarios && echo '✅ Site atualizado!'"
+          ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
+          rsync -avz --partial --delay-updates -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
+          ssh $SSH_OPTS "$REMOTE" "
+            set -e
+            test -f '$NEXT/index.html'
+            test -f '$NEXT/assets/$MAIN_JS'
+            JS_REMOTE=\$(stat -c%s '$NEXT/assets/$MAIN_JS')
+            test \"\$JS_REMOTE\" -ge 100000
+            rm -rf '${LIVE}.old'
+            if [ -d '$LIVE' ]; then mv '$LIVE' '${LIVE}.old'; fi
+            mv '$NEXT' '$LIVE'
+            chown -R www-data:www-data '$LIVE'
+            echo 'Site atualizado com swap atomico'
+          "
+
+          CODE_HTML=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 "https://www.templariosdapazoficial.com.br/")
+          CODE_JS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS")
+          echo "Verificação pós-deploy: / -> HTTP $CODE_HTML, /assets/$MAIN_JS -> HTTP $CODE_JS"
+          if [ "$CODE_HTML" != "200" ] || [ "$CODE_JS" != "200" ]; then
+            echo "::error::Verificação pós-deploy falhou (HTML=$CODE_HTML JS=$CODE_JS)"
+            exit 1
+          fi
         }
+
         for i in 1 2 3; do
           echo "Tentativa $i de 3..."
           if deploy; then exit 0; fi

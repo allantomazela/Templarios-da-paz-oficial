@@ -1,31 +1,29 @@
 // AVOID UPDATING THIS FILE DIRECTLY. It is automatically generated.
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env
-  .VITE_SUPABASE_PUBLISHABLE_KEY as string
+const SUPABASE_URL = (
+  import.meta.env.VITE_SUPABASE_URL as string | undefined
+)?.trim() ?? ''
+const SUPABASE_PUBLISHABLE_KEY = (
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
+)?.trim() ?? ''
 
-// Validate environment variables
-if (!SUPABASE_URL) {
-  throw new Error(
-    'Missing env.VITE_SUPABASE_URL - Crie um arquivo .env na raiz do projeto com VITE_SUPABASE_URL',
-  )
-}
+let supabaseInstance: SupabaseClient<Database> | null = null
 
-if (!SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error(
-    'Missing env.VITE_SUPABASE_PUBLISHABLE_KEY - Crie um arquivo .env na raiz do projeto com VITE_SUPABASE_PUBLISHABLE_KEY',
-  )
-}
+function createSupabaseClient(): SupabaseClient<Database> {
+  if (!SUPABASE_URL) {
+    throw new Error(
+      'Missing env.VITE_SUPABASE_URL - Crie um arquivo .env na raiz do projeto com VITE_SUPABASE_URL',
+    )
+  }
 
-// Singleton pattern to prevent multiple instances
-let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null
+  if (!SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error(
+      'Missing env.VITE_SUPABASE_PUBLISHABLE_KEY - Crie um arquivo .env na raiz do projeto com VITE_SUPABASE_PUBLISHABLE_KEY',
+    )
+  }
 
-// Import the supabase client like this:
-// import { supabase } from "@/lib/supabase/client";
-
-export const supabase = (() => {
   if (!supabaseInstance) {
     supabaseInstance = createClient<Database>(
       SUPABASE_URL,
@@ -37,7 +35,6 @@ export const supabase = (() => {
           autoRefreshToken: true,
           detectSessionInUrl: true,
           flowType: 'pkce',
-          // Handle token refresh errors gracefully
           storageKey: 'sb-auth-token',
         },
         global: {
@@ -48,5 +45,19 @@ export const supabase = (() => {
       },
     )
   }
+
   return supabaseInstance
-})()
+}
+
+// Import the supabase client like this:
+// import { supabase } from "@/lib/supabase/client";
+
+export const supabase = new Proxy({} as SupabaseClient<Database>, {
+  get(_target, prop) {
+    const client = createSupabaseClient()
+    const value = (client as unknown as Record<string | symbol, unknown>)[prop]
+    return typeof value === 'function'
+      ? (value as (...args: unknown[]) => unknown).bind(client)
+      : value
+  },
+})

@@ -258,6 +258,10 @@
   #custom-report-container *,
   #chancellor-report-container,
   #chancellor-report-container *,
+  #financial-balancete-container,
+  #financial-balancete-container *,
+  #financial-summary-report-container,
+  #financial-summary-report-container *,
   #visitor-certificate-container,
   #visitor-certificate-container *,
   #visitor-certificate-dialog-container,
@@ -270,7 +274,9 @@
   #agenda-monthly-report-container,
   #agenda-report-container,
   #custom-report-container,
-  #chancellor-report-container {
+  #chancellor-report-container,
+  #financial-balancete-container,
+  #financial-summary-report-container {
     position: absolute;
     left: 0;
     top: 0;

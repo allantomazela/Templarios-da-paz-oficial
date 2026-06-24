@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -19,23 +19,11 @@ import {
   Download,
   Filter,
   BarChart3,
-  AlertCircle,
   Calendar,
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase/client'
-import { logDebug } from '@/lib/logger'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
+import { useReactToPrint } from 'react-to-print'
 import {
   Select,
   SelectContent,
@@ -43,208 +31,160 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  format,
-  isWithinInterval,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-  subMonths,
-} from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { formatCurrencyBRL, parseCalendarDate } from '@/lib/format-utils'
-import { Transaction } from '@/lib/data'
-
-interface TransactionFromDB {
-  id: string
-  date: string
-  description: string
-  category: string
-  type: 'Receita' | 'Despesa'
-  amount: number
-  account_id: string | null
-}
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { formatCurrencyBRL, formatDateBR, parseCalendarDate } from '@/lib/format-utils'
+import type { BankAccount, Transaction } from '@/lib/data'
+import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
+import useFinancialStore from '@/stores/useFinancialStore'
+import { isWithinInterval } from 'date-fns'
+import {
+  FINANCIAL_REPORT_PERIOD_LABELS,
+  getFinancialReportDateRange,
+  getFinancialReportPeriodLabel,
+  type FinancialReportPeriodKey,
+} from '@/lib/financial-report-period'
+import { ReportHeader } from '@/components/reports/ReportHeader'
+import { AccountingBalanceteReport } from '@/components/financial/AccountingBalanceteReport'
 
 export function FinancialReports() {
   const { toast } = useToast()
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
-  const [period, setPeriod] = useState('current_month')
-  const supabaseAny = supabase as any
+  const [period, setPeriod] = useState<FinancialReportPeriodKey>('current_month')
+  const [activeTab, setActiveTab] = useState('balancete')
+  const printRef = useRef<HTMLDivElement>(null)
+  const dataRevision = useFinancialStore((state) => state.dataRevision)
 
-  // Load transactions from Supabase
   useEffect(() => {
-    const loadTransactions = async () => {
+    let isMounted = true
+
+    const loadData = async () => {
       setLoading(true)
       try {
-        const { data, error } = await supabaseAny
-          .from('financial_transactions')
-          .select('*')
-          .order('date', { ascending: false })
-
-        if (error) throw error
-
-        const mapped: Transaction[] = (data || []).map((t: TransactionFromDB) => ({
-          id: t.id,
-          date: t.date,
-          description: t.description,
-          category: t.category || 'Sem categoria',
-          type: t.type,
-          amount: parseFloat(t.amount.toString()),
-          accountId: t.account_id || undefined,
-        }))
-
-        setTransactions(mapped)
+        const data = await fetchFinancialAccountsAndTransactions()
+        if (!isMounted) return
+        setAccounts(data.accounts)
+        setTransactions(data.transactions)
       } catch (error) {
-        console.error('Error loading transactions:', error)
+        console.error('Error loading financial reports:', error)
         toast({
           title: 'Erro',
-          description: 'Falha ao carregar transações.',
+          description: 'Falha ao carregar dados dos relatórios.',
           variant: 'destructive',
         })
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
-    loadTransactions()
-  }, [supabaseAny, toast])
-  const [exportFields, setExportFields] = useState({
-    id: true,
-    date: true,
-    description: true,
-    category: true,
-    amount: true,
-    type: true,
-    timestamp: false,
-    statusHistory: false,
-  })
+    void loadData()
 
-  // Função para obter o intervalo de datas baseado no período selecionado
-  const getDateRange = useCallback(() => {
-    const now = new Date()
-    switch (period) {
-      case 'current_month':
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        }
-      case 'last_month':
-        return {
-          start: startOfMonth(subMonths(now, 1)),
-          end: endOfMonth(subMonths(now, 1)),
-        }
-      case 'current_year':
-        return {
-          start: startOfYear(now),
-          end: endOfYear(now),
-        }
-      case 'all':
-      default:
-        return null // null significa todos os dados
+    return () => {
+      isMounted = false
     }
-  }, [period])
+  }, [dataRevision, toast])
 
-  // Filtrar transações por período
+  const dateRange = useMemo(() => getFinancialReportDateRange(period), [period])
+  const periodLabel = useMemo(() => getFinancialReportPeriodLabel(period), [period])
+
   const filteredTransactions = useMemo(() => {
-    const dateRange = getDateRange()
     if (!dateRange) return transactions
 
-    return transactions.filter((t) => {
-      try {
-        const transactionDate = parseCalendarDate(t.date)
-        if (!transactionDate) return false
-        return isWithinInterval(transactionDate, {
-          start: dateRange.start,
-          end: dateRange.end,
-        })
-      } catch {
-        return false
-      }
+    return transactions.filter((transaction) => {
+      const transactionDate = parseCalendarDate(transaction.date)
+      if (!transactionDate) return false
+      return isWithinInterval(transactionDate, {
+        start: dateRange.start,
+        end: dateRange.end,
+      })
     })
-  }, [transactions, getDateRange])
+  }, [transactions, dateRange])
 
-  // Agregar dados para os gráficos
   const incomeByCategory = useMemo(() => {
-    const income = filteredTransactions.filter((t) => t.type === 'Receita')
+    const income = filteredTransactions.filter((transaction) => transaction.type === 'Receita')
     if (income.length === 0) return []
 
     return income
       .reduce(
-        (acc, curr) => {
-          const found = acc.find((i) => i.category === curr.category)
-          if (found) found.amount += curr.amount
-          else acc.push({ category: curr.category, amount: curr.amount })
-          return acc
+        (accumulator, transaction) => {
+          const found = accumulator.find((item) => item.category === transaction.category)
+          if (found) found.amount += transaction.amount
+          else accumulator.push({ category: transaction.category, amount: transaction.amount })
+          return accumulator
         },
         [] as { category: string; amount: number; fill?: string }[],
       )
-      .map((i, index) => ({
-        ...i,
+      .map((item, index) => ({
+        ...item,
         fill: `hsl(var(--chart-${(index % 5) + 1}))`,
       }))
   }, [filteredTransactions])
 
   const expenseByCategory = useMemo(() => {
-    const expenses = filteredTransactions.filter((t) => t.type === 'Despesa')
+    const expenses = filteredTransactions.filter((transaction) => transaction.type === 'Despesa')
     if (expenses.length === 0) return []
 
     return expenses
       .reduce(
-        (acc, curr) => {
-          const found = acc.find((i) => i.category === curr.category)
-          if (found) found.amount += curr.amount
-          else acc.push({ category: curr.category, amount: curr.amount })
-          return acc
+        (accumulator, transaction) => {
+          const found = accumulator.find((item) => item.category === transaction.category)
+          if (found) found.amount += transaction.amount
+          else accumulator.push({ category: transaction.category, amount: transaction.amount })
+          return accumulator
         },
         [] as { category: string; amount: number; fill?: string }[],
       )
-      .map((i, index) => ({
-        ...i,
+      .map((item, index) => ({
+        ...item,
         fill: `hsl(var(--chart-${(index % 5) + 1}))`,
       }))
   }, [filteredTransactions])
 
+  const totalIncome = incomeByCategory.reduce((sum, item) => sum + item.amount, 0)
+  const totalExpense = expenseByCategory.reduce((sum, item) => sum + item.amount, 0)
+  const balance = totalIncome - totalExpense
   const hasIncome = incomeByCategory.length > 0
   const hasExpenses = expenseByCategory.length > 0
   const hasAnyData = hasIncome || hasExpenses
 
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Relatorio_Financeiro_${period}`,
+    pageStyle: `
+      @page { size: A4; margin: 15mm 20mm; }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    `,
+    onAfterPrint: () => {
+      toast({
+        title: 'Relatório enviado à impressão',
+        description: 'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
+      })
+    },
+    onPrintError: () => {
+      toast({
+        title: 'Erro ao imprimir',
+        description: 'Não foi possível exportar o relatório. Tente novamente.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const pieConfig = {
     amount: { label: 'Valor' },
-  }
-
-  const handleExportClick = () => {
-    if (!hasAnyData) {
-      toast({
-        variant: 'destructive',
-        title: 'Nenhum dado para exportar',
-        description:
-          'Cadastre receitas ou despesas antes de exportar um relatório.',
-      })
-      return
-    }
-    setIsExportDialogOpen(true)
-  }
-
-  const confirmExport = () => {
-    const selected = Object.keys(exportFields).filter(
-      (k) => exportFields[k as keyof typeof exportFields],
-    )
-    logDebug('Exporting with fields', { selected })
-    toast({
-      title: 'Relatório Gerado',
-      description: `Relatório exportado com ${selected.length} campos selecionados.`,
-    })
-    setIsExportDialogOpen(false)
-  }
-
-  const getPeriodLabel = () => {
-    const dateRange = getDateRange()
-    if (!dateRange) return 'Todos os períodos'
-
-    return `${format(dateRange.start, "dd 'de' MMMM", { locale: ptBR })} - ${format(dateRange.end, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`
   }
 
   if (loading) {
@@ -260,343 +200,300 @@ export function FinancialReports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-medium">Relatórios Financeiros</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visualize a distribuição de receitas e despesas por categoria
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current_month">Mês Atual</SelectItem>
-              <SelectItem value="last_month">Mês Passado</SelectItem>
-              <SelectItem value="current_year">Ano Atual</SelectItem>
-              <SelectItem value="all">Todos os Períodos</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={handleExportClick}
-            variant="outline"
-            disabled={!hasAnyData}
-          >
-            <Download className="mr-2 h-4 w-4" /> Exportar Relatório
-          </Button>
-        </div>
+      <div>
+        <h3 className="text-lg font-medium">Relatórios Financeiros</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Resumo por categoria e balancete contábil completo para envio à contabilidade.
+        </p>
       </div>
 
-      {!hasAnyData ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="rounded-full bg-muted p-3 mb-4">
-              <BarChart3 className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h4 className="text-lg font-semibold mb-2">
-              Nenhum dado disponível
-            </h4>
-            <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
-              {filteredTransactions.length === 0 && transactions.length > 0
-                ? `Não há transações no período selecionado (${getPeriodLabel()}). Tente selecionar outro período.`
-                : 'Cadastre receitas ou despesas para visualizar os relatórios financeiros. Os gráficos serão gerados automaticamente.'}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="balancete">Balancete Contábil</TabsTrigger>
+          <TabsTrigger value="resumo">Resumo por Categoria</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="balancete">
+          <AccountingBalanceteReport
+            accounts={accounts}
+            transactions={transactions}
+            period={period}
+            onPeriodChange={setPeriod}
+          />
+        </TabsContent>
+
+        <TabsContent value="resumo" className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+            <p className="text-sm text-muted-foreground">
+              Distribuição de receitas e despesas — {periodLabel}
             </p>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <AlertCircle className="h-4 w-4" />
-              <span>
-                {transactions.length === 0
-                  ? 'Nenhuma transação cadastrada no sistema'
-                  : `${transactions.length} transação(ões) cadastrada(s) no total`}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Receitas por Categoria</CardTitle>
-                  <CardDescription className="mt-1">
-                    {getPeriodLabel()}
-                  </CardDescription>
-                </div>
-                {!hasIncome && (
-                  <div className="rounded-full bg-yellow-100 p-2">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
-                  </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {hasIncome ? (
-                <ChartContainer
-                  config={pieConfig}
-                  className="mx-auto aspect-square max-h-[300px]"
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          hideLabel
-                          formatter={(value) => formatCurrencyBRL(Number(value))}
-                        />
-                      }
-                    />
-                    <Pie
-                      data={incomeByCategory}
-                      dataKey="amount"
-                      nameKey="category"
-                      innerRadius={60}
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                  </PieChart>
-                </ChartContainer>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-muted p-3 mb-3">
-                    <Calendar className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma receita no período selecionado
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Despesas por Categoria</CardTitle>
-                  <CardDescription className="mt-1">
-                    {getPeriodLabel()}
-                  </CardDescription>
-                </div>
-                {!hasExpenses && (
-                  <div className="rounded-full bg-yellow-100 p-2">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
-                  </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {hasExpenses ? (
-                <ChartContainer
-                  config={pieConfig}
-                  className="mx-auto aspect-square max-h-[300px]"
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          hideLabel
-                          formatter={(value) => formatCurrencyBRL(Number(value))}
-                        />
-                      }
-                    />
-                    <Pie
-                      data={expenseByCategory}
-                      dataKey="amount"
-                      nameKey="category"
-                      innerRadius={60}
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                  </PieChart>
-                </ChartContainer>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-muted p-3 mb-3">
-                    <Calendar className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma despesa no período selecionado
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Resumo estatístico */}
-      {hasAnyData && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
-                Total de Receitas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrencyBRL(
-                  incomeByCategory.reduce((sum, item) => sum + item.amount, 0),
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {incomeByCategory.length} categoria(s)
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
-                Total de Despesas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrencyBRL(
-                  expenseByCategory.reduce((sum, item) => sum + item.amount, 0),
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {expenseByCategory.length} categoria(s)
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Saldo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-2xl font-bold ${
-                  incomeByCategory.reduce((sum, item) => sum + item.amount, 0) -
-                    expenseByCategory.reduce(
-                      (sum, item) => sum + item.amount,
-                      0,
-                    ) >=
-                  0
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                }`}
+            <div className="flex items-center gap-2">
+              <Select
+                value={period}
+                onValueChange={(value) => setPeriod(value as FinancialReportPeriodKey)}
               >
-                {formatCurrencyBRL(
-                  incomeByCategory.reduce((sum, item) => sum + item.amount, 0) -
-                    expenseByCategory.reduce(
-                      (sum, item) => sum + item.amount,
-                      0,
-                    ),
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {filteredTransactions.length} transação(ões) no período
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Opções de Exportação</DialogTitle>
-            <DialogDescription>
-              Selecione os campos detalhados para incluir no relatório.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-id"
-                checked={exportFields.id}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, id: !!c })
-                }
-              />
-              <Label htmlFor="field-id">ID da Transação</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-date"
-                checked={exportFields.date}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, date: !!c })
-                }
-              />
-              <Label htmlFor="field-date">Data</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-desc"
-                checked={exportFields.description}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, description: !!c })
-                }
-              />
-              <Label htmlFor="field-desc">Descrição</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-cat"
-                checked={exportFields.category}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, category: !!c })
-                }
-              />
-              <Label htmlFor="field-cat">Categoria</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-amt"
-                checked={exportFields.amount}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, amount: !!c })
-                }
-              />
-              <Label htmlFor="field-amt">Valor</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-type"
-                checked={exportFields.type}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, type: !!c })
-                }
-              />
-              <Label htmlFor="field-type">Tipo</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-ts"
-                checked={exportFields.timestamp}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, timestamp: !!c })
-                }
-              />
-              <Label htmlFor="field-ts">Timestamp (Criação)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="field-hist"
-                checked={exportFields.statusHistory}
-                onCheckedChange={(c) =>
-                  setExportFields({ ...exportFields, statusHistory: !!c })
-                }
-              />
-              <Label htmlFor="field-hist">Histórico de Status</Label>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(FINANCIAL_REPORT_PERIOD_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={() => handlePrint()}
+                variant="outline"
+                disabled={!hasAnyData}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Imprimir / Salvar PDF
+              </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsExportDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={confirmExport}>Exportar PDF</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          {!hasAnyData ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <div className="rounded-full bg-muted p-3 mb-4">
+                  <BarChart3 className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h4 className="text-lg font-semibold mb-2">Nenhum dado disponível</h4>
+                <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
+                  {filteredTransactions.length === 0 && transactions.length > 0
+                    ? `Não há transações no período selecionado (${periodLabel}).`
+                    : 'Cadastre receitas ou despesas para visualizar os relatórios.'}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid gap-6 md:grid-cols-2 no-print">
+                <CategoryChartCard
+                  title="Receitas por Categoria"
+                  periodLabel={periodLabel}
+                  hasData={hasIncome}
+                  data={incomeByCategory}
+                  pieConfig={pieConfig}
+                  emptyMessage="Nenhuma receita no período selecionado"
+                />
+                <CategoryChartCard
+                  title="Despesas por Categoria"
+                  periodLabel={periodLabel}
+                  hasData={hasExpenses}
+                  data={expenseByCategory}
+                  pieConfig={pieConfig}
+                  emptyMessage="Nenhuma despesa no período selecionado"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3 no-print">
+                <SummaryCard title="Total de Receitas" value={totalIncome} className="text-green-600" />
+                <SummaryCard title="Total de Despesas" value={totalExpense} className="text-red-600" />
+                <SummaryCard
+                  title="Saldo do Período"
+                  value={balance}
+                  className={balance >= 0 ? 'text-green-600' : 'text-red-600'}
+                />
+              </div>
+            </>
+          )}
+
+          <div
+            id="financial-summary-report-container"
+            className="hidden print:block"
+            ref={printRef}
+          >
+            <FinancialSummaryPrintDocument
+              periodLabel={periodLabel}
+              incomeByCategory={incomeByCategory}
+              expenseByCategory={expenseByCategory}
+              transactions={filteredTransactions}
+              totalIncome={totalIncome}
+              totalExpense={totalExpense}
+              balance={balance}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
+interface CategoryChartCardProps {
+  title: string
+  periodLabel: string
+  hasData: boolean
+  data: { category: string; amount: number; fill?: string }[]
+  pieConfig: Record<string, { label: string }>
+  emptyMessage: string
+}
+
+function CategoryChartCard({
+  title,
+  periodLabel,
+  hasData,
+  data,
+  pieConfig,
+  emptyMessage,
+}: CategoryChartCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{periodLabel}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {hasData ? (
+          <ChartContainer config={pieConfig} className="mx-auto aspect-square max-h-[300px]">
+            <PieChart>
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    hideLabel
+                    formatter={(value) => formatCurrencyBRL(Number(value))}
+                  />
+                }
+              />
+              <Pie data={data} dataKey="amount" nameKey="category" innerRadius={60} />
+              <ChartLegend content={<ChartLegendContent />} />
+            </PieChart>
+          </ChartContainer>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Calendar className="h-6 w-6 text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+interface SummaryCardProps {
+  title: string
+  value: number
+  className?: string
+}
+
+function SummaryCard({ title, value, className }: SummaryCardProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className={`text-2xl font-bold ${className ?? ''}`}>
+          {formatCurrencyBRL(value)}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+interface FinancialSummaryPrintDocumentProps {
+  periodLabel: string
+  incomeByCategory: { category: string; amount: number }[]
+  expenseByCategory: { category: string; amount: number }[]
+  transactions: Transaction[]
+  totalIncome: number
+  totalExpense: number
+  balance: number
+}
+
+function FinancialSummaryPrintDocument({
+  periodLabel,
+  incomeByCategory,
+  expenseByCategory,
+  transactions,
+  totalIncome,
+  totalExpense,
+  balance,
+}: FinancialSummaryPrintDocumentProps) {
+  return (
+    <div className="bg-white p-8 text-black">
+      <ReportHeader
+        title="Relatório Financeiro — Resumo por Categoria"
+        subtitle={periodLabel}
+      />
+
+      <div className="mb-6 grid grid-cols-3 gap-4 border-b pb-4">
+        <PrintMetric label="Receitas" value={totalIncome} />
+        <PrintMetric label="Despesas" value={totalExpense} />
+        <PrintMetric label="Saldo" value={balance} />
+      </div>
+
+      <div className="mb-8 grid grid-cols-2 gap-6">
+        <PrintCategoryTable title="Receitas por categoria" items={incomeByCategory} />
+        <PrintCategoryTable title="Despesas por categoria" items={expenseByCategory} />
+      </div>
+
+      <h3 className="mb-2 text-sm font-bold">Lançamentos do período</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Data</TableHead>
+            <TableHead>Descrição</TableHead>
+            <TableHead>Categoria</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead className="text-right">Valor</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.map((transaction) => (
+            <TableRow key={transaction.id}>
+              <TableCell>{formatDateBR(transaction.date)}</TableCell>
+              <TableCell>{transaction.description}</TableCell>
+              <TableCell>{transaction.category}</TableCell>
+              <TableCell>{transaction.type}</TableCell>
+              <TableCell className="text-right">
+                {formatCurrencyBRL(transaction.amount)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+interface PrintMetricProps {
+  label: string
+  value: number
+}
+
+function PrintMetric({ label, value }: PrintMetricProps) {
+  return (
+    <div>
+      <p className="text-xs text-gray-600">{label}</p>
+      <p className="text-lg font-bold">{formatCurrencyBRL(value)}</p>
+    </div>
+  )
+}
+
+interface PrintCategoryTableProps {
+  title: string
+  items: { category: string; amount: number }[]
+}
+
+function PrintCategoryTable({ title, items }: PrintCategoryTableProps) {
+  return (
+    <div>
+      <h4 className="mb-2 text-sm font-bold">{title}</h4>
+      <Table>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow key={item.category}>
+              <TableCell>{item.category}</TableCell>
+              <TableCell className="text-right">{formatCurrencyBRL(item.amount)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 }

@@ -1,18 +1,15 @@
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 import { toErrorMessage, withTimeout } from '@/lib/async-utils'
+import type { FinancialDocumentType } from '@/lib/financial-document-types'
+
+export {
+  FINANCIAL_DOCUMENT_TYPES,
+  getFinancialDocumentTypeLabel,
+} from '@/lib/financial-document-types'
+export type { FinancialDocumentType } from '@/lib/financial-document-types'
 
 export const FINANCIAL_DOCUMENTS_BUCKET = 'financial-documents'
-
-export const FINANCIAL_DOCUMENT_TYPES = [
-  { value: 'nota_fiscal', label: 'Nota fiscal' },
-  { value: 'recibo', label: 'Recibo' },
-  { value: 'cupom_fiscal', label: 'Cupom fiscal' },
-  { value: 'outro', label: 'Outro' },
-] as const
-
-export type FinancialDocumentType =
-  (typeof FINANCIAL_DOCUMENT_TYPES)[number]['value']
 
 export interface FinancialTransactionAttachment {
   id: string
@@ -87,6 +84,40 @@ export async function fetchTransactionAttachments(
 
   if (error) throw new Error(toErrorMessage(error, 'Falha ao carregar anexos.'))
   return (data || []).map(mapAttachmentRow)
+}
+
+const ATTACHMENT_BATCH_SIZE = 100
+
+export async function fetchAttachmentsByTransactionIds(
+  transactionIds: string[],
+): Promise<Record<string, FinancialTransactionAttachment[]>> {
+  if (transactionIds.length === 0) return {}
+
+  const supabaseAny = supabase as any
+  const grouped: Record<string, FinancialTransactionAttachment[]> = {}
+
+  for (let index = 0; index < transactionIds.length; index += ATTACHMENT_BATCH_SIZE) {
+    const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
+    const { data, error } = await supabaseAny
+      .from('financial_transaction_attachments')
+      .select('*')
+      .in('transaction_id', batch)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      logError('fetchAttachmentsByTransactionIds', error)
+      throw new Error(toErrorMessage(error, 'Falha ao carregar anexos.'))
+    }
+
+    for (const row of data || []) {
+      const attachment = mapAttachmentRow(row)
+      const current = grouped[attachment.transactionId] ?? []
+      current.push(attachment)
+      grouped[attachment.transactionId] = current
+    }
+  }
+
+  return grouped
 }
 
 export async function fetchAttachmentCountsByTransaction(
@@ -241,8 +272,3 @@ export async function updateTransactionAttachment(
   return mapAttachmentRow(data)
 }
 
-export function getFinancialDocumentTypeLabel(type: FinancialDocumentType): string {
-  return (
-    FINANCIAL_DOCUMENT_TYPES.find((item) => item.value === type)?.label ?? type
-  )
-}

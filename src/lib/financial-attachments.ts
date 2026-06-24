@@ -126,21 +126,26 @@ export async function fetchAttachmentCountsByTransaction(
   if (transactionIds.length === 0) return {}
 
   const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
-    .from('financial_transaction_attachments')
-    .select('transaction_id')
-    .in('transaction_id', transactionIds)
-
-  if (error) {
-    logError('fetchAttachmentCountsByTransaction', error)
-    return {}
-  }
-
   const counts: Record<string, number> = {}
-  for (const row of data || []) {
-    const id = String(row.transaction_id)
-    counts[id] = (counts[id] ?? 0) + 1
+
+  for (let index = 0; index < transactionIds.length; index += ATTACHMENT_BATCH_SIZE) {
+    const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
+    const { data, error } = await supabaseAny
+      .from('financial_transaction_attachments')
+      .select('transaction_id')
+      .in('transaction_id', batch)
+
+    if (error) {
+      logError('fetchAttachmentCountsByTransaction', error)
+      continue
+    }
+
+    for (const row of data || []) {
+      const id = String(row.transaction_id)
+      counts[id] = (counts[id] ?? 0) + 1
+    }
   }
+
   return counts
 }
 

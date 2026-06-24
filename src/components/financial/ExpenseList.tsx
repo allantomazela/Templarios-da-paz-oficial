@@ -47,7 +47,6 @@ export function ExpenseList() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
   const [accountNames, setAccountNames] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
@@ -60,7 +59,6 @@ export function ExpenseList() {
   // Load expenses from Supabase
   const loadExpenses = useAsyncOperation(
     async () => {
-      setLoading(true)
       const [{ transactions, accountNames: namesById }, cashData] = await Promise.all([
         loadTransactionsByType('Despesa', { includeAttachmentCounts: canManageAttachments }),
         fetchFinancialAccountsAndTransactions(),
@@ -70,7 +68,6 @@ export function ExpenseList() {
       setExpenses(transactions)
       setAccounts(cashData.accounts)
       setAllTransactions(cashData.transactions)
-      setLoading(false)
       return null
     },
     {
@@ -79,10 +76,12 @@ export function ExpenseList() {
     },
   )
 
+  const loading = loadExpenses.loading
+
   useEffect(() => {
-    loadExpenses.execute()
+    void loadExpenses.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataRevision])
+  }, [dataRevision, canManageAttachments])
 
   const filteredExpenses = expenses.filter(
     (expense) =>
@@ -100,8 +99,7 @@ export function ExpenseList() {
     [accounts, allTransactions],
   )
 
-  const refreshExpenses = async () => {
-    await loadExpenses.execute()
+  const refreshExpenses = () => {
     notifyFinancialDataChanged()
   }
 

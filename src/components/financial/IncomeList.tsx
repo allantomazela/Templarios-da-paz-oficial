@@ -48,7 +48,6 @@ export function IncomeList() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
   const [accountNames, setAccountNames] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
@@ -59,7 +58,6 @@ export function IncomeList() {
   // Load incomes from Supabase
   const loadIncomes = useAsyncOperation(
     async () => {
-      setLoading(true)
       const [{ transactions, accountNames: namesById }, cashData] = await Promise.all([
         loadTransactionsByType('Receita', { includeAttachmentCounts: canManageAttachments }),
         fetchFinancialAccountsAndTransactions(),
@@ -69,7 +67,6 @@ export function IncomeList() {
       setIncomes(transactions)
       setAccounts(cashData.accounts)
       setAllTransactions(cashData.transactions)
-      setLoading(false)
       return null
     },
     {
@@ -78,10 +75,12 @@ export function IncomeList() {
     },
   )
 
+  const loading = loadIncomes.loading
+
   useEffect(() => {
-    loadIncomes.execute()
+    void loadIncomes.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataRevision])
+  }, [dataRevision, canManageAttachments])
 
   const filteredIncomes = incomes.filter(
     (income) =>
@@ -99,8 +98,7 @@ export function IncomeList() {
     [accounts, allTransactions],
   )
 
-  const refreshIncomes = async () => {
-    await loadIncomes.execute()
+  const refreshIncomes = () => {
     notifyFinancialDataChanged()
   }
 

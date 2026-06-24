@@ -28,9 +28,26 @@ import {
   getFinancialReportPeriodLabel,
   type FinancialReportPeriodKey,
 } from '@/lib/financial-report-period'
+import {
+  DEFAULT_BALANCETE_DISPLAY_OPTIONS,
+  hasVisibleBalanceteSection,
+  resolveBalanceteDisplayOptions,
+  type BalanceteReportDisplayOptions,
+} from '@/lib/balancete-report-display'
 import { BalancetePrintDocument } from '@/components/financial/BalancetePrintDocument'
+import { BalanceteReportContentOptions } from '@/components/financial/BalanceteReportContentOptions'
 import { exportBalanceteZip } from '@/lib/balancete-zip-export'
 import { useToast } from '@/hooks/use-toast'
+
+const BALANCETE_PRINT_PAGE_STYLE = `
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+`
 
 interface AccountingBalanceteReportProps {
   accounts: BankAccount[]
@@ -49,16 +66,23 @@ export function AccountingBalanceteReport({
 }: AccountingBalanceteReportProps) {
   const [accountFilter, setAccountFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState<BalanceteTypeFilter>('all')
+  const [displayOptions, setDisplayOptions] = useState<BalanceteReportDisplayOptions>(
+    DEFAULT_BALANCETE_DISPLAY_OPTIONS,
+  )
   const [attachmentsByTransactionId, setAttachmentsByTransactionId] = useState<
     Record<string, FinancialTransactionAttachment[]>
   >({})
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [exportingZip, setExportingZip] = useState(false)
-  const printRef = useRef<HTMLDivElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
   const dateRange = useMemo(() => getFinancialReportDateRange(period), [period])
   const periodLabel = useMemo(() => getFinancialReportPeriodLabel(period), [period])
+  const resolvedDisplay = useMemo(
+    () => resolveBalanceteDisplayOptions(displayOptions, typeFilter),
+    [displayOptions, typeFilter],
+  )
 
   const relevantTransactions = useMemo(
     () =>
@@ -75,6 +99,14 @@ export function AccountingBalanceteReport({
     let isMounted = true
 
     const loadAttachments = async () => {
+      const needsAttachments =
+        resolvedDisplay.showLedger && resolvedDisplay.showAttachmentDetails
+
+      if (!needsAttachments) {
+        if (isMounted) setAttachmentsByTransactionId({})
+        return
+      }
+
       const transactionIds = relevantTransactions.map((transaction) => transaction.id)
       if (transactionIds.length === 0) {
         if (isMounted) setAttachmentsByTransactionId({})
@@ -102,7 +134,7 @@ export function AccountingBalanceteReport({
     return () => {
       isMounted = false
     }
-  }, [relevantTransactions, toast])
+  }, [relevantTransactions, resolvedDisplay.showLedger, resolvedDisplay.showAttachmentDetails, toast])
 
   const balancete = useMemo(() => {
     if (dateRange) {
@@ -138,21 +170,9 @@ export function AccountingBalanceteReport({
       : accounts.find((account) => account.id === accountFilter)?.name
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    contentRef: previewRef,
     documentTitle: `Balancete_Contabil_${period}_${typeFilter}`,
-    pageStyle: `
-      @page { size: A4 landscape; margin: 10mm 12mm; }
-      @media print {
-        html, body {
-          width: 297mm;
-          height: 210mm;
-        }
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
+    pageStyle: BALANCETE_PRINT_PAGE_STYLE,
     onAfterPrint: () => {
       toast({
         title: 'Balancete enviado à impressão',
@@ -170,6 +190,7 @@ export function AccountingBalanceteReport({
 
   const isBusy = loading || attachmentsLoading
   const hasData = balancete.periodTransactionCount > 0
+  const canRenderReport = hasData && hasVisibleBalanceteSection(resolvedDisplay)
 
   const handleExportZip = async () => {
     setExportingZip(true)
@@ -212,8 +233,8 @@ export function AccountingBalanceteReport({
         <div>
           <h3 className="text-lg font-medium">Balancete Contábil</h3>
           <p className="text-sm text-muted-foreground">
-            Relatório para contabilidade com filtros por período, conta e tipo de lançamento.
-            Imprima em PDF ou exporte ZIP com planilhas e comprovantes.
+            Configure filtros e seções do relatório. A pré-visualização reflete exatamente o
+            PDF gerado na impressão.
           </p>
         </div>
 
@@ -236,7 +257,10 @@ export function AccountingBalanceteReport({
               </SelectContent>
             </Select>
 
-            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as BalanceteTypeFilter)}>
+            <Select
+              value={typeFilter}
+              onValueChange={(value) => setTypeFilter(value as BalanceteTypeFilter)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
@@ -267,7 +291,7 @@ export function AccountingBalanceteReport({
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => handlePrint()}
-              disabled={!hasData || isBusy || exportingZip}
+              disabled={!canRenderReport || isBusy || exportingZip}
               className="gap-2"
               variant="outline"
             >
@@ -292,6 +316,12 @@ export function AccountingBalanceteReport({
             </Button>
           </div>
         </div>
+
+        <BalanceteReportContentOptions
+          options={displayOptions}
+          typeFilter={typeFilter}
+          onChange={setDisplayOptions}
+        />
       </div>
 
       <Card className="no-print overflow-hidden">
@@ -309,27 +339,26 @@ export function AccountingBalanceteReport({
             <p className="px-6 py-8 text-center text-sm text-muted-foreground sm:px-0">
               Nenhum lançamento encontrado para os filtros selecionados.
             </p>
+          ) : !hasVisibleBalanceteSection(resolvedDisplay) ? (
+            <p className="px-6 py-8 text-center text-sm text-muted-foreground sm:px-0">
+              Selecione ao menos uma seção em &quot;Conteúdo do relatório&quot; para visualizar
+              ou imprimir.
+            </p>
           ) : (
             <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
-              <BalancetePrintDocument
-                title="Balancete Contábil"
-                periodLabel={periodLabel}
-                accountFilterLabel={accountFilterLabel}
-                data={balancete}
-              />
+              <div id="financial-balancete-container" ref={previewRef}>
+                <BalancetePrintDocument
+                  title="Balancete Contábil"
+                  periodLabel={periodLabel}
+                  accountFilterLabel={accountFilterLabel}
+                  data={balancete}
+                  display={resolvedDisplay}
+                />
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
-
-      <div id="financial-balancete-container" className="hidden print:block" ref={printRef}>
-        <BalancetePrintDocument
-          title="Balancete Contábil"
-          periodLabel={periodLabel}
-          accountFilterLabel={accountFilterLabel}
-          data={balancete}
-        />
-      </div>
     </div>
   )
 }

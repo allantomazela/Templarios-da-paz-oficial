@@ -275,7 +275,6 @@
   #agenda-report-container,
   #custom-report-container,
   #chancellor-report-container,
-  #financial-balancete-container,
   #financial-summary-report-container {
     position: absolute;
     left: 0;
@@ -284,6 +283,21 @@
     min-height: 297mm;
     margin: 0;
     padding: 15mm 20mm;
+    background: white !important;
+    color: black !important;
+    z-index: 9999;
+    box-sizing: border-box;
+  }
+
+  #financial-balancete-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 277mm;
+    max-width: 277mm;
+    min-height: auto;
+    margin: 0;
+    padding: 8mm 10mm;
     background: white !important;
     color: black !important;
     z-index: 9999;
@@ -554,6 +568,10 @@ h6 {
   min-width: 52rem;
 }
 
+.balancete-table-ledger-compact {
+  min-width: 40rem;
+}
+
 .balancete-table th,
 .balancete-table td {
   border: 1px solid #d1d5db;
@@ -644,6 +662,8 @@ h6 {
 
   #financial-balancete-container .balancete-document {
     font-size: 8.5pt;
+    width: 100%;
+    max-width: 100%;
   }
 
   #financial-balancete-container .balancete-table-wrap {
@@ -651,8 +671,10 @@ h6 {
   }
 
   #financial-balancete-container .balancete-table {
-    min-width: 0;
+    min-width: 0 !important;
+    width: 100%;
     font-size: 8pt;
+    table-layout: fixed;
   }
 
   #financial-balancete-container .balancete-table th,
@@ -665,8 +687,19 @@ h6 {
     color: #000 !important;
   }
 
+  #financial-balancete-container .balancete-ledger-section {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
   #financial-balancete-container .balancete-ledger-section tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  #financial-balancete-container .balancete-section-title,
+  #financial-balancete-container .balancete-subsection-title {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }

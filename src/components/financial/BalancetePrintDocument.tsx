@@ -2,6 +2,7 @@ import { ReportHeader } from '@/components/reports/ReportHeader'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import type { AccountingBalanceteData, BalanceteTypeFilter } from '@/lib/accounting-balancete'
 import { BALANCETE_TYPE_FILTER_LABELS } from '@/lib/accounting-balancete'
+import type { BalanceteReportDisplayOptions } from '@/lib/balancete-report-display'
 import { cn } from '@/lib/utils'
 
 interface BalancetePrintDocumentProps {
@@ -9,6 +10,7 @@ interface BalancetePrintDocumentProps {
   periodLabel: string
   accountFilterLabel?: string
   data: AccountingBalanceteData
+  display: BalanceteReportDisplayOptions
 }
 
 export function BalancetePrintDocument({
@@ -16,37 +18,52 @@ export function BalancetePrintDocument({
   periodLabel,
   accountFilterLabel,
   data,
+  display,
 }: BalancetePrintDocumentProps) {
   const subtitleParts = [periodLabel, BALANCETE_TYPE_FILTER_LABELS[data.typeFilter]]
   if (accountFilterLabel) subtitleParts.push(accountFilterLabel)
+
+  const showCategorySection =
+    display.showIncomeCategories || display.showExpenseCategories
 
   return (
     <div className="balancete-document w-full min-w-0 bg-white text-black">
       <ReportHeader title={title} subtitle={subtitleParts.join(' · ')} />
 
-      <section className="balancete-section">
-        <h3 className="balancete-section-title">Resumo consolidado</h3>
-        <div className="balancete-table-wrap">
-          <SummaryTable data={data} />
-        </div>
-      </section>
+      {display.showSummary && (
+        <section className="balancete-section">
+          <h3 className="balancete-section-title">Resumo consolidado</h3>
+          <div className="balancete-table-wrap">
+            <SummaryTable data={data} />
+          </div>
+        </section>
+      )}
 
-      <section className="balancete-section balancete-categories-grid">
-        {(data.typeFilter === 'all' || data.typeFilter === 'Receita') && (
-          <CategoryBlock title="Receitas por categoria" data={data.incomeByCategory} />
-        )}
-        {(data.typeFilter === 'all' || data.typeFilter === 'Despesa') && (
-          <CategoryBlock title="Despesas por categoria" data={data.expenseByCategory} />
-        )}
-      </section>
+      {showCategorySection && (
+        <section className="balancete-section balancete-categories-grid">
+          {display.showIncomeCategories && (
+            <CategoryBlock title="Receitas por categoria" data={data.incomeByCategory} />
+          )}
+          {display.showExpenseCategories && (
+            <CategoryBlock title="Despesas por categoria" data={data.expenseByCategory} />
+          )}
+        </section>
+      )}
 
-      {data.accountSections.map((section) => (
-        <LedgerSection key={section.accountId} section={section} typeFilter={data.typeFilter} />
-      ))}
+      {display.showLedger &&
+        data.accountSections.map((section) => (
+          <LedgerSection
+            key={section.accountId}
+            section={section}
+            typeFilter={data.typeFilter}
+            showAttachmentDetails={display.showAttachmentDetails}
+          />
+        ))}
 
-      {data.unassignedEntries.length > 0 && (
+      {display.showLedger && data.unassignedEntries.length > 0 && (
         <LedgerSection
           typeFilter={data.typeFilter}
+          showAttachmentDetails={display.showAttachmentDetails}
           section={{
             accountId: 'unassigned',
             accountName: 'Lançamentos sem conta vinculada',
@@ -64,11 +81,15 @@ export function BalancetePrintDocument({
         />
       )}
 
-      <p className="balancete-footer">
-        Documento gerado pelo sistema financeiro. Comprovantes digitais estão arquivados no
-        sistema e listados por lançamento. Total de {data.periodTransactionCount}{' '}
-        movimentação(ões) no período filtrado.
-      </p>
+      {display.showDocumentFooter && (
+        <p className="balancete-footer">
+          Documento gerado pelo sistema financeiro.
+          {display.showAttachmentDetails
+            ? ' Comprovantes digitais estão arquivados no sistema e listados por lançamento.'
+            : ''}{' '}
+          Total de {data.periodTransactionCount} movimentação(ões) no período filtrado.
+        </p>
+      )}
     </div>
   )
 }
@@ -188,9 +209,10 @@ function CategoryBlock({ title, data }: CategoryBlockProps) {
 interface LedgerSectionProps {
   section: AccountingBalanceteData['accountSections'][number]
   typeFilter: BalanceteTypeFilter
+  showAttachmentDetails: boolean
 }
 
-function LedgerSection({ section, typeFilter }: LedgerSectionProps) {
+function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSectionProps) {
   if (section.entries.length === 0) return null
 
   const showBothAmountColumns = typeFilter === 'all'
@@ -203,7 +225,12 @@ function LedgerSection({ section, typeFilter }: LedgerSectionProps) {
       </h3>
 
       <div className="balancete-table-wrap">
-        <table className="balancete-table balancete-table-ledger">
+        <table
+          className={cn(
+            'balancete-table balancete-table-ledger',
+            !showAttachmentDetails && 'balancete-table-ledger-compact',
+          )}
+        >
           <thead>
             <tr>
               <th className="balancete-col-date">Data</th>
@@ -217,7 +244,9 @@ function LedgerSection({ section, typeFilter }: LedgerSectionProps) {
               ) : (
                 <th className="balancete-num balancete-col-amount">Valor</th>
               )}
-              <th className="balancete-col-notes">Observações / Comprovantes</th>
+              {showAttachmentDetails && (
+                <th className="balancete-col-notes">Observações / Comprovantes</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -245,26 +274,28 @@ function LedgerSection({ section, typeFilter }: LedgerSectionProps) {
                     {formatCurrencyBRL(entry.amount)}
                   </td>
                 )}
-                <td className="balancete-col-notes">
-                  {entry.attachmentNotes && (
-                    <p className="balancete-note-line">
-                      <span className="balancete-strong">Obs:</span> {entry.attachmentNotes}
-                    </p>
-                  )}
-                  {entry.attachments.length > 0 ? (
-                    <ul className="balancete-attachment-list">
-                      {entry.attachments.map((attachment) => (
-                        <li key={`${entry.id}-${attachment.fileName}`}>
-                          {attachment.documentTypeLabel}: {attachment.fileName}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    !entry.attachmentNotes && (
-                      <span className="balancete-muted">Sem comprovante anexado</span>
-                    )
-                  )}
-                </td>
+                {showAttachmentDetails && (
+                  <td className="balancete-col-notes">
+                    {entry.attachmentNotes && (
+                      <p className="balancete-note-line">
+                        <span className="balancete-strong">Obs:</span> {entry.attachmentNotes}
+                      </p>
+                    )}
+                    {entry.attachments.length > 0 ? (
+                      <ul className="balancete-attachment-list">
+                        {entry.attachments.map((attachment) => (
+                          <li key={`${entry.id}-${attachment.fileName}`}>
+                            {attachment.documentTypeLabel}: {attachment.fileName}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      !entry.attachmentNotes && (
+                        <span className="balancete-muted">Sem comprovante anexado</span>
+                      )
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

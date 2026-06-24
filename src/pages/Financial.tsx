@@ -16,7 +16,7 @@ import { CashFlowReport } from '@/components/financial/CashFlowReport'
 import { CharityCollection } from '@/components/financial/CharityCollection'
 import { AgapeClosing } from '@/components/financial/AgapeClosing'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
-import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import { usePositionsReady } from '@/hooks/use-positions-ready'
 import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import { Navigate } from 'react-router-dom'
 
@@ -38,7 +38,7 @@ const FINANCIAL_TABS = [
 type FinancialTabValue = (typeof FINANCIAL_TABS)[number]['value']
 
 export default function Financial() {
-  const positionsInitialized = useLodgePositionsStore((s) => s.initialized)
+  const positionsReady = usePositionsReady()
   const hydrateModule = useFinancialStore((s) => s.hydrateModule)
   const { canManageAgapeClosing, canAccessFullFinancial } =
     useAgapeClosingPermissions()
@@ -47,7 +47,9 @@ export default function Financial() {
   useModuleActivation(
     '/dashboard/financial',
     () => {
-      void hydrateModule()
+      void hydrateModule().catch(() => {
+        useFinancialStore.getState().resetLoadingFlags()
+      })
     },
     { refreshOnVisible: true },
   )
@@ -68,7 +70,7 @@ export default function Financial() {
     }
   }, [visibleTabs, activeTab])
 
-  if (!positionsInitialized) {
+  if (!positionsReady) {
     return <DashboardModuleLoader />
   }
 

@@ -93,6 +93,7 @@ export function RoleGuard({
   const { user, loading, initialized } = useAuthStore()
   const { initialized: positionsInitialized } = useLodgePositionsStore()
   const [isTimeout, setIsTimeout] = useState(false)
+  const [positionsTimedOut, setPositionsTimedOut] = useState(false)
 
   const needsPositionsForAccess =
     Boolean(requiredModule) &&
@@ -110,6 +111,19 @@ export function RoleGuard({
     return () => clearTimeout(timer)
   }, [initialized, loading])
 
+  useEffect(() => {
+    if (!needsPositionsForAccess || positionsInitialized) {
+      setPositionsTimedOut(false)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setPositionsTimedOut(true)
+    }, 8000)
+
+    return () => clearTimeout(timer)
+  }, [needsPositionsForAccess, positionsInitialized])
+
   if (!initialized && loading) {
     if (isTimeout) {
       return <Navigate to="/dashboard" replace />
@@ -125,7 +139,7 @@ export function RoleGuard({
     return <Navigate to="/dashboard" replace />
   }
 
-  if (needsPositionsForAccess && !positionsInitialized) {
+  if (needsPositionsForAccess && !positionsInitialized && !positionsTimedOut) {
     return (
       <div className="flex h-full min-h-[50vh] flex-col items-center justify-center gap-2">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

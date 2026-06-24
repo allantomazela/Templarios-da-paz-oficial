@@ -59,11 +59,9 @@ function ThemeApplicator() {
   const { fetchPositions } = useLodgePositionsStore()
 
   useEffect(() => {
-    // Inicializar auth primeiro; depois carregar configurações e cargos
-    initialize().then(() => {
-      fetchSettings()
-      fetchPositions()
-    })
+    void initialize()
+    void fetchSettings()
+    void fetchPositions()
   }, [initialize, fetchSettings, fetchPositions])
 
   useEffect(() => {

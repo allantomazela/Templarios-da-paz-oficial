@@ -141,9 +141,7 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
           }
         } finally {
           positionsFetchInFlight = null
-          if (fetchPositionsSeq.isCurrent(id)) {
-            set({ loading: false, initialized: true })
-          }
+          set({ loading: false, initialized: true })
         }
       })()
 

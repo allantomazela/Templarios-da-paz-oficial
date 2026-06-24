@@ -11,6 +11,7 @@ import {
 } from '@/lib/data'
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
+import { withTimeout } from '@/lib/async-utils'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { createAsyncLoadingGate } from '@/lib/async-loading'
 import { isAuthError } from '@/lib/auth-utils'
@@ -152,7 +153,18 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   },
 
   hydrateModule: async () => {
-    await get().fetchAll()
+    try {
+      await withTimeout(
+        get().fetchAll(),
+        45_000,
+        'Carregamento do módulo financeiro demorou demais.',
+      )
+    } catch (error) {
+      if (!handleAuthError(error)) {
+        logError('hydrateModule timeout or failure', error)
+      }
+      get().resetLoadingFlags()
+    }
   },
 
   // ========== FETCH METHODS ==========

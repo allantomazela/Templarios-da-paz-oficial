@@ -25,10 +25,17 @@ cp "$CONF_SRC" "$TARGET"
 ln -sf "$TARGET" "$ENABLED"
 
 # Remove http2 de qualquer listen (causa reset em clientes externos no Vultr)
+# Backups ficam em sites-available — NUNCA em sites-enabled (nginx carrega tudo de la).
+rm -f /etc/nginx/sites-enabled/*.bak-http2*
+
 for conf in /etc/nginx/sites-enabled/* /etc/nginx/nginx.conf; do
   [ -f "$conf" ] || continue
   if grep -q 'http2' "$conf" 2>/dev/null; then
-    cp "$conf" "${conf}.bak-http2"
+    if [ "$conf" = "/etc/nginx/nginx.conf" ]; then
+      cp "$conf" "/etc/nginx/nginx.conf.bak-http2-$(date +%s)"
+    else
+      cp "$conf" "/etc/nginx/sites-available/$(basename "$conf").bak-http2-$(date +%s)"
+    fi
     sed -i 's/listen \(.*\) ssl http2;/listen \1 ssl;/g' "$conf"
     sed -i 's/listen \(.*\) http2;/listen \1;/g' "$conf"
     echo "http2 removido de $conf"

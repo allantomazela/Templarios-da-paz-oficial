@@ -35,9 +35,14 @@
     <script>
       (function () {
         var key = 'templarios-asset-reload'
+        if (/[?&]t=\d+/.test(window.location.search)) {
+          sessionStorage.removeItem(key)
+        }
         window.addEventListener('error', function (e) {
           var t = e.target
           if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && (t.src || t.href)) {
+            var url = t.src || t.href
+            if (url.indexOf('/assets/') === -1) return
             if (sessionStorage.getItem(key) !== '1') {
               sessionStorage.setItem(key, '1')
               window.location.replace(window.location.pathname + '?t=' + Date.now())

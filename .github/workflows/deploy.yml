@@ -154,6 +154,18 @@ VERIFY
         echo "Swap atomico concluido."
         SWAP
 
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<'SYNC'
+        set -e
+        LIVE='/var/www/templarios'
+        html="$LIVE/index.html"
+        test -f "$html"
+        main=$(grep -oE 'src="/assets/index-[^"]+\.js"' "$html" | head -1 | sed 's/.*src="\/assets\///;s/"//')
+        test -n "$main"
+        test -f "$LIVE/assets/$main"
+        count=$(find "$LIVE/assets" -name '*.js' | wc -l)
+        echo "index.html -> assets/$main OK ($count arquivos JS)"
+SYNC
+
           apply_nginx_fix || echo "::warning::Nginx nao patchado; site pode continuar com ERR_CONNECTION_RESET."
 
           verify_on_server "/" 1000 || return 1

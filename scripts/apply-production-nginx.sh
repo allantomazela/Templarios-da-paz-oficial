@@ -52,6 +52,13 @@ sysctl -w net.ipv4.tcp_mtu_probing=1 2>/dev/null || true
 mkdir -p /etc/sysctl.d
 echo 'net.ipv4.tcp_mtu_probing=1' > /etc/sysctl.d/99-templarios-tcp.conf 2>/dev/null || true
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/fix-tcp-mss-clamp.sh" ]; then
+  bash "$SCRIPT_DIR/fix-tcp-mss-clamp.sh" 1360
+elif [ -f /tmp/fix-tcp-mss-clamp.sh ]; then
+  bash /tmp/fix-tcp-mss-clamp.sh 1360
+fi
+
 # gzip_static nos assets ja publicados
 if [ -d /var/www/templarios/assets ]; then
   find /var/www/templarios/assets -type f \( -name '*.js' -o -name '*.css' \) ! -name '*.gz' -print0 \

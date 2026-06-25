@@ -41,6 +41,10 @@ mkdir -p /etc/sysctl.d
 echo 'net.ipv4.tcp_mtu_probing=1' > /etc/sysctl.d/99-templarios-tcp.conf
 sysctl --system >/dev/null 2>&1 || true
 
+if [ -f "$SCRIPT_DIR/fix-tcp-mss-clamp.sh" ]; then
+  bash "$SCRIPT_DIR/fix-tcp-mss-clamp.sh" 1360
+fi
+
 echo "=== Gerando .gz dos assets atuais (se existirem) ==="
 if [ -d /var/www/templarios/assets ]; then
   find /var/www/templarios/assets -type f \( -name '*.js' -o -name '*.css' \) ! -name '*.gz' -print0 \

@@ -106,8 +106,8 @@ jobs:
         ssh $SSH_OPTS "$REMOTE" "test -f '$LIVE/index.html' && test -f '$LIVE/assets/$MAIN_JS'"
         echo "Arquivos confirmados no servidor."
 
-        scp $SSH_OPTS docs/nginx-templarios-vultr.conf scripts/apply-production-nginx.sh "$REMOTE:/tmp/"
-        ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-production-nginx.sh && bash /tmp/apply-production-nginx.sh /tmp/nginx-templarios-vultr.conf"
+        scp $SSH_OPTS docs/nginx-templarios-vultr.conf scripts/apply-production-nginx.sh scripts/fix-tcp-mss-clamp.sh "$REMOTE:/tmp/"
+        ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-production-nginx.sh /tmp/fix-tcp-mss-clamp.sh && bash /tmp/apply-production-nginx.sh /tmp/nginx-templarios-vultr.conf && bash /tmp/fix-tcp-mss-clamp.sh 1360"
 
         echo "Smoke test externo do bundle principal..."
         curl -4 --http1.1 -fSL --max-time 90 -o /tmp/smoke-main.js \

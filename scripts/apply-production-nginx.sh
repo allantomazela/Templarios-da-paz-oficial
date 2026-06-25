@@ -24,7 +24,17 @@ fi
 cp "$CONF_SRC" "$TARGET"
 ln -sf "$TARGET" "$ENABLED"
 
-# Desliga sendfile global
+# Remove http2 de qualquer listen (causa reset em clientes externos no Vultr)
+for conf in /etc/nginx/sites-enabled/* /etc/nginx/nginx.conf; do
+  [ -f "$conf" ] || continue
+  if grep -q 'http2' "$conf" 2>/dev/null; then
+    cp "$conf" "${conf}.bak-http2"
+    sed -i 's/listen \(.*\) ssl http2;/listen \1 ssl;/g' "$conf"
+    sed -i 's/listen \(.*\) http2;/listen \1;/g' "$conf"
+    echo "http2 removido de $conf"
+  fi
+done
+
 if grep -q 'sendfile[[:space:]]*on' /etc/nginx/nginx.conf 2>/dev/null; then
   cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak-$(date +%s)
   sed -i 's/sendfile[[:space:]]*on;/sendfile off;/g' /etc/nginx/nginx.conf

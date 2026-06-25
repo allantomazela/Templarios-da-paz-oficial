@@ -99,8 +99,14 @@ jobs:
           -H 'Host: www.templariosdapazoficial.com.br' "https://127.0.0.1${path}")
         code=\$(echo "\$out" | awk '{print \$1}')
         size=\$(echo "\$out" | awk '{print \$2}')
-        echo "HTTPS LOCAL GET ${path} -> HTTP \$code size=\$size (min ${min_bytes})"
+        echo "LOCAL HTTPS ${path} -> HTTP \$code size=\$size (min ${min_bytes})"
         [ "\$code" = "200" ] && [ "\$size" -ge "${min_bytes}" ]
+        ext=\$(curl -4 -sS -o /tmp/verify-ext -w '%{http_code} %{size_download}' --max-time 90 \
+          "https://www.templariosdapazoficial.com.br${path}" || echo "000 0")
+        echo "EXTERN HTTPS ${path} -> HTTP \$ext"
+        ext_code=\$(echo "\$ext" | awk '{print \$1}')
+        ext_size=\$(echo "\$ext" | awk '{print \$2}')
+        [ "\$ext_code" = "200" ] && [ "\$ext_size" -ge "${min_bytes}" ]
 VERIFY
         }
 

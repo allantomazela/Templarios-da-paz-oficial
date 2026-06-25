@@ -11,7 +11,9 @@
       content="Augusta e Respeitável Loja Simbólica Templários da Paz 3969, oriente de Botucatu-SP"
     />
     <meta property="og:image" content="/og-image.png" />
-    <meta name="keywords" content="Templários da Paz" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -31,39 +33,41 @@
       <p>Carregando sistema…</p>
     </div>
     <div id="root"></div>
-    <!-- Recarrega a página quando o navegador tiver index.html em cache e os assets (JS/CSS) retornarem 404 (deploy novo) -->
+    <!-- Se assets falharem após deploy, mostra erro claro (sem redirecionar para ?t=) -->
     <script>
       (function () {
-        var key = 'templarios-asset-reload'
-        if (/[?&]t=\d+/.test(window.location.search)) {
-          sessionStorage.removeItem(key)
-        }
+        var boot = document.getElementById('boot-fallback')
+        var failed = []
+
         window.addEventListener('error', function (e) {
           var t = e.target
-          if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && (t.src || t.href)) {
-            var url = t.src || t.href
-            if (url.indexOf('/assets/') === -1) return
-            if (sessionStorage.getItem(key) !== '1') {
-              sessionStorage.setItem(key, '1')
-              window.location.replace(window.location.pathname + '?t=' + Date.now())
-            }
-          }
+          if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return
+          var url = t.src || t.href
+          if (!url || url.indexOf('/assets/') === -1) return
+          if (failed.indexOf(url) === -1) failed.push(url)
         }, true)
 
         window.setTimeout(function () {
           var root = document.getElementById('root')
-          var boot = document.getElementById('boot-fallback')
           if (!boot || !root || root.innerHTML.trim()) {
             if (boot) boot.style.display = 'none'
             return
           }
+          var list = failed.length
+            ? '<ul style="text-align:left;font-size:0.75rem;color:#666;margin:0.5rem 0 0;padding-left:1.2rem">' +
+              failed.slice(0, 5).map(function (u) {
+                return '<li>' + u.replace(location.origin, '') + '</li>'
+              }).join('') +
+              '</ul>'
+            : ''
           boot.innerHTML =
-            '<div style="max-width:28rem;padding:1.5rem;text-align:center;border:1px solid #e5e5e5;border-radius:0.75rem;background:#fff">' +
+            '<div style="max-width:32rem;padding:1.5rem;text-align:center;border:1px solid #e5e5e5;border-radius:0.75rem;background:#fff">' +
             '<p style="font-weight:600;margin:0 0 0.5rem">Não foi possível carregar o sistema</p>' +
-            '<p style="font-size:0.875rem;color:#666;margin:0 0 1rem">Arquivos do site podem estar incompletos após o deploy. Tente recarregar ou limpe o cache.</p>' +
-            '<button type="button" onclick="location.reload()" style="padding:0.5rem 1rem;border:1px solid #ccc;border-radius:0.5rem;background:#fff;cursor:pointer">Recarregar</button>' +
+            '<p style="font-size:0.875rem;color:#666;margin:0">Limpe o cache do site (Ctrl+Shift+R ou dados do site no celular). Se persistir, avise o administrador.</p>' +
+            list +
+            '<button type="button" onclick="location.href=location.pathname" style="margin-top:1rem;padding:0.5rem 1rem;border:1px solid #ccc;border-radius:0.5rem;background:#fff;cursor:pointer">Tentar novamente</button>' +
             '</div>'
-        }, 8000)
+        }, 10000)
 
         new MutationObserver(function () {
           var root = document.getElementById('root')

@@ -87,61 +87,69 @@ jobs:
           scp $SSH_OPTS docs/nginx-templarios-site.conf "$REMOTE:/tmp/templarios-nginx.conf"
           ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
           rsync -avz --partial --delay-updates -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
-          ssh $SSH_OPTS "$REMOTE" "
-            set -e
-            test -f '$NEXT/index.html'
-            test -f '$NEXT/assets/$MAIN_JS'
-            JS_REMOTE=\$(stat -c%s '$NEXT/assets/$MAIN_JS')
-            test \"\$JS_REMOTE\" -ge 50000
-            rm -rf '${LIVE}.old'
-            if [ -d '$LIVE' ]; then mv '$LIVE' '${LIVE}.old'; fi
-            mv '$NEXT' '$LIVE'
-            chown -R www-data:www-data '$LIVE'
-            if [ -f /etc/letsencrypt/live/www.templariosdapazoficial.com.br/fullchain.pem ]; then
-              sudo cp /tmp/templarios-nginx.conf /etc/nginx/sites-available/templarios
-              sudo ln -sf /etc/nginx/sites-available/templarios /etc/nginx/sites-enabled/templarios
-              sudo nginx -t
-              sudo systemctl reload nginx
-            else
-              echo 'Aviso: certificado SSL não encontrado; nginx não foi alterado.'
-            fi
-            echo 'Site atualizado com swap atomico'
-          "
+
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<EOF
+        set -e
+        NEXT='$NEXT'
+        LIVE='$LIVE'
+        MAIN_JS='$MAIN_JS'
+
+        test -f "\$NEXT/index.html"
+        test -f "\$NEXT/assets/\$MAIN_JS"
+        JS_REMOTE=\$(stat -c%s "\$NEXT/assets/\$MAIN_JS")
+        test "\$JS_REMOTE" -ge 50000
+        rm -rf "\${LIVE}.old"
+        if [ -d "\$LIVE" ]; then mv "\$LIVE" "\${LIVE}.old"; fi
+        mv "\$NEXT" "\$LIVE"
+        chown -R www-data:www-data "\$LIVE"
+        if [ -f /etc/letsencrypt/live/www.templariosdapazoficial.com.br/fullchain.pem ]; then
+          sudo cp /tmp/templarios-nginx.conf /etc/nginx/sites-available/templarios
+          sudo ln -sf /etc/nginx/sites-available/templarios /etc/nginx/sites-enabled/templarios
+          sudo nginx -t
+          sudo systemctl reload nginx
+        else
+          echo 'Aviso: certificado SSL não encontrado; nginx não foi alterado.'
+        fi
+        echo 'Site atualizado com swap atomico'
+        EOF
 
           verify_download() {
-            local url=\"$1\"
-            local min_bytes=\"$2\"
+            local url="$1"
+            local min_bytes="$2"
             local tmp
-            tmp=\$(mktemp)
+            tmp=$(mktemp)
             local code size
-            code=\$(curl -sS -o \"\$tmp\" -w '%{http_code}' --max-time 90 \"\$url\")
-            size=\$(wc -c < \"\$tmp\" | tr -d ' ')
-            rm -f \"\$tmp\"
-            echo \"GET \$url -> HTTP \$code size=\$size\"
-            [ \"\$code\" = \"200\" ] && [ \"\$size\" -ge \"\$min_bytes\" ]
+            code=$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 90 "$url")
+            size=$(wc -c < "$tmp" | tr -d ' ')
+            rm -f "$tmp"
+            echo "GET $url -> HTTP $code size=$size"
+            [ "$code" = "200" ] && [ "$size" -ge "$min_bytes" ]
           }
 
-          verify_download \"https://www.templariosdapazoficial.com.br/\" 1000 || {
+          verify_download "https://www.templariosdapazoficial.com.br/" 1000 || {
             echo '::error::HTML não baixou corretamente após deploy'
             return 1
           }
-          verify_download \"https://www.templariosdapazoficial.com.br/assets/$MAIN_JS\" 50000 || {
+          verify_download "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS" 50000 || {
             echo '::error::Bundle principal não baixou por GET completo (conexão resetada ou arquivo incompleto)'
             return 1
           }
 
-          ssh $SSH_OPTS "$REMOTE" "
-            set -e
-            code=\$(curl -sS -o /tmp/templarios-verify.js -w '%{http_code}' --max-time 60 -H 'Host: www.templariosdapazoficial.com.br' \"http://127.0.0.1/assets/$MAIN_JS\")
-            size=\$(wc -c < /tmp/templarios-verify.js | tr -d ' ')
-            rm -f /tmp/templarios-verify.js
-            echo \"Localhost GET index js -> HTTP \$code size=\$size\"
-            test \"\$code\" = \"200\"
-            test \"\$size\" -ge 50000
-          " || {
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<EOF
+        set -e
+        MAIN_JS='$MAIN_JS'
+        code=\$(curl -sS -o /tmp/templarios-verify.js -w '%{http_code}' --max-time 60 -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1/assets/\$MAIN_JS")
+        size=\$(wc -c < /tmp/templarios-verify.js | tr -d ' ')
+        rm -f /tmp/templarios-verify.js
+        echo "Localhost GET index js -> HTTP \$code size=\$size"
+        test "\$code" = "200"
+        test "\$size" -ge 50000
+        EOF
+          local ssh_verify_status=$?
+          if [ "$ssh_verify_status" -ne 0 ]; then
             echo '::error::Servidor local não consegue servir o bundle principal'
             return 1
-          }
+          fi
         }
 
         for i in 1 2 3; do

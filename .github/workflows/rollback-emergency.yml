@@ -1,4 +1,4 @@
-name: Rollback emergência (24/06/2026)
+name: Rollback emergência (baseline restauração)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      STABLE_COMMIT: 47b511d
+      # Baseline validado 26/06/2026 — ver docs/PONTO_RESTAURACAO.md
+      # Tag: restore-point-2026-06-26 | Commit anterior emergência 24/06: 47b511d
+      STABLE_COMMIT: a6175de
 
     steps:
       - uses: actions/checkout@v6
@@ -31,7 +33,7 @@ jobs:
           scp $SSH_OPTS docs/nginx-templarios-stable.conf scripts/rollback-server-production.sh "$REMOTE:/tmp/"
           ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/rollback-server-production.sh && bash /tmp/rollback-server-production.sh /tmp/nginx-templarios-stable.conf"
 
-      - name: Build e deploy do commit estável (47b511d)
+      - name: Build e deploy do commit estável (baseline restauração)
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
           HOST: ${{ secrets.HOST }}

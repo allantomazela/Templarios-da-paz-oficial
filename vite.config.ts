@@ -24,11 +24,30 @@ export default defineConfig(({ mode }) => ({
         manualChunks(id) {
           if (!id.includes('node_modules')) return
 
-          const match = id.match(
-            /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?((?:@[^/]+\/)?[^/]+)/,
-          )
-          const pkg = match?.[1] ?? 'misc'
-          return `vendor-${pkg.replace('@', '').replace('/', '-')}`
+          if (id.includes('react-dom') || id.includes('scheduler')) {
+            return 'vendor-react-dom'
+          }
+          if (id.includes('/react/')) return 'vendor-react'
+          if (id.includes('@supabase')) return 'vendor-supabase'
+          if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts'
+          if (id.includes('@tiptap') || id.includes('prosemirror')) {
+            return 'vendor-tiptap'
+          }
+          if (id.includes('jspdf')) return 'vendor-jspdf'
+          if (id.includes('html2canvas')) return 'vendor-html2canvas'
+          if (id.includes('html5-qrcode')) return 'vendor-qrcode'
+          if (id.includes('jszip')) return 'vendor-jszip'
+          if (id.includes('@radix-ui')) return 'vendor-radix'
+          if (id.includes('framer-motion')) return 'vendor-motion'
+          if (id.includes('date-fns')) return 'vendor-date-fns'
+          if (id.includes('lucide-react')) return 'vendor-icons'
+          if (id.includes('zod')) return 'vendor-zod'
+          if (id.includes('@tanstack')) return 'vendor-tanstack'
+          if (id.includes('react-router')) return 'vendor-router'
+          if (id.includes('dompurify')) return 'vendor-dompurify'
+          if (id.includes('@hookform')) return 'vendor-forms'
+          if (id.includes('sonner')) return 'vendor-sonner'
+          return 'vendor-libs'
         },
       },
     },

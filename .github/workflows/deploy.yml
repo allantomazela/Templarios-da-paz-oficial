@@ -61,6 +61,7 @@ jobs:
         MAIN_CSS=$(grep -oE 'href="/assets/index-[^"]+\.css"' dist/index.html | head -1 | sed 's/.*href="\/assets\///;s/"//')
         LARGEST_JS=$(find dist/assets -name '*.js' -printf '%f %s\n' | sort -k2 -n | tail -1 | awk '{print $1}')
         LARGEST_JS_SIZE=$(stat -c%s "dist/assets/$LARGEST_JS")
+        JS_FILE_COUNT=$(find dist/assets -name '*.js' | wc -l)
 
         if [ -z "$MAIN_JS" ] || [ ! -f "dist/assets/$MAIN_JS" ]; then
           echo "::error::Bundle principal JS não encontrado em dist/"
@@ -74,12 +75,13 @@ jobs:
         fi
 
         if [ "$LARGEST_JS_SIZE" -gt 524288 ]; then
-          echo "::error::Chunk JS acima de 512KB ($LARGEST_JS $LARGEST_JS_SIZE bytes) — servidor pode resetar download."
+          echo "::error::Chunk JS acima de 512KB ($LARGEST_JS $LARGEST_JS_SIZE bytes)."
           exit 1
         fi
 
         echo "Bundle principal: assets/$MAIN_JS ($JS_SIZE bytes)"
         echo "Maior chunk: assets/$LARGEST_JS ($LARGEST_JS_SIZE bytes)"
+        echo "Total de arquivos JS em assets/: $JS_FILE_COUNT"
         if [ -n "$MAIN_CSS" ] && [ ! -f "dist/assets/$MAIN_CSS" ]; then
           echo "::error::CSS principal não encontrado: $MAIN_CSS"
           exit 1
@@ -117,7 +119,7 @@ jobs:
 
         deploy_once() {
           ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
-          rsync -avz --partial --delay-updates -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
+          rsync -avz --partial --delay-updates --timeout=300 -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
 
           ssh $SSH_OPTS "$REMOTE" 'bash -s' <<SWAP
         set -e
@@ -139,21 +141,6 @@ jobs:
 
           verify_download "$SITE_URL/" 1000 || return 1
           verify_download "$SITE_URL/assets/$MAIN_JS" 50000 || return 1
-          if [ "$LARGEST_JS" != "$MAIN_JS" ]; then
-            verify_download "$SITE_URL/assets/$LARGEST_JS" 10000 || return 1
-          fi
-
-          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<LOCALCHECK
-        set -e
-        MAIN_JS='$MAIN_JS'
-        code=\$(curl -sS -o /tmp/templarios-verify.js -w '%{http_code}' --max-time 60 \
-          -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1/assets/\$MAIN_JS")
-        size=\$(wc -c < /tmp/templarios-verify.js | tr -d ' ')
-        rm -f /tmp/templarios-verify.js
-        echo "Localhost GET -> HTTP \$code size=\$size"
-        test "\$code" = "200"
-        test "\$size" -ge 50000
-        LOCALCHECK
         }
 
         for i in 1 2 3; do

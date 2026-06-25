@@ -103,7 +103,20 @@ jobs:
 
         for i in 1 2 3; do
           echo "Tentativa $i de 3..."
-          if deploy; then exit 0; fi
+          if deploy; then
+            scp $SSH_OPTS docs/nginx-templarios-stable.conf scripts/apply-stable-nginx.sh "$REMOTE:/tmp/"
+            ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-stable-nginx.sh && bash /tmp/apply-stable-nginx.sh /tmp/nginx-templarios-stable.conf"
+
+            curl -4 --http1.1 -fSL --max-time 90 -o /tmp/smoke-main.js \
+              "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS"
+            SMOKE_SIZE=$(stat -c%s /tmp/smoke-main.js)
+            if [ "$SMOKE_SIZE" -lt 100000 ]; then
+              echo "::error::Smoke GET falhou: apenas $SMOKE_SIZE bytes de $MAIN_JS"
+              exit 1
+            fi
+            echo "Smoke GET OK: $SMOKE_SIZE bytes"
+            exit 0
+          fi
           [ $i -lt 3 ] && echo "Falha na conexão, nova tentativa em 10s..." && sleep 10
         done
         echo "Deploy falhou após 3 tentativas."

@@ -69,6 +69,7 @@
           if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return
           var url = t.src || t.href
           if (!url || url.indexOf('/assets/') === -1) return
+          if (!/\/assets\/index-[^/]+\.(js|css)(\?|$)/.test(url)) return
           if (failed.indexOf(url) === -1) failed.push(url)
           reloadWithFreshHtml()
         }, true)
@@ -85,15 +86,15 @@
                 return '<li>' + u.replace(location.origin, '') + '</li>'
               }).join('') +
               '</ul>'
-            : ''
+            : '<p style="font-size:0.75rem;color:#888;margin:0.5rem 0 0">Possível falha de rede ao baixar arquivos JS/CSS.</p>'
           boot.innerHTML =
             '<div style="max-width:32rem;padding:1.5rem;text-align:center;border:1px solid #e5e5e5;border-radius:0.75rem;background:#fff">' +
             '<p style="font-weight:600;margin:0 0 0.5rem">Não foi possível carregar o sistema</p>' +
-            '<p style="font-size:0.875rem;color:#666;margin:0">Limpe o cache do site (Ctrl+Shift+R ou dados do site no celular). Se persistir, avise o administrador.</p>' +
+            '<p style="font-size:0.875rem;color:#666;margin:0">A conexão com o servidor pode ter sido interrompida. Tente novamente ou limpe o cache (Ctrl+Shift+R).</p>' +
             list +
-            '<button type="button" onclick="location.href=location.pathname" style="margin-top:1rem;padding:0.5rem 1rem;border:1px solid #ccc;border-radius:0.5rem;background:#fff;cursor:pointer">Tentar novamente</button>' +
+            '<button type="button" onclick="sessionStorage.removeItem(\'templarios-asset-reload\');location.href=location.pathname+\'?_\'+Date.now()" style="margin-top:1rem;padding:0.5rem 1rem;border:1px solid #ccc;border-radius:0.5rem;background:#fff;cursor:pointer">Tentar novamente</button>' +
             '</div>'
-        }, 10000)
+        }, 8000)
 
         new MutationObserver(function () {
           var root = document.getElementById('root')

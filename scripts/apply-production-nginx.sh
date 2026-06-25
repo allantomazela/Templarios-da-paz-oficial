@@ -42,6 +42,14 @@ fi
 
 # MTU probing (ajuda resets em alguns links Brasil↔Vultr)
 sysctl -w net.ipv4.tcp_mtu_probing=1 2>/dev/null || true
+mkdir -p /etc/sysctl.d
+echo 'net.ipv4.tcp_mtu_probing=1' > /etc/sysctl.d/99-templarios-tcp.conf 2>/dev/null || true
+
+# gzip_static nos assets ja publicados
+if [ -d /var/www/templarios/assets ]; then
+  find /var/www/templarios/assets -type f \( -name '*.js' -o -name '*.css' \) ! -name '*.gz' -print0 \
+    | while IFS= read -r -d '' file; do gzip -9 -k -f "$file" 2>/dev/null || true; done
+fi
 
 nginx -t
 systemctl restart nginx

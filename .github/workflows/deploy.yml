@@ -39,6 +39,7 @@ jobs:
           exit 1
         fi
         npm run build
+        bash scripts/gzip-dist-assets.sh dist
 
     - name: 6. Enviando build para o servidor
       env:
@@ -104,3 +105,16 @@ jobs:
 
         ssh $SSH_OPTS "$REMOTE" "test -f '$LIVE/index.html' && test -f '$LIVE/assets/$MAIN_JS'"
         echo "Arquivos confirmados no servidor."
+
+        scp $SSH_OPTS docs/nginx-templarios-vultr.conf scripts/apply-production-nginx.sh "$REMOTE:/tmp/"
+        ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-production-nginx.sh && bash /tmp/apply-production-nginx.sh /tmp/nginx-templarios-vultr.conf"
+
+        echo "Smoke test externo do bundle principal..."
+        curl -4 --http1.1 -fSL --max-time 90 -o /tmp/smoke-main.js \
+          "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS"
+        SMOKE_SIZE=$(stat -c%s /tmp/smoke-main.js)
+        if [ "$SMOKE_SIZE" -lt 50000 ]; then
+          echo "::error::Smoke test externo falhou: apenas $SMOKE_SIZE bytes de $MAIN_JS"
+          exit 1
+        fi
+        echo "Smoke test OK: $SMOKE_SIZE bytes"

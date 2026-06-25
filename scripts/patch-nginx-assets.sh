@@ -25,6 +25,16 @@ fi
 echo "Config Nginx alvo: $CONF"
 sudo cp "$CONF" "${CONF}.bak-deploy"
 
+# sendfile no Vultr quebra transferencia do corpo (HEAD 200, GET reset) em todo o site.
+sudo python3 - "$CONF" <<'PY'
+import re, sys
+path = sys.argv[1]
+text = open(path).read()
+text = re.sub(r'^(\s*)sendfile\s+on\s*;', r'\1sendfile off;', text, flags=re.MULTILINE)
+open(path, 'w').write(text)
+print("sendfile off aplicado no server block.")
+PY
+
 ASSETS_BLOCK='    location /assets/ {
         sendfile off;
         aio off;

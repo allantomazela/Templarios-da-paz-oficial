@@ -79,6 +79,10 @@ jobs:
           exit 1
         fi
 
+        if [ "$JS_FILE_COUNT" -gt 250 ]; then
+          echo "::warning::Muitos chunks JS ($JS_FILE_COUNT); considere consolidar vendors."
+        fi
+
         echo "Bundle principal: assets/$MAIN_JS ($JS_SIZE bytes)"
         echo "Maior chunk: assets/$LARGEST_JS ($LARGEST_JS_SIZE bytes)"
         echo "Total de arquivos JS em assets/: $JS_FILE_COUNT"

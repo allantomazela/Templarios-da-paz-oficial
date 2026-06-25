@@ -33,11 +33,36 @@
       <p>Carregando sistema…</p>
     </div>
     <div id="root"></div>
-    <!-- Se assets falharem após deploy, mostra erro claro (sem redirecionar para ?t=) -->
+    <!-- Recuperação automática: HTML em cache antigo pede assets que não existem mais após deploy -->
     <script>
       (function () {
         var boot = document.getElementById('boot-fallback')
         var failed = []
+        var reloadKey = 'templarios-asset-reload'
+
+        function reloadWithFreshHtml() {
+          if (sessionStorage.getItem(reloadKey) === '1') return false
+          sessionStorage.setItem(reloadKey, '1')
+
+          function go() {
+            try {
+              var u = new URL(window.location.href)
+              u.searchParams.set('_', String(Date.now()))
+              window.location.replace(u.toString())
+            } catch (err) {
+              window.location.reload()
+            }
+          }
+
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              return Promise.all(regs.map(function (r) { return r.unregister() }))
+            }).catch(function () {}).finally(go)
+          } else {
+            go()
+          }
+          return true
+        }
 
         window.addEventListener('error', function (e) {
           var t = e.target
@@ -45,6 +70,7 @@
           var url = t.src || t.href
           if (!url || url.indexOf('/assets/') === -1) return
           if (failed.indexOf(url) === -1) failed.push(url)
+          reloadWithFreshHtml()
         }, true)
 
         window.setTimeout(function () {

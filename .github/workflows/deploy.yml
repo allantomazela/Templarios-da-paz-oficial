@@ -55,6 +55,7 @@ jobs:
         REMOTE="${USERNAME}@${HOST}"
         LIVE="/var/www/templarios"
         NEXT="/var/www/templarios-next"
+        LEGACY="/var/www/templarios-assets-legacy"
 
         MAIN_JS=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -1 | sed 's/.*src="\/assets\///;s/"//')
 
@@ -78,22 +79,24 @@ jobs:
         set -e
         NEXT='$NEXT'
         LIVE='$LIVE'
+        LEGACY='$LEGACY'
         MAIN_JS='$MAIN_JS'
 
         test -f "\$NEXT/index.html"
         test -f "\$NEXT/assets/\$MAIN_JS"
         test "\$(stat -c%s "\$NEXT/assets/\$MAIN_JS")" -ge 50000
 
+        mkdir -p "\$LEGACY"
+        if [ -d "\$LIVE/assets" ]; then
+          cp -a --update=none "\$LIVE/assets/." "\$LEGACY/" || true
+        fi
+
         rm -rf "\${LIVE}.old"
         if [ -d "\$LIVE" ]; then mv "\$LIVE" "\${LIVE}.old"; fi
         mv "\$NEXT" "\$LIVE"
 
-        # Compatibilidade pós-deploy: preserva assets hashados da versão anterior.
-        # Evita tela branca quando clientes ainda carregam index.html antigo em cache.
-        if [ -d "\${LIVE}.old/assets" ]; then
-          mkdir -p "\$LIVE/assets"
-          cp -an "\${LIVE}.old/assets/." "\$LIVE/assets/" || true
-        fi
+        mkdir -p "\$LIVE/assets"
+        cp -a --update=none "\$LEGACY/." "\$LIVE/assets/" || true
 
         chown -R www-data:www-data "\$LIVE"
         echo "Deploy concluido: \$LIVE/assets/\$MAIN_JS"

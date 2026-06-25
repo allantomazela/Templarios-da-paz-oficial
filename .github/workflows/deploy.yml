@@ -9,6 +9,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
+      # Actions oficiais em Node 24 (padrão GitHub a partir de jun/2026)
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -35,20 +36,18 @@ jobs:
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: |
         if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
-          echo "::error::Secrets VITE_SUPABASE_URL e/ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados."
+          echo "::error::Secrets VITE_SUPABASE_URL e/ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados em GitHub → Settings → Secrets → Actions."
           exit 1
         fi
         npm run build
-        bash scripts/gzip-dist-assets.sh dist
 
+    # dist/ contém index.html, assets/ e tudo que está em public/ (favicon, icon-192, icon-512, manifest, sw.js)
     - name: 6. Enviando build para o servidor
       env:
         SSH_KEY: ${{ secrets.SSH_KEY }}
         HOST: ${{ secrets.HOST }}
         USERNAME: ${{ secrets.USERNAME }}
       run: |
-        set -euo pipefail
-
         mkdir -p ~/.ssh
         echo "$SSH_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
@@ -56,9 +55,9 @@ jobs:
         REMOTE="${USERNAME}@${HOST}"
         LIVE="/var/www/templarios"
         NEXT="/var/www/templarios-next"
-        LEGACY="/var/www/templarios-assets-legacy"
 
         MAIN_JS=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -1 | sed 's/.*src="\/assets\///;s/"//')
+        MAIN_CSS=$(grep -oE 'href="/assets/index-[^"]+\.css"' dist/index.html | head -1 | sed 's/.*href="\/assets\///;s/"//')
 
         if [ -z "$MAIN_JS" ] || [ ! -f "dist/assets/$MAIN_JS" ]; then
           echo "::error::Bundle principal JS não encontrado em dist/"
@@ -66,55 +65,46 @@ jobs:
         fi
 
         JS_SIZE=$(stat -c%s "dist/assets/$MAIN_JS")
-        if [ "$JS_SIZE" -lt 50000 ]; then
+        if [ "$JS_SIZE" -lt 100000 ]; then
           echo "::error::Bundle principal muito pequeno ($JS_SIZE bytes): $MAIN_JS"
           exit 1
         fi
 
-        echo "Bundle principal: assets/$MAIN_JS ($JS_SIZE bytes)"
-
-        ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
-        rsync -avz --partial --delay-updates --timeout=300 -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
-
-        ssh $SSH_OPTS "$REMOTE" "bash -s" <<SWAP
-        set -e
-        NEXT='$NEXT'
-        LIVE='$LIVE'
-        LEGACY='$LEGACY'
-        MAIN_JS='$MAIN_JS'
-
-        test -f "\$NEXT/index.html"
-        test -f "\$NEXT/assets/\$MAIN_JS"
-        test "\$(stat -c%s "\$NEXT/assets/\$MAIN_JS")" -ge 50000
-
-        mkdir -p "\$LEGACY"
-        if [ -d "\$LIVE/assets" ]; then
-          cp -a --update=none "\$LIVE/assets/." "\$LEGACY/" || true
-        fi
-
-        rm -rf "\${LIVE}.old"
-        if [ -d "\$LIVE" ]; then mv "\$LIVE" "\${LIVE}.old"; fi
-        mv "\$NEXT" "\$LIVE"
-
-        mkdir -p "\$LIVE/assets"
-        cp -a --update=none "\$LEGACY/." "\$LIVE/assets/" || true
-
-        chown -R www-data:www-data "\$LIVE"
-        echo "Deploy concluido: \$LIVE/assets/\$MAIN_JS"
-        SWAP
-
-        ssh $SSH_OPTS "$REMOTE" "test -f '$LIVE/index.html' && test -f '$LIVE/assets/$MAIN_JS'"
-        echo "Arquivos confirmados no servidor."
-
-        scp $SSH_OPTS docs/nginx-templarios-vultr.conf scripts/apply-production-nginx.sh scripts/fix-tcp-mss-clamp.sh "$REMOTE:/tmp/"
-        ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-production-nginx.sh /tmp/fix-tcp-mss-clamp.sh && bash /tmp/apply-production-nginx.sh /tmp/nginx-templarios-vultr.conf && bash /tmp/fix-tcp-mss-clamp.sh 1360"
-
-        echo "Smoke test externo do bundle principal..."
-        curl -4 --http1.1 -fSL --max-time 90 -o /tmp/smoke-main.js \
-          "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS"
-        SMOKE_SIZE=$(stat -c%s /tmp/smoke-main.js)
-        if [ "$SMOKE_SIZE" -lt 50000 ]; then
-          echo "::error::Smoke test externo falhou: apenas $SMOKE_SIZE bytes de $MAIN_JS"
+        echo "Bundle principal local: assets/$MAIN_JS ($JS_SIZE bytes)"
+        if [ -n "$MAIN_CSS" ] && [ ! -f "dist/assets/$MAIN_CSS" ]; then
+          echo "::error::CSS principal não encontrado: $MAIN_CSS"
           exit 1
         fi
-        echo "Smoke test OK: $SMOKE_SIZE bytes"
+
+        deploy() {
+          ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
+          rsync -avz --partial --delay-updates -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
+          ssh $SSH_OPTS "$REMOTE" "
+            set -e
+            test -f '$NEXT/index.html'
+            test -f '$NEXT/assets/$MAIN_JS'
+            JS_REMOTE=\$(stat -c%s '$NEXT/assets/$MAIN_JS')
+            test \"\$JS_REMOTE\" -ge 100000
+            rm -rf '${LIVE}.old'
+            if [ -d '$LIVE' ]; then mv '$LIVE' '${LIVE}.old'; fi
+            mv '$NEXT' '$LIVE'
+            chown -R www-data:www-data '$LIVE'
+            echo 'Site atualizado com swap atomico'
+          "
+
+          CODE_HTML=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 "https://www.templariosdapazoficial.com.br/")
+          CODE_JS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS")
+          echo "Verificação pós-deploy: / -> HTTP $CODE_HTML, /assets/$MAIN_JS -> HTTP $CODE_JS"
+          if [ "$CODE_HTML" != "200" ] || [ "$CODE_JS" != "200" ]; then
+            echo "::error::Verificação pós-deploy falhou (HTML=$CODE_HTML JS=$CODE_JS)"
+            exit 1
+          fi
+        }
+
+        for i in 1 2 3; do
+          echo "Tentativa $i de 3..."
+          if deploy; then exit 0; fi
+          [ $i -lt 3 ] && echo "Falha na conexão, nova tentativa em 10s..." && sleep 10
+        done
+        echo "Deploy falhou após 3 tentativas."
+        exit 1

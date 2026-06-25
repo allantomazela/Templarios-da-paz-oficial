@@ -11,9 +11,7 @@
       content="Augusta e Respeitável Loja Simbólica Templários da Paz 3969, oriente de Botucatu-SP"
     />
     <meta property="og:image" content="/og-image.png" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
+    <meta name="keywords" content="Templários da Paz" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -33,66 +31,32 @@
       <p>Carregando sistema…</p>
     </div>
     <div id="root"></div>
-    <!-- Recuperação automática: HTML em cache antigo pede assets que não existem mais após deploy -->
+    <!-- Recarrega a página quando o navegador tiver index.html em cache e os assets (JS/CSS) retornarem 404 (deploy novo) -->
     <script>
       (function () {
-        var boot = document.getElementById('boot-fallback')
-        var failed = []
-        var reloadKey = 'templarios-asset-reload'
-
-        function reloadWithFreshHtml() {
-          if (sessionStorage.getItem(reloadKey) === '1') return false
-          sessionStorage.setItem(reloadKey, '1')
-
-          function go() {
-            try {
-              var u = new URL(window.location.href)
-              u.searchParams.set('_', String(Date.now()))
-              window.location.replace(u.toString())
-            } catch (err) {
-              window.location.reload()
-            }
-          }
-
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (regs) {
-              return Promise.all(regs.map(function (r) { return r.unregister() }))
-            }).catch(function () {}).finally(go)
-          } else {
-            go()
-          }
-          return true
-        }
-
+        var key = 'templarios-asset-reload'
         window.addEventListener('error', function (e) {
           var t = e.target
-          if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return
-          var url = t.src || t.href
-          if (!url || url.indexOf('/assets/') === -1) return
-          if (!/\/assets\/index-[^/]+\.(js|css)(\?|$)/.test(url)) return
-          if (failed.indexOf(url) === -1) failed.push(url)
-          reloadWithFreshHtml()
+          if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && (t.src || t.href)) {
+            if (sessionStorage.getItem(key) !== '1') {
+              sessionStorage.setItem(key, '1')
+              window.location.replace(window.location.pathname + '?t=' + Date.now())
+            }
+          }
         }, true)
 
         window.setTimeout(function () {
           var root = document.getElementById('root')
+          var boot = document.getElementById('boot-fallback')
           if (!boot || !root || root.innerHTML.trim()) {
             if (boot) boot.style.display = 'none'
             return
           }
-          var list = failed.length
-            ? '<ul style="text-align:left;font-size:0.75rem;color:#666;margin:0.5rem 0 0;padding-left:1.2rem">' +
-              failed.slice(0, 5).map(function (u) {
-                return '<li>' + u.replace(location.origin, '') + '</li>'
-              }).join('') +
-              '</ul>'
-            : '<p style="font-size:0.75rem;color:#888;margin:0.5rem 0 0">Possível falha de rede ao baixar arquivos JS/CSS.</p>'
           boot.innerHTML =
-            '<div style="max-width:32rem;padding:1.5rem;text-align:center;border:1px solid #e5e5e5;border-radius:0.75rem;background:#fff">' +
+            '<div style="max-width:28rem;padding:1.5rem;text-align:center;border:1px solid #e5e5e5;border-radius:0.75rem;background:#fff">' +
             '<p style="font-weight:600;margin:0 0 0.5rem">Não foi possível carregar o sistema</p>' +
-            '<p style="font-size:0.875rem;color:#666;margin:0">A conexão com o servidor pode ter sido interrompida. Tente novamente ou limpe o cache (Ctrl+Shift+R).</p>' +
-            list +
-            '<button type="button" onclick="sessionStorage.removeItem(\'templarios-asset-reload\');location.href=location.pathname+\'?_\'+Date.now()" style="margin-top:1rem;padding:0.5rem 1rem;border:1px solid #ccc;border-radius:0.5rem;background:#fff;cursor:pointer">Tentar novamente</button>' +
+            '<p style="font-size:0.875rem;color:#666;margin:0 0 1rem">Arquivos do site podem estar incompletos após o deploy. Tente recarregar ou limpe o cache.</p>' +
+            '<button type="button" onclick="location.reload()" style="padding:0.5rem 1rem;border:1px solid #ccc;border-radius:0.5rem;background:#fff;cursor:pointer">Recarregar</button>' +
             '</div>'
         }, 8000)
 

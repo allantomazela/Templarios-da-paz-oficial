@@ -6,7 +6,7 @@
  * enquanto aba anônima sem cache “funcionava”.
  *
  * Ao ativar, apagamos caches antigos deste domínio para limpar instalações anteriores.
- * Versão lógica: v15 (sem interceptação de fetch).
+ * Versão lógica: v13 (sem interceptação de fetch).
  */
 
 self.addEventListener('install', (event) => {

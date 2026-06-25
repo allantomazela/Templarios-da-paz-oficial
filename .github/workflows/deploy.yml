@@ -9,7 +9,6 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      # Actions oficiais em Node 24 (padrão GitHub a partir de jun/2026)
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -36,18 +35,19 @@ jobs:
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: |
         if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
-          echo "::error::Secrets VITE_SUPABASE_URL e/ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados em GitHub → Settings → Secrets → Actions."
+          echo "::error::Secrets VITE_SUPABASE_URL e/ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados."
           exit 1
         fi
         npm run build
 
-    # dist/ contém index.html, assets/ e tudo que está em public/ (favicon, icon-192, icon-512, manifest, sw.js)
     - name: 6. Enviando build para o servidor
       env:
         SSH_KEY: ${{ secrets.SSH_KEY }}
         HOST: ${{ secrets.HOST }}
         USERNAME: ${{ secrets.USERNAME }}
       run: |
+        set -euo pipefail
+
         mkdir -p ~/.ssh
         echo "$SSH_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
@@ -55,9 +55,12 @@ jobs:
         REMOTE="${USERNAME}@${HOST}"
         LIVE="/var/www/templarios"
         NEXT="/var/www/templarios-next"
+        SITE_URL="https://www.templariosdapazoficial.com.br"
 
         MAIN_JS=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -1 | sed 's/.*src="\/assets\///;s/"//')
         MAIN_CSS=$(grep -oE 'href="/assets/index-[^"]+\.css"' dist/index.html | head -1 | sed 's/.*href="\/assets\///;s/"//')
+        LARGEST_JS=$(find dist/assets -name '*.js' -printf '%f %s\n' | sort -k2 -n | tail -1 | awk '{print $1}')
+        LARGEST_JS_SIZE=$(stat -c%s "dist/assets/$LARGEST_JS")
 
         if [ -z "$MAIN_JS" ] || [ ! -f "dist/assets/$MAIN_JS" ]; then
           echo "::error::Bundle principal JS não encontrado em dist/"
@@ -70,25 +73,53 @@ jobs:
           exit 1
         fi
 
-        LARGE_LOCAL=$(find dist/assets -name '*.js' -size +450k | wc -l)
-        echo "Arquivos JS locais >450KB: $LARGE_LOCAL"
-        if [ "$LARGE_LOCAL" -gt 0 ]; then
-          echo "::warning::Existem chunks JS acima de 450KB (servidor pode resetar download):"
-          find dist/assets -name '*.js' -size +450k -printf '%f %s\n'
+        if [ "$LARGEST_JS_SIZE" -gt 524288 ]; then
+          echo "::error::Chunk JS acima de 512KB ($LARGEST_JS $LARGEST_JS_SIZE bytes) — servidor pode resetar download."
+          exit 1
         fi
 
-        echo "Bundle principal local: assets/$MAIN_JS ($JS_SIZE bytes)"
+        echo "Bundle principal: assets/$MAIN_JS ($JS_SIZE bytes)"
+        echo "Maior chunk: assets/$LARGEST_JS ($LARGEST_JS_SIZE bytes)"
         if [ -n "$MAIN_CSS" ] && [ ! -f "dist/assets/$MAIN_CSS" ]; then
           echo "::error::CSS principal não encontrado: $MAIN_CSS"
           exit 1
         fi
 
-        deploy() {
-          scp $SSH_OPTS docs/nginx-templarios-site.conf "$REMOTE:/tmp/templarios-nginx.conf"
+        verify_download() {
+          local url="$1"
+          local min_bytes="$2"
+          local tmp
+          tmp=$(mktemp)
+          local code size
+          code=$(curl -4 -sS -o "$tmp" -w '%{http_code}' --max-time 90 "$url" || echo "000")
+          size=$(wc -c < "$tmp" | tr -d ' ')
+          rm -f "$tmp"
+          echo "GET $url -> HTTP $code size=$size (min $min_bytes)"
+          [ "$code" = "200" ] && [ "$size" -ge "$min_bytes" ]
+        }
+
+        rollback_live() {
+          echo "Tentando rollback para ${LIVE}.old ..."
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<ROLLBACK
+        set -e
+        LIVE='$LIVE'
+        if [ -d "\${LIVE}.old" ]; then
+          rm -rf "\$LIVE"
+          mv "\${LIVE}.old" "\$LIVE"
+          chown -R www-data:www-data "\$LIVE"
+          echo "Rollback concluído."
+        else
+          echo "Nenhum backup ${LIVE}.old disponível."
+          exit 1
+        fi
+        ROLLBACK
+        }
+
+        deploy_once() {
           ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
           rsync -avz --partial --delay-updates -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
 
-          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<EOF
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<SWAP
         set -e
         NEXT='$NEXT'
         LIVE='$LIVE'
@@ -98,64 +129,42 @@ jobs:
         test -f "\$NEXT/assets/\$MAIN_JS"
         JS_REMOTE=\$(stat -c%s "\$NEXT/assets/\$MAIN_JS")
         test "\$JS_REMOTE" -ge 50000
+
         rm -rf "\${LIVE}.old"
         if [ -d "\$LIVE" ]; then mv "\$LIVE" "\${LIVE}.old"; fi
         mv "\$NEXT" "\$LIVE"
         chown -R www-data:www-data "\$LIVE"
-        if [ -f /etc/letsencrypt/live/www.templariosdapazoficial.com.br/fullchain.pem ]; then
-          sudo cp /tmp/templarios-nginx.conf /etc/nginx/sites-available/templarios
-          sudo ln -sf /etc/nginx/sites-available/templarios /etc/nginx/sites-enabled/templarios
-          sudo nginx -t
-          sudo systemctl reload nginx
-        else
-          echo 'Aviso: certificado SSL não encontrado; nginx não foi alterado.'
-        fi
-        echo 'Site atualizado com swap atomico'
-        EOF
+        echo "Swap atomico concluido."
+        SWAP
 
-          verify_download() {
-            local url="$1"
-            local min_bytes="$2"
-            local tmp
-            tmp=$(mktemp)
-            local code size
-            code=$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 90 "$url")
-            size=$(wc -c < "$tmp" | tr -d ' ')
-            rm -f "$tmp"
-            echo "GET $url -> HTTP $code size=$size"
-            [ "$code" = "200" ] && [ "$size" -ge "$min_bytes" ]
-          }
+          verify_download "$SITE_URL/" 1000 || return 1
+          verify_download "$SITE_URL/assets/$MAIN_JS" 50000 || return 1
+          if [ "$LARGEST_JS" != "$MAIN_JS" ]; then
+            verify_download "$SITE_URL/assets/$LARGEST_JS" 10000 || return 1
+          fi
 
-          verify_download "https://www.templariosdapazoficial.com.br/" 1000 || {
-            echo '::error::HTML não baixou corretamente após deploy'
-            return 1
-          }
-          verify_download "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS" 50000 || {
-            echo '::error::Bundle principal não baixou por GET completo (conexão resetada ou arquivo incompleto)'
-            return 1
-          }
-
-          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<EOF
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<LOCALCHECK
         set -e
         MAIN_JS='$MAIN_JS'
-        code=\$(curl -sS -o /tmp/templarios-verify.js -w '%{http_code}' --max-time 60 -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1/assets/\$MAIN_JS")
+        code=\$(curl -sS -o /tmp/templarios-verify.js -w '%{http_code}' --max-time 60 \
+          -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1/assets/\$MAIN_JS")
         size=\$(wc -c < /tmp/templarios-verify.js | tr -d ' ')
         rm -f /tmp/templarios-verify.js
-        echo "Localhost GET index js -> HTTP \$code size=\$size"
+        echo "Localhost GET -> HTTP \$code size=\$size"
         test "\$code" = "200"
         test "\$size" -ge 50000
-        EOF
-          local ssh_verify_status=$?
-          if [ "$ssh_verify_status" -ne 0 ]; then
-            echo '::error::Servidor local não consegue servir o bundle principal'
-            return 1
-          fi
+        LOCALCHECK
         }
 
         for i in 1 2 3; do
           echo "Tentativa $i de 3..."
-          if deploy; then exit 0; fi
-          [ $i -lt 3 ] && echo "Falha na conexão, nova tentativa em 10s..." && sleep 10
+          if deploy_once; then
+            echo "Deploy e verificação concluídos com sucesso."
+            exit 0
+          fi
+          rollback_live || true
+          [ "$i" -lt 3 ] && echo "Nova tentativa em 10s..." && sleep 10
         done
-        echo "Deploy falhou após 3 tentativas."
+
+        echo "::error::Deploy falhou após 3 tentativas."
         exit 1

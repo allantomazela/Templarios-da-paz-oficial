@@ -95,11 +95,11 @@ jobs:
           local min_bytes="$2"
           ssh $SSH_OPTS "$REMOTE" "bash -s" <<VERIFY
         set -e
-        out=\$(curl -4 -sS -o /tmp/verify-body -w '%{http_code} %{size_download}' --max-time 90 \
-          -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1${path}")
+        out=\$(curl -4 -k -sS -o /tmp/verify-body -w '%{http_code} %{size_download}' --max-time 90 \
+          -H 'Host: www.templariosdapazoficial.com.br' "https://127.0.0.1${path}")
         code=\$(echo "\$out" | awk '{print \$1}')
         size=\$(echo "\$out" | awk '{print \$2}')
-        echo "LOCAL GET ${path} -> HTTP \$code size=\$size (min ${min_bytes})"
+        echo "HTTPS LOCAL GET ${path} -> HTTP \$code size=\$size (min ${min_bytes})"
         [ "\$code" = "200" ] && [ "\$size" -ge "${min_bytes}" ]
 VERIFY
         }
@@ -122,33 +122,14 @@ VERIFY
         }
 
         apply_nginx_fix() {
-          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
-          if ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'"; then
-            echo "Patch Nginx aplicado."
+          scp $SSH_OPTS docs/nginx-templarios-vultr.conf scripts/apply-production-nginx.sh "$REMOTE:/tmp/"
+          if ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-production-nginx.sh && sudo bash /tmp/apply-production-nginx.sh"; then
+            echo "Config Nginx de producao aplicada."
             return 0
           fi
-          echo "::warning::Patch Nginx falhou; tentando sed inline..."
-          ssh $SSH_OPTS "$REMOTE" "bash -s" <<'SED' || return 1
-        set -e
-        patched=0
-        for conf in /etc/nginx/sites-enabled/* /etc/nginx/sites-available/* /etc/nginx/conf.d/*.conf; do
-          [ -f "\$conf" ] || continue
-          if grep -qE 'root[[:space:]]+/var/www/templarios' "\$conf" 2>/dev/null || grep -q 'templariosdapazoficial' "\$conf" 2>/dev/null; then
-            sudo cp "\$conf" "\${conf}.bak-inline"
-            sudo sed -i 's/sendfile[[:space:]]*on;/sendfile off;/g' "\$conf"
-            patched=1
-          fi
-        done
-        if grep -q 'sendfile[[:space:]]*on' /etc/nginx/nginx.conf 2>/dev/null; then
-          sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak-inline
-          sudo sed -i 's/sendfile[[:space:]]*on;/sendfile off;/g' /etc/nginx/nginx.conf
-          patched=1
-        fi
-        [ "\$patched" -eq 1 ]
-        sudo nginx -t
-        sudo systemctl reload nginx
-        echo "sed inline OK"
-SED
+          echo "::warning::apply-production-nginx falhou; tentando patch legado..."
+          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
+          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'" || return 1
         }
 
         deploy_once() {

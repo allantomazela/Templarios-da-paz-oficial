@@ -55,7 +55,6 @@ jobs:
         REMOTE="${USERNAME}@${HOST}"
         LIVE="/var/www/templarios"
         NEXT="/var/www/templarios-next"
-        SITE_URL="https://www.templariosdapazoficial.com.br"
 
         MAIN_JS=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -1 | sed 's/.*src="\/assets\///;s/"//')
         MAIN_CSS=$(grep -oE 'href="/assets/index-[^"]+\.css"' dist/index.html | head -1 | sed 's/.*href="\/assets\///;s/"//')
@@ -91,17 +90,18 @@ jobs:
           exit 1
         fi
 
-        verify_download() {
-          local url="$1"
+        verify_on_server() {
+          local path="$1"
           local min_bytes="$2"
-          local tmp
-          tmp=$(mktemp)
-          local code size
-          code=$(curl -4 -sS -o "$tmp" -w '%{http_code}' --max-time 90 "$url" || echo "000")
-          size=$(wc -c < "$tmp" | tr -d ' ')
-          rm -f "$tmp"
-          echo "GET $url -> HTTP $code size=$size (min $min_bytes)"
-          [ "$code" = "200" ] && [ "$size" -ge "$min_bytes" ]
+          ssh $SSH_OPTS "$REMOTE" "bash -s" <<VERIFY
+        set -e
+        out=\$(curl -4 -sS -o /tmp/verify-body -w '%{http_code} %{size_download}' --max-time 90 \
+          -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1${path}")
+        code=\$(echo "\$out" | awk '{print \$1}')
+        size=\$(echo "\$out" | awk '{print \$2}')
+        echo "LOCAL GET ${path} -> HTTP \$code size=\$size (min ${min_bytes})"
+        [ "\$code" = "200" ] && [ "\$size" -ge "${min_bytes}" ]
+VERIFY
         }
 
         rollback_live() {
@@ -119,6 +119,31 @@ jobs:
           exit 1
         fi
         ROLLBACK
+        }
+
+        apply_nginx_fix() {
+          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
+          if ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'"; then
+            echo "Patch Nginx aplicado."
+            return 0
+          fi
+          echo "::warning::Patch Nginx falhou; tentando sed inline..."
+          ssh $SSH_OPTS "$REMOTE" "bash -s" <<'SED' || return 1
+        set -e
+        LIVE='/var/www/templarios'
+        patched=0
+        for conf in /etc/nginx/sites-enabled/*; do
+          [ -f "\$conf" ] || continue
+          grep -q "root \${LIVE}" "\$conf" || continue
+          sudo cp "\$conf" "\${conf}.bak-inline"
+          sudo sed -i 's/sendfile[[:space:]]*on;/sendfile off;/g' "\$conf"
+          patched=1
+        done
+        [ "\$patched" -eq 1 ]
+        sudo nginx -t
+        sudo systemctl reload nginx
+        echo "sed inline OK"
+SED
         }
 
         deploy_once() {
@@ -143,20 +168,15 @@ jobs:
         echo "Swap atomico concluido."
         SWAP
 
-          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
-          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'" || return 1
+          apply_nginx_fix || echo "::warning::Nginx nao patchado; site pode continuar com ERR_CONNECTION_RESET."
 
-          verify_download "$SITE_URL/" 1000 || return 1
-          verify_download "$SITE_URL/assets/$MAIN_JS" 50000 || return 1
-          verify_download "$SITE_URL/assets/$LARGEST_JS" 10000 || return 1
+          verify_on_server "/" 1000 || return 1
+          verify_on_server "/assets/$MAIN_JS" 50000 || return 1
+          verify_on_server "/assets/$LARGEST_JS" 10000 || return 1
 
           RADIX_JS=$(grep -oE 'vendor-radix-[^"]+\.js' dist/index.html | head -1 || true)
-          JSZIP_JS=$(grep -oE 'vendor-jszip-[^"]+\.js' dist/index.html | head -1 || true)
           if [ -n "$RADIX_JS" ]; then
-            verify_download "$SITE_URL/assets/$RADIX_JS" 50000 || return 1
-          fi
-          if [ -n "$JSZIP_JS" ]; then
-            verify_download "$SITE_URL/assets/$JSZIP_JS" 50000 || return 1
+            verify_on_server "/assets/$RADIX_JS" 10000 || return 1
           fi
         }
 

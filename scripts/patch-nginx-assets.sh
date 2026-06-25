@@ -1,104 +1,48 @@
 #!/usr/bin/env bash
-# Corrige ERR_CONNECTION_RESET: desliga sendfile em TODOS os server blocks do site.
+# Corrige ERR_CONNECTION_RESET: desliga sendfile no site Templários (Vultr/nginx).
 set -euo pipefail
 
 LIVE_ROOT="${1:-/var/www/templarios}"
+PATCHED=0
 
-CONF=""
-for dir in /etc/nginx/sites-enabled /etc/nginx/conf.d; do
-  if [ -d "$dir" ]; then
-    CONF=$(grep -rl "root ${LIVE_ROOT}" "$dir" 2>/dev/null | head -1 || true)
-    [ -n "$CONF" ] && break
+shopt -s nullglob
+for conf in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+  [ -f "$conf" ] || continue
+  if ! grep -q "root ${LIVE_ROOT}" "$conf" 2>/dev/null; then
+    continue
   fi
+
+  echo "Patch em: $conf"
+  cp "$conf" "${conf}.bak-deploy"
+
+  sed -i 's/sendfile[[:space:]]*on;/sendfile off;/g' "$conf"
+
+  if ! grep -q 'sendfile' "$conf"; then
+    sed -i "s|root ${LIVE_ROOT};|root ${LIVE_ROOT};\n    sendfile off;|" "$conf"
+  fi
+
+  if ! grep -q 'location /assets/' "$conf"; then
+    sed -i "s|    location / {|    location /assets/ {\n        sendfile off;\n        try_files \$uri =404;\n    }\n\n    location / {|" "$conf"
+  fi
+
+  PATCHED=$((PATCHED + 1))
 done
 
-if [ -z "$CONF" ]; then
-  CONF=$(grep -rl 'templariosdapazoficial' /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null | head -1 || true)
-fi
-
-if [ -z "$CONF" ]; then
-  echo "::error::Config Nginx do site não encontrada."
+if [ "$PATCHED" -eq 0 ]; then
+  echo "::error::Nenhum arquivo nginx com root ${LIVE_ROOT} encontrado."
   exit 1
 fi
 
-echo "Config Nginx alvo: $CONF"
-sudo cp "$CONF" "${CONF}.bak-deploy"
+echo "Arquivos patchados: $PATCHED"
 
-sudo python3 - "$CONF" "$LIVE_ROOT" <<'PY'
-import re, sys
-
-path, live_root = sys.argv[1], sys.argv[2]
-text = open(path).read()
-
-assets = """    location /assets/ {
-        sendfile off;
-        aio off;
-        directio off;
-        tcp_nopush off;
-        gzip on;
-        gzip_vary on;
-        gzip_types application/javascript text/css;
-        gzip_min_length 256;
-        add_header Cache-Control "no-cache, must-revalidate";
-        try_files $uri =404;
-    }"""
-
-def patch_block(block: str) -> str:
-    block = re.sub(r"sendfile\s+on\s*;", "sendfile off;", block)
-    if "sendfile" not in block:
-        if "root " in block:
-            block = block.replace(
-                f"root {live_root};",
-                f"root {live_root};\n    sendfile off;",
-                1,
-            )
-    if "location /assets/" in block:
-        block = re.sub(
-            r"    location /assets/ \{.*?\n    \}",
-            assets,
-            block,
-            count=1,
-            flags=re.DOTALL,
-        )
-    elif "    location / {" in block:
-        block = block.replace("    location / {", assets + "\n    location / {", 1)
-    return block
-
-blocks = list(re.finditer(r"server\s*\{", text))
-patched = 0
-for m in reversed(blocks):
-    start = m.start()
-    depth = 0
-    end = None
-    for i in range(start, len(text)):
-        if text[i] == "{":
-            depth += 1
-        elif text[i] == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
-    if end is None:
-        continue
-    block = text[start:end]
-    if live_root not in block:
-        continue
-    text = text[:start] + patch_block(block) + text[end:]
-    patched += 1
-
-if patched == 0:
-    print("Nenhum server block com root do site encontrado.")
-    sys.exit(1)
-
-open(path, "w").write(text)
-print(f"Patch aplicado em {patched} server block(s).")
-PY
-
-if ! sudo nginx -t 2>&1; then
-  echo "nginx -t falhou; restaurando backup."
-  sudo cp "${CONF}.bak-deploy" "$CONF"
+if ! nginx -t 2>&1; then
+  echo "nginx -t falhou; restaurando backups."
+  for conf in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+    [ -f "${conf}.bak-deploy" ] && cp "${conf}.bak-deploy" "$conf"
+  done
+  nginx -t
   exit 1
 fi
 
-sudo systemctl reload nginx
-echo "Nginx recarregado."
+systemctl reload nginx
+echo "Nginx recarregado com sendfile off."

@@ -1,0 +1,49 @@
+name: Corrigir Nginx (emergência)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-nginx:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Aplicar sendfile off no servidor
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -i ~/.ssh/deploy_key"
+          REMOTE="${USERNAME}@${HOST}"
+
+          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
+          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh /var/www/templarios"
+
+          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<'CHECK'
+          set -e
+          html=$(curl -4 -sS -o /tmp/t.html -w '%{http_code} %{size_download}' --max-time 30 \
+            -H 'Host: www.templariosdapazoficial.com.br' http://127.0.0.1/)
+          echo "Local index.html: $html"
+          test "$(echo "$html" | awk '{print $1}')" = "200"
+          test "$(echo "$html" | awk '{print $2}')" -ge 1000
+
+          js=$(grep -oE 'src="/assets/index-[^"]+\.js"' /tmp/t.html | head -1 | sed 's/.*src="//;s/"//')
+          test -n "$js"
+          asset=$(curl -4 -sS -o /tmp/t.js -w '%{http_code} %{size_download}' --max-time 60 \
+            -H 'Host: www.templariosdapazoficial.com.br' "http://127.0.0.1/assets/$js")
+          echo "Local $js: $asset"
+          test "$(echo "$asset" | awk '{print $1}')" = "200"
+          test "$(echo "$asset" | awk '{print $2}')" -ge 50000
+          CHECK
+
+          curl -4 -sS -o /dev/null -w "Externo index.html: %{http_code} %{size_download}\n" --max-time 60 \
+            "https://www.templariosdapazoficial.com.br/"

@@ -74,8 +74,8 @@ jobs:
           exit 1
         fi
 
-        if [ "$LARGEST_JS_SIZE" -gt 524288 ]; then
-          echo "::error::Chunk JS acima de 512KB ($LARGEST_JS $LARGEST_JS_SIZE bytes)."
+        if [ "$LARGEST_JS_SIZE" -gt 393216 ]; then
+          echo "::error::Chunk JS acima de 384KB ($LARGEST_JS $LARGEST_JS_SIZE bytes)."
           exit 1
         fi
 
@@ -139,8 +139,23 @@ jobs:
         echo "Swap atomico concluido."
         SWAP
 
+          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
+          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'" || {
+            echo "::warning::Patch Nginx falhou; continuando verificacao..."
+          }
+
           verify_download "$SITE_URL/" 1000 || return 1
           verify_download "$SITE_URL/assets/$MAIN_JS" 50000 || return 1
+          verify_download "$SITE_URL/assets/$LARGEST_JS" 10000 || return 1
+
+          RADIX_JS=$(grep -oE 'vendor-radix-[^"]+\.js' dist/index.html | head -1 || true)
+          JSZIP_JS=$(grep -oE 'vendor-jszip-[^"]+\.js' dist/index.html | head -1 || true)
+          if [ -n "$RADIX_JS" ]; then
+            verify_download "$SITE_URL/assets/$RADIX_JS" 50000 || return 1
+          fi
+          if [ -n "$JSZIP_JS" ]; then
+            verify_download "$SITE_URL/assets/$JSZIP_JS" 50000 || return 1
+          fi
         }
 
         for i in 1 2 3; do

@@ -47,7 +47,18 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('dompurify')) return 'vendor-dompurify'
           if (id.includes('@hookform')) return 'vendor-forms'
           if (id.includes('sonner')) return 'vendor-sonner'
-          return 'vendor-libs'
+          if (id.includes('next-themes')) return 'vendor-themes'
+          if (id.includes('embla-carousel')) return 'vendor-carousel'
+          if (id.includes('cmdk')) return 'vendor-cmdk'
+          if (id.includes('vaul')) return 'vendor-vaul'
+          if (id.includes('papaparse')) return 'vendor-papaparse'
+          if (id.includes('xlsx')) return 'vendor-xlsx'
+
+          const match = id.match(
+            /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?((?:@[^/]+\/)?[^/]+)/,
+          )
+          const pkg = match?.[1] ?? 'misc'
+          return `vendor-${pkg.replace('@', '').replace('/', '-')}`
         },
       },
     },

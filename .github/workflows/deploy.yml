@@ -144,9 +144,7 @@ jobs:
         SWAP
 
           scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
-          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'" || {
-            echo "::warning::Patch Nginx falhou; continuando verificacao..."
-          }
+          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'" || return 1
 
           verify_download "$SITE_URL/" 1000 || return 1
           verify_download "$SITE_URL/assets/$MAIN_JS" 50000 || return 1

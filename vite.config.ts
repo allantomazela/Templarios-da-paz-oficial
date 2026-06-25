@@ -14,13 +14,22 @@ export default defineConfig(({ mode }) => ({
   build: {
     minify: mode !== 'development',
     sourcemap: mode === 'development',
-    // Hash no nome dos assets: cada deploy gera URLs novas e evita JS antigo em cache
-    // (mistura HTML novo + bundle velho quebra o app; aba anônima “funciona” por não ter cache).
+    // Chunks menores: o servidor Vultr/nginx estava resetando conexão em JS > ~1MB.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          const match = id.match(
+            /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?((?:@[^/]+\/)?[^/]+)/,
+          )
+          const pkg = match?.[1] ?? 'misc'
+          return `vendor-${pkg.replace('@', '').replace('/', '-')}`
+        },
       },
     },
   },

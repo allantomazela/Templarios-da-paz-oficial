@@ -87,6 +87,14 @@ jobs:
         rm -rf "\${LIVE}.old"
         if [ -d "\$LIVE" ]; then mv "\$LIVE" "\${LIVE}.old"; fi
         mv "\$NEXT" "\$LIVE"
+
+        # Compatibilidade pós-deploy: preserva assets hashados da versão anterior.
+        # Evita tela branca quando clientes ainda carregam index.html antigo em cache.
+        if [ -d "\${LIVE}.old/assets" ]; then
+          mkdir -p "\$LIVE/assets"
+          cp -an "\${LIVE}.old/assets/." "\$LIVE/assets/" || true
+        fi
+
         chown -R www-data:www-data "\$LIVE"
         echo "Deploy concluido: \$LIVE/assets/\$MAIN_JS"
         SWAP

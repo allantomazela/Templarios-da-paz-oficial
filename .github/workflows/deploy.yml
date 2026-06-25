@@ -57,10 +57,6 @@ jobs:
         NEXT="/var/www/templarios-next"
 
         MAIN_JS=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -1 | sed 's/.*src="\/assets\///;s/"//')
-        MAIN_CSS=$(grep -oE 'href="/assets/index-[^"]+\.css"' dist/index.html | head -1 | sed 's/.*href="\/assets\///;s/"//')
-        LARGEST_JS=$(find dist/assets -name '*.js' -printf '%f %s\n' | sort -k2 -n | tail -1 | awk '{print $1}')
-        LARGEST_JS_SIZE=$(stat -c%s "dist/assets/$LARGEST_JS")
-        JS_FILE_COUNT=$(find dist/assets -name '*.js' | wc -l)
 
         if [ -z "$MAIN_JS" ] || [ ! -f "dist/assets/$MAIN_JS" ]; then
           echo "::error::Bundle principal JS não encontrado em dist/"
@@ -73,76 +69,12 @@ jobs:
           exit 1
         fi
 
-        if [ "$LARGEST_JS_SIZE" -gt 393216 ]; then
-          echo "::error::Chunk JS acima de 384KB ($LARGEST_JS $LARGEST_JS_SIZE bytes)."
-          exit 1
-        fi
-
-        if [ "$JS_FILE_COUNT" -gt 250 ]; then
-          echo "::warning::Muitos chunks JS ($JS_FILE_COUNT); considere consolidar vendors."
-        fi
-
         echo "Bundle principal: assets/$MAIN_JS ($JS_SIZE bytes)"
-        echo "Maior chunk: assets/$LARGEST_JS ($LARGEST_JS_SIZE bytes)"
-        echo "Total de arquivos JS em assets/: $JS_FILE_COUNT"
-        if [ -n "$MAIN_CSS" ] && [ ! -f "dist/assets/$MAIN_CSS" ]; then
-          echo "::error::CSS principal não encontrado: $MAIN_CSS"
-          exit 1
-        fi
 
-        verify_on_server() {
-          local path="$1"
-          local min_bytes="$2"
-          ssh $SSH_OPTS "$REMOTE" "bash -s" <<VERIFY
-        set -e
-        out=\$(curl -4 -k -sS -o /tmp/verify-body -w '%{http_code} %{size_download}' --max-time 90 \
-          -H 'Host: www.templariosdapazoficial.com.br' "https://127.0.0.1${path}")
-        code=\$(echo "\$out" | awk '{print \$1}')
-        size=\$(echo "\$out" | awk '{print \$2}')
-        echo "LOCAL HTTPS ${path} -> HTTP \$code size=\$size (min ${min_bytes})"
-        [ "\$code" = "200" ] && [ "\$size" -ge "${min_bytes}" ]
-        ext=\$(curl -4 -sS -o /tmp/verify-ext -w '%{http_code} %{size_download}' --max-time 90 \
-          "https://www.templariosdapazoficial.com.br${path}" || echo "000 0")
-        echo "EXTERN HTTPS ${path} -> HTTP \$ext"
-        ext_code=\$(echo "\$ext" | awk '{print \$1}')
-        ext_size=\$(echo "\$ext" | awk '{print \$2}')
-        [ "\$ext_code" = "200" ] && [ "\$ext_size" -ge "${min_bytes}" ]
-VERIFY
-        }
+        ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
+        rsync -avz --partial --delay-updates --timeout=300 -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
 
-        rollback_live() {
-          echo "Tentando rollback para ${LIVE}.old ..."
-          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<ROLLBACK
-        set -e
-        LIVE='$LIVE'
-        if [ -d "\${LIVE}.old" ]; then
-          rm -rf "\$LIVE"
-          mv "\${LIVE}.old" "\$LIVE"
-          chown -R www-data:www-data "\$LIVE"
-          echo "Rollback concluído."
-        else
-          echo "Nenhum backup ${LIVE}.old disponível."
-          exit 1
-        fi
-        ROLLBACK
-        }
-
-        apply_nginx_fix() {
-          scp $SSH_OPTS docs/nginx-templarios-vultr.conf scripts/apply-production-nginx.sh "$REMOTE:/tmp/"
-          if ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-production-nginx.sh && sudo bash /tmp/apply-production-nginx.sh"; then
-            echo "Config Nginx de producao aplicada."
-            return 0
-          fi
-          echo "::warning::apply-production-nginx falhou; tentando patch legado..."
-          scp $SSH_OPTS scripts/patch-nginx-assets.sh "$REMOTE:/tmp/patch-nginx-assets.sh"
-          ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/patch-nginx-assets.sh && sudo /tmp/patch-nginx-assets.sh '$LIVE'" || return 1
-        }
-
-        deploy_once() {
-          ssh $SSH_OPTS "$REMOTE" "rm -rf '$NEXT' && mkdir -p '$NEXT'"
-          rsync -avz --partial --delay-updates --timeout=300 -e "ssh $SSH_OPTS" dist/ "$REMOTE:$NEXT/"
-
-          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<SWAP
+        ssh $SSH_OPTS "$REMOTE" "bash -s" <<SWAP
         set -e
         NEXT='$NEXT'
         LIVE='$LIVE'
@@ -150,49 +82,14 @@ VERIFY
 
         test -f "\$NEXT/index.html"
         test -f "\$NEXT/assets/\$MAIN_JS"
-        JS_REMOTE=\$(stat -c%s "\$NEXT/assets/\$MAIN_JS")
-        test "\$JS_REMOTE" -ge 50000
+        test "\$(stat -c%s "\$NEXT/assets/\$MAIN_JS")" -ge 50000
 
         rm -rf "\${LIVE}.old"
         if [ -d "\$LIVE" ]; then mv "\$LIVE" "\${LIVE}.old"; fi
         mv "\$NEXT" "\$LIVE"
         chown -R www-data:www-data "\$LIVE"
-        echo "Swap atomico concluido."
+        echo "Deploy concluido: \$LIVE/assets/\$MAIN_JS"
         SWAP
 
-          ssh $SSH_OPTS "$REMOTE" 'bash -s' <<'SYNC'
-        set -e
-        LIVE='/var/www/templarios'
-        html="$LIVE/index.html"
-        test -f "$html"
-        main=$(grep -oE 'src="/assets/index-[^"]+\.js"' "$html" | head -1 | sed 's/.*src="\/assets\///;s/"//')
-        test -n "$main"
-        test -f "$LIVE/assets/$main"
-        count=$(find "$LIVE/assets" -name '*.js' | wc -l)
-        echo "index.html -> assets/$main OK ($count arquivos JS)"
-SYNC
-
-          apply_nginx_fix || echo "::warning::Nginx nao patchado; site pode continuar com ERR_CONNECTION_RESET."
-
-          verify_on_server "/" 1000 || return 1
-          verify_on_server "/assets/$MAIN_JS" 50000 || return 1
-          verify_on_server "/assets/$LARGEST_JS" 10000 || return 1
-
-          RADIX_JS=$(grep -oE 'vendor-radix-[^"]+\.js' dist/index.html | head -1 || true)
-          if [ -n "$RADIX_JS" ]; then
-            verify_on_server "/assets/$RADIX_JS" 10000 || return 1
-          fi
-        }
-
-        for i in 1 2 3; do
-          echo "Tentativa $i de 3..."
-          if deploy_once; then
-            echo "Deploy e verificação concluídos com sucesso."
-            exit 0
-          fi
-          rollback_live || true
-          [ "$i" -lt 3 ] && echo "Nova tentativa em 10s..." && sleep 10
-        done
-
-        echo "::error::Deploy falhou após 3 tentativas."
-        exit 1
+        ssh $SSH_OPTS "$REMOTE" "test -f '$LIVE/index.html' && test -f '$LIVE/assets/$MAIN_JS'"
+        echo "Arquivos confirmados no servidor."

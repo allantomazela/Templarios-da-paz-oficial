@@ -42,20 +42,22 @@ import {
 } from '@/lib/financial-balance-math'
 
 export function ExpenseList() {
+  const canManageAttachments = useFinancialAttachmentAccess()
   const {
     transactions: expenses,
     accounts,
     allTransactions,
     accountNames,
     loading,
-  } = useFinancialTransactionList('Despesa')
+  } = useFinancialTransactionList('Despesa', {
+    includeAttachmentCounts: canManageAttachments,
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
     null,
   )
   const createIdempotencyKeyRef = useRef<string | null>(null)
-  const canManageAttachments = useFinancialAttachmentAccess()
 
   const filteredExpenses = expenses.filter(
     (expense) =>

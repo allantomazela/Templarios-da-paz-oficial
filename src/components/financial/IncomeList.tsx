@@ -43,18 +43,20 @@ import {
 } from '@/lib/financial-balance-math'
 
 export function IncomeList() {
+  const canManageAttachments = useFinancialAttachmentAccess()
   const {
     transactions: incomes,
     accounts,
     allTransactions,
     accountNames,
     loading,
-  } = useFinancialTransactionList('Receita')
+  } = useFinancialTransactionList('Receita', {
+    includeAttachmentCounts: canManageAttachments,
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
-  const canManageAttachments = useFinancialAttachmentAccess()
 
   const filteredIncomes = incomes.filter(
     (income) =>

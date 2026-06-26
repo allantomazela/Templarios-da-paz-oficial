@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import type { BankAccount, Transaction } from '@/lib/data'
 import { logError } from '@/lib/logger'
 import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
+import { fetchAttachmentCountsByTransaction } from '@/lib/financial-attachments'
 import {
-  loadTransactionsByType,
   type FinancialTransactionType,
 } from '@/lib/financial-transaction-api'
 import { toast } from '@/hooks/use-toast'
 import useFinancialStore from '@/stores/useFinancialStore'
+
+interface UseFinancialTransactionListOptions {
+  /** Carrega contagem de comprovantes (tesoureiro/admin). */
+  includeAttachmentCounts?: boolean
+}
 
 interface UseFinancialTransactionListResult {
   transactions: Transaction[]
@@ -19,7 +24,9 @@ interface UseFinancialTransactionListResult {
 
 export function useFinancialTransactionList(
   type: FinancialTransactionType,
+  options: UseFinancialTransactionListOptions = {},
 ): UseFinancialTransactionListResult {
+  const { includeAttachmentCounts = false } = options
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
@@ -35,18 +42,38 @@ export function useFinancialTransactionList(
     const loadCore = async () => {
       setLoading(true)
       try {
-        const [{ transactions: rows, accountNames: namesById }, cashData] =
-          await Promise.all([
-            loadTransactionsByType(type),
-            fetchFinancialAccountsAndTransactions(),
-          ])
+        const { accounts: accountsData, transactions: allTx } =
+          await fetchFinancialAccountsAndTransactions()
+
+        if (cancelled || requestId !== requestSeq.current) return
+
+        const namesById: Record<string, string> = {}
+        for (const account of accountsData) {
+          namesById[account.id] = account.name
+        }
+
+        const typed = allTx
+          .filter((item) => item.type === type)
+          .map((item) => ({
+            ...item,
+            category: item.category || 'Sem categoria',
+          }))
+
+        if (includeAttachmentCounts && typed.length > 0) {
+          const counts = await fetchAttachmentCountsByTransaction(
+            typed.map((item) => item.id),
+          )
+          for (const transaction of typed) {
+            transaction.attachmentCount = counts[transaction.id] ?? 0
+          }
+        }
 
         if (cancelled || requestId !== requestSeq.current) return
 
         setAccountNames(namesById)
-        setTransactions(rows)
-        setAccounts(cashData.accounts)
-        setAllTransactions(cashData.transactions)
+        setTransactions(typed)
+        setAccounts(accountsData)
+        setAllTransactions(allTx)
       } catch (error) {
         if (cancelled || requestId !== requestSeq.current) return
         logError(`useFinancialTransactionList(${type})`, error)
@@ -70,7 +97,7 @@ export function useFinancialTransactionList(
     return () => {
       cancelled = true
     }
-  }, [dataRevision, type])
+  }, [dataRevision, type, includeAttachmentCounts])
 
   return {
     transactions,

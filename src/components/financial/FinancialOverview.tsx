@@ -52,6 +52,9 @@ const chartConfig = {
 }
 
 export function FinancialOverview() {
+  const storeTransactions = useFinancialStore((s) => s.transactions)
+  const storeAccounts = useFinancialStore((s) => s.accounts)
+  const storeLoading = useFinancialStore((s) => s.loading)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,6 +63,18 @@ export function FinancialOverview() {
   const { toast } = useToast()
 
   useEffect(() => {
+    if (storeTransactions.length > 0 || storeAccounts.length > 0) {
+      setTransactions(storeTransactions)
+      setAccounts(storeAccounts)
+      setLoading(false)
+      return
+    }
+
+    if (storeLoading) {
+      setLoading(true)
+      return
+    }
+
     const loadData = async () => {
       setLoading(true)
       try {
@@ -80,8 +95,8 @@ export function FinancialOverview() {
       }
     }
 
-    loadData()
-  }, [dataRevision, toast])
+    void loadData()
+  }, [dataRevision, storeTransactions, storeAccounts, storeLoading, toast])
 
   // Date Filtering
   const getDateRange = () => {

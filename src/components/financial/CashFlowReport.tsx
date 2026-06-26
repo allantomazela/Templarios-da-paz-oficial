@@ -214,18 +214,22 @@ export function CashFlowReport() {
           className={
             periodTotals.netCashFlow >= 0
               ? 'bg-blue-50 border-blue-200'
-              : 'bg-orange-50 border-orange-200'
+              : 'bg-red-50 border-red-200'
           }
         >
           <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium text-foreground">
+            <CardTitle
+              className={`text-sm font-medium ${
+                periodTotals.netCashFlow >= 0 ? 'text-blue-800' : 'text-red-800'
+              }`}
+            >
               Resultado Líquido
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div
               className={`text-2xl font-bold ${
-                periodTotals.netCashFlow >= 0 ? 'text-blue-700' : 'text-orange-700'
+                periodTotals.netCashFlow >= 0 ? 'text-blue-700' : 'text-red-700'
               }`}
             >
               {formatCurrencyBRL(periodTotals.netCashFlow)}

@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import {
   deleteTransactionAttachment,
   fetchTransactionAttachments,
+  FINANCIAL_ATTACHMENTS_PAGE_SIZE,
   FINANCIAL_DOCUMENT_TYPES,
   getFinancialDocumentTypeLabel,
   updateTransactionAttachment,
@@ -39,7 +40,12 @@ import {
   downloadFinancialAttachment,
   formatAttachmentFileSize,
 } from '@/lib/financial-attachment-access'
+import {
+  isFinancialImageUpload,
+  prepareFinancialImageUpload,
+} from '@/lib/financial-attachment-image'
 import { FinancialAttachmentPreviewDialog } from '@/components/financial/FinancialAttachmentPreviewDialog'
+import { AttachmentThumbnail } from '@/components/financial/AttachmentThumbnail'
 
 export interface PendingFinancialAttachment {
   id: string
@@ -165,7 +171,14 @@ function AttachmentRow({ attachment, onUpdated, onDeleted, onPreview }: Attachme
 
   return (
     <div className="space-y-2 rounded-md border px-3 py-2">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3">
+        <AttachmentThumbnail
+          thumbnailPath={attachment.thumbnailPath}
+          fileName={attachment.fileName}
+          mimeType={attachment.mimeType}
+        />
+
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-2">
           {isRenaming ? (
             <div className="flex items-center gap-2">
@@ -277,6 +290,7 @@ function AttachmentRow({ attachment, onUpdated, onDeleted, onPreview }: Attachme
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+        </div>
       </div>
     </div>
   )
@@ -299,9 +313,15 @@ export function TransactionAttachmentsPanel({
   )
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [preparingFile, setPreparingFile] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(FINANCIAL_ATTACHMENTS_PAGE_SIZE)
   const [previewAttachment, setPreviewAttachment] =
     useState<FinancialTransactionAttachment | null>(null)
   const [previewPendingFile, setPreviewPendingFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    setVisibleCount(FINANCIAL_ATTACHMENTS_PAGE_SIZE)
+  }, [transactionId])
 
   useEffect(() => {
     onStoredAttachmentCountChange?.(attachments.length)
@@ -337,35 +357,58 @@ export function TransactionAttachmentsPanel({
     }
   }, [transactionId, onStoredAttachmentCountChange])
 
-  const handleSelectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    const validationError = validateFinancialAttachmentFile(file)
-    if (validationError) {
+    setPreparingFile(true)
+    try {
+      let fileToUse = file
+
+      if (!transactionId && isFinancialImageUpload(file)) {
+        const prepared = await prepareFinancialImageUpload(file)
+        fileToUse = prepared.file
+
+        if (prepared.wasCompressed && fileToUse.size < file.size) {
+          toast({
+            title: 'Imagem otimizada',
+            description: `Tamanho reduzido de ${formatAttachmentFileSize(file.size)} para ${formatAttachmentFileSize(fileToUse.size)}.`,
+          })
+        }
+      }
+
+      const validationError = validateFinancialAttachmentFile(fileToUse)
+      if (validationError) {
+        toast({
+          title: 'Arquivo inválido',
+          description: validationError,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (transactionId) {
+        void handleUploadExistingTransaction(fileToUse, documentType)
+      } else {
+        onPendingFilesChange([
+          ...pendingFiles,
+          {
+            id: crypto.randomUUID(),
+            file: fileToUse,
+            documentType,
+          },
+        ])
+      }
+    } catch (error) {
       toast({
-        title: 'Arquivo inválido',
-        description: validationError,
+        title: 'Erro ao processar arquivo',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
         variant: 'destructive',
       })
+    } finally {
+      setPreparingFile(false)
       event.target.value = ''
-      return
     }
-
-    if (transactionId) {
-      void handleUploadExistingTransaction(file, documentType)
-    } else {
-      onPendingFilesChange([
-        ...pendingFiles,
-        {
-          id: crypto.randomUUID(),
-          file,
-          documentType,
-        },
-      ])
-    }
-
-    event.target.value = ''
   }
 
   const handleUploadExistingTransaction = async (
@@ -377,7 +420,13 @@ export function TransactionAttachmentsPanel({
     try {
       const created = await uploadTransactionAttachment(transactionId, file, type)
       setAttachments((current) => [...current, created])
-      toast({ title: 'Comprovante anexado' })
+      toast({
+        title: 'Comprovante anexado',
+        description:
+          file.size !== created.fileSize
+            ? `Enviado com ${formatAttachmentFileSize(created.fileSize)}.`
+            : undefined,
+      })
     } catch (error) {
       toast({
         title: 'Erro ao anexar',
@@ -404,6 +453,9 @@ export function TransactionAttachmentsPanel({
   }
 
   const totalCount = attachments.length + pendingFiles.length
+  const visibleAttachments = attachments.slice(0, visibleCount)
+  const hiddenAttachmentCount = Math.max(attachments.length - visibleCount, 0)
+  const isBusy = uploading || preparingFile
 
   return (
     <div className="space-y-3 rounded-md border p-4">
@@ -435,15 +487,15 @@ export function TransactionAttachmentsPanel({
           type="button"
           variant="outline"
           className="gap-2"
-          disabled={uploading}
+          disabled={isBusy}
           onClick={() => fileInputRef.current?.click()}
         >
-          {uploading ? (
+          {isBusy ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Upload className="h-4 w-4" />
           )}
-          Adicionar arquivo
+          {preparingFile ? 'Otimizando...' : 'Adicionar arquivo'}
         </Button>
         <input
           ref={fileInputRef}
@@ -455,8 +507,8 @@ export function TransactionAttachmentsPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        PDF ou imagem (JPG, PNG, WebP), até 10 MB. Pré-visualize ou baixe com
-        segurança. Acesso restrito ao tesoureiro e administrador.
+        PDF ou imagem (JPG, PNG, WebP), até 10 MB. Imagens grandes são
+        otimizadas automaticamente antes do envio.
       </p>
 
       {loading ? (
@@ -466,7 +518,7 @@ export function TransactionAttachmentsPanel({
         </div>
       ) : (
         <div className="space-y-2">
-          {attachments.map((attachment) => (
+          {visibleAttachments.map((attachment) => (
             <AttachmentRow
               key={attachment.id}
               attachment={attachment}
@@ -475,6 +527,22 @@ export function TransactionAttachmentsPanel({
               onPreview={setPreviewAttachment}
             />
           ))}
+
+          {hiddenAttachmentCount > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() =>
+                setVisibleCount((current) =>
+                  Math.min(current + FINANCIAL_ATTACHMENTS_PAGE_SIZE, attachments.length),
+                )
+              }
+            >
+              Ver mais ({hiddenAttachmentCount} oculto
+              {hiddenAttachmentCount === 1 ? '' : 's'})
+            </Button>
+          ) : null}
 
           {pendingFiles.map((pending) => (
             <div

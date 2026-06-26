@@ -2,6 +2,10 @@ import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 import { toErrorMessage, withTimeout } from '@/lib/async-utils'
 import { invalidateAttachmentSignedUrl, createAttachmentDownloadUrl } from '@/lib/financial-attachment-access'
+import {
+  isFinancialImageUpload,
+  prepareFinancialImageUpload,
+} from '@/lib/financial-attachment-image'
 import type { FinancialDocumentType } from '@/lib/financial-document-types'
 
 export {
@@ -20,9 +24,12 @@ export interface FinancialTransactionAttachment {
   fileName: string
   fileSize: number
   mimeType: string
+  thumbnailPath: string | null
   uploadedBy: string | null
   createdAt: string
 }
+
+export const FINANCIAL_ATTACHMENTS_PAGE_SIZE = 5
 
 const UPLOAD_TIMEOUT_MS = 300000
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
@@ -38,7 +45,7 @@ const ALLOWED_MIME_TYPES = new Set([
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp'])
 
 const ATTACHMENT_SELECT_COLUMNS =
-  'id, transaction_id, document_type, file_path, file_name, file_size, mime_type, uploaded_by, created_at'
+  'id, transaction_id, document_type, file_path, file_name, file_size, mime_type, thumbnail_path, uploaded_by, created_at'
 
 function normalizeUploadContentType(file: File): string {
   const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`
@@ -87,6 +94,7 @@ function mapAttachmentRow(row: Record<string, unknown>): FinancialTransactionAtt
     fileName: String(row.file_name),
     fileSize: Number(row.file_size),
     mimeType: String(row.mime_type),
+    thumbnailPath: row.thumbnail_path ? String(row.thumbnail_path) : null,
     uploadedBy: row.uploaded_by ? String(row.uploaded_by) : null,
     createdAt: String(row.created_at),
   }
@@ -175,6 +183,24 @@ export async function fetchAttachmentCountsByTransaction(
   return counts
 }
 
+function buildThumbnailStoragePath(transactionId: string): string {
+  return `transactions/${transactionId}/thumbs/${crypto.randomUUID()}.webp`
+}
+
+async function uploadStorageObject(filePath: string, file: File, contentType: string) {
+  const uploadResult = await withTimeout(
+    supabase.storage
+      .from(FINANCIAL_DOCUMENTS_BUCKET)
+      .upload(filePath, file, { contentType, upsert: false }),
+    UPLOAD_TIMEOUT_MS,
+    'Upload demorou muito. Tente novamente com um arquivo menor.',
+  )
+
+  if (uploadResult.error) {
+    throw new Error(toErrorMessage(uploadResult.error, 'Falha ao enviar o arquivo.'))
+  }
+}
+
 export async function uploadTransactionAttachment(
   transactionId: string,
   file: File,
@@ -183,48 +209,64 @@ export async function uploadTransactionAttachment(
   const validationError = validateFinancialAttachmentFile(file)
   if (validationError) throw new Error(validationError)
 
-  const filePath = buildStoragePath(transactionId, file.name)
-  const contentType = normalizeUploadContentType(file)
+  let fileToUpload = file
+  let thumbnailFile: File | null = null
 
-  const uploadPromise = supabase.storage
-    .from(FINANCIAL_DOCUMENTS_BUCKET)
-    .upload(filePath, file, { contentType, upsert: false })
+  if (isFinancialImageUpload(file)) {
+    const prepared = await prepareFinancialImageUpload(file)
+    fileToUpload = prepared.file
+    thumbnailFile = prepared.thumbnail
 
-  const uploadResult = await withTimeout(
-    uploadPromise,
-    UPLOAD_TIMEOUT_MS,
-    'Upload demorou muito. Tente novamente com um arquivo menor.',
-  )
-
-  if (uploadResult.error) {
-    throw new Error(toErrorMessage(uploadResult.error, 'Falha ao enviar o arquivo.'))
+    const compressedValidation = validateFinancialAttachmentFile(fileToUpload)
+    if (compressedValidation) throw new Error(compressedValidation)
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const filePath = buildStoragePath(transactionId, fileToUpload.name)
+  const contentType = normalizeUploadContentType(fileToUpload)
+  const uploadedPaths: string[] = []
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
-    .from('financial_transaction_attachments')
-    .insert({
-      transaction_id: transactionId,
-      document_type: documentType,
-      file_path: filePath,
-      file_name: file.name,
-      file_size: file.size,
-      mime_type: contentType,
-      uploaded_by: user?.id ?? null,
-    })
-    .select('*')
-    .single()
+  try {
+    await uploadStorageObject(filePath, fileToUpload, contentType)
+    uploadedPaths.push(filePath)
 
-  if (error) {
-    await supabase.storage.from(FINANCIAL_DOCUMENTS_BUCKET).remove([filePath])
-    throw new Error(toErrorMessage(error, 'Falha ao registrar o anexo.'))
+    let thumbnailPath: string | null = null
+    if (thumbnailFile) {
+      thumbnailPath = buildThumbnailStoragePath(transactionId)
+      await uploadStorageObject(thumbnailPath, thumbnailFile, 'image/webp')
+      uploadedPaths.push(thumbnailPath)
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    const supabaseAny = supabase as any
+    const { data, error } = await supabaseAny
+      .from('financial_transaction_attachments')
+      .insert({
+        transaction_id: transactionId,
+        document_type: documentType,
+        file_path: filePath,
+        file_name: file.name,
+        file_size: fileToUpload.size,
+        mime_type: contentType,
+        thumbnail_path: thumbnailPath,
+        uploaded_by: user?.id ?? null,
+      })
+      .select(ATTACHMENT_SELECT_COLUMNS)
+      .single()
+
+    if (error) {
+      throw new Error(toErrorMessage(error, 'Falha ao registrar o anexo.'))
+    }
+
+    return mapAttachmentRow(data)
+  } catch (error) {
+    if (uploadedPaths.length > 0) {
+      await supabase.storage.from(FINANCIAL_DOCUMENTS_BUCKET).remove(uploadedPaths)
+    }
+    throw error instanceof Error ? error : new Error('Falha ao enviar o anexo.')
   }
-
-  return mapAttachmentRow(data)
 }
 
 export async function deleteTransactionAttachment(
@@ -241,10 +283,17 @@ export async function deleteTransactionAttachment(
   }
 
   invalidateAttachmentSignedUrl(attachment.filePath)
+  if (attachment.thumbnailPath) {
+    invalidateAttachmentSignedUrl(attachment.thumbnailPath)
+  }
+
+  const pathsToRemove = attachment.thumbnailPath
+    ? [attachment.filePath, attachment.thumbnailPath]
+    : [attachment.filePath]
 
   const { error: storageError } = await supabase.storage
     .from(FINANCIAL_DOCUMENTS_BUCKET)
-    .remove([attachment.filePath])
+    .remove(pathsToRemove)
 
   if (storageError) {
     logError('deleteTransactionAttachment storage', storageError)

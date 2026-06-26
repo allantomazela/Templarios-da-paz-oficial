@@ -81,6 +81,7 @@ interface FinancialState {
   loading: boolean
   /** Incrementado quando transações/contas mudam (ex.: mensalidade paga). */
   dataRevision: number
+  refreshFinancialCoreData: (bumpRevision?: boolean) => Promise<void>
   notifyFinancialDataChanged: () => void
 
   // Fetch methods
@@ -144,8 +145,23 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   reminderLogs: [],
   loading: false,
   dataRevision: 0,
-  notifyFinancialDataChanged: () =>
-    set((state) => ({ dataRevision: state.dataRevision + 1 })),
+
+  refreshFinancialCoreData: async (bumpRevision = false) => {
+    try {
+      await Promise.all([get().fetchAccounts(), get().fetchTransactions()])
+      if (bumpRevision) {
+        set((state) => ({ dataRevision: state.dataRevision + 1 }))
+      }
+    } catch (error) {
+      if (!handleAuthError(error)) {
+        logError('refreshFinancialCoreData', error)
+      }
+    }
+  },
+
+  notifyFinancialDataChanged: () => {
+    void get().refreshFinancialCoreData(true)
+  },
 
   resetLoadingFlags: () => {
     financialLoadingGate.forceReset()

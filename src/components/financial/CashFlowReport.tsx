@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -38,10 +38,8 @@ import {
   formatCurrencyBRL,
   formatDateBR,
 } from '@/lib/format-utils'
-import type { BankAccount, Transaction } from '@/lib/data'
-import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
 import { buildCashFlowReport, type CashFlowPeriod } from '@/lib/cash-flow'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
 
 const PERIOD_LABELS: Record<string, string> = {
   current_month: 'Mês Atual',
@@ -66,43 +64,11 @@ function getDateRange(period: string): CashFlowPeriod {
 }
 
 export function CashFlowReport() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [loading, setLoading] = useState(true)
+  const { accounts, transactions, loading } = useFinancialCoreData()
   const { toast } = useToast()
   const [period, setPeriod] = useState('current_month')
   const [accountFilter, setAccountFilter] = useState('all')
   const printRef = useRef<HTMLDivElement>(null)
-  const dataRevision = useFinancialStore((state) => state.dataRevision)
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const data = await fetchFinancialAccountsAndTransactions()
-        if (!isMounted) return
-        setAccounts(data.accounts)
-        setTransactions(data.transactions)
-      } catch (error) {
-        console.error('Error loading cash flow data:', error)
-        toast({
-          title: 'Erro',
-          description: 'Falha ao carregar dados do fluxo de caixa.',
-          variant: 'destructive',
-        })
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-
-    void loadData()
-
-    return () => {
-      isMounted = false
-    }
-  }, [dataRevision, toast])
 
   const dateRange = useMemo(() => getDateRange(period), [period])
 
@@ -154,7 +120,8 @@ export function CashFlowReport() {
         <div>
           <h3 className="text-lg font-medium">Fluxo de Caixa Detalhado</h3>
           <p className="text-sm text-muted-foreground">
-            Saldos por conta, movimentações e conferência consolidada.
+            Saldos por conta, movimentações e conferência consolidada. Os saldos
+            atuais refletem ajustes feitos em Contas Bancárias e na auditoria.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -286,16 +253,18 @@ export function CashFlowReport() {
           <TableHeader>
             <TableRow>
               <TableHead>Conta</TableHead>
-              <TableHead className="text-right">Saldo Inicial</TableHead>
+              <TableHead className="text-right">Saldo Inicial Cadastrado</TableHead>
+              <TableHead className="text-right">Saldo Início Período</TableHead>
               <TableHead className="text-right">Entradas</TableHead>
               <TableHead className="text-right">Saídas</TableHead>
-              <TableHead className="text-right">Saldo Final</TableHead>
+              <TableHead className="text-right">Saldo Final Período</TableHead>
+              <TableHead className="text-right">Saldo Atual</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {accountSummaries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Nenhuma conta cadastrada.
                 </TableCell>
               </TableRow>
@@ -306,6 +275,9 @@ export function CashFlowReport() {
                     <TableCell>
                       <div className="font-medium">{row.accountName}</div>
                       <div className="text-xs text-muted-foreground">{row.accountType}</div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {formatCurrencyBRL(row.registeredInitialBalance)}
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrencyBRL(row.openingBalance)}
@@ -319,10 +291,16 @@ export function CashFlowReport() {
                     <TableCell className="text-right font-mono font-semibold">
                       {formatCurrencyBRL(row.closingBalance)}
                     </TableCell>
+                    <TableCell className="text-right font-mono font-semibold">
+                      {formatCurrencyBRL(row.currentBalance)}
+                    </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted/30 font-semibold">
                   <TableCell>{totalsRow.accountName}</TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCurrencyBRL(totalsRow.registeredInitialBalance)}
+                  </TableCell>
                   <TableCell className="text-right font-mono">
                     {formatCurrencyBRL(totalsRow.openingBalance)}
                   </TableCell>
@@ -334,6 +312,9 @@ export function CashFlowReport() {
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     {formatCurrencyBRL(totalsRow.closingBalance)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCurrencyBRL(totalsRow.currentBalance)}
                   </TableCell>
                 </TableRow>
               </>

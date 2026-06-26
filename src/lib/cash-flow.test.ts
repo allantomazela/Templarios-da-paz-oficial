@@ -107,9 +107,11 @@ describe('computeAccountCashFlowSummary', () => {
     const summary = computeAccountCashFlowSummary(accounts[0], transactions, period)
 
     expect(summary.openingBalance).toBe(1300)
+    expect(summary.registeredInitialBalance).toBe(1000)
     expect(summary.periodIncome).toBe(500)
     expect(summary.periodExpense).toBe(200)
     expect(summary.closingBalance).toBe(1600)
+    expect(summary.currentBalance).toBe(1600)
   })
 })
 

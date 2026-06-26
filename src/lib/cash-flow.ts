@@ -21,10 +21,14 @@ export interface AccountCashFlowSummary {
   accountId: string
   accountName: string
   accountType: string
+  /** Saldo inicial cadastrado na conta (ajustável na auditoria). */
+  registeredInitialBalance: number
   openingBalance: number
   periodIncome: number
   periodExpense: number
   closingBalance: number
+  /** Saldo acumulado atual — igual ao card em Contas Bancárias. */
+  currentBalance: number
 }
 
 export interface CashFlowReconciliation {
@@ -129,15 +133,22 @@ export function computeAccountCashFlowSummary(
   )
   const periodIncome = sumByType(inPeriod, 'Receita')
   const periodExpense = sumByType(inPeriod, 'Despesa')
+  const currentBalance = computeAccountBalance(
+    account.initialBalance,
+    account.id,
+    allTransactions,
+  )
 
   return {
     accountId: account.id,
     accountName: account.name,
     accountType: account.type,
+    registeredInitialBalance: account.initialBalance,
     openingBalance,
     periodIncome,
     periodExpense,
     closingBalance: openingBalance + periodIncome - periodExpense,
+    currentBalance,
   }
 }
 
@@ -159,19 +170,24 @@ export function computeTotalsRow(
       accountId: 'total',
       accountName: 'TOTAL GERAL',
       accountType: '',
+      registeredInitialBalance:
+        accumulator.registeredInitialBalance + row.registeredInitialBalance,
       openingBalance: accumulator.openingBalance + row.openingBalance,
       periodIncome: accumulator.periodIncome + row.periodIncome,
       periodExpense: accumulator.periodExpense + row.periodExpense,
       closingBalance: accumulator.closingBalance + row.closingBalance,
+      currentBalance: accumulator.currentBalance + row.currentBalance,
     }),
     {
       accountId: 'total',
       accountName: 'TOTAL GERAL',
       accountType: '',
+      registeredInitialBalance: 0,
       openingBalance: 0,
       periodIncome: 0,
       periodExpense: 0,
       closingBalance: 0,
+      currentBalance: 0,
     },
   )
 }

@@ -114,6 +114,8 @@ export function CashFlowReport() {
     expenseByCategory,
   } = report
 
+  const isGlobalBalancePositive = reconciliation.globalClosingBalance >= 0
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between no-print">
@@ -236,15 +238,35 @@ export function CashFlowReport() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          className={
+            isGlobalBalancePositive
+              ? 'bg-green-50 border-green-200'
+              : 'bg-red-50 border-red-200'
+          }
+        >
           <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium">Saldo Global Atual</CardTitle>
+            <CardTitle
+              className={`text-sm font-medium ${
+                isGlobalBalancePositive ? 'text-green-800' : 'text-red-800'
+              }`}
+            >
+              Saldo Global Atual
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div
+              className={`text-2xl font-bold ${
+                isGlobalBalancePositive ? 'text-green-700' : 'text-red-700'
+              }`}
+            >
               {formatCurrencyBRL(reconciliation.globalClosingBalance)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p
+              className={`text-xs mt-1 ${
+                isGlobalBalancePositive ? 'text-green-700/80' : 'text-red-700/80'
+              }`}
+            >
               Soma de todas as contas (acumulado)
             </p>
           </CardContent>

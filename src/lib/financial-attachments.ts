@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { logError } from '@/lib/logger'
 import { toErrorMessage, withTimeout } from '@/lib/async-utils'
+import { invalidateAttachmentSignedUrl, createAttachmentDownloadUrl } from '@/lib/financial-attachment-access'
 import type { FinancialDocumentType } from '@/lib/financial-document-types'
 
 export {
@@ -35,6 +36,31 @@ const ALLOWED_MIME_TYPES = new Set([
 ])
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp'])
+
+const ATTACHMENT_SELECT_COLUMNS =
+  'id, transaction_id, document_type, file_path, file_name, file_size, mime_type, uploaded_by, created_at'
+
+function normalizeUploadContentType(file: File): string {
+  const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`
+
+  if (file.type && ALLOWED_MIME_TYPES.has(file.type)) {
+    return file.type
+  }
+
+  switch (extension) {
+    case '.pdf':
+      return 'application/pdf'
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg'
+    case '.png':
+      return 'image/png'
+    case '.webp':
+      return 'image/webp'
+    default:
+      return file.type || 'application/octet-stream'
+  }
+}
 
 export function validateFinancialAttachmentFile(file: File): string | null {
   const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`
@@ -78,7 +104,7 @@ export async function fetchTransactionAttachments(
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('financial_transaction_attachments')
-    .select('*')
+    .select(ATTACHMENT_SELECT_COLUMNS)
     .eq('transaction_id', transactionId)
     .order('created_at', { ascending: true })
 
@@ -100,7 +126,7 @@ export async function fetchAttachmentsByTransactionIds(
     const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
     const { data, error } = await supabaseAny
       .from('financial_transaction_attachments')
-      .select('*')
+      .select(ATTACHMENT_SELECT_COLUMNS)
       .in('transaction_id', batch)
       .order('created_at', { ascending: true })
 
@@ -158,7 +184,7 @@ export async function uploadTransactionAttachment(
   if (validationError) throw new Error(validationError)
 
   const filePath = buildStoragePath(transactionId, file.name)
-  const contentType = file.type || 'application/octet-stream'
+  const contentType = normalizeUploadContentType(file)
 
   const uploadPromise = supabase.storage
     .from(FINANCIAL_DOCUMENTS_BUCKET)
@@ -214,6 +240,8 @@ export async function deleteTransactionAttachment(
     throw new Error(toErrorMessage(dbError, 'Falha ao remover o anexo.'))
   }
 
+  invalidateAttachmentSignedUrl(attachment.filePath)
+
   const { error: storageError } = await supabase.storage
     .from(FINANCIAL_DOCUMENTS_BUCKET)
     .remove([attachment.filePath])
@@ -223,20 +251,7 @@ export async function deleteTransactionAttachment(
   }
 }
 
-export async function createAttachmentDownloadUrl(
-  filePath: string,
-  expiresInSeconds = 3600,
-): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from(FINANCIAL_DOCUMENTS_BUCKET)
-    .createSignedUrl(filePath, expiresInSeconds)
-
-  if (error || !data?.signedUrl) {
-    throw new Error(toErrorMessage(error, 'Não foi possível gerar o link de download.'))
-  }
-
-  return data.signedUrl
-}
+export { createAttachmentDownloadUrl }
 
 export interface UpdateTransactionAttachmentInput {
   documentType?: FinancialDocumentType

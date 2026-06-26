@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Check,
   Download,
+  Eye,
   FileText,
   Loader2,
   Paperclip,
@@ -22,7 +23,6 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import {
-  createAttachmentDownloadUrl,
   deleteTransactionAttachment,
   fetchTransactionAttachments,
   FINANCIAL_DOCUMENT_TYPES,
@@ -33,6 +33,13 @@ import {
   type FinancialDocumentType,
   type FinancialTransactionAttachment,
 } from '@/lib/financial-attachments'
+import {
+  canPreviewFinancialAttachment,
+  canPreviewPendingFile,
+  downloadFinancialAttachment,
+  formatAttachmentFileSize,
+} from '@/lib/financial-attachment-access'
+import { FinancialAttachmentPreviewDialog } from '@/components/financial/FinancialAttachmentPreviewDialog'
 
 export interface PendingFinancialAttachment {
   id: string
@@ -51,13 +58,16 @@ interface AttachmentRowProps {
   attachment: FinancialTransactionAttachment
   onUpdated: (attachment: FinancialTransactionAttachment) => void
   onDeleted: (attachmentId: string) => void
+  onPreview: (attachment: FinancialTransactionAttachment) => void
 }
 
-function AttachmentRow({ attachment, onUpdated, onDeleted }: AttachmentRowProps) {
+function AttachmentRow({ attachment, onUpdated, onDeleted, onPreview }: AttachmentRowProps) {
   const { toast } = useToast()
   const [isRenaming, setIsRenaming] = useState(false)
   const [draftName, setDraftName] = useState(attachment.fileName)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const canPreview = canPreviewFinancialAttachment(attachment)
 
   useEffect(() => {
     setDraftName(attachment.fileName)
@@ -125,15 +135,17 @@ function AttachmentRow({ attachment, onUpdated, onDeleted }: AttachmentRowProps)
   }
 
   const handleDownload = async () => {
+    setIsDownloading(true)
     try {
-      const url = await createAttachmentDownloadUrl(attachment.filePath)
-      window.open(url, '_blank', 'noopener,noreferrer')
+      await downloadFinancialAttachment(attachment)
     } catch (error) {
       toast({
         title: 'Erro ao baixar',
         description: error instanceof Error ? error.message : 'Tente novamente.',
         variant: 'destructive',
       })
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -185,19 +197,24 @@ function AttachmentRow({ attachment, onUpdated, onDeleted }: AttachmentRowProps)
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-1">
-              <p className="truncate text-sm font-medium">{attachment.fileName}</p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-                title="Renomear"
-                disabled={isSaving}
-                onClick={() => setIsRenaming(true)}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1">
+                <p className="truncate text-sm font-medium">{attachment.fileName}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  title="Renomear"
+                  disabled={isSaving}
+                  onClick={() => setIsRenaming(true)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formatAttachmentFileSize(attachment.fileSize)}
+              </p>
             </div>
           )}
 
@@ -222,15 +239,31 @@ function AttachmentRow({ attachment, onUpdated, onDeleted }: AttachmentRowProps)
         </div>
 
         <div className="flex shrink-0 gap-1">
+          {canPreview ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              title="Pré-visualizar"
+              disabled={isSaving}
+              onClick={() => onPreview(attachment)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
             size="icon"
             title="Baixar"
-            disabled={isSaving}
+            disabled={isSaving || isDownloading}
             onClick={() => void handleDownload()}
           >
-            <Download className="h-4 w-4" />
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
           </Button>
           <Button
             type="button"
@@ -266,6 +299,9 @@ export function TransactionAttachmentsPanel({
   )
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [previewAttachment, setPreviewAttachment] =
+    useState<FinancialTransactionAttachment | null>(null)
+  const [previewPendingFile, setPreviewPendingFile] = useState<File | null>(null)
 
   useEffect(() => {
     onStoredAttachmentCountChange?.(attachments.length)
@@ -419,8 +455,8 @@ export function TransactionAttachmentsPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        PDF ou imagem (JPG, PNG, WebP), até 10 MB. Acesso restrito ao tesoureiro e
-        administrador.
+        PDF ou imagem (JPG, PNG, WebP), até 10 MB. Pré-visualize ou baixe com
+        segurança. Acesso restrito ao tesoureiro e administrador.
       </p>
 
       {loading ? (
@@ -436,6 +472,7 @@ export function TransactionAttachmentsPanel({
               attachment={attachment}
               onUpdated={handleAttachmentUpdated}
               onDeleted={handleAttachmentDeleted}
+              onPreview={setPreviewAttachment}
             />
           ))}
 
@@ -448,18 +485,31 @@ export function TransactionAttachmentsPanel({
                 <p className="truncate text-sm font-medium">{pending.file.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {getFinancialDocumentTypeLabel(pending.documentType)} · aguardando
-                  salvamento
+                  salvamento · {formatAttachmentFileSize(pending.file.size)}
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-destructive"
-                onClick={() => handleRemovePending(pending.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex shrink-0 gap-1">
+                {canPreviewPendingFile(pending.file) ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title="Pré-visualizar"
+                    onClick={() => setPreviewPendingFile(pending.file)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  onClick={() => handleRemovePending(pending.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
 
@@ -471,6 +521,17 @@ export function TransactionAttachmentsPanel({
           ) : null}
         </div>
       )}
+      <FinancialAttachmentPreviewDialog
+        open={previewAttachment !== null || previewPendingFile !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewAttachment(null)
+            setPreviewPendingFile(null)
+          }
+        }}
+        attachment={previewAttachment}
+        pendingFile={previewPendingFile}
+      />
     </div>
   )
 }

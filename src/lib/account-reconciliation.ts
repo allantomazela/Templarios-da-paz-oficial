@@ -43,7 +43,22 @@ export interface MensalidadeAuditItem {
 export interface AccountReconciliationAudit {
   unlinkedMensalidade: MensalidadeAuditItem[]
   duplicateGroups: DuplicateTransactionGroup[]
+  sameMonthMensalidadeGroups: SameMonthMensalidadeGroup[]
   orphanTransactions: Transaction[]
+}
+
+export interface SameMonthMensalidadeGroup {
+  key: string
+  accountId: string
+  monthKey: string
+  amount: number
+  transactions: Transaction[]
+}
+
+/** Impacto no saldo da conta ao remover o lançamento (positivo = saldo sobe). */
+export function computeTransactionBalanceImpact(transaction: Transaction): number {
+  const signed = transaction.type === 'Receita' ? transaction.amount : -transaction.amount
+  return Math.round(-signed * 100) / 100
 }
 
 export function buildAccountReconciliationDetails(
@@ -149,6 +164,48 @@ export function findDuplicateTransactionGroups(
     .sort((left, right) => right.transactions.length - left.transactions.length)
 }
 
+/**
+ * Mensalidades com mesmo valor na mesma conta e mês (ex.: atraso do mês anterior
+ * pago junto com a mensalidade corrente).
+ */
+export function findSameMonthMensalidadeGroups(
+  transactions: Transaction[],
+): SameMonthMensalidadeGroup[] {
+  const groups = new Map<string, Transaction[]>()
+
+  for (const transaction of transactions) {
+    if (
+      transaction.type !== 'Receita' ||
+      transaction.category !== MENSALIDADE_CATEGORY ||
+      !transaction.accountId
+    ) {
+      continue
+    }
+
+    const monthKey = transaction.date.slice(0, 7)
+    const key = [
+      transaction.accountId,
+      monthKey,
+      transaction.amount.toFixed(2),
+    ].join('|')
+
+    const current = groups.get(key) ?? []
+    current.push(transaction)
+    groups.set(key, current)
+  }
+
+  return [...groups.entries()]
+    .filter(([, items]) => items.length > 1)
+    .map(([key, items]) => ({
+      key,
+      accountId: items[0].accountId!,
+      monthKey: items[0].date.slice(0, 7),
+      amount: items[0].amount,
+      transactions: items.sort((left, right) => left.date.localeCompare(right.date)),
+    }))
+    .sort((left, right) => right.transactions.length - left.transactions.length)
+}
+
 export function auditMensalidadeTransactions(
   transactions: Transaction[],
   linkedMensalidadeTransactionIds: Set<string>,
@@ -192,6 +249,7 @@ export function buildReconciliationAudit(
       linkedMensalidadeTransactionIds,
     ),
     duplicateGroups: findDuplicateTransactionGroups(transactions),
+    sameMonthMensalidadeGroups: findSameMonthMensalidadeGroups(transactions),
     orphanTransactions: transactions.filter((transaction) => !transaction.accountId),
   }
 }

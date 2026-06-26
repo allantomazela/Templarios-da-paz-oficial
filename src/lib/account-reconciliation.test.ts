@@ -4,8 +4,10 @@ import {
   buildAccountReconciliationDetails,
   buildReconciliationAudit,
   computeSuggestedInitialBalance,
+  computeTransactionBalanceImpact,
   enrichWithRealBalance,
   findDuplicateTransactionGroups,
+  findSameMonthMensalidadeGroups,
 } from '@/lib/account-reconciliation'
 
 const account: BankAccount = {
@@ -69,5 +71,37 @@ describe('account-reconciliation', () => {
     expect(audit.unlinkedMensalidade.some((item) => item.transaction.id === '2')).toBe(
       true,
     )
+  })
+
+  it('detecta mensalidades do mesmo valor no mesmo mês com datas diferentes', () => {
+    const latePayment: Transaction[] = [
+      {
+        id: 'a',
+        date: '2026-03-05',
+        description: 'Mensalidade fev (atraso)',
+        category: 'Mensalidade',
+        type: 'Receita',
+        amount: 150,
+        accountId: 'stone',
+      },
+      {
+        id: 'b',
+        date: '2026-03-20',
+        description: 'Mensalidade mar',
+        category: 'Mensalidade',
+        type: 'Receita',
+        amount: 150,
+        accountId: 'stone',
+      },
+    ]
+
+    const groups = findSameMonthMensalidadeGroups(latePayment)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].transactions).toHaveLength(2)
+  })
+
+  it('calcula impacto no saldo ao excluir lançamento', () => {
+    expect(computeTransactionBalanceImpact(transactions[0])).toBe(-150)
+    expect(computeTransactionBalanceImpact(transactions[2])).toBe(200)
   })
 })

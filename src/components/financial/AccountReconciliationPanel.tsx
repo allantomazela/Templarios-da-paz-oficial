@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Table,
@@ -26,7 +25,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import type { BankAccount, Transaction } from '@/lib/data'
-import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
+import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   buildAccountReconciliationDetails,
   buildReconciliationAudit,
@@ -40,6 +39,7 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { cn } from '@/lib/utils'
+import { ReconciliationAuditAlerts } from '@/components/financial/ReconciliationAuditAlerts'
 
 const BALANCE_TOLERANCE = 0.01
 
@@ -240,7 +240,11 @@ export function AccountReconciliationPanel() {
         </CardContent>
       </Card>
 
-      <ReconciliationAlerts audit={audit} accountNameById={accountNameById} />
+      <ReconciliationAuditAlerts
+        audit={audit}
+        accountNameById={accountNameById}
+        linkedMensalidadeIds={linkedIds}
+      />
     </div>
   )
 }
@@ -314,141 +318,5 @@ function ReconciliationRow({
         ) : null}
       </TableCell>
     </TableRow>
-  )
-}
-
-interface ReconciliationAlertsProps {
-  audit: ReturnType<typeof buildReconciliationAudit>
-  accountNameById: Record<string, string>
-}
-
-function ReconciliationAlerts({ audit, accountNameById }: ReconciliationAlertsProps) {
-  const hasAlerts =
-    audit.orphanTransactions.length > 0 ||
-    audit.duplicateGroups.length > 0 ||
-    audit.unlinkedMensalidade.length > 0
-
-  if (!hasAlerts) return null
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          Alertas de auditoria
-        </CardTitle>
-        <CardDescription>
-          Possíveis causas de divergência entre o sistema e o extrato bancário.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {audit.unlinkedMensalidade.length > 0 && (
-          <AlertSection
-            title="Mensalidades sem vínculo"
-            description="Receitas de Mensalidade que não estão ligadas a um pagamento registrado. Podem ser lançamentos manuais duplicados."
-          >
-            {audit.unlinkedMensalidade.slice(0, 10).map((item) => (
-              <AlertItem
-                key={item.transaction.id}
-                transaction={item.transaction}
-                accountName={accountNameById[item.transaction.accountId ?? '']}
-                badge={
-                  item.reason === 'sem_vinculo_mensalidade'
-                    ? 'Sem vínculo'
-                    : 'Possível duplicata'
-                }
-              />
-            ))}
-            {audit.unlinkedMensalidade.length > 10 && (
-              <p className="text-xs text-muted-foreground">
-                + {audit.unlinkedMensalidade.length - 10} itens
-              </p>
-            )}
-          </AlertSection>
-        )}
-
-        {audit.duplicateGroups.length > 0 && (
-          <AlertSection
-            title="Lançamentos duplicados"
-            description="Mesma conta, data, tipo e valor — revise se há entradas repetidas."
-          >
-            {audit.duplicateGroups.slice(0, 5).map((group) => (
-              <div key={group.key} className="rounded-md border p-3 space-y-2">
-                <p className="text-sm font-medium">
-                  {accountNameById[group.accountId ?? ''] ?? 'Sem conta'} ·{' '}
-                  {formatDateBR(group.date)} · {group.type} ·{' '}
-                  {formatCurrencyBRL(group.amount)}
-                </p>
-                <ul className="space-y-1">
-                  {group.transactions.map((transaction) => (
-                    <li key={transaction.id} className="text-sm text-muted-foreground">
-                      {transaction.description}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </AlertSection>
-        )}
-
-        {audit.orphanTransactions.length > 0 && (
-          <AlertSection
-            title="Transações sem conta"
-            description="Não entram no saldo de nenhuma conta até serem vinculadas."
-          >
-            {audit.orphanTransactions.slice(0, 5).map((transaction) => (
-              <AlertItem key={transaction.id} transaction={transaction} />
-            ))}
-          </AlertSection>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-interface AlertSectionProps {
-  title: string
-  description: string
-  children: ReactNode
-}
-
-function AlertSection({ title, description, children }: AlertSectionProps) {
-  return (
-    <div className="space-y-2">
-      <div>
-        <h4 className="text-sm font-medium">{title}</h4>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="space-y-2">{children}</div>
-    </div>
-  )
-}
-
-interface AlertItemProps {
-  transaction: Transaction
-  accountName?: string
-  badge?: string
-}
-
-function AlertItem({ transaction, accountName, badge }: AlertItemProps) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm">
-      <span>{formatDateBR(transaction.date)}</span>
-      <span className="text-muted-foreground">·</span>
-      <span>{transaction.description}</span>
-      <span className="text-muted-foreground">·</span>
-      <span>{formatCurrencyBRL(transaction.amount)}</span>
-      {accountName && (
-        <>
-          <span className="text-muted-foreground">·</span>
-          <span>{accountName}</span>
-        </>
-      )}
-      {badge && (
-        <Badge variant="outline" className="text-amber-700 border-amber-300">
-          {badge}
-        </Badge>
-      )}
-    </div>
   )
 }

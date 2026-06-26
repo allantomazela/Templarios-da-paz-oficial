@@ -22,6 +22,7 @@ import {
   type TransactionFormValues,
 } from './TransactionDialog'
 import { TransactionAttachmentIndicator } from './TransactionAttachmentIndicator'
+import { TransactionAttachmentActions } from './TransactionAttachmentActions'
 import { TransactionListToolbar } from './TransactionListToolbar'
 import { FinancialCashSummaryBar } from './FinancialCashSummaryBar'
 import { formatDateBR, formatCurrencyBRL } from '@/lib/format-utils'
@@ -207,22 +208,29 @@ export function ExpenseList() {
                   <TableCell className="text-right font-mono text-destructive">
                     {formatCurrencyBRL(expense.amount)}
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(expense)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(expense.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="inline-flex items-center justify-end gap-0">
+                      <TransactionAttachmentActions
+                        transactionId={expense.id}
+                        attachmentCount={expense.attachmentCount}
+                        visible={canManageAttachments}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(expense)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(expense.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -261,6 +269,12 @@ export function ExpenseList() {
                     </span>
                   </div>
                   <div className="flex gap-1">
+                    <TransactionAttachmentActions
+                      transactionId={expense.id}
+                      attachmentCount={expense.attachmentCount}
+                      visible={canManageAttachments}
+                      size="sm"
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

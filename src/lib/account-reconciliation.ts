@@ -55,6 +55,104 @@ export interface SameMonthMensalidadeGroup {
   transactions: Transaction[]
 }
 
+export type ReconciliationAlertType =
+  | 'unlinked_mensalidade'
+  | 'duplicate_group'
+  | 'same_month_mensalidade'
+  | 'orphan_transaction'
+
+export interface ReconciliationAlertAcknowledgment {
+  alertType: ReconciliationAlertType
+  alertKey: string
+  transactionFingerprint: string
+  acknowledgedAt: string
+  note: string | null
+  acknowledgedBy?: string | null
+}
+
+/** Identificador estável dos lançamentos envolvidos no alerta. */
+export function buildAlertFingerprint(transactionIds: string[]): string {
+  return [...transactionIds].sort().join(',')
+}
+
+export function buildAlertCompositeKey(
+  alertType: ReconciliationAlertType,
+  alertKey: string,
+  transactionFingerprint: string,
+): string {
+  return `${alertType}|${alertKey}|${transactionFingerprint}`
+}
+
+export function isAlertAcknowledged(
+  acknowledgmentKeys: Set<string>,
+  alertType: ReconciliationAlertType,
+  alertKey: string,
+  transactionIds: string[],
+): boolean {
+  const fingerprint = buildAlertFingerprint(transactionIds)
+  if (!fingerprint) return false
+  return acknowledgmentKeys.has(
+    buildAlertCompositeKey(alertType, alertKey, fingerprint),
+  )
+}
+
+export function filterSameMonthMensalidadeGroupsForAudit(
+  groups: SameMonthMensalidadeGroup[],
+): SameMonthMensalidadeGroup[] {
+  return groups.filter((group) => {
+    const uniqueDates = new Set(group.transactions.map((item) => item.date))
+    return uniqueDates.size > 1
+  })
+}
+
+export function filterAcknowledgedAudit(
+  audit: AccountReconciliationAudit,
+  acknowledgmentKeys: Set<string>,
+): AccountReconciliationAudit {
+  const sameMonthGroups = filterSameMonthMensalidadeGroupsForAudit(
+    audit.sameMonthMensalidadeGroups,
+  )
+
+  return {
+    unlinkedMensalidade: audit.unlinkedMensalidade.filter(
+      (item) =>
+        !isAlertAcknowledged(
+          acknowledgmentKeys,
+          'unlinked_mensalidade',
+          item.transaction.id,
+          [item.transaction.id],
+        ),
+    ),
+    duplicateGroups: audit.duplicateGroups.filter(
+      (group) =>
+        !isAlertAcknowledged(
+          acknowledgmentKeys,
+          'duplicate_group',
+          group.key,
+          group.transactions.map((item) => item.id),
+        ),
+    ),
+    sameMonthMensalidadeGroups: sameMonthGroups.filter(
+      (group) =>
+        !isAlertAcknowledged(
+          acknowledgmentKeys,
+          'same_month_mensalidade',
+          group.key,
+          group.transactions.map((item) => item.id),
+        ),
+    ),
+    orphanTransactions: audit.orphanTransactions.filter(
+      (transaction) =>
+        !isAlertAcknowledged(
+          acknowledgmentKeys,
+          'orphan_transaction',
+          transaction.id,
+          [transaction.id],
+        ),
+    ),
+  }
+}
+
 /** Impacto no saldo da conta ao remover o lançamento (positivo = saldo sobe). */
 export function computeTransactionBalanceImpact(transaction: Transaction): number {
   const signed = transaction.type === 'Receita' ? transaction.amount : -transaction.amount

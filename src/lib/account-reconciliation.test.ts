@@ -8,6 +8,7 @@ import {
   enrichWithRealBalance,
   findDuplicateTransactionGroups,
   findSameMonthMensalidadeGroups,
+  filterAcknowledgedAudit,
 } from '@/lib/account-reconciliation'
 
 const account: BankAccount = {
@@ -103,5 +104,43 @@ describe('account-reconciliation', () => {
   it('calcula impacto no saldo ao excluir lançamento', () => {
     expect(computeTransactionBalanceImpact(transactions[0])).toBe(-150)
     expect(computeTransactionBalanceImpact(transactions[2])).toBe(200)
+  })
+
+  it('oculta alertas já verificados com a mesma composição de lançamentos', () => {
+    const audit = buildReconciliationAudit(transactions, new Set(['1']))
+    const ackKeys = new Set([
+      `unlinked_mensalidade|2|2`,
+      `duplicate_group|stone|2026-03-01|Receita|150.00|1,2`,
+    ])
+
+    const filtered = filterAcknowledgedAudit(audit, ackKeys)
+    expect(filtered.unlinkedMensalidade).toHaveLength(0)
+    expect(filtered.duplicateGroups).toHaveLength(0)
+  })
+
+  it('reexibe alerta quando a composição de lançamentos muda', () => {
+    const audit = buildReconciliationAudit(transactions, new Set(['1']))
+    const ackKeys = new Set([`duplicate_group|stone|2026-03-01|Receita|150.00|1,2`])
+
+    const filtered = filterAcknowledgedAudit(audit, ackKeys)
+    expect(filtered.duplicateGroups).toHaveLength(0)
+
+    const changedAudit = buildReconciliationAudit(
+      [
+        ...transactions,
+        {
+          id: '4',
+          date: '2026-03-01',
+          description: 'Mensalidade Irmão B',
+          category: 'Mensalidade',
+          type: 'Receita',
+          amount: 150,
+          accountId: 'stone',
+        },
+      ],
+      new Set(['1']),
+    )
+    const refiltered = filterAcknowledgedAudit(changedAudit, ackKeys)
+    expect(refiltered.duplicateGroups).toHaveLength(1)
   })
 })

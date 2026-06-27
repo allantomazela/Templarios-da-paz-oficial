@@ -33,6 +33,10 @@ import {
   type AccountReconciliationWithReal,
 } from '@/lib/account-reconciliation'
 import { fetchLinkedMensalidadeTransactionIds } from '@/lib/account-reconciliation-api'
+import {
+  applyAcknowledgmentsToAudit,
+  fetchReconciliationAlertAcknowledgments,
+} from '@/lib/account-reconciliation-acknowledgments'
 import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
@@ -54,6 +58,10 @@ export function AccountReconciliationPanel() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set())
+  const [ackRevision, setAckRevision] = useState(0)
+  const [acknowledgments, setAcknowledgments] = useState<
+    Awaited<ReturnType<typeof fetchReconciliationAlertAcknowledgments>>
+  >([])
   const [realBalances, setRealBalances] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
@@ -66,14 +74,16 @@ export function AccountReconciliationPanel() {
     const loadData = async () => {
       setLoading(true)
       try {
-        const [financialData, mensalidadeIds] = await Promise.all([
+        const [financialData, mensalidadeIds, ackRows] = await Promise.all([
           fetchFinancialAccountsAndTransactions(),
           fetchLinkedMensalidadeTransactionIds(),
+          fetchReconciliationAlertAcknowledgments().catch(() => []),
         ])
         if (!isMounted) return
         setAccounts(financialData.accounts)
         setTransactions(financialData.transactions)
         setLinkedIds(mensalidadeIds)
+        setAcknowledgments(ackRows)
       } catch (error) {
         console.error('Error loading reconciliation data:', error)
         toast({
@@ -90,7 +100,7 @@ export function AccountReconciliationPanel() {
     return () => {
       isMounted = false
     }
-  }, [dataRevision, toast])
+  }, [dataRevision, ackRevision, toast])
 
   const details = useMemo(
     () => buildAccountReconciliationDetails(accounts, transactions),
@@ -106,9 +116,17 @@ export function AccountReconciliationPanel() {
   )
 
   const audit = useMemo(
-    () => buildReconciliationAudit(transactions, linkedIds),
-    [transactions, linkedIds],
+    () =>
+      applyAcknowledgmentsToAudit(
+        buildReconciliationAudit(transactions, linkedIds),
+        acknowledgments,
+      ),
+    [transactions, linkedIds, acknowledgments],
   )
+
+  const handleAlertAcknowledged = () => {
+    setAckRevision((current) => current + 1)
+  }
 
   const accountNameById = useMemo(
     () => Object.fromEntries(accounts.map((account) => [account.id, account.name])),
@@ -244,6 +262,7 @@ export function AccountReconciliationPanel() {
         audit={audit}
         accountNameById={accountNameById}
         linkedMensalidadeIds={linkedIds}
+        onAlertAcknowledged={handleAlertAcknowledged}
       />
     </div>
   )

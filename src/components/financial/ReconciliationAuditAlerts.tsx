@@ -24,7 +24,9 @@ import { AlertCircle, Loader2, Pencil, Trash2 } from 'lucide-react'
 import type { Transaction } from '@/lib/data'
 import {
   computeTransactionBalanceImpact,
+  filterSameMonthMensalidadeGroupsForAudit,
   type AccountReconciliationAudit,
+  type ReconciliationAlertType,
 } from '@/lib/account-reconciliation'
 import {
   deleteReconciliationTransaction,
@@ -46,22 +48,24 @@ import {
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { AcknowledgeReconciliationAlertButton } from '@/components/financial/AcknowledgeReconciliationAlertButton'
 
 interface ReconciliationAuditAlertsProps {
   audit: AccountReconciliationAudit
   accountNameById: Record<string, string>
   linkedMensalidadeIds: Set<string>
+  onAlertAcknowledged: () => void
 }
 
 export function ReconciliationAuditAlerts({
   audit,
   accountNameById,
   linkedMensalidadeIds,
+  onAlertAcknowledged,
 }: ReconciliationAuditAlertsProps) {
-  const sameMonthGroups = audit.sameMonthMensalidadeGroups.filter((group) => {
-    const uniqueDates = new Set(group.transactions.map((item) => item.date))
-    return uniqueDates.size > 1
-  })
+  const sameMonthGroups = filterSameMonthMensalidadeGroupsForAudit(
+    audit.sameMonthMensalidadeGroups,
+  )
 
   const hasAlerts =
     audit.orphanTransactions.length > 0 ||
@@ -79,8 +83,8 @@ export function ReconciliationAuditAlerts({
           Alertas de auditoria
         </CardTitle>
         <CardDescription>
-          Revise, edite ou exclua lançamentos suspeitos para alinhar o saldo das
-          contas. Alterações são registradas no histórico financeiro.
+          Revise, edite, exclua ou marque como verificado após conferir no extrato.
+          Verificações ficam registradas e o alerta só reaparece se os lançamentos mudarem.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -99,6 +103,9 @@ export function ReconciliationAuditAlerts({
                     ? 'Sem vínculo'
                     : 'Possível duplicata'
                 }
+                alertType="unlinked_mensalidade"
+                alertKey={item.transaction.id}
+                onAlertAcknowledged={onAlertAcknowledged}
               />
             ))}
             {audit.unlinkedMensalidade.length > 15 && (
@@ -118,12 +125,14 @@ export function ReconciliationAuditAlerts({
               <DuplicateGroupResolver
                 key={group.key}
                 groupKey={group.key}
+                alertType="same_month_mensalidade"
                 accountName={accountNameById[group.accountId] ?? 'Sem conta'}
                 dateLabel={group.monthKey}
                 amount={group.amount}
                 type="Receita"
                 transactions={group.transactions}
                 linkedMensalidadeIds={linkedMensalidadeIds}
+                onAlertAcknowledged={onAlertAcknowledged}
               />
             ))}
           </AlertSection>
@@ -138,12 +147,14 @@ export function ReconciliationAuditAlerts({
               <DuplicateGroupResolver
                 key={group.key}
                 groupKey={group.key}
+                alertType="duplicate_group"
                 accountName={accountNameById[group.accountId ?? ''] ?? 'Sem conta'}
                 dateLabel={group.date}
                 amount={group.amount}
                 type={group.type}
                 transactions={group.transactions}
                 linkedMensalidadeIds={linkedMensalidadeIds}
+                onAlertAcknowledged={onAlertAcknowledged}
               />
             ))}
           </AlertSection>
@@ -155,7 +166,13 @@ export function ReconciliationAuditAlerts({
             description="Não entram no saldo até serem vinculadas a uma conta."
           >
             {audit.orphanTransactions.slice(0, 10).map((transaction) => (
-              <AuditTransactionRow key={transaction.id} transaction={transaction} />
+              <AuditTransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                alertType="orphan_transaction"
+                alertKey={transaction.id}
+                onAlertAcknowledged={onAlertAcknowledged}
+              />
             ))}
           </AlertSection>
         )}
@@ -186,12 +203,18 @@ interface AuditTransactionRowProps {
   transaction: Transaction
   accountName?: string
   badge?: string
+  alertType: ReconciliationAlertType
+  alertKey: string
+  onAlertAcknowledged: () => void
 }
 
 function AuditTransactionRow({
   transaction,
   accountName,
   badge,
+  alertType,
+  alertKey,
+  onAlertAcknowledged,
 }: AuditTransactionRowProps) {
   const dialog = useDialog()
   const { toast } = useToast()
@@ -282,7 +305,13 @@ function AuditTransactionRow({
             </span>
           </p>
         </div>
-        <div className="flex shrink-0 gap-1">
+        <div className="flex shrink-0 flex-wrap gap-1">
+          <AcknowledgeReconciliationAlertButton
+            alertType={alertType}
+            alertKey={alertKey}
+            transactionIds={[transaction.id]}
+            onAcknowledged={onAlertAcknowledged}
+          />
           <Button
             type="button"
             size="sm"
@@ -386,22 +415,26 @@ function AuditTransactionRow({
 
 interface DuplicateGroupResolverProps {
   groupKey: string
+  alertType: ReconciliationAlertType
   accountName: string
   dateLabel: string
   amount: number
   type: Transaction['type']
   transactions: Transaction[]
   linkedMensalidadeIds: Set<string>
+  onAlertAcknowledged: () => void
 }
 
 function DuplicateGroupResolver({
   groupKey,
+  alertType,
   accountName,
   dateLabel,
   amount,
   type,
   transactions,
   linkedMensalidadeIds,
+  onAlertAcknowledged,
 }: DuplicateGroupResolverProps) {
   const { toast } = useToast()
   const defaultKeepId =
@@ -497,15 +530,24 @@ function DuplicateGroupResolver({
             {formatCurrencyBRL(totalBalanceImpact)}
           </span>
         </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="destructive"
-          disabled={toDelete.length === 0 || resolving}
-          onClick={() => setConfirmOpen(true)}
-        >
-          Resolver duplicatas
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <AcknowledgeReconciliationAlertButton
+            alertType={alertType}
+            alertKey={groupKey}
+            transactionIds={transactions.map((item) => item.id)}
+            onAcknowledged={onAlertAcknowledged}
+            label="Confirmar como legítimo"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={toDelete.length === 0 || resolving}
+            onClick={() => setConfirmOpen(true)}
+          >
+            Resolver duplicatas
+          </Button>
+        </div>
       </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

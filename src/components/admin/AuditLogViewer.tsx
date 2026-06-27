@@ -10,12 +10,14 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import useAuditStore from '@/stores/useAuditStore'
+import type { AuditLog } from '@/stores/useAuditStore'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Loader2, History } from 'lucide-react'
+import { Loader2, History, AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export function AuditLogViewer() {
-  const { logs, fetchLogs, loading } = useAuditStore()
+  const { logs, fetchLogs, loading, error } = useAuditStore()
 
   useEffect(() => {
     fetchLogs()
@@ -42,19 +44,41 @@ export function AuditLogViewer() {
     }
   }
 
-  const formatDetails = (log: any) => {
-    if (log.entity_type === 'profiles' && log.action === 'UPDATE') {
-      const oldStatus = log.details.old?.status
-      const newStatus = log.details.new?.status
-      const oldRole = log.details.old?.role
-      const newRole = log.details.new?.role
+  const formatDetails = (log: AuditLog) => {
+    const details = log.details as
+      | { old?: Record<string, unknown>; new?: Record<string, unknown> }
+      | null
+      | undefined
 
+    if (log.entity_type === 'profiles' && log.action === 'UPDATE' && details) {
+      const oldStatus = details.old?.status
+      const newStatus = details.new?.status
+      const oldRole = details.old?.role
+      const newRole = details.new?.role
+      const oldDegree = details.old?.masonic_degree
+      const newDegree = details.new?.masonic_degree
+      const oldName = details.old?.full_name
+      const newName = details.new?.full_name
+      const oldEmail = details.old?.email
+      const newEmail = details.new?.email
+
+      const parts: string[] = []
       if (oldStatus !== newStatus) {
-        return `Alterou status de "${oldStatus}" para "${newStatus}"`
+        parts.push(`Status: "${String(oldStatus)}" → "${String(newStatus)}"`)
       }
       if (oldRole !== newRole) {
-        return `Alterou função de "${oldRole}" para "${newRole}"`
+        parts.push(`Função: "${String(oldRole)}" → "${String(newRole)}"`)
       }
+      if (oldDegree !== newDegree) {
+        parts.push(`Grau: "${String(oldDegree ?? '—')}" → "${String(newDegree ?? '—')}"`)
+      }
+      if (oldName !== newName) {
+        parts.push(`Nome: "${String(oldName)}" → "${String(newName)}"`)
+      }
+      if (oldEmail !== newEmail) {
+        parts.push(`E-mail: "${String(oldEmail ?? '—')}" → "${String(newEmail ?? '—')}"`)
+      }
+      if (parts.length > 0) return parts.join(' · ')
     }
     if (log.entity_type === 'site_settings') {
       return 'Atualizou configurações do site'
@@ -69,7 +93,15 @@ export function AuditLogViewer() {
         <h3 className="font-semibold">Registro de Atividades</h3>
       </div>
       <ScrollArea className="h-[500px]">
-        {loading && logs.length === 0 ? (
+        {error ? (
+          <div className="p-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao carregar histórico</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
+        ) : loading && logs.length === 0 ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>

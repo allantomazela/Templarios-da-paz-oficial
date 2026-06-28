@@ -87,3 +87,32 @@ Para que **mobile e Chrome** sempre vejam a versão nova após cada deploy:
 ## 7. Ícone ao instalar no celular (PWA)
 
 O manifest usa apenas `favicon.png` (48×48) para evitar erro “Resource size is not correct”. O favicon do site (Configurações → Logo/Favicon) é usado nas abas e no ícone de instalação. Se quiser ícones maiores na instalação, crie PNGs exatamente 192×192 e 512×512, coloque em `public/icon-192.png` e `public/icon-512.png`, e adicione as entradas correspondentes em `public/manifest.webmanifest` (com `sizes` e `src` corretos).
+
+---
+
+## 8. Verificação SSL (HTTPS / cadeado)
+
+Produção usa **Let's Encrypt** via Certbot + Nginx (portas **80** e **443**). Certificado comercial extra não é necessário.
+
+### Checklist rápido
+
+| Item | Comando / ação | Esperado |
+|------|----------------|----------|
+| HTTPS www | `curl -I https://www.templariosdapazoficial.com.br/` | HTTP 200 |
+| HTTPS apex | `curl -I https://templariosdapazoficial.com.br/` | HTTP 200 |
+| HTTP → HTTPS | `curl -I http://www.templariosdapazoficial.com.br/` | 301 para `https://...` |
+| Validade | `certbot certificates` (no servidor) | Expira em > 30 dias |
+| Renovação | `certbot renew --dry-run` | Sucesso |
+| Nginx | `nginx -t` | syntax is ok |
+
+### Scripts no repositório
+
+- **No seu PC (Windows):** `powershell -ExecutionPolicy Bypass -File scripts/check-ssl-remote.ps1`
+- **No servidor Vultr (SSH):** `bash scripts/check-ssl-production.sh` (após deploy ou em `/var/www/templarios/scripts/`)
+
+### Se algo falhar
+
+1. `certbot certificates` — confirme domínios `templariosdapazoficial.com.br` e `www.templariosdapazoficial.com.br`.
+2. `certbot renew --dry-run` — se falhar, corrija DNS/firewall (porta 80 aberta para desafio HTTP-01).
+3. `bash scripts/apply-stable-nginx.sh` — reaplica `docs/nginx-templarios-stable.conf`.
+4. Teste externo: [SSL Labs](https://www.ssllabs.com/ssltest/analyze.html?d=www.templariosdapazoficial.com.br).

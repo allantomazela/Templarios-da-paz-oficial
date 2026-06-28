@@ -24,12 +24,12 @@ import {
   Calendar,
   CalendarDays,
   Eye,
-  Lock,
+  DoorClosed,
   CheckCircle2,
   Loader2,
   Pencil,
   Trash2,
-  Unlock,
+  DoorOpen,
 } from 'lucide-react'
 import { useAgapeStore, type AgapeSession } from '@/stores/useAgapeStore'
 import { AgapeSessionDialog } from './AgapeSessionDialog'
@@ -245,9 +245,10 @@ export function AgapeSessionsList() {
                             size="icon"
                             type="button"
                             title="Fechar sessão"
+                            aria-label="Fechar sessão"
                             onClick={() => handleCloseSession(session.id)}
                           >
-                            <Lock className="h-4 w-4" />
+                            <DoorClosed className="h-4 w-4" />
                           </Button>
                         ) : (
                           <Button
@@ -255,9 +256,10 @@ export function AgapeSessionsList() {
                             size="icon"
                             type="button"
                             title="Reabrir sessão"
+                            aria-label="Reabrir sessão"
                             onClick={() => handleReopenSession(session.id)}
                           >
-                            <Unlock className="h-4 w-4" />
+                            <DoorOpen className="h-4 w-4" />
                           </Button>
                         )}
                         {session.status === 'closed' ? (

@@ -47,6 +47,7 @@ interface AttendanceDialogProps {
   event: Event | null
   existingSessionRecord: SessionRecord | null
   onSave: () => Promise<void>
+  canManageSessions?: boolean
 }
 
 export function AttendanceDialog({
@@ -55,6 +56,7 @@ export function AttendanceDialog({
   event,
   existingSessionRecord,
   onSave,
+  canManageSessions = false,
 }: AttendanceDialogProps) {
   const {
     addSessionRecord,
@@ -95,6 +97,7 @@ export function AttendanceDialog({
   const initSessionKeyRef = useRef<string | null>(null)
 
   const sessionRecordId = qrSessionRecordId ?? existingSessionRecord?.id
+  const isSessionOpen = existingSessionRecord?.status === 'Pendente'
   const checkInUrl =
     typeof window !== 'undefined' && sessionRecordId
       ? `${window.location.origin}/checkin/${sessionRecordId}`
@@ -551,7 +554,7 @@ export function AttendanceDialog({
         </div>
 
         <DialogFooter className="mt-4 pt-4 border-t flex-wrap gap-2">
-          {existingSessionRecord && event && (
+          {canManageSessions && existingSessionRecord && event && isSessionOpen && (
             <Button
               type="button"
               variant="outline"
@@ -575,11 +578,17 @@ export function AttendanceDialog({
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {isSessionOpen && canManageSessions ? 'Fechar' : 'Cancelar'}
           </Button>
-          <Button onClick={handleSaveInternal} disabled={isSaving}>
-            {isSaving ? 'Salvando...' : 'Salvar Registro'}
-          </Button>
+          {canManageSessions && (
+            <Button onClick={handleSaveInternal} disabled={isSaving}>
+              {isSaving
+                ? 'Salvando...'
+                : isSessionOpen
+                  ? 'Finalizar sessão'
+                  : 'Salvar Registro'}
+            </Button>
+          )}
         </DialogFooter>
 
         {certificateVisitor && event && (

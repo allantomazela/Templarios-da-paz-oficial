@@ -25,6 +25,11 @@ import {
 import { devLog, logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { brotherRowIdFromAttendanceRef } from '@/lib/chancellor-attendance'
+import {
+  describeAgapeOpenResult,
+  ensureAgapeSessionOpenForEvent,
+} from '@/lib/chancellor-session-open'
+import useAgapeStore from '@/stores/useAgapeStore'
 
 const visitorAttendancesSeqBySession = new Map<
   string,
@@ -137,6 +142,12 @@ interface ChancellorState {
     sessionRecordId: string,
     rows: { brotherId: string; status: string; justification?: string }[],
   ) => Promise<void>
+  /** Abre sessão (status Pendente) para check-in no app e ágape vinculado. */
+  openSessionForEvent: (event: Event) => Promise<{
+    sessionRecordId: string
+    alreadyOpen: boolean
+    agapeMessage: string | null
+  }>
 }
 
 export const useChancellorStore = create<ChancellorState>((set, get) => ({
@@ -575,6 +586,54 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       if (handleAuthError(error)) return
       logError('saveAttendanceToSupabase', error)
       throw error
+    }
+  },
+
+  openSessionForEvent: async (event) => {
+    const existing = get().sessionRecords.find((record) => record.eventId === event.id)
+
+    if (existing?.status === 'Pendente') {
+      return {
+        sessionRecordId: existing.id,
+        alreadyOpen: true,
+        agapeMessage: describeAgapeOpenResult(
+          await ensureAgapeSessionOpenForEvent(event),
+        ),
+      }
+    }
+
+    if (existing?.status === 'Finalizada') {
+      throw new Error(
+        'Esta sessão já foi finalizada. Edite o registro se precisar ajustar a presença.',
+      )
+    }
+
+    const sessionRecord: SessionRecord = {
+      id: existing?.id ?? crypto.randomUUID(),
+      eventId: event.id,
+      date: event.date,
+      charityCollection: existing?.charityCollection ?? 0,
+      observations: existing?.observations ?? '',
+      status: 'Pendente',
+    }
+
+    const dbId = await get().ensureSessionRecordInSupabase(event, sessionRecord)
+    const finalRecord: SessionRecord = { ...sessionRecord, id: dbId }
+
+    if (existing) {
+      get().updateSessionRecord(finalRecord)
+    } else {
+      get().addSessionRecord(finalRecord)
+    }
+
+    const agapeResult = await ensureAgapeSessionOpenForEvent(event)
+    await useAgapeStore.getState().fetchSessions()
+    await get().fetchChancellorData({ force: true })
+
+    return {
+      sessionRecordId: dbId,
+      alreadyOpen: false,
+      agapeMessage: describeAgapeOpenResult(agapeResult),
     }
   },
 }))

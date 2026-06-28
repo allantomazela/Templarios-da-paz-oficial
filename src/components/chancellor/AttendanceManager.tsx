@@ -14,56 +14,77 @@ import { Event, SessionRecord } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
 import { QRCheckinScanner } from './QRCheckinScanner'
-import { CheckCircle, Clock, CalendarIcon, RefreshCw, QrCode } from 'lucide-react'
+import {
+  CheckCircle,
+  Clock,
+  CalendarIcon,
+  RefreshCw,
+  QrCode,
+  DoorOpen,
+  Loader2,
+} from 'lucide-react'
 import {
   formatDateBR,
-  getCalendarDateTimestamp,
+  todayLocalISODate,
 } from '@/lib/format-utils'
+import { compareChancellorEventsByDateAsc } from '@/lib/chancellor-event-sort'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { useChancellorSessionPermissions } from '@/hooks/use-chancellor-session-permissions'
+import { useToast } from '@/hooks/use-toast'
 import { devLog } from '@/lib/logger'
 
+type SessionDisplayStatus = 'nao_iniciada' | 'aberta' | 'finalizada'
+
+function getSessionDisplayStatus(record?: SessionRecord): SessionDisplayStatus {
+  if (!record) return 'nao_iniciada'
+  if (record.status === 'Pendente') return 'aberta'
+  return 'finalizada'
+}
+
+function sessionStatusLabel(status: SessionDisplayStatus): string {
+  switch (status) {
+    case 'aberta':
+      return 'Aberta'
+    case 'finalizada':
+      return 'Finalizada'
+    default:
+      return 'Não iniciada'
+  }
+}
+
 export function AttendanceManager() {
-  const { events, sessionRecords } = useChancellorStore()
-  
+  const { events, sessionRecords, fetchChancellorData, openSessionForEvent } =
+    useChancellorStore()
+  const { canManageSessions } = useChancellorSessionPermissions()
+  const { toast } = useToast()
+
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-  const [selectedRecord, setSelectedRecord] = useState<SessionRecord | null>(
-    null,
-  )
+  const [selectedRecord, setSelectedRecord] = useState<SessionRecord | null>(null)
+  const [openingEventId, setOpeningEventId] = useState<string | null>(null)
   const dialog = useDialog()
   const scannerDialog = useDialog()
-  // Debug: Log events count
+
   devLog(`AttendanceManager: Total de eventos no store: ${events.length}`)
 
-  // Merge events from store with records using useMemo for reactivity
   const eventsWithStatus = useMemo(() => {
-    devLog(`AttendanceManager: Processando ${events.length} eventos`)
-    
     const merged = events.map((event) => {
-      const record = sessionRecords.find((r) => r.eventId === event.id)
-      return {
-        event,
-        record,
-        status: record ? record.status : 'Pendente',
-      }
+      const record = sessionRecords.find((item) => item.eventId === event.id)
+      const displayStatus = getSessionDisplayStatus(record)
+      return { event, record, displayStatus }
     })
 
-    // Sort by date descending, handling invalid dates
-    merged.sort((a, b) => {
-      try {
-        const timeA = getCalendarDateTimestamp(a.event.date)
-        const timeB = getCalendarDateTimestamp(b.event.date)
-        if (!timeA || !timeB) return 0
-        return timeB - timeA
-      } catch (error) {
-        devLog(`Erro ao ordenar eventos: ${error}`)
-        return 0
-      }
-    })
+    merged.sort((left, right) =>
+      compareChancellorEventsByDateAsc(left.event, right.event),
+    )
 
-    devLog(`AttendanceManager: Eventos processados: ${merged.length}`)
     return merged
   }, [events, sessionRecords])
+
+  const todayEvents = useMemo(
+    () => eventsWithStatus.filter(({ event }) => event.date === todayLocalISODate()),
+    [eventsWithStatus],
+  )
 
   const saveOperation = useAsyncOperation(
     async () => 'As informações de presença foram atualizadas com sucesso.',
@@ -84,17 +105,165 @@ export function AttendanceManager() {
   }
 
   const handleRefresh = () => {
-    devLog(`AttendanceManager: Refresh manual - Total de eventos: ${events.length}`)
-    // Force re-render by updating a dummy state
-    setSelectedEvent(null)
+    void fetchChancellorData({ force: true })
   }
 
-  const handleScannerSuccess = () => {
-    // Lista atualiza ao reabrir a sessão no diálogo
+  const handleOpenSession = async (event: Event, record?: SessionRecord) => {
+    if (record && getSessionDisplayStatus(record) === 'finalizada') {
+      handleOpen(event, record)
+      return
+    }
+
+    setOpeningEventId(event.id)
+    try {
+      const result = await openSessionForEvent(event)
+      const openedRecord =
+        useChancellorStore
+          .getState()
+          .sessionRecords.find((item) => item.id === result.sessionRecordId) ?? {
+          id: result.sessionRecordId,
+          eventId: event.id,
+          date: event.date,
+          charityCollection: 0,
+          observations: '',
+          status: 'Pendente' as const,
+        }
+
+      toast({
+        title: result.alreadyOpen ? 'Sessão já estava aberta' : 'Sessão aberta',
+        description: [
+          'Os irmãos podem marcar presença pelo menu "Registrar presença" no aplicativo.',
+          result.agapeMessage,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      })
+
+      handleOpen(event, openedRecord)
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível abrir a sessão',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Verifique suas permissões e tente novamente.',
+      })
+    } finally {
+      setOpeningEventId(null)
+    }
+  }
+
+  const renderStatusBadge = (displayStatus: SessionDisplayStatus) => {
+    if (displayStatus === 'aberta') {
+      return (
+        <Badge className="bg-emerald-600 hover:bg-emerald-600">
+          {sessionStatusLabel(displayStatus)}
+        </Badge>
+      )
+    }
+    if (displayStatus === 'finalizada') {
+      return (
+        <Badge variant="default" className="bg-green-600">
+          {sessionStatusLabel(displayStatus)}
+        </Badge>
+      )
+    }
+    return <Badge variant="secondary">{sessionStatusLabel(displayStatus)}</Badge>
+  }
+
+  const renderActionButton = (
+    event: Event,
+    record: SessionRecord | undefined,
+    displayStatus: SessionDisplayStatus,
+    fullWidth = false,
+  ) => {
+    const isOpening = openingEventId === event.id
+
+    if (displayStatus === 'finalizada') {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className={fullWidth ? 'w-full' : undefined}
+          onClick={() => handleOpen(event, record)}
+        >
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Editar
+        </Button>
+      )
+    }
+
+    if (displayStatus === 'aberta') {
+      return (
+        <Button
+          size="sm"
+          className={fullWidth ? 'w-full' : undefined}
+          onClick={() => handleOpen(event, record)}
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Gerenciar presença
+        </Button>
+      )
+    }
+
+    if (!canManageSessions) {
+      return (
+        <Button size="sm" variant="secondary" disabled className={fullWidth ? 'w-full' : undefined}>
+          Aguardando abertura
+        </Button>
+      )
+    }
+
+    return (
+      <Button
+        size="sm"
+        className={fullWidth ? 'w-full' : undefined}
+        disabled={isOpening}
+        onClick={() => void handleOpenSession(event, record)}
+      >
+        {isOpening ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <DoorOpen className="mr-2 h-4 w-4" />
+        )}
+        Abrir sessão
+      </Button>
+    )
   }
 
   return (
     <div className="space-y-4">
+      {canManageSessions && todayEvents.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base">Sessão do dia</CardTitle>
+            <CardDescription>
+              Abra a sessão para liberar check-in no aplicativo e lançamento de ágape.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {todayEvents.map(({ event, record, displayStatus }) => (
+              <div
+                key={event.id}
+                className="flex flex-col gap-3 rounded-md border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-medium">{event.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDateBR(event.date)} às {event.time?.slice(0, 5) || '—'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {renderStatusBadge(displayStatus)}
+                  {renderActionButton(event, record, displayStatus)}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -102,7 +271,8 @@ export function AttendanceManager() {
             Registrar minha presença
           </CardTitle>
           <CardDescription>
-            Escaneie o QR Code exibido no Templo (dentro de 50 m) para assinar a presença, ou peça ao Chanceler para assinar o livro.
+            Com a sessão aberta pelo Chanceler ou Mestre de Banquete, escaneie o QR no Templo
+            (até 50 m) ou use o botão &quot;Registrar presença&quot; no menu lateral.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,19 +287,14 @@ export function AttendanceManager() {
         <div>
           <h3 className="text-lg font-semibold">Controle de Presença</h3>
           <p className="text-sm text-muted-foreground">
-            Registre a presença dos irmãos nos eventos da loja.
+            Eventos ordenados do mais antigo ao mais recente.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-sm">
             {eventsWithStatus.length} evento{eventsWithStatus.length !== 1 ? 's' : ''}
           </Badge>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            title="Atualizar lista"
-          >
+          <Button variant="outline" size="icon" onClick={handleRefresh} title="Atualizar lista">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -155,14 +320,14 @@ export function AttendanceManager() {
                       Nenhum evento agendado
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Crie eventos na Agenda ou na seção "Agenda da Loja" para
-                      registrar presença.
+                      Crie eventos na Agenda ou na seção &quot;Agenda da Loja&quot; para registrar
+                      presença.
                     </p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              eventsWithStatus.map(({ event, record, status }) => (
+              eventsWithStatus.map(({ event, record, displayStatus }) => (
                 <TableRow key={event.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -172,36 +337,11 @@ export function AttendanceManager() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{event.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {event.type}
-                    </div>
+                    <div className="text-xs text-muted-foreground">{event.type}</div>
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        status === 'Finalizada' ? 'default' : 'secondary'
-                      }
-                      className={status === 'Finalizada' ? 'bg-green-600' : ''}
-                    >
-                      {status}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{renderStatusBadge(displayStatus)}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant={status === 'Finalizada' ? 'outline' : 'default'}
-                      onClick={() => handleOpen(event, record)}
-                    >
-                      {status === 'Finalizada' ? (
-                        <>
-                          <CheckCircle className="mr-2 h-4 w-4" /> Editar
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="mr-2 h-4 w-4" /> Registrar
-                        </>
-                      )}
-                    </Button>
+                    {renderActionButton(event, record, displayStatus)}
                   </TableCell>
                 </TableRow>
               ))
@@ -217,49 +357,23 @@ export function AttendanceManager() {
             <p className="mt-2 text-sm font-medium text-muted-foreground">
               Nenhum evento agendado
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Crie eventos na Agenda ou em &quot;Agenda da Loja&quot; para registrar
-              presença.
-            </p>
           </div>
         ) : (
-          eventsWithStatus.map(({ event, record, status }) => (
+          eventsWithStatus.map(({ event, record, displayStatus }) => (
             <Card key={event.id} className="overflow-hidden">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium leading-tight">{event.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {event.type}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{event.type}</p>
                   </div>
-                  <Badge
-                    variant={status === 'Finalizada' ? 'default' : 'secondary'}
-                    className={status === 'Finalizada' ? 'bg-green-600 shrink-0' : 'shrink-0'}
-                  >
-                    {status}
-                  </Badge>
+                  {renderStatusBadge(displayStatus)}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CalendarIcon className="h-4 w-4" />
                   {formatDateBR(event.date)}
                 </div>
-                <Button
-                  className="w-full"
-                  size="sm"
-                  variant={status === 'Finalizada' ? 'outline' : 'default'}
-                  onClick={() => handleOpen(event, record)}
-                >
-                  {status === 'Finalizada' ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" /> Editar presença
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="mr-2 h-4 w-4" /> Registrar presença
-                    </>
-                  )}
-                </Button>
+                {renderActionButton(event, record, displayStatus, true)}
               </CardContent>
             </Card>
           ))
@@ -272,12 +386,13 @@ export function AttendanceManager() {
         event={selectedEvent}
         existingSessionRecord={selectedRecord}
         onSave={handleSave}
+        canManageSessions={canManageSessions}
       />
 
       <QRCheckinScanner
         open={scannerDialog.open}
         onOpenChange={scannerDialog.onOpenChange}
-        onSuccess={handleScannerSuccess}
+        onSuccess={() => void fetchChancellorData({ force: true })}
       />
     </div>
   )

@@ -24,10 +24,10 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import useFinancialStore from '@/stores/useFinancialStore'
 import {
-  computeAccountBalance,
   computeGlobalBalance,
   fetchFinancialAccountsAndTransactions,
 } from '@/lib/financial-balances'
+import { findLowBalanceAccountsForAlert } from '@/lib/financial-low-balance-alerts'
 import {
   Select,
   SelectContent,
@@ -178,10 +178,7 @@ export function FinancialOverview() {
       fill: `hsl(var(--chart-${(index % 5) + 1}))`,
     }))
 
-  const lowBalanceAccounts = accounts.filter((acc) => {
-    const bal = computeAccountBalance(acc.initialBalance, acc.id, transactions)
-    return bal < 100 // Example threshold
-  })
+  const lowBalanceAccounts = findLowBalanceAccountsForAlert(accounts, transactions)
 
   if (loading) {
     return (
@@ -226,8 +223,8 @@ export function FinancialOverview() {
             <ul className="text-sm text-amber-700 list-disc list-inside">
               {lowBalanceAccounts.map((acc) => (
                 <li key={acc.id}>
-                  A conta <strong>{acc.name}</strong> está com saldo baixo
-                  (abaixo de R$ 100,00).
+                  A conta <strong>{acc.name}</strong> está com saldo baixo após
+                  movimentação (abaixo de R$ 100,00).
                 </li>
               ))}
             </ul>

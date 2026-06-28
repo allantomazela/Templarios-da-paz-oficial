@@ -87,7 +87,7 @@ else {
 
 Write-Host ""
 Write-Host "No servidor (SSH), execute:" -ForegroundColor White
-Write-Host "  bash /var/www/templarios/scripts/check-ssl-production.sh" -ForegroundColor Gray
+Write-Host "  bash /opt/templarios/scripts/check-ssl-production.sh" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Teste externo opcional:" -ForegroundColor Gray
 Write-Host "  https://www.ssllabs.com/ssltest/analyze.html?d=www.templariosdapazoficial.com.br" -ForegroundColor Gray

@@ -128,5 +128,5 @@ echo "Comandos úteis:"
 echo "  certbot renew --dry-run"
 echo "  certbot certificates"
 echo "  certbot certonly --nginx -d ${DOMAIN} -d ${WWW}"
-echo "  bash scripts/apply-stable-nginx.sh"
+echo "  bash /opt/templarios/scripts/apply-stable-nginx.sh"
 exit 1

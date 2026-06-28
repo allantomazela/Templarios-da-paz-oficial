@@ -104,8 +104,12 @@ jobs:
         for i in 1 2 3; do
           echo "Tentativa $i de 3..."
           if deploy; then
-            scp $SSH_OPTS docs/nginx-templarios-stable.conf scripts/apply-stable-nginx.sh "$REMOTE:/tmp/"
-            ssh $SSH_OPTS "$REMOTE" "chmod +x /tmp/apply-stable-nginx.sh && bash /tmp/apply-stable-nginx.sh /tmp/nginx-templarios-stable.conf"
+            scp $SSH_OPTS docs/nginx-templarios-stable.conf scripts/apply-stable-nginx.sh scripts/check-ssl-production.sh "$REMOTE:/tmp/"
+            ssh $SSH_OPTS "$REMOTE" "
+              mkdir -p /opt/templarios/scripts
+              install -m 755 /tmp/apply-stable-nginx.sh /tmp/check-ssl-production.sh /opt/templarios/scripts/
+              bash /opt/templarios/scripts/apply-stable-nginx.sh /tmp/nginx-templarios-stable.conf
+            "
 
             curl -4 --http1.1 -fSL --max-time 90 -o /tmp/smoke-main.js \
               "https://www.templariosdapazoficial.com.br/assets/$MAIN_JS"

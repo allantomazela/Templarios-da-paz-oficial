@@ -108,11 +108,11 @@ Produção usa **Let's Encrypt** via Certbot + Nginx (portas **80** e **443**). 
 ### Scripts no repositório
 
 - **No seu PC (Windows):** `powershell -ExecutionPolicy Bypass -File scripts/check-ssl-remote.ps1`
-- **No servidor Vultr (SSH):** `bash scripts/check-ssl-production.sh` (após deploy ou em `/var/www/templarios/scripts/`)
+- **No servidor Vultr (SSH):** `bash /opt/templarios/scripts/check-ssl-production.sh` (instalado automaticamente a cada deploy; `/var/www/templarios` contém só o build estático)
 
 ### Se algo falhar
 
 1. `certbot certificates` — confirme domínios `templariosdapazoficial.com.br` e `www.templariosdapazoficial.com.br`.
 2. `certbot renew --dry-run` — se falhar, corrija DNS/firewall (porta 80 aberta para desafio HTTP-01).
-3. `bash scripts/apply-stable-nginx.sh` — reaplica `docs/nginx-templarios-stable.conf`.
+3. `bash /opt/templarios/scripts/apply-stable-nginx.sh` — reaplica `docs/nginx-templarios-stable.conf`.
 4. Teste externo: [SSL Labs](https://www.ssllabs.com/ssltest/analyze.html?d=www.templariosdapazoficial.com.br).

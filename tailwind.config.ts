@@ -27,10 +27,25 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
-        display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
-        /** Blackletter / Old English (Google Fonts — UnifrakturCook) */
-        oldenglish: ['UnifrakturCook', 'cursive'],
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+        ],
+        display: [
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'sans-serif',
+        ],
+        /** Serif decorativo com fallback nativo (sem Google Fonts) */
+        oldenglish: ['Georgia', 'Times New Roman', 'New York', 'serif'],
       },
       colors: {
         border: 'hsl(var(--border))',

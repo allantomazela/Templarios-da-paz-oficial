@@ -10,7 +10,7 @@ import useAuthStore from '@/stores/useAuthStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { hexToHSL } from '@/lib/utils'
 import { RoleGuard } from '@/components/RoleGuard'
-import { FONT_OPTIONS } from '@/components/settings/ThemeSettings'
+import { applySiteFont } from '@/lib/system-fonts'
 import { SeoManager } from '@/components/SeoManager'
 import { RedirectHandler } from '@/components/RedirectHandler'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
@@ -26,6 +26,7 @@ const TermsOfUse = lazyPublicPage(() => import('@/pages/TermsOfUse'))
 const AccessDenied = lazyPublicPage(() => import('@/pages/AccessDenied'))
 const CheckinPage = lazyPublicPage(() => import('@/pages/CheckinPage'))
 const TempleCheckinPage = lazyPublicPage(() => import('@/pages/TempleCheckinPage'))
+const ConnectivityCheck = lazyPublicPage(() => import('@/pages/ConnectivityCheck'))
 const NotFound = lazyPublicPage(() => import('@/pages/NotFound'))
 
 // Módulos do dashboard (Suspense no DashboardLayout — sidebar permanece visível)
@@ -76,31 +77,7 @@ function ThemeApplicator() {
   }, [primaryColor, secondaryColor])
 
   useEffect(() => {
-    if (fontFamily) {
-      // Find font configuration
-      const fontConfig = FONT_OPTIONS.find((f) => f.value === fontFamily)
-      if (fontConfig) {
-        // Apply font family to body
-        document.body.style.fontFamily = fontConfig.family
-
-        // Inject Google Font link if needed
-        const fontName = fontFamily.replace(/ /g, '+')
-        const linkId = 'dynamic-font-link'
-        let link = document.getElementById(linkId) as HTMLLinkElement
-
-        if (!link) {
-          link = document.createElement('link')
-          link.id = linkId
-          link.rel = 'stylesheet'
-          document.head.appendChild(link)
-        }
-
-        // Avoid reloading Inter as it is default
-        if (fontFamily !== 'Inter') {
-          link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;600;700&display=swap`
-        }
-      }
-    }
+    applySiteFont(fontFamily)
   }, [fontFamily])
 
   useEffect(() => {
@@ -162,6 +139,7 @@ const App = () => (
             <Route path="/checkin/:sessionRecordId" element={<CheckinPage />} />
             {/* QR fixo do Templo: usa RPC para descobrir a sessão aberta agora */}
             <Route path="/checkin-templo" element={<TempleCheckinPage />} />
+            <Route path="/conectividade" element={<ConnectivityCheck />} />
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />

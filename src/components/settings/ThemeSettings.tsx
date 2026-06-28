@@ -20,28 +20,9 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useToast } from '@/hooks/use-toast'
 import { RotateCcw, Loader2, Type, Palette } from 'lucide-react'
 import { hexToHSL } from '@/lib/utils'
+import { FONT_OPTIONS } from '@/lib/system-fonts'
 
-export const FONT_OPTIONS = [
-  { value: 'Inter', label: 'Inter (Padrão)', family: 'Inter, sans-serif' },
-  { value: 'Roboto', label: 'Roboto', family: 'Roboto, sans-serif' },
-  { value: 'Open Sans', label: 'Open Sans', family: '"Open Sans", sans-serif' },
-  { value: 'Lato', label: 'Lato', family: 'Lato, sans-serif' },
-  {
-    value: 'Montserrat',
-    label: 'Montserrat',
-    family: 'Montserrat, sans-serif',
-  },
-  {
-    value: 'Playfair Display',
-    label: 'Playfair Display (Serif)',
-    family: '"Playfair Display", serif',
-  },
-  {
-    value: 'Merriweather',
-    label: 'Merriweather (Serif)',
-    family: 'Merriweather, serif',
-  },
-]
+export { FONT_OPTIONS }
 
 export function ThemeSettings() {
   const { primaryColor, secondaryColor, fontFamily, updateTheme } =

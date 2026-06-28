@@ -43,6 +43,16 @@ export default function Login() {
         </div>
 
         <AuthCard />
+
+        <p className="text-center text-sm text-muted-foreground">
+          Problemas em rede corporativa?{' '}
+          <Link
+            to="/conectividade"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Executar diagnóstico de conectividade
+          </Link>
+        </p>
       </div>
     </div>
   )

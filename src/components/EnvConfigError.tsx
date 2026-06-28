@@ -1,4 +1,5 @@
 import { AlertTriangle, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
 interface EnvConfigErrorProps {
@@ -77,6 +78,11 @@ export function EnvConfigError({ message }: EnvConfigErrorProps) {
           <Button variant="outline" onClick={() => window.location.reload()}>
             Tentar novamente
           </Button>
+          {!isLocalhost ? (
+            <Button asChild variant="outline">
+              <Link to="/conectividade">Diagnóstico de rede</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

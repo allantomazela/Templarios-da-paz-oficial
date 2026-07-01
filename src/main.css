@@ -705,4 +705,50 @@ h6 {
     break-after: avoid;
     page-break-after: avoid;
   }
+
+  #financial-planning-report-container {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+
+  #financial-planning-report-container .balancete-document {
+    font-size: 8.5pt;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #financial-planning-report-container .balancete-table-wrap {
+    overflow: visible;
+  }
+
+  #financial-planning-report-container .balancete-table {
+    min-width: 0 !important;
+    width: 100%;
+    font-size: 8pt;
+    table-layout: fixed;
+  }
+
+  #financial-planning-report-container .balancete-table th,
+  #financial-planning-report-container .balancete-table td {
+    padding: 3pt 4pt;
+  }
+
+  #financial-planning-report-container .balancete-credit,
+  #financial-planning-report-container .balancete-debit {
+    color: #000 !important;
+  }
+
+  #financial-planning-report-container .balancete-ledger-section {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  #financial-planning-report-container .balancete-ledger-section tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+.balancete-economy-row td {
+  background: #ecfdf5;
 }

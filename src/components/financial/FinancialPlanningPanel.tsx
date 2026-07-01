@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -14,11 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Download, Loader2, Printer } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { useReactToPrint } from 'react-to-print'
+import { Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import useFinancialStore from '@/stores/useFinancialStore'
@@ -43,10 +39,7 @@ import {
   computeMonthEconomyTotal,
   getForecastMonthRange,
 } from '@/lib/forecast-projection'
-import {
-  computeTotalEconomyAcrossMonths,
-  exportForecastPlanningCsv,
-} from '@/lib/forecast-report-export'
+import { computeTotalEconomyAcrossMonths } from '@/lib/forecast-report-export'
 import type {
   ForecastComparisonRow,
   ForecastItem,
@@ -62,7 +55,7 @@ import {
 } from '@/components/financial/ForecastItemDialog'
 import { ForecastComparisonTable } from '@/components/financial/ForecastComparisonTable'
 import { ForecastOverrideDialog } from '@/components/financial/ForecastOverrideDialog'
-import { ForecastPlanningPrintView } from '@/components/financial/ForecastPlanningPrintView'
+import { ForecastPlanningReport } from '@/components/financial/ForecastPlanningReport'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,13 +88,8 @@ export function FinancialPlanningPanel() {
   const [overrideRow, setOverrideRow] = useState<ForecastComparisonRow | null>(null)
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
   const [projectionInput, setProjectionInput] = useState<PlanningDataSnapshot | null>(null)
-  const printRef = useRef<HTMLDivElement>(null)
 
   const monthRange = useMemo(() => getForecastMonthRange(new Date(), 3), [])
-  const generatedAtLabel = useMemo(
-    () => format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
-    [],
-  )
 
   const loadPlanningData = useAsyncOperation(
     async () => {
@@ -178,52 +166,6 @@ export function FinancialPlanningPanel() {
   const refresh = async () => {
     const result = await loadPlanningData.execute()
     if (result) setProjectionInput(result)
-  }
-
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: `Planejamento_Financeiro_${format(new Date(), 'yyyy-MM-dd')}`,
-    pageStyle: `
-      @page { size: A4 landscape; margin: 12mm 15mm; }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
-    onAfterPrint: () => {
-      toast({
-        title: 'Planejamento enviado à impressão',
-        description:
-          'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
-      })
-    },
-    onPrintError: () => {
-      toast({
-        title: 'Erro ao imprimir',
-        description: 'Não foi possível exportar o planejamento. Tente novamente.',
-        variant: 'destructive',
-      })
-    },
-  })
-
-  const handleExportCsv = () => {
-    if (!projection) return
-    try {
-      exportForecastPlanningCsv(projection)
-      toast({
-        title: 'CSV exportado',
-        description: 'O arquivo foi baixado com os 3 meses do planejamento.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Erro ao exportar',
-        description:
-          error instanceof Error ? error.message : 'Não foi possível gerar o CSV.',
-        variant: 'destructive',
-      })
-    }
   }
 
   const saveItemOperation = useAsyncOperation(
@@ -305,36 +247,6 @@ export function FinancialPlanningPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 no-print sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            Horizonte de 3 meses · vínculo explícito entre transações e contas fixas
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleExportCsv}
-            disabled={!projection?.months.some((month) => month.rows.length > 0)}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => handlePrint()}
-            disabled={!projection}
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir / PDF
-          </Button>
-        </div>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -377,18 +289,11 @@ export function FinancialPlanningPanel() {
               {formatCurrencyBRL(totalEconomy)}
             </CardTitle>
           </CardHeader>
-          {totalEconomy > 0 ? (
-            <CardContent className="pt-0">
-              <p className="text-xs text-green-700 dark:text-green-400">
-                Despesas realizadas abaixo do previsto nos 3 meses
-              </p>
-            </CardContent>
-          ) : null}
         </Card>
       </div>
 
       {projection?.accountProjections.length ? (
-        <Card className="no-print">
+        <Card>
           <CardHeader>
             <CardTitle>Projeção por conta bancária</CardTitle>
             <CardDescription>
@@ -412,10 +317,11 @@ export function FinancialPlanningPanel() {
         </Card>
       ) : null}
 
-      <Tabs defaultValue="comparison" className="space-y-4 no-print">
+      <Tabs defaultValue="comparison" className="space-y-4">
         <TabsList>
           <TabsTrigger value="comparison">Previsto × Realizado</TabsTrigger>
           <TabsTrigger value="items">Contas fixas</TabsTrigger>
+          <TabsTrigger value="report">Relatório</TabsTrigger>
         </TabsList>
 
         <TabsContent value="comparison" className="space-y-4">
@@ -471,16 +377,11 @@ export function FinancialPlanningPanel() {
             onDelete={setItemToDelete}
           />
         </TabsContent>
-      </Tabs>
 
-      {projection ? (
-        <div className="hidden print:block" ref={printRef}>
-          <ForecastPlanningPrintView
-            projection={projection}
-            generatedAt={generatedAtLabel}
-          />
-        </div>
-      ) : null}
+        <TabsContent value="report">
+          <ForecastPlanningReport projection={projection} loading={loading} />
+        </TabsContent>
+      </Tabs>
 
       <ForecastItemDialog
         open={itemDialogOpen}

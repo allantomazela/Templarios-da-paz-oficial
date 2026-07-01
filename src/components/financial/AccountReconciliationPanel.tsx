@@ -32,7 +32,7 @@ import {
   enrichWithRealBalance,
   type AccountReconciliationWithReal,
 } from '@/lib/account-reconciliation'
-import { fetchLinkedMensalidadeTransactionIds } from '@/lib/account-reconciliation-api'
+import { fetchLinkedMensalidadeTransactionIds, fetchMensalidadeLinkContext } from '@/lib/account-reconciliation-api'
 import {
   applyAcknowledgmentsToAudit,
   fetchReconciliationAlertAcknowledgments,
@@ -58,6 +58,9 @@ export function AccountReconciliationPanel() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set())
+  const [mensalidadeLinkContext, setMensalidadeLinkContext] = useState<
+    Awaited<ReturnType<typeof fetchMensalidadeLinkContext>> | null
+  >(null)
   const [ackRevision, setAckRevision] = useState(0)
   const [acknowledgments, setAcknowledgments] = useState<
     Awaited<ReturnType<typeof fetchReconciliationAlertAcknowledgments>>
@@ -74,15 +77,17 @@ export function AccountReconciliationPanel() {
     const loadData = async () => {
       setLoading(true)
       try {
-        const [financialData, mensalidadeIds, ackRows] = await Promise.all([
+        const [financialData, mensalidadeIds, linkContext, ackRows] = await Promise.all([
           fetchFinancialAccountsAndTransactions(),
           fetchLinkedMensalidadeTransactionIds(),
+          fetchMensalidadeLinkContext(),
           fetchReconciliationAlertAcknowledgments().catch(() => []),
         ])
         if (!isMounted) return
         setAccounts(financialData.accounts)
         setTransactions(financialData.transactions)
         setLinkedIds(mensalidadeIds)
+        setMensalidadeLinkContext(linkContext)
         setAcknowledgments(ackRows)
       } catch (error) {
         console.error('Error loading reconciliation data:', error)
@@ -118,10 +123,14 @@ export function AccountReconciliationPanel() {
   const audit = useMemo(
     () =>
       applyAcknowledgmentsToAudit(
-        buildReconciliationAudit(transactions, linkedIds),
+        buildReconciliationAudit(
+          transactions,
+          linkedIds,
+          mensalidadeLinkContext ?? undefined,
+        ),
         acknowledgments,
       ),
-    [transactions, linkedIds, acknowledgments],
+    [transactions, linkedIds, mensalidadeLinkContext, acknowledgments],
   )
 
   const handleAlertAcknowledged = () => {

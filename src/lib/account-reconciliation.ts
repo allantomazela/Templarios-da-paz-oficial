@@ -3,6 +3,18 @@ import {
   computeAccountBalance,
   sumTransactionsByType,
 } from '@/lib/financial-balance-math'
+import type { EnrichedSameMonthMensalidadeGroup } from '@/lib/account-reconciliation-mensalidade-context'
+import {
+  enrichSameMonthMensalidadeGroups,
+  partitionSameMonthGroupsBySeverity,
+  type MensalidadeLinkContext,
+} from '@/lib/account-reconciliation-mensalidade-context'
+
+export type {
+  EnrichedSameMonthMensalidadeGroup,
+  MensalidadeLinkContext,
+  SameMonthGroupKind,
+} from '@/lib/account-reconciliation-mensalidade-context'
 
 const MENSALIDADE_CATEGORY = 'Mensalidade'
 
@@ -43,7 +55,10 @@ export interface MensalidadeAuditItem {
 export interface AccountReconciliationAudit {
   unlinkedMensalidade: MensalidadeAuditItem[]
   duplicateGroups: DuplicateTransactionGroup[]
-  sameMonthMensalidadeGroups: SameMonthMensalidadeGroup[]
+  /** Duplicata real ou atraso do mesmo irmão — exige revisão ou ação. */
+  sameMonthMensalidadeGroups: EnrichedSameMonthMensalidadeGroup[]
+  /** Padrões legítimos (irmãos diferentes, quitação em lote). */
+  sameMonthMensalidadeInformative: EnrichedSameMonthMensalidadeGroup[]
   orphanTransactions: Transaction[]
 }
 
@@ -109,10 +124,6 @@ export function filterAcknowledgedAudit(
   audit: AccountReconciliationAudit,
   acknowledgmentKeys: Set<string>,
 ): AccountReconciliationAudit {
-  const sameMonthGroups = filterSameMonthMensalidadeGroupsForAudit(
-    audit.sameMonthMensalidadeGroups,
-  )
-
   return {
     unlinkedMensalidade: audit.unlinkedMensalidade.filter(
       (item) =>
@@ -132,7 +143,16 @@ export function filterAcknowledgedAudit(
           group.transactions.map((item) => item.id),
         ),
     ),
-    sameMonthMensalidadeGroups: sameMonthGroups.filter(
+    sameMonthMensalidadeGroups: audit.sameMonthMensalidadeGroups.filter(
+      (group) =>
+        !isAlertAcknowledged(
+          acknowledgmentKeys,
+          'same_month_mensalidade',
+          group.key,
+          group.transactions.map((item) => item.id),
+        ),
+    ),
+    sameMonthMensalidadeInformative: audit.sameMonthMensalidadeInformative.filter(
       (group) =>
         !isAlertAcknowledged(
           acknowledgmentKeys,
@@ -340,14 +360,25 @@ export function auditMensalidadeTransactions(
 export function buildReconciliationAudit(
   transactions: Transaction[],
   linkedMensalidadeTransactionIds: Set<string>,
+  linkContext?: MensalidadeLinkContext,
 ): AccountReconciliationAudit {
+  const rawSameMonth = filterSameMonthMensalidadeGroupsForAudit(
+    findSameMonthMensalidadeGroups(transactions),
+  )
+  const enrichedSameMonth = enrichSameMonthMensalidadeGroups(
+    rawSameMonth,
+    linkContext ?? { byTransactionId: new Map(), batchTransactionIds: new Set() },
+  )
+  const partitioned = partitionSameMonthGroupsBySeverity(enrichedSameMonth)
+
   return {
     unlinkedMensalidade: auditMensalidadeTransactions(
       transactions,
       linkedMensalidadeTransactionIds,
     ),
     duplicateGroups: findDuplicateTransactionGroups(transactions),
-    sameMonthMensalidadeGroups: findSameMonthMensalidadeGroups(transactions),
+    sameMonthMensalidadeGroups: [...partitioned.errors, ...partitioned.review],
+    sameMonthMensalidadeInformative: partitioned.informative,
     orphanTransactions: transactions.filter((transaction) => !transaction.accountId),
   }
 }

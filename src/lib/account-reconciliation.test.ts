@@ -10,6 +10,7 @@ import {
   findSameMonthMensalidadeGroups,
   filterAcknowledgedAudit,
 } from '@/lib/account-reconciliation'
+import { buildMensalidadeLinkContext } from '@/lib/account-reconciliation-mensalidade-context'
 
 const account: BankAccount = {
   id: 'stone',
@@ -99,6 +100,56 @@ describe('account-reconciliation', () => {
     const groups = findSameMonthMensalidadeGroups(latePayment)
     expect(groups).toHaveLength(1)
     expect(groups[0].transactions).toHaveLength(2)
+  })
+
+  it('separa irmãos diferentes para aba informativa na auditoria', () => {
+    const sameMonthPayments: Transaction[] = [
+      {
+        id: 'a',
+        date: '2026-06-05',
+        description: 'Mensalidade - Carlos (06/2026)',
+        category: 'Mensalidade',
+        type: 'Receita',
+        amount: 290,
+        accountId: 'itau',
+      },
+      {
+        id: 'b',
+        date: '2026-06-20',
+        description: 'Mensalidade - RENAN (07/2026)',
+        category: 'Mensalidade',
+        type: 'Receita',
+        amount: 290,
+        accountId: 'itau',
+      },
+    ]
+
+    const linkContext = buildMensalidadeLinkContext([
+      {
+        transaction_id: 'a',
+        brother_id: 'brother-carlos',
+        month: 6,
+        year: 2026,
+        profiles: { full_name: 'Carlos' },
+      },
+      {
+        transaction_id: 'b',
+        brother_id: 'brother-renan',
+        month: 7,
+        year: 2026,
+        profiles: { full_name: 'RENAN' },
+      },
+    ])
+
+    const audit = buildReconciliationAudit(
+      sameMonthPayments,
+      new Set(['a', 'b']),
+      linkContext,
+    )
+
+    expect(audit.sameMonthMensalidadeGroups).toHaveLength(0)
+    expect(audit.sameMonthMensalidadeInformative).toHaveLength(1)
+    expect(audit.sameMonthMensalidadeInformative[0].kind).toBe('different_brothers')
   })
 
   it('calcula impacto no saldo ao excluir lançamento', () => {

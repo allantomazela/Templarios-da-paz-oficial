@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FormHeader } from '@/components/ui/form-header'
-import { Wallet, Loader2 } from 'lucide-react'
+import { Wallet, Loader2, Info } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -47,6 +47,8 @@ import { MembershipFeeQuickSettings } from '@/components/financial/MembershipFee
 import { formatCurrencyBRL } from '@/lib/member-payments'
 import { todayLocalISODate } from '@/lib/format-utils'
 import { cn } from '@/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { getMembershipLaunchGuidance } from '@/lib/membership-payment-guidance'
 
 const contributionSchema = z
   .object({
@@ -85,6 +87,10 @@ interface ContributionDialogProps {
   onUpdateFeeSettings?: (settings: MembershipFeeSettings) => Promise<void>
   onSave: (data: ContributionFormData) => void
   saving?: boolean
+  /** Meses em aberto no cronograma do irmão (para orientação de lançamento). */
+  openMonthsCount?: number
+  /** Lançamento iniciado a partir de uma linha específica do cronograma. */
+  launchFromSchedule?: boolean
 }
 
 export function ContributionDialog({
@@ -101,6 +107,8 @@ export function ContributionDialog({
   onUpdateFeeSettings,
   onSave,
   saving = false,
+  openMonthsCount = 0,
+  launchFromSchedule = false,
 }: ContributionDialogProps) {
   const [brothers, setBrothers] = useState<
     { id: string; full_name: string | null }[]
@@ -234,6 +242,33 @@ export function ContributionDialog({
     form.setValue('amount', defaultAmount, { shouldDirty: true })
   }
 
+  const launchGuidance = useMemo(() => {
+    if (contributionToEdit) return null
+
+    if (launchFromSchedule || defaultMonth) {
+      return getMembershipLaunchGuidance({
+        openMonthsCount: Math.max(openMonthsCount, 1),
+        isSingleMonthLaunch: true,
+      })
+    }
+
+    if (openMonthsCount >= 2) {
+      return {
+        title: 'Vários meses em aberto',
+        message: `Este irmão tem ${openMonthsCount} mês(es) em aberto. Para quitar vários meses com um único PIX, abra o cronograma e use "Quitar selecionados".`,
+        variant: 'warning' as const,
+        suggestBatchSettlement: true,
+      }
+    }
+
+    return null
+  }, [
+    contributionToEdit,
+    launchFromSchedule,
+    defaultMonth,
+    openMonthsCount,
+  ])
+
   return (
     <Dialog
       open={open}
@@ -263,6 +298,22 @@ export function ContributionDialog({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
+            {launchGuidance ? (
+              <Alert
+                className={cn(
+                  launchGuidance.variant === 'warning'
+                    ? 'border-amber-200 bg-amber-50 text-amber-900'
+                    : 'border-sky-200 bg-sky-50 text-sky-900',
+                )}
+              >
+                <Info className="h-4 w-4" />
+                <AlertTitle className="text-sm">{launchGuidance.title}</AlertTitle>
+                <AlertDescription className="text-sm">
+                  {launchGuidance.message}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             <FormField
               control={form.control}
               name="brotherId"

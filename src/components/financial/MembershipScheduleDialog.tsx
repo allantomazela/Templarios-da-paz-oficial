@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
@@ -343,11 +343,39 @@ export function MembershipScheduleDialog({
               Cronograma — {brother?.full_name?.trim() || 'Irmão'}
             </DialogTitle>
             <DialogDescription>
-              Marque os meses quitados no mesmo pagamento e registre na tesouraria
-              (ex.: R$ 580 em junho = março + abril). Meses ainda em aberto
-              continuam pendentes no cronograma.
+              A coluna <strong>Referência</strong> é o mês da mensalidade; a data do
+              pagamento é quando o valor entrou no banco. Irmãos diferentes pagando no
+              mesmo mês (ex.: Renan em jul/2026 e Carlos em jun/2026) geram receitas
+              separadas — isso é normal.
             </DialogDescription>
           </DialogHeader>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="space-y-1 text-sm">
+              <p>
+                <strong>Um mês</strong> — clique em <strong>Lançar</strong> na linha
+                (ex.: Renan quitando só jul/2026).
+              </p>
+              <p>
+                <strong>Vários meses no mesmo PIX</strong> — marque os meses e use{' '}
+                <strong>Registrar pagamento na tesouraria</strong> (quitação em lote).
+              </p>
+            </AlertDescription>
+          </Alert>
+
+          {openEntries.length >= 2 ? (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              <AlertTitle className="text-sm font-medium">
+                {openEntries.length} meses em aberto neste irmão
+              </AlertTitle>
+              <AlertDescription className="text-sm">
+                Se o pagamento recebido cobre mais de um mês, selecione todos os meses
+                quitados antes de registrar. Use &quot;Selecionar todos em aberto&quot; e
+                depois &quot;Registrar pagamento na tesouraria&quot;.
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           <Alert>
             <Info className="h-4 w-4" />

@@ -313,6 +313,13 @@ export function MembershipPayments() {
     [allSchedules],
   )
 
+  const launchOpenMonthsCount = useMemo(() => {
+    const brotherId = contributionLaunch?.brotherId || selectedBrotherId
+    if (!brotherId) return 0
+    return allSchedules.find((schedule) => schedule.brotherId === brotherId)
+      ?.openEntries.length ?? 0
+  }, [contributionLaunch?.brotherId, selectedBrotherId, allSchedules])
+
   const selectedSchedule = useMemo(() => {
     if (!selectedBrotherId) return null
     const brother = approvedBrothers.find((b) => b.id === selectedBrotherId)
@@ -841,6 +848,8 @@ export function MembershipPayments() {
         onUpdateFeeSettings={handleUpdateFeeSettings}
         onSave={handleSave}
         saving={saveOperation.loading}
+        openMonthsCount={launchOpenMonthsCount}
+        launchFromSchedule={Boolean(contributionLaunch?.month)}
       />
 
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>

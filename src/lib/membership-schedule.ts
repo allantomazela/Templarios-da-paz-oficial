@@ -134,6 +134,8 @@ export interface OverdueBrotherAlert {
   overdueAmount: number
   overdueLabels: string[]
   oldestOverdueDueDate: string | null
+  /** Três ou mais meses em atraso — prioridade de cobrança pela tesouraria. */
+  requiresEscalation: boolean
 }
 
 function monthKey(year: number, month: number): string {
@@ -202,6 +204,7 @@ export function buildReminderAlerts(
         ),
         oldestOverdueDueDate:
           entries[entries.length - 1]?.dueDate ?? null,
+        requiresEscalation: entries.length >= MEMBERSHIP_OVERDUE_ESCALATION_MONTHS,
       }
     })
     .filter((alert): alert is OverdueBrotherAlert => alert !== null)
@@ -530,6 +533,8 @@ export function buildOverdueBrotherAlerts(
         s.overdueEntries.length > 0
           ? s.overdueEntries[s.overdueEntries.length - 1]?.dueDate ?? null
           : null,
+      requiresEscalation:
+        s.overdueMonthCount >= MEMBERSHIP_OVERDUE_ESCALATION_MONTHS,
     }))
     .sort((a, b) => b.overdueCount - a.overdueCount)
 }

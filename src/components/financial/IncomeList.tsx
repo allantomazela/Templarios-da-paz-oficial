@@ -83,7 +83,10 @@ export function IncomeList() {
     async (data: TransactionFormValues): Promise<string | null> => {
       const transactionId = await saveFinancialTransaction({
         type: 'Receita',
-        data,
+        data: {
+          ...data,
+          forecastItemId: data.forecastItemId || null,
+        },
         existingId: selectedIncome?.id,
         idempotencyKeyRef: createIdempotencyKeyRef,
       })

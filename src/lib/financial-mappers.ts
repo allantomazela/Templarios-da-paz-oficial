@@ -80,6 +80,7 @@ export interface TransactionDB {
   type: 'Receita' | 'Despesa'
   amount: number
   account_id?: string | null
+  forecast_item_id?: string | null
   attachment_notes?: string | null
   idempotency_key?: string | null
   created_by?: string | null
@@ -96,6 +97,7 @@ export function mapTransactionFromDB(row: TransactionDB): Transaction {
     type: row.type,
     amount: Number(row.amount),
     accountId: row.account_id || undefined,
+    forecastItemId: row.forecast_item_id || undefined,
     attachmentNotes: row.attachment_notes || undefined,
   }
 }
@@ -108,6 +110,7 @@ export function mapTransactionToDB(transaction: Partial<Transaction>): Partial<T
     type: transaction.type,
     amount: transaction.amount,
     account_id: transaction.accountId || null,
+    forecast_item_id: transaction.forecastItemId || null,
     attachment_notes: transaction.attachmentNotes || null,
   }
 }

@@ -17,6 +17,7 @@ export interface FinancialTransactionSaveInput {
   category: string
   accountId: string
   attachmentNotes?: string
+  forecastItemId?: string | null
 }
 
 export interface LoadTransactionsOptions {
@@ -89,6 +90,7 @@ function buildTransactionPayload(data: FinancialTransactionSaveInput) {
     category: data.category,
     account_id: data.accountId || null,
     attachment_notes: data.attachmentNotes?.trim() || null,
+    forecast_item_id: data.forecastItemId ?? null,
   }
 }
 

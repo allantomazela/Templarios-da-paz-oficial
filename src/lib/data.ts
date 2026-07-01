@@ -128,6 +128,7 @@ export interface Transaction {
   type: 'Receita' | 'Despesa'
   amount: number
   accountId?: string
+  forecastItemId?: string
   attachmentNotes?: string
   attachmentCount?: number
 }

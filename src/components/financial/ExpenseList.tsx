@@ -84,7 +84,10 @@ export function ExpenseList() {
     async (data: TransactionFormValues): Promise<string | null> => {
       const transactionId = await saveFinancialTransaction({
         type: 'Despesa',
-        data,
+        data: {
+          ...data,
+          forecastItemId: data.forecastItemId || null,
+        },
         existingId: selectedExpense?.id,
         idempotencyKeyRef: createIdempotencyKeyRef,
       })

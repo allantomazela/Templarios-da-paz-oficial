@@ -39,6 +39,9 @@ import {
   uploadPendingTransactionAttachments,
 } from '@/components/financial/TransactionAttachmentsPanel'
 
+import { fetchForecastItems } from '@/lib/forecast-items-api'
+import type { ForecastItem } from '@/lib/forecast-types'
+
 const transactionSchema = z.object({
   description: z.string().min(3, 'Descrição é obrigatória'),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
@@ -47,6 +50,7 @@ const transactionSchema = z.object({
   type: z.enum(['Receita', 'Despesa']),
   accountId: z.string().min(1, 'Conta é obrigatória'),
   attachmentNotes: z.string().optional(),
+  forecastItemId: z.string().optional(),
 })
 
 export type TransactionFormValues = z.infer<typeof transactionSchema>
@@ -77,6 +81,8 @@ export function TransactionDialog({
   const [pendingFiles, setPendingFiles] = useState<PendingFinancialAttachment[]>([])
   const [storedAttachmentCount, setStoredAttachmentCount] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
+  const [forecastItems, setForecastItems] = useState<ForecastItem[]>([])
+  const [loadingForecastItems, setLoadingForecastItems] = useState(false)
   const categoriesRequestSeq = useRef(0)
   const accountsRequestSeq = useRef(0)
 
@@ -90,6 +96,7 @@ export function TransactionDialog({
       type: defaultType,
       accountId: '',
       attachmentNotes: '',
+      forecastItemId: '',
     },
   })
 
@@ -141,6 +148,12 @@ export function TransactionDialog({
           }
         })
     }
+
+    setLoadingForecastItems(true)
+    void fetchForecastItems()
+      .then((items) => setForecastItems(items.filter((item) => item.isActive)))
+      .catch(() => setForecastItems([]))
+      .finally(() => setLoadingForecastItems(false))
   }, [open, storeCategories, storeAccounts])
 
   useEffect(() => {
@@ -153,6 +166,7 @@ export function TransactionDialog({
         type: transactionToEdit.type,
         accountId: transactionToEdit.accountId || '',
         attachmentNotes: transactionToEdit.attachmentNotes || '',
+        forecastItemId: transactionToEdit.forecastItemId || '',
       })
     } else if (open) {
       form.reset({
@@ -163,6 +177,7 @@ export function TransactionDialog({
         type: defaultType,
         accountId: accounts.length > 0 ? accounts[0].id : '',
         attachmentNotes: '',
+        forecastItemId: '',
       })
       setPendingFiles([])
     }
@@ -170,6 +185,7 @@ export function TransactionDialog({
 
   const currentType = form.watch('type') || defaultType
   const availableCategories = categories.filter((category) => category.type === currentType)
+  const availableForecastItems = forecastItems.filter((item) => item.type === currentType)
 
   const handleSubmit = async (values: TransactionFormValues) => {
     setIsSaving(true)
@@ -353,6 +369,44 @@ export function TransactionDialog({
                           </SelectItem>
                         ))
                       )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="forecastItemId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vínculo com planejamento (opcional)</FormLabel>
+                  <Select
+                    onValueChange={(value) =>
+                      field.onChange(value === '__none__' ? '' : value)
+                    }
+                    value={field.value || '__none__'}
+                    disabled={loadingForecastItems}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            loadingForecastItems
+                              ? 'Carregando...'
+                              : 'Sem vínculo'
+                          }
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sem vínculo</SelectItem>
+                      {availableForecastItems.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.description}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

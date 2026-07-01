@@ -13,6 +13,7 @@ import { ReminderSettings } from '@/components/financial/ReminderSettings'
 import { MembershipFeeSettings } from '@/components/financial/MembershipFeeSettings'
 import { BankAccounts } from '@/components/financial/BankAccounts'
 import { CashFlowReport } from '@/components/financial/CashFlowReport'
+import { FinancialPlanningPanel } from '@/components/financial/FinancialPlanningPanel'
 import { CharityCollection } from '@/components/financial/CharityCollection'
 import { AgapeClosing } from '@/components/financial/AgapeClosing'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
@@ -30,6 +31,7 @@ const FINANCIAL_TABS = [
   { value: 'agape', label: 'Fechamento Ágape' },
   { value: 'contributions', label: 'Mensalidades' },
   { value: 'budgets', label: 'Metas e Orçamentos' },
+  { value: 'planning', label: 'Planejamento' },
   { value: 'reports', label: 'Relatório' },
   { value: 'categories', label: 'Categorias' },
   { value: 'settings', label: 'Configurações' },
@@ -144,6 +146,10 @@ export default function Financial() {
 
         <TabsContent value="budgets">
           {activeTab === 'budgets' ? <BudgetsAndGoals /> : null}
+        </TabsContent>
+
+        <TabsContent value="planning">
+          {activeTab === 'planning' ? <FinancialPlanningPanel /> : null}
         </TabsContent>
 
         <TabsContent value="reports">

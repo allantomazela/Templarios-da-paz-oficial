@@ -148,6 +148,10 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
   refreshFinancialCoreData: async (bumpRevision = false) => {
     try {
+      const { repairOrphanTreasuryContributions } = await import(
+        '@/lib/contribution-payments'
+      )
+      await repairOrphanTreasuryContributions()
       await Promise.all([get().fetchAccounts(), get().fetchTransactions()])
       if (bumpRevision) {
         set((state) => ({ dataRevision: state.dataRevision + 1 }))

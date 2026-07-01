@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase/client'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
-import { isMembershipHistoricalPeriod } from '@/lib/membership-schedule'
+import { isMembershipHistoricalPeriod, isMembershipBackfillContribution } from '@/lib/membership-schedule'
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
 
@@ -332,6 +332,15 @@ async function syncFinancialTransaction(
       .update(payload)
       .eq('id', params.existingTransactionId)
     if (error) throw error
+
+    await supabaseAny
+      .from('contributions')
+      .update({
+        transaction_id: params.existingTransactionId,
+        account_id: params.accountId,
+      })
+      .eq('id', params.contributionId)
+
     return params.existingTransactionId
   }
 
@@ -356,10 +365,83 @@ async function syncFinancialTransaction(
 
   await supabaseAny
     .from('contributions')
-    .update({ transaction_id: created.id })
+    .update({
+      transaction_id: created.id,
+      account_id: params.accountId,
+    })
     .eq('id', params.contributionId)
 
   return created.id as string
+}
+
+interface ContributionRepairRow {
+  id: string
+  brother_id: string
+  month: number
+  year: number
+  amount: number
+  status: ContributionFormData['status']
+  payment_date: string | null
+  account_id: string | null
+  transaction_id: string | null
+  notes: string | null
+  profiles?: { full_name: string | null }
+}
+
+/** Corrige mensalidades pagas com conta, mas sem receita no caixa. */
+export async function repairOrphanTreasuryContributions(): Promise<number> {
+  const supabaseAny = supabase as any
+  const { data, error } = await supabaseAny
+    .from('contributions')
+    .select(`
+      id,
+      brother_id,
+      month,
+      year,
+      amount,
+      status,
+      payment_date,
+      account_id,
+      transaction_id,
+      notes,
+      profiles!contributions_brother_id_fkey ( full_name )
+    `)
+    .eq('status', 'Pago')
+    .not('account_id', 'is', null)
+    .is('transaction_id', null)
+
+  if (error) throw error
+
+  let repaired = 0
+
+  for (const row of (data ?? []) as ContributionRepairRow[]) {
+    if (isMembershipHistoricalPeriod(row.year, row.month)) continue
+    if (
+      isMembershipBackfillContribution(row.year, row.month, {
+        status: row.status,
+        transactionId: row.transaction_id,
+        accountId: row.account_id,
+        notes: row.notes,
+      })
+    ) {
+      continue
+    }
+
+    await syncFinancialTransaction(supabaseAny, {
+      contributionId: row.id,
+      brotherName: row.profiles?.full_name?.trim() || 'Irmão',
+      month: row.month,
+      year: row.year,
+      amount: Number(row.amount),
+      status: row.status,
+      paymentDate: row.payment_date ?? undefined,
+      accountId: row.account_id ?? undefined,
+      existingTransactionId: null,
+    })
+    repaired++
+  }
+
+  return repaired
 }
 
 export async function fetchContributionsWithProfiles(): Promise<{
@@ -587,13 +669,40 @@ export async function saveContribution(
   }
 
   if (options?.contributionId) {
+    const { data: previous, error: previousError } = await supabaseAny
+      .from('contributions')
+      .select(
+        'brother_id, month, year, amount, status, payment_date, account_id, notes, recorded_by',
+      )
+      .eq('id', options.contributionId)
+      .single()
+
+    if (previousError) throw formatSupabaseError(previousError)
+
     const { error } = await supabaseAny
       .from('contributions')
       .update(basePayload)
       .eq('id', options.contributionId)
     if (error) throw formatSupabaseError(error)
 
-    await persistAndSync(options.contributionId, options.existingTransactionId)
+    try {
+      await persistAndSync(options.contributionId, options.existingTransactionId)
+    } catch (syncError) {
+      const { error: rollbackError } = await supabaseAny
+        .from('contributions')
+        .update(previous)
+        .eq('id', options.contributionId)
+
+      if (rollbackError) {
+        throw formatSupabaseError(
+          new Error(
+            'Falha ao sincronizar a tesouraria e ao reverter a mensalidade. Recarregue a página e tente novamente.',
+          ),
+        )
+      }
+
+      throw formatSupabaseError(syncError)
+    }
     return
   }
 

@@ -8,6 +8,8 @@ import {
   buildMembershipBackfillPeriods,
   isMembershipHistoricalPeriod,
   isMembershipPastDue,
+  contributionCountsInTreasury,
+  isOrphanTreasuryContribution,
 } from '@/lib/membership-schedule'
 
 const settings = { defaultAmount: 150, dueDay: 10 }
@@ -190,5 +192,41 @@ describe('isMembershipPastDue', () => {
     expect(isMembershipHistoricalPeriod(2026, 5)).toBe(true)
     expect(isMembershipHistoricalPeriod(2026, 6)).toBe(false)
     expect(isMembershipHistoricalPeriod(2026, 7)).toBe(false)
+  })
+})
+
+describe('contributionCountsInTreasury', () => {
+  it('exige vínculo com transação financeira', () => {
+    expect(
+      contributionCountsInTreasury({
+        status: 'Pago',
+        transactionId: 'tx-1',
+        accountId: 'acc-1',
+      }),
+    ).toBe(true)
+    expect(
+      contributionCountsInTreasury({
+        status: 'Pago',
+        accountId: 'acc-1',
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('isOrphanTreasuryContribution', () => {
+  it('detecta mensalidade paga com conta mas sem receita', () => {
+    expect(
+      isOrphanTreasuryContribution(2026, 7, {
+        status: 'Pago',
+        accountId: 'acc-1',
+      }),
+    ).toBe(true)
+    expect(
+      isOrphanTreasuryContribution(2026, 7, {
+        status: 'Pago',
+        accountId: 'acc-1',
+        transactionId: 'tx-1',
+      }),
+    ).toBe(false)
   })
 })

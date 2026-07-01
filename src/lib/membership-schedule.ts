@@ -43,16 +43,32 @@ export function isMembershipBackfillContribution(
   return (contribution.notes ?? '').includes(MEMBERSHIP_HISTORICAL_NOTE)
 }
 
-/** Pagamento real que compõe a tesouraria (com conta ou vínculo financeiro). */
+/** Pagamento com receita lançada no caixa (vínculo com financial_transactions). */
 export function contributionCountsInTreasury(contribution: {
   status: string
   transactionId?: string | null
   accountId?: string | null
 }): boolean {
-  return (
-    contribution.status === 'Pago' &&
-    Boolean(contribution.transactionId || contribution.accountId)
-  )
+  return contribution.status === 'Pago' && Boolean(contribution.transactionId)
+}
+
+/** Pago com conta informada, mas sem receita no caixa — não entra no saldo bancário. */
+export function isOrphanTreasuryContribution(
+  year: number,
+  month: number,
+  contribution: {
+    status: string
+    transactionId?: string | null
+    accountId?: string | null
+    notes?: string | null
+  },
+): boolean {
+  if (contribution.status !== 'Pago') return false
+  if (contribution.transactionId) return false
+  if (!contribution.accountId) return false
+  if (isMembershipHistoricalPeriod(year, month)) return false
+  if (isMembershipBackfillContribution(year, month, contribution)) return false
+  return true
 }
 
 /** Tolerância de meses em atraso antes de mensagem de escalonamento no e-mail. */

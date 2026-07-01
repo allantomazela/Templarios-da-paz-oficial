@@ -38,6 +38,7 @@ import {
   buildMembershipBackfillPeriods,
   buildMembershipScheduleForBrother,
   contributionCountsInTreasury,
+  isOrphanTreasuryContribution,
   isMembershipBackfillContribution,
   membershipStatusLabel,
   MEMBERSHIP_TRACKING_START_YEAR,
@@ -121,7 +122,8 @@ function periodSettleAmount(
   if (entry.remainingAmount > 0) return entry.remainingAmount
   const needsTreasury = periodContributions.some(
     (c) =>
-      isMembershipBackfillContribution(entry.year, entry.month, c) &&
+      (isMembershipBackfillContribution(entry.year, entry.month, c) ||
+        isOrphanTreasuryContribution(entry.year, entry.month, c)) &&
       !contributionCountsInTreasury(c),
   )
   if (needsTreasury && entry.status === 'paid') return entry.expectedAmount
@@ -425,6 +427,12 @@ export function MembershipScheduleDialog({
                             c,
                           ),
                         )
+                      const orphanTreasuryPaid =
+                        entry.status === 'paid' &&
+                        !paidViaTreasury &&
+                        periodContributions.some((c) =>
+                          isOrphanTreasuryContribution(entry.year, entry.month, c),
+                        )
 
                       return (
                         <TableRow
@@ -451,6 +459,13 @@ export function MembershipScheduleDialog({
                               {backfillOnlyPaid ? (
                                 <Badge variant="outline" className="w-fit text-xs">
                                   Só controle — falta tesouraria
+                                </Badge>
+                              ) : orphanTreasuryPaid ? (
+                                <Badge
+                                  variant="outline"
+                                  className="w-fit text-xs border-amber-500 text-amber-700"
+                                >
+                                  Pago — receita não lançada no caixa
                                 </Badge>
                               ) : isHistorical && !paidViaTreasury && entry.status === 'paid' ? (
                                 <Badge variant="outline" className="w-fit text-xs">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -51,15 +51,23 @@ export function BankAccounts() {
   )
   const { toast } = useToast()
   const supabaseAny = supabase as any
+  const loadSeqRef = useRef(0)
 
   // Load accounts from Supabase
   const loadAccounts = useAsyncOperation(
     async () => {
+      const requestId = ++loadSeqRef.current
       setLoading(true)
-      const withBalances = await fetchAccountsWithBalances()
-      setAccounts(withBalances)
-      setLoading(false)
-      return null
+      try {
+        const withBalances = await fetchAccountsWithBalances()
+        if (loadSeqRef.current !== requestId) return null
+        setAccounts(withBalances)
+        return null
+      } finally {
+        if (loadSeqRef.current === requestId) {
+          setLoading(false)
+        }
+      }
     },
     {
       showSuccessToast: false,

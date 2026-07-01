@@ -138,7 +138,7 @@ export function ForecastItemDialog({
           {itemToEdit ? 'Editar conta fixa' : 'Nova conta fixa'}
         </DialogTitle>
         <FormHeader
-          icon={CalendarClock}
+          icon={<CalendarClock className="h-5 w-5" />}
           title={itemToEdit ? 'Editar conta fixa' : 'Nova conta fixa'}
           description="Cadastre receitas ou despesas recorrentes para o planejamento."
         />

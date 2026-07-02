@@ -16,6 +16,7 @@ import { compressImage, compressLogoForUpload } from '@/lib/image-utils'
 import { uploadToStorage } from '@/lib/upload-utils'
 import { logDebug, logError } from '@/lib/logger'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
+import { syncPwaIconsAfterLogoChange } from '@/lib/pwa-icon-sync'
 import {
   BrandLogoImg,
   BRAND_LOGO_INTRINSIC_SIZE,
@@ -150,9 +151,12 @@ export function LogoSettings() {
     try {
       await updateLogo(lUrl)
       setLogoPreviewVersion(Date.now())
+      const pwaSynced = await syncPwaIconsAfterLogoChange(lUrl)
       toast({
         title: 'Logo Atualizado',
-        description: 'O logo do site foi atualizado com sucesso.',
+        description: pwaSynced
+          ? 'Logo salvo. Ícones do app (PWA) foram gerados — faça o deploy para publicá-los na instalação.'
+          : 'Logo salvo. Os ícones do app serão regenerados no próximo deploy do site.',
       })
     } catch (error) {
       toast({
@@ -192,9 +196,9 @@ export function LogoSettings() {
         <CardHeader>
           <CardTitle>Logo do Site</CardTitle>
           <CardDescription>
-            Exibido no cabeçalho e rodapé. Prefira PNG com transparência ou SVG;
-            imagens raster até ~768 px no maior lado são otimizadas no upload com
-            boa qualidade para retina.
+            Exibido no cabeçalho e rodapé. Prefira PNG com transparência ou imagem
+            até ~768 px. Ao salvar, os ícones do app instalado (PWA) são gerados a
+            partir deste logo e publicados no próximo deploy.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

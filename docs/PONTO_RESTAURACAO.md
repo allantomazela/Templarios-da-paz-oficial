@@ -1,3 +1,41 @@
+# Ponto de restauração — baseline 29/06/2026 (PWA)
+
+Documento atualizado após validação do deploy **PWA** (ícones instaláveis, prompt iOS/Android, geração de ícones a partir do logo).
+
+## Identificadores do ponto seguro
+
+| Item | Valor |
+|------|--------|
+| **Tag Git (antes do PWA)** | `restore-point-2026-06-29-pre-pwa` → commit `8b60001` |
+| **Branch de backup (pré-PWA)** | `restore/baseline-2026-06-29-pre-pwa` |
+| **Tag Git (após PWA validado)** | `restore-point-2026-06-29` (aponta para o HEAD deste deploy) |
+| **Commit de rollback (`STABLE_COMMIT`)** | `9452701` — feat PWA (código estável) |
+| **Branch de backup (pós-PWA)** | `restore/baseline-2026-06-29` |
+| **Versão package.json** | `0.0.79` |
+
+### Restaurar produção ao estado **antes** do PWA
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-06-29-pre-pwa
+npm install --legacy-peer-deps
+npm run build
+# Deploy manual ou Actions conforme docs/DEPLOY-CHECKLIST.md
+```
+
+### Restaurar ao baseline **com PWA** (após este deploy)
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-06-29
+npm install --legacy-peer-deps
+npm run build
+```
+
+> Atualize `STABLE_COMMIT` em `.github/workflows/rollback-emergency.yml` após confirmar o site em produção.
+
+---
+
 # Ponto de restauração — baseline 26/06/2026
 
 Documento de referência após validação geral do sistema e criação de tag/branch de restauração, em resposta aos incidentes de deploy do dia **25/06/2026**.

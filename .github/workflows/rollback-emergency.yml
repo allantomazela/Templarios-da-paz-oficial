@@ -10,7 +10,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       # Baseline validado 26/06/2026 — ver docs/PONTO_RESTAURACAO.md
       # Tag: restore-point-2026-06-26 | Commit anterior emergência 24/06: 47b511d
-      STABLE_COMMIT: a6175de
+      STABLE_COMMIT: 9452701
 
     steps:
       - uses: actions/checkout@v6

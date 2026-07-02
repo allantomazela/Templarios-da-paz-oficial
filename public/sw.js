@@ -6,7 +6,7 @@
  * enquanto aba anônima sem cache “funcionava”.
  *
  * Ao ativar, apagamos caches antigos deste domínio para limpar instalações anteriores.
- * Versão lógica: v13 (sem interceptação de fetch).
+ * Versão lógica: v14 (sem interceptação de fetch; PWA install icons 192/512).
  */
 
 self.addEventListener('install', (event) => {

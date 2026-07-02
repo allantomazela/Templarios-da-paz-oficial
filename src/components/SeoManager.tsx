@@ -28,7 +28,7 @@ export function SeoManager() {
 
       // Remove ALL existing favicon links (including default from index.html)
       const existingFavicons = document.querySelectorAll(
-        "link[rel='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon'], link[rel='mask-icon']",
+        "link[rel='icon'], link[rel='shortcut icon'], link[rel='mask-icon']",
       )
       existingFavicons.forEach((link) => link.remove())
 
@@ -63,15 +63,8 @@ export function SeoManager() {
       shortcutIcon.href = faviconUrlWithCache
       document.head.appendChild(shortcutIcon)
 
-      // Apple Touch Icon: não declarar sizes para evitar "Resource size is not correct"
-      // quando a imagem não for exatamente 180x180 (evita avisos no console)
-      const appleTouchIcon = document.createElement('link')
-      appleTouchIcon.rel = 'apple-touch-icon'
-      appleTouchIcon.href = faviconUrlWithCache
-      document.head.appendChild(appleTouchIcon)
-
-      // Não injetar links 192x192/512x512 aqui: o tamanho real da imagem pode não bater
-      // e o navegador gera erro. O manifest.webmanifest usa só favicon 48x48.
+      // apple-touch-icon e ícones PWA permanecem fixos em index.html (/icon-192.png, /icon-512.png)
+      // para não quebrar instalação no iOS/Android com tamanhos incorretos do favicon dinâmico.
     }
 
     // Update Open Graph Tags

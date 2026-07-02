@@ -425,6 +425,36 @@ export async function deleteCeremonyPaymentPlan(planId: string): Promise<void> {
 
 export async function cancelCeremonyPaymentPlan(planId: string): Promise<void> {
   const supabaseAny = supabase as any
+
+  const { data: installments, error: fetchError } = await supabaseAny
+    .from('brother_ceremony_payment_installments')
+    .select('id, transaction_id')
+    .eq('plan_id', planId)
+
+  if (fetchError) throw formatError(fetchError)
+
+  const { deleteFinancialTransactionWithDependencies } = await import(
+    '@/lib/financial-transaction-delete'
+  )
+
+  for (const row of installments ?? []) {
+    if (row.transaction_id) {
+      await deleteFinancialTransactionWithDependencies(row.transaction_id)
+    }
+  }
+
+  const { error: installmentsError } = await supabaseAny
+    .from('brother_ceremony_payment_installments')
+    .update({
+      transaction_id: null,
+      account_id: null,
+      payment_date: null,
+      status: 'Pendente',
+    })
+    .eq('plan_id', planId)
+
+  if (installmentsError) throw formatError(installmentsError)
+
   const { error } = await supabaseAny
     .from('brother_ceremony_payment_plans')
     .update({ status: 'cancelled' })

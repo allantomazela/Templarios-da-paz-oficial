@@ -594,8 +594,8 @@ function AuditTransactionRow({
                       ))}
                     </ul>
                     <p className="mt-1 text-xs">
-                      O vínculo será removido, mas o registro de pagamento pode
-                      permanecer. Confira em Mensalidades após excluir.
+                      Vínculos serão desfeitos e pagamentos voltarão para pendência,
+                      evitando recriação automática da receita.
                     </p>
                   </div>
                 )}
@@ -686,6 +686,7 @@ function DuplicateGroupResolver({
     setResolving(true)
     try {
       await deleteReconciliationTransactions(toDelete.map((item) => item.id))
+      notifyFinancialDataChanged()
       toast({
         title: 'Duplicatas resolvidas',
         description: `${toDelete.length} lançamento(s) excluído(s). Saldo ajustado em ${formatCurrencyBRL(totalBalanceImpact)}.`,

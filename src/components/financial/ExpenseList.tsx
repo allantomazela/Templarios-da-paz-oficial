@@ -30,19 +30,21 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { useToast } from '@/hooks/use-toast'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { useFinancialAttachmentAccess } from '@/hooks/use-financial-attachment-access'
 import { useFinancialTransactionList } from '@/hooks/use-financial-transaction-list'
 import {
-  deleteFinancialTransaction,
   saveFinancialTransaction,
 } from '@/lib/financial-transaction-api'
+import { TransactionDeleteConfirmDialog } from '@/components/financial/TransactionDeleteConfirmDialog'
 import {
   computeCashAvailability,
   sumTransactionAmounts,
 } from '@/lib/financial-balance-math'
 
 export function ExpenseList() {
+  const { toast } = useToast()
   const canManageAttachments = useFinancialAttachmentAccess()
   const {
     transactions: expenses,
@@ -58,6 +60,7 @@ export function ExpenseList() {
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
     null,
   )
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
 
   const filteredExpenses = expenses.filter(
@@ -101,24 +104,21 @@ export function ExpenseList() {
     },
   )
 
-  const deleteOperation = useAsyncOperation(
-    async (id: string) => {
-      await deleteFinancialTransaction(id)
-      await refreshExpenses()
-      return 'Despesa removida.'
-    },
-    {
-      successMessage: 'Despesa removida com sucesso!',
-      errorMessage: 'Falha ao remover a despesa.',
-    },
-  )
+  const handleDelete = (expense: Transaction) => {
+    setPendingDelete(expense)
+  }
 
   const handleSave = async (data: TransactionFormValues) => {
     return saveOperation.execute(data)
   }
 
-  const handleDelete = (id: string) => {
-    deleteOperation.execute(id)
+  const handleDeleteConfirmed = (message: string) => {
+    notifyFinancialDataChanged()
+    toast({
+      title: 'Despesa removida',
+      description: message,
+    })
+    setPendingDelete(null)
   }
 
   const openNew = () => {
@@ -229,7 +229,7 @@ export function ExpenseList() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(expense.id)}
+                        onClick={() => handleDelete(expense)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -289,7 +289,7 @@ export function ExpenseList() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive"
-                      onClick={() => handleDelete(expense.id)}
+                      onClick={() => handleDelete(expense)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -321,6 +321,22 @@ export function ExpenseList() {
         transactionToEdit={selectedExpense}
         onSave={handleSave}
         defaultType="Despesa"
+      />
+
+      <TransactionDeleteConfirmDialog
+        transaction={pendingDelete}
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+        onDeleted={handleDeleteConfirmed}
+        onError={(message) =>
+          toast({
+            title: 'Erro ao excluir despesa',
+            description: message,
+            variant: 'destructive',
+          })
+        }
       />
     </div>
   )

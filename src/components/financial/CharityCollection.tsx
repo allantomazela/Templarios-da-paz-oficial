@@ -61,6 +61,10 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { supabase } from '@/lib/supabase/client'
 import {
+  buildTransactionDeleteSuccessMessage,
+  deleteFinancialTransactionWithDependencies,
+} from '@/lib/financial-transaction-delete'
+import {
   Plus,
   Edit,
   Trash2,
@@ -396,16 +400,11 @@ export function CharityCollection() {
 
   const deleteOperation = useAsyncOperation(
     async (transactionId: string) => {
-      const { error } = await supabaseAny
-        .from('financial_transactions')
-        .delete()
-        .eq('id', transactionId)
-
-      if (error) throw error
+      const result = await deleteFinancialTransactionWithDependencies(transactionId)
 
       await loadData.execute()
       notifyFinancialDataChanged()
-      return 'Registro removido com sucesso.'
+      return buildTransactionDeleteSuccessMessage(result)
     },
     {
       successMessage: 'Registro removido com sucesso!',

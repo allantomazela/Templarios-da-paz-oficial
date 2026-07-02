@@ -31,19 +31,21 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { formatCurrencyBRL } from '@/lib/format-utils'
+import { useToast } from '@/hooks/use-toast'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { useFinancialAttachmentAccess } from '@/hooks/use-financial-attachment-access'
 import { useFinancialTransactionList } from '@/hooks/use-financial-transaction-list'
 import {
-  deleteFinancialTransaction,
   saveFinancialTransaction,
 } from '@/lib/financial-transaction-api'
+import { TransactionDeleteConfirmDialog } from '@/components/financial/TransactionDeleteConfirmDialog'
 import {
   computeCashAvailability,
   sumTransactionAmounts,
 } from '@/lib/financial-balance-math'
 
 export function IncomeList() {
+  const { toast } = useToast()
   const canManageAttachments = useFinancialAttachmentAccess()
   const {
     transactions: incomes,
@@ -57,6 +59,7 @@ export function IncomeList() {
   const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
 
   const filteredIncomes = incomes.filter(
@@ -100,24 +103,21 @@ export function IncomeList() {
     },
   )
 
-  const deleteOperation = useAsyncOperation(
-    async (id: string) => {
-      await deleteFinancialTransaction(id)
-      await refreshIncomes()
-      return 'Receita removida.'
-    },
-    {
-      successMessage: 'Receita removida com sucesso!',
-      errorMessage: 'Falha ao remover a receita.',
-    },
-  )
+  const handleDelete = (income: Transaction) => {
+    setPendingDelete(income)
+  }
 
   const handleSave = async (data: TransactionFormValues) => {
     return saveOperation.execute(data)
   }
 
-  const handleDelete = (id: string) => {
-    deleteOperation.execute(id)
+  const handleDeleteConfirmed = (message: string) => {
+    notifyFinancialDataChanged()
+    toast({
+      title: 'Receita removida',
+      description: message,
+    })
+    setPendingDelete(null)
   }
 
   const openNew = () => {
@@ -227,7 +227,7 @@ export function IncomeList() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(income.id)}
+                        onClick={() => handleDelete(income)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -286,7 +286,7 @@ export function IncomeList() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive"
-                      onClick={() => handleDelete(income.id)}
+                      onClick={() => handleDelete(income)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -318,6 +318,22 @@ export function IncomeList() {
         transactionToEdit={selectedIncome}
         onSave={handleSave}
         defaultType="Receita"
+      />
+
+      <TransactionDeleteConfirmDialog
+        transaction={pendingDelete}
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+        onDeleted={handleDeleteConfirmed}
+        onError={(message) =>
+          toast({
+            title: 'Erro ao excluir receita',
+            description: message,
+            variant: 'destructive',
+          })
+        }
       />
     </div>
   )

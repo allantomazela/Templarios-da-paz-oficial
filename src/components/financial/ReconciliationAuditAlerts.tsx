@@ -104,9 +104,9 @@ export function ReconciliationAuditAlerts({
           Alertas de auditoria
         </CardTitle>
         <CardDescription>
-          Conferência organizada por prioridade. Padrões legítimos de atraso ou de
-          irmãos diferentes no mesmo mês não exigem exclusão — basta confirmar como
-          verificado quando conferir no extrato.
+          Conferência organizada por prioridade. Em <strong>Erros reais</strong>, exclua ou
+          resolva os lançamentos — marcar como verificado não corrige o saldo. Nas abas
+          Revisar e Informativos, confirme padrões legítimos quando conferir no extrato.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -155,6 +155,7 @@ export function ReconciliationAuditAlerts({
                         alertType="orphan_transaction"
                         alertKey={transaction.id}
                         onAlertAcknowledged={onAlertAcknowledged}
+                        allowAcknowledge={false}
                       />
                     ))}
                   </AlertSection>
@@ -177,6 +178,7 @@ export function ReconciliationAuditAlerts({
                         transactions={group.transactions}
                         linkedMensalidadeIds={linkedMensalidadeIds}
                         onAlertAcknowledged={onAlertAcknowledged}
+                        allowAcknowledge={false}
                       />
                     ))}
                   </AlertSection>
@@ -196,6 +198,7 @@ export function ReconciliationAuditAlerts({
                         alertType="unlinked_mensalidade"
                         alertKey={item.transaction.id}
                         onAlertAcknowledged={onAlertAcknowledged}
+                        allowAcknowledge={false}
                       />
                     ))}
                   </AlertSection>
@@ -382,6 +385,7 @@ function SameMonthGroupResolver({
           hideHeader
           acknowledgeLabel="Confirmar como legítimo"
           allowResolveDuplicates={!reviewMode}
+          allowAcknowledge={reviewMode}
         />
       )}
     </div>
@@ -413,6 +417,7 @@ interface AuditTransactionRowProps {
   alertType: ReconciliationAlertType
   alertKey: string
   onAlertAcknowledged: () => void
+  allowAcknowledge?: boolean
 }
 
 function AuditTransactionRow({
@@ -422,6 +427,7 @@ function AuditTransactionRow({
   alertType,
   alertKey,
   onAlertAcknowledged,
+  allowAcknowledge = true,
 }: AuditTransactionRowProps) {
   const dialog = useDialog()
   const { toast } = useToast()
@@ -518,6 +524,7 @@ function AuditTransactionRow({
             alertKey={alertKey}
             transactionIds={[transaction.id]}
             onAcknowledged={onAlertAcknowledged}
+            allowAcknowledge={allowAcknowledge}
           />
           <Button
             type="button"
@@ -633,6 +640,7 @@ interface DuplicateGroupResolverProps {
   hideHeader?: boolean
   acknowledgeLabel?: string
   allowResolveDuplicates?: boolean
+  allowAcknowledge?: boolean
 }
 
 function DuplicateGroupResolver({
@@ -648,6 +656,7 @@ function DuplicateGroupResolver({
   hideHeader = false,
   acknowledgeLabel = 'Confirmar como legítimo',
   allowResolveDuplicates = true,
+  allowAcknowledge = true,
 }: DuplicateGroupResolverProps) {
   const { toast } = useToast()
   const defaultKeepId =
@@ -752,6 +761,7 @@ function DuplicateGroupResolver({
             transactionIds={transactions.map((item) => item.id)}
             onAcknowledged={onAlertAcknowledged}
             label={acknowledgeLabel}
+            allowAcknowledge={allowAcknowledge}
           />
           {allowResolveDuplicates && (
             <Button

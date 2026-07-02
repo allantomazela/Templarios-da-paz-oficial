@@ -44,8 +44,38 @@ import { supabase } from '@/lib/supabase/client'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { cn } from '@/lib/utils'
 import { ReconciliationAuditAlerts } from '@/components/financial/ReconciliationAuditAlerts'
+import { MensalidadeBalanceHintPanel } from '@/components/financial/MensalidadeBalanceHintPanel'
+import { buildMensalidadeBalanceHints } from '@/lib/account-reconciliation-mensalidade-hints'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import type { AccountReconciliationAudit } from '@/lib/account-reconciliation'
 
 const BALANCE_TOLERANCE = 0.01
+
+function countAuditAlerts(audit: AccountReconciliationAudit): number {
+  const unlinkedErrors = audit.unlinkedMensalidade.filter(
+    (item) => item.reason === 'sem_vinculo_mensalidade',
+  )
+  const unlinkedReview = audit.unlinkedMensalidade.filter(
+    (item) => item.reason === 'possivel_duplicata',
+  )
+  const sameMonthErrors = audit.sameMonthMensalidadeGroups.filter(
+    (group) => group.kind === 'duplicate_same_reference',
+  )
+  const sameMonthReview = audit.sameMonthMensalidadeGroups.filter(
+    (group) => group.kind === 'late_same_brother' || group.kind === 'unknown',
+  )
+
+  return (
+    audit.orphanTransactions.length +
+    audit.duplicateGroups.length +
+    unlinkedErrors.length +
+    sameMonthErrors.length +
+    unlinkedReview.length +
+    sameMonthReview.length +
+    audit.sameMonthMensalidadeInformative.length
+  )
+}
 
 function parseRealBalanceInput(value: string): number | null {
   const trimmed = value.trim()
@@ -66,6 +96,7 @@ export function AccountReconciliationPanel() {
     Awaited<ReturnType<typeof fetchReconciliationAlertAcknowledgments>>
   >([])
   const [realBalances, setRealBalances] = useState<Record<string, string>>({})
+  const [showAcknowledgedAlerts, setShowAcknowledgedAlerts] = useState(false)
   const [loading, setLoading] = useState(true)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
   const { toast } = useToast()
@@ -120,17 +151,41 @@ export function AccountReconciliationPanel() {
     [details, realBalances],
   )
 
+  const rawAudit = useMemo(
+    () =>
+      buildReconciliationAudit(
+        transactions,
+        linkedIds,
+        mensalidadeLinkContext ?? undefined,
+      ),
+    [transactions, linkedIds, mensalidadeLinkContext],
+  )
+
   const audit = useMemo(
     () =>
-      applyAcknowledgmentsToAudit(
-        buildReconciliationAudit(
-          transactions,
-          linkedIds,
-          mensalidadeLinkContext ?? undefined,
-        ),
-        acknowledgments,
+      showAcknowledgedAlerts
+        ? rawAudit
+        : applyAcknowledgmentsToAudit(rawAudit, acknowledgments),
+    [rawAudit, acknowledgments, showAcknowledgedAlerts],
+  )
+
+  const hiddenAlertCount = useMemo(() => {
+    const filtered = applyAcknowledgmentsToAudit(rawAudit, acknowledgments)
+    return Math.max(0, countAuditAlerts(rawAudit) - countAuditAlerts(filtered))
+  }, [rawAudit, acknowledgments])
+
+  const mensalidadeHints = useMemo(
+    () =>
+      buildMensalidadeBalanceHints(
+        accounts.map((account) => ({
+          accountId: account.id,
+          accountName: account.name,
+        })),
+        transactions,
+        linkedIds,
+        enrichedDetails,
       ),
-    [transactions, linkedIds, mensalidadeLinkContext, acknowledgments],
+    [accounts, transactions, linkedIds, enrichedDetails],
   )
 
   const handleAlertAcknowledged = () => {
@@ -266,6 +321,27 @@ export function AccountReconciliationPanel() {
           </div>
         </CardContent>
       </Card>
+
+      <MensalidadeBalanceHintPanel hints={mensalidadeHints} />
+
+      {(hiddenAlertCount > 0 || showAcknowledgedAlerts) && (
+        <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2">
+          <Checkbox
+            id="show-acknowledged-alerts"
+            checked={showAcknowledgedAlerts}
+            onCheckedChange={(checked) => setShowAcknowledgedAlerts(checked === true)}
+          />
+          <Label htmlFor="show-acknowledged-alerts" className="text-sm font-normal cursor-pointer">
+            Mostrar alertas já verificados
+            {hiddenAlertCount > 0 && !showAcknowledgedAlerts && (
+              <span className="text-muted-foreground">
+                {' '}
+                ({hiddenAlertCount} oculto{hiddenAlertCount === 1 ? '' : 's'})
+              </span>
+            )}
+          </Label>
+        </div>
+      )}
 
       <ReconciliationAuditAlerts
         audit={audit}

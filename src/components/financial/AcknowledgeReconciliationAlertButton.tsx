@@ -26,6 +26,8 @@ interface AcknowledgeReconciliationAlertButtonProps {
   onAcknowledged: () => void
   size?: 'sm' | 'default'
   label?: string
+  /** Erros reais exigem exclusão ou resolução — não podem ser apenas ocultados. */
+  allowAcknowledge?: boolean
 }
 
 export function AcknowledgeReconciliationAlertButton({
@@ -35,6 +37,7 @@ export function AcknowledgeReconciliationAlertButton({
   onAcknowledged,
   size = 'sm',
   label = 'Marcar como verificado',
+  allowAcknowledge = true,
 }: AcknowledgeReconciliationAlertButtonProps) {
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -53,7 +56,7 @@ export function AcknowledgeReconciliationAlertButton({
       toast({
         title: 'Alerta verificado',
         description:
-          'A verificação foi registrada. O alerta voltará se os lançamentos forem alterados.',
+          'O alerta foi ocultado da lista. Isso não altera saldo nem lançamentos — apenas registra sua conferência.',
       })
       setConfirmOpen(false)
       setNote('')
@@ -67,6 +70,14 @@ export function AcknowledgeReconciliationAlertButton({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (!allowAcknowledge) {
+    return (
+      <span className="text-xs text-muted-foreground max-w-[200px] text-right">
+        Exclua ou resolva o lançamento para corrigir o saldo
+      </span>
+    )
   }
 
   return (
@@ -97,9 +108,13 @@ export function AcknowledgeReconciliationAlertButton({
                   Use esta opção quando tiver revisado os lançamentos e confirmado que
                   estão corretos (ex.: mensalidade em atraso paga junto com a corrente).
                 </p>
+                <p className="font-medium text-foreground">
+                  Importante: marcar como verificado apenas oculta o alerta. Não exclui
+                  lançamentos e não corrige o saldo da conta.
+                </p>
                 <p>
-                  A verificação fica registrada com seu usuário e data. O alerta será
-                  ocultado enquanto os mesmos lançamentos permanecerem inalterados.
+                  A verificação fica registrada com seu usuário e data. O alerta voltará
+                  se os lançamentos forem alterados.
                 </p>
                 <div className="space-y-2">
                   <Label htmlFor={`ack-note-${alertKey}`}>

@@ -8,7 +8,8 @@ Documento atualizado após validação do deploy **PWA** (ícones instaláveis, 
 |------|--------|
 | **Tag Git (antes do PWA)** | `restore-point-2026-06-29-pre-pwa` → commit `8b60001` |
 | **Branch de backup (pré-PWA)** | `restore/baseline-2026-06-29-pre-pwa` |
-| **Tag Git (após PWA validado)** | `restore-point-2026-06-29` |
+| **Tag Git (após PWA validado)** | `restore-point-2026-06-29` (aponta para o HEAD deste deploy) |
+| **Commit de rollback (`STABLE_COMMIT`)** | `9452701` — feat PWA (código estável) |
 | **Branch de backup (pós-PWA)** | `restore/baseline-2026-06-29` |
 | **Versão package.json** | `0.0.79` |
 

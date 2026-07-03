@@ -43,11 +43,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_financial_payables_open_forecast_due
   WHERE forecast_item_id IS NOT NULL
     AND status IN ('Pendente', 'Atrasado');
 
+CREATE OR REPLACE FUNCTION public.update_financial_payables_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS update_financial_payables_updated_at ON public.financial_payables;
 CREATE TRIGGER update_financial_payables_updated_at
   BEFORE UPDATE ON public.financial_payables
   FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+  EXECUTE FUNCTION public.update_financial_payables_updated_at();
 
 DROP TRIGGER IF EXISTS audit_financial_payables ON public.financial_payables;
 CREATE TRIGGER audit_financial_payables

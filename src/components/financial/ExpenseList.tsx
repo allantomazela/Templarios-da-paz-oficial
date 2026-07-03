@@ -38,6 +38,8 @@ import {
   saveFinancialTransaction,
 } from '@/lib/financial-transaction-api'
 import { TransactionDeleteConfirmDialog } from '@/components/financial/TransactionDeleteConfirmDialog'
+import { TransactionListFiltersPanel } from '@/components/financial/TransactionListFiltersPanel'
+import { useTransactionListFilters } from '@/hooks/use-transaction-list-filters'
 import {
   computeCashAvailability,
   sumTransactionAmounts,
@@ -55,7 +57,6 @@ export function ExpenseList() {
   } = useFinancialTransactionList('Despesa', {
     includeAttachmentCounts: canManageAttachments,
   })
-  const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(
     null,
@@ -63,11 +64,20 @@ export function ExpenseList() {
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
 
-  const filteredExpenses = expenses.filter(
-    (expense) =>
-      expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.category.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const {
+    filters,
+    updateFilters,
+    resetFilters,
+    filteredTransactions: filteredExpenses,
+    categories,
+    brothers,
+    brothersLoading,
+    hasActiveFilters,
+  } = useTransactionListFilters({
+    transactions: expenses,
+    accounts,
+    accountNames,
+  })
 
   const filteredTotal = useMemo(
     () => sumTransactionAmounts(filteredExpenses),
@@ -139,15 +149,28 @@ export function ExpenseList() {
   return (
     <div className="space-y-4">
       <TransactionListToolbar
-        searchPlaceholder="Buscar despesas..."
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        listTotalLabel={searchTerm ? 'Total filtrado' : 'Total de despesas'}
+        searchPlaceholder="Buscar por descrição, categoria, conta ou valor..."
+        searchTerm={filters.searchTerm}
+        onSearchChange={(value) => updateFilters({ searchTerm: value })}
+        listTotalLabel={hasActiveFilters ? 'Total filtrado' : 'Total de despesas'}
         listTotal={filteredTotal}
         listTotalClassName="text-destructive"
         actionLabel="Nova Despesa"
         onAction={openNew}
         actionVariant="destructive"
+      />
+
+      <TransactionListFiltersPanel
+        filters={filters}
+        onChange={updateFilters}
+        onReset={resetFilters}
+        categories={categories}
+        accounts={accounts}
+        accountNames={accountNames}
+        brothers={brothers}
+        brothersLoading={brothersLoading}
+        resultCount={filteredExpenses.length}
+        totalCount={expenses.length}
       />
 
       {!loading ? <FinancialCashSummaryBar summary={cashSummary} highlight="expense" /> : null}
@@ -178,8 +201,8 @@ export function ExpenseList() {
             ) : filteredExpenses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  {searchTerm
-                    ? 'Nenhuma despesa encontrada com o termo buscado.'
+                  {hasActiveFilters
+                    ? 'Nenhuma despesa encontrada com os filtros aplicados.'
                     : 'Nenhuma despesa cadastrada.'}
                 </TableCell>
               </TableRow>
@@ -251,8 +274,8 @@ export function ExpenseList() {
           </div>
         ) : filteredExpenses.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-md">
-            {searchTerm
-              ? 'Nenhuma despesa encontrada com o termo buscado.'
+            {hasActiveFilters
+              ? 'Nenhuma despesa encontrada com os filtros aplicados.'
               : 'Nenhuma despesa cadastrada.'}
           </div>
         ) : (

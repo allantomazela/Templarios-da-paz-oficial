@@ -39,6 +39,8 @@ import {
   saveFinancialTransaction,
 } from '@/lib/financial-transaction-api'
 import { TransactionDeleteConfirmDialog } from '@/components/financial/TransactionDeleteConfirmDialog'
+import { TransactionListFiltersPanel } from '@/components/financial/TransactionListFiltersPanel'
+import { useTransactionListFilters } from '@/hooks/use-transaction-list-filters'
 import {
   computeCashAvailability,
   sumTransactionAmounts,
@@ -56,17 +58,25 @@ export function IncomeList() {
   } = useFinancialTransactionList('Receita', {
     includeAttachmentCounts: canManageAttachments,
   })
-  const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedIncome, setSelectedIncome] = useState<Transaction | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
 
-  const filteredIncomes = incomes.filter(
-    (income) =>
-      income.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      income.category.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const {
+    filters,
+    updateFilters,
+    resetFilters,
+    filteredTransactions: filteredIncomes,
+    categories,
+    brothers,
+    brothersLoading,
+    hasActiveFilters,
+  } = useTransactionListFilters({
+    transactions: incomes,
+    accounts,
+    accountNames,
+  })
 
   const filteredTotal = useMemo(
     () => sumTransactionAmounts(filteredIncomes),
@@ -138,15 +148,28 @@ export function IncomeList() {
   return (
     <div className="space-y-4">
       <TransactionListToolbar
-        searchPlaceholder="Buscar receitas..."
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        listTotalLabel={searchTerm ? 'Total filtrado' : 'Total de receitas'}
+        searchPlaceholder="Buscar por descrição, categoria, conta ou valor..."
+        searchTerm={filters.searchTerm}
+        onSearchChange={(value) => updateFilters({ searchTerm: value })}
+        listTotalLabel={hasActiveFilters ? 'Total filtrado' : 'Total de receitas'}
         listTotal={filteredTotal}
         listTotalClassName="text-green-600"
         actionLabel="Nova Receita"
         onAction={openNew}
         actionClassName="bg-green-600 hover:bg-green-700"
+      />
+
+      <TransactionListFiltersPanel
+        filters={filters}
+        onChange={updateFilters}
+        onReset={resetFilters}
+        categories={categories}
+        accounts={accounts}
+        accountNames={accountNames}
+        brothers={brothers}
+        brothersLoading={brothersLoading}
+        resultCount={filteredIncomes.length}
+        totalCount={incomes.length}
       />
 
       {!loading ? <FinancialCashSummaryBar summary={cashSummary} highlight="income" /> : null}
@@ -177,8 +200,8 @@ export function IncomeList() {
             ) : filteredIncomes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  {searchTerm
-                    ? 'Nenhuma receita encontrada com o termo buscado.'
+                  {hasActiveFilters
+                    ? 'Nenhuma receita encontrada com os filtros aplicados.'
                     : 'Nenhuma receita cadastrada.'}
                 </TableCell>
               </TableRow>
@@ -249,8 +272,8 @@ export function IncomeList() {
           </div>
         ) : filteredIncomes.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-md">
-            {searchTerm
-              ? 'Nenhuma receita encontrada com o termo buscado.'
+            {hasActiveFilters
+              ? 'Nenhuma receita encontrada com os filtros aplicados.'
               : 'Nenhuma receita cadastrada.'}
           </div>
         ) : (

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createDefaultTransactionListFilters,
   filterTransactions,
+  matchesMembershipLinkFilter,
   matchesTransactionBrother,
   matchesTransactionPeriod,
   matchesTransactionSearch,
@@ -77,5 +78,30 @@ describe('transaction-list-filters', () => {
         filterYear: 2026,
       }),
     ).toBe(false)
+  })
+
+  it('filtra receitas de mensalidade sem vínculo no cronograma', () => {
+    const linked = new Set(['1'])
+    const filters = createDefaultTransactionListFilters()
+    filters.membershipLinkStatus = 'unlinked'
+
+    const result = filterTransactions(sample, filters, { 'acc-1': 'Caixa' }, linked)
+    expect(result).toHaveLength(0)
+
+    expect(
+      matchesMembershipLinkFilter(
+        {
+          id: '3',
+          date: '2026-06-20',
+          description: 'Mensalidade - Ana Costa',
+          category: 'Mensalidade',
+          type: 'Receita',
+          amount: 150,
+          accountId: 'acc-1',
+        },
+        'unlinked',
+        linked,
+      ),
+    ).toBe(true)
   })
 })

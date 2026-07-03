@@ -1,6 +1,8 @@
 import type { Transaction } from '@/lib/data'
+import { isUnlinkedMensalidadeTransaction } from '@/lib/membership-control-only'
 
 export type TransactionPeriodMode = 'all' | 'day' | 'month' | 'year'
+export type MembershipLinkFilterMode = 'all' | 'unlinked'
 
 export interface TransactionListFilterState {
   searchTerm: string
@@ -11,6 +13,7 @@ export interface TransactionListFilterState {
   category: string
   accountId: string
   brotherName: string
+  membershipLinkStatus: MembershipLinkFilterMode
 }
 
 export function createDefaultTransactionListFilters(
@@ -25,6 +28,7 @@ export function createDefaultTransactionListFilters(
     category: 'all',
     accountId: 'all',
     brotherName: 'all',
+    membershipLinkStatus: 'all',
   }
 }
 
@@ -91,10 +95,24 @@ export function matchesTransactionBrother(
   return normalizeText(description).includes(normalizeText(brotherName))
 }
 
+export function matchesMembershipLinkFilter(
+  transaction: Transaction,
+  membershipLinkStatus: MembershipLinkFilterMode,
+  linkedMembershipTransactionIds?: Set<string>,
+): boolean {
+  if (membershipLinkStatus !== 'unlinked') return true
+  if (!linkedMembershipTransactionIds) return true
+  return isUnlinkedMensalidadeTransaction(
+    transaction,
+    linkedMembershipTransactionIds,
+  )
+}
+
 export function filterTransactions(
   transactions: Transaction[],
   filters: TransactionListFilterState,
   accountNames: Record<string, string>,
+  linkedMembershipTransactionIds?: Set<string>,
 ): Transaction[] {
   return transactions.filter((transaction) => {
     if (!matchesTransactionSearch(transaction, filters.searchTerm, accountNames)) {
@@ -119,6 +137,16 @@ export function filterTransactions(
       return false
     }
 
+    if (
+      !matchesMembershipLinkFilter(
+        transaction,
+        filters.membershipLinkStatus,
+        linkedMembershipTransactionIds,
+      )
+    ) {
+      return false
+    }
+
     return true
   })
 }
@@ -137,7 +165,8 @@ export function hasActiveTransactionFilters(
     filters.periodMode !== 'all' ||
     filters.category !== 'all' ||
     filters.accountId !== 'all' ||
-    filters.brotherName !== 'all'
+    filters.brotherName !== 'all' ||
+    filters.membershipLinkStatus !== 'all'
   )
 }
 
@@ -150,6 +179,7 @@ export function countActiveTransactionFilters(
   if (filters.category !== 'all') count++
   if (filters.accountId !== 'all') count++
   if (filters.brotherName !== 'all') count++
+  if (filters.membershipLinkStatus !== 'all') count++
   return count
 }
 
@@ -174,6 +204,9 @@ export function buildTransactionFilterSummary(
     parts.push(`conta ${accountNames[filters.accountId] ?? 'selecionada'}`)
   }
   if (filters.brotherName !== 'all') parts.push(`irmão ${filters.brotherName}`)
+  if (filters.membershipLinkStatus === 'unlinked') {
+    parts.push('mensalidade sem vínculo no cronograma')
+  }
   if (filters.searchTerm.trim()) parts.push(`busca "${filters.searchTerm.trim()}"`)
 
   return parts.join(' · ')

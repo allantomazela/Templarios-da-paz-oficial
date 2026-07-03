@@ -71,11 +71,13 @@ export function IncomeList() {
     categories,
     brothers,
     brothersLoading,
+    membershipLinksLoading,
     hasActiveFilters,
   } = useTransactionListFilters({
     transactions: incomes,
     accounts,
     accountNames,
+    enableMembershipLinkFilter: true,
   })
 
   const filteredTotal = useMemo(
@@ -170,6 +172,8 @@ export function IncomeList() {
         brothersLoading={brothersLoading}
         resultCount={filteredIncomes.length}
         totalCount={incomes.length}
+        showMembershipLinkFilter
+        membershipLinksLoading={membershipLinksLoading}
       />
 
       {!loading ? <FinancialCashSummaryBar summary={cashSummary} highlight="income" /> : null}

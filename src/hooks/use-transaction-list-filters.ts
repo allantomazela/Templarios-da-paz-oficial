@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BankAccount, Transaction } from '@/lib/data'
 import { fetchBrothers } from '@/lib/brothers-api'
+import { fetchLinkedMembershipTransactionIds } from '@/lib/contribution-payments'
 import {
   collectTransactionCategories,
   createDefaultTransactionListFilters,
@@ -18,18 +19,24 @@ interface UseTransactionListFiltersOptions {
   transactions: Transaction[]
   accounts: BankAccount[]
   accountNames: Record<string, string>
+  /** Habilita filtro de receitas de mensalidade sem vínculo no cronograma. */
+  enableMembershipLinkFilter?: boolean
 }
 
 export function useTransactionListFilters({
   transactions,
   accounts,
   accountNames,
+  enableMembershipLinkFilter = false,
 }: UseTransactionListFiltersOptions) {
   const [filters, setFilters] = useState<TransactionListFilterState>(() =>
     createDefaultTransactionListFilters(),
   )
   const [brothers, setBrothers] = useState<BrotherOption[]>([])
   const [brothersLoading, setBrothersLoading] = useState(true)
+  const [linkedMembershipTransactionIds, setLinkedMembershipTransactionIds] =
+    useState<Set<string> | undefined>(undefined)
+  const [membershipLinksLoading, setMembershipLinksLoading] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -58,14 +65,47 @@ export function useTransactionListFilters({
     }
   }, [])
 
+  useEffect(() => {
+    if (!enableMembershipLinkFilter) {
+      setLinkedMembershipTransactionIds(undefined)
+      return
+    }
+
+    let isMounted = true
+
+    const loadMembershipLinks = async () => {
+      setMembershipLinksLoading(true)
+      try {
+        const linkedIds = await fetchLinkedMembershipTransactionIds()
+        if (!isMounted) return
+        setLinkedMembershipTransactionIds(linkedIds)
+      } catch {
+        if (isMounted) setLinkedMembershipTransactionIds(new Set())
+      } finally {
+        if (isMounted) setMembershipLinksLoading(false)
+      }
+    }
+
+    void loadMembershipLinks()
+    return () => {
+      isMounted = false
+    }
+  }, [enableMembershipLinkFilter, transactions])
+
   const categories = useMemo(
     () => collectTransactionCategories(transactions),
     [transactions],
   )
 
   const filteredTransactions = useMemo(
-    () => filterTransactions(transactions, filters, accountNames),
-    [transactions, filters, accountNames],
+    () =>
+      filterTransactions(
+        transactions,
+        filters,
+        accountNames,
+        linkedMembershipTransactionIds,
+      ),
+    [transactions, filters, accountNames, linkedMembershipTransactionIds],
   )
 
   const hasActiveFilters = hasActiveTransactionFilters(filters)
@@ -88,6 +128,7 @@ export function useTransactionListFilters({
     accounts,
     brothers,
     brothersLoading,
+    membershipLinksLoading,
     hasActiveFilters,
   }
 }

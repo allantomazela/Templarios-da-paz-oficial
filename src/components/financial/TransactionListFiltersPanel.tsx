@@ -16,6 +16,7 @@ import {
   countActiveTransactionFilters,
   type TransactionListFilterState,
   type TransactionPeriodMode,
+  type MembershipLinkFilterMode,
 } from '@/lib/transaction-list-filters'
 import { CONTRIBUTION_MONTHS } from '@/lib/contribution-payments'
 
@@ -35,6 +36,13 @@ interface TransactionListFiltersPanelProps {
   brothersLoading?: boolean
   resultCount: number
   totalCount: number
+  showMembershipLinkFilter?: boolean
+  membershipLinksLoading?: boolean
+}
+
+const MEMBERSHIP_LINK_LABELS: Record<MembershipLinkFilterMode, string> = {
+  all: 'Todos os vínculos',
+  unlinked: 'Sem vínculo no cronograma',
 }
 
 const PERIOD_LABELS: Record<TransactionPeriodMode, string> = {
@@ -58,6 +66,8 @@ export function TransactionListFiltersPanel({
   brothersLoading = false,
   resultCount,
   totalCount,
+  showMembershipLinkFilter = false,
+  membershipLinksLoading = false,
 }: TransactionListFiltersPanelProps) {
   const activeCount = countActiveTransactionFilters(filters)
   const summary = buildTransactionFilterSummary(filters, accountNames)
@@ -250,6 +260,38 @@ export function TransactionListFiltersPanel({
             </SelectContent>
           </Select>
         </div>
+
+        {showMembershipLinkFilter ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="transaction-filter-membership-link">
+              Vínculo no cronograma
+            </Label>
+            <Select
+              value={filters.membershipLinkStatus}
+              onValueChange={(value: MembershipLinkFilterMode) =>
+                onChange({ membershipLinkStatus: value })
+              }
+              disabled={membershipLinksLoading}
+            >
+              <SelectTrigger id="transaction-filter-membership-link">
+                <SelectValue
+                  placeholder={
+                    membershipLinksLoading ? 'Carregando...' : 'Todos'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MEMBERSHIP_LINK_LABELS) as MembershipLinkFilterMode[]).map(
+                  (mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {MEMBERSHIP_LINK_LABELS[mode]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </div>
     </div>
   )

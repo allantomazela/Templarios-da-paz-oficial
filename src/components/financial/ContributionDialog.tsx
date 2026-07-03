@@ -680,13 +680,16 @@ export function ContributionDialog({
                           <SelectContent>
                             {linkableTransactions.length === 0 ? (
                               <SelectItem value="__none__" disabled>
-                                Nenhuma receita disponível para este mês
+                                Nenhuma receita disponível para este irmão
                               </SelectItem>
                             ) : (
                               linkableTransactions.map((tx) => (
                                 <SelectItem key={tx.id} value={tx.id}>
                                   {formatDateBR(tx.date)} —{' '}
                                   {formatCurrencyBRL(tx.amount)}
+                                  {tx.referenceMatch && tx.referenceLabel
+                                    ? ` · ref. ${tx.referenceLabel}`
+                                    : ' · sem ref. na descrição'}
                                   {tx.accountName ? ` (${tx.accountName})` : ''}
                                 </SelectItem>
                               ))
@@ -694,8 +697,8 @@ export function ContributionDialog({
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Mostra receitas de mensalidade do irmão ainda não
-                          vinculadas ao cronograma.
+                          Inclui receitas manuais sem (MM/AAAA) na descrição.
+                          Prioriza as da referência do mês selecionado.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

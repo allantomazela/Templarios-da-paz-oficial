@@ -5,7 +5,10 @@ import type { Contribution } from '@/lib/data'
 import { isMembershipHistoricalPeriod, isMembershipBackfillContribution, isMembershipControlOnlyContribution } from '@/lib/membership-schedule'
 import {
   buildControlOnlyNotes,
+  extractMensalidadeReferenceFromDescription,
   mensalidadeDescriptionMatchesBrother,
+  mensalidadeReferenceMatchesPeriod,
+  sortLinkableMensalidadeRows,
   type ContributionTreasuryMode,
 } from '@/lib/membership-control-only'
 
@@ -172,6 +175,9 @@ export interface LinkableMensalidadeTransaction {
   amount: number
   accountId: string | null
   accountName?: string
+  /** Indica se a descrição contém a referência MM/AAAA do mês lançado. */
+  referenceMatch?: boolean
+  referenceLabel?: string | null
 }
 
 export interface BrotherContributionSummary {
@@ -573,6 +579,23 @@ export async function fetchBankAccounts(): Promise<
   return data || []
 }
 
+/** IDs de receitas já vinculadas a um mês no cronograma de mensalidades. */
+export async function fetchLinkedMembershipTransactionIds(): Promise<Set<string>> {
+  const supabaseAny = supabase as any
+  const { data, error } = await supabaseAny
+    .from('contributions')
+    .select('transaction_id')
+    .not('transaction_id', 'is', null)
+
+  if (error) throw error
+
+  return new Set(
+    (data ?? [])
+      .map((row: { transaction_id: string | null }) => row.transaction_id)
+      .filter(Boolean) as string[],
+  )
+}
+
 /** Receitas de mensalidade ainda não vinculadas a um pagamento no cronograma. */
 export async function fetchLinkableMensalidadeTransactions(params: {
   brotherName: string
@@ -583,48 +606,47 @@ export async function fetchLinkableMensalidadeTransactions(params: {
   const brotherName = params.brotherName.trim()
   if (!brotherName) return []
 
-  const [{ data: transactions, error: txError }, { data: linkedRows, error: linkError }] =
-    await Promise.all([
-      supabaseAny
-        .from('financial_transactions')
-        .select('id, date, description, amount, account_id, financial_accounts(name)')
-        .eq('type', 'Receita')
-        .eq('category', MENSALIDADE_CATEGORY)
-        .order('date', { ascending: false })
-        .limit(200),
-      supabaseAny.from('contributions').select('transaction_id').not('transaction_id', 'is', null),
-    ])
+  const [{ data: transactions, error: txError }, linkedIds] = await Promise.all([
+    supabaseAny
+      .from('financial_transactions')
+      .select('id, date, description, amount, account_id, financial_accounts(name)')
+      .eq('type', 'Receita')
+      .eq('category', MENSALIDADE_CATEGORY)
+      .order('date', { ascending: false })
+      .limit(200),
+    fetchLinkedMembershipTransactionIds(),
+  ])
 
   if (txError) throw txError
-  if (linkError) throw linkError
 
-  const linkedIds = new Set(
-    (linkedRows ?? [])
-      .map((row: { transaction_id: string | null }) => row.transaction_id)
-      .filter(Boolean),
-  )
-
-  const referenceToken =
-    params.referenceMonth && params.referenceYear
-      ? `${String(params.referenceMonth).padStart(2, '0')}/${params.referenceYear}`
-      : null
-
-  return (transactions ?? [])
+  const rows = (transactions ?? [])
     .filter((row: Record<string, unknown>) => {
       if (linkedIds.has(String(row.id))) return false
       const description = String(row.description ?? '')
-      if (!mensalidadeDescriptionMatchesBrother(description, brotherName)) return false
-      if (referenceToken && !description.includes(`(${referenceToken})`)) return false
-      return true
+      return mensalidadeDescriptionMatchesBrother(description, brotherName)
     })
-    .map((row: Record<string, unknown>) => ({
-      id: String(row.id),
-      date: String(row.date),
-      description: String(row.description),
-      amount: Number(row.amount),
-      accountId: row.account_id ? String(row.account_id) : null,
-      accountName: (row.financial_accounts as { name?: string } | null)?.name,
-    }))
+    .map((row: Record<string, unknown>) => {
+      const description = String(row.description ?? '')
+      const reference = extractMensalidadeReferenceFromDescription(description)
+      const referenceMatch = mensalidadeReferenceMatchesPeriod(
+        description,
+        params.referenceMonth,
+        params.referenceYear,
+      )
+
+      return {
+        id: String(row.id),
+        date: String(row.date),
+        description,
+        amount: Number(row.amount),
+        accountId: row.account_id ? String(row.account_id) : null,
+        accountName: (row.financial_accounts as { name?: string } | null)?.name,
+        referenceMatch,
+        referenceLabel: reference?.label ?? null,
+      }
+    })
+
+  return sortLinkableMensalidadeRows(rows)
 }
 
 export function buildBrotherSummaries(

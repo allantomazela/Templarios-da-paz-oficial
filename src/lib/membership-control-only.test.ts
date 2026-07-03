@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   buildControlOnlyNotes,
   detectTreasuryModeFromContribution,
+  extractMensalidadeReferenceFromDescription,
+  isUnlinkedMensalidadeTransaction,
   mensalidadeDescriptionMatchesBrother,
+  mensalidadeReferenceMatchesPeriod,
+  sortLinkableMensalidadeRows,
   stripControlOnlyNote,
 } from '@/lib/membership-control-only'
 import {
@@ -56,6 +60,55 @@ describe('membership-control-only', () => {
       mensalidadeDescriptionMatchesBrother(
         'Mensalidade — João Silva (06/2026)',
         'Leonardo Jacomini',
+      ),
+    ).toBe(false)
+  })
+
+  it('extrai referência MM/AAAA e prioriza receitas do mês', () => {
+    expect(
+      extractMensalidadeReferenceFromDescription(
+        'Mensalidade - Carlos (06/2026) - 2026-06-01',
+      ),
+    ).toEqual({ month: 6, year: 2026, label: '06/2026' })
+    expect(
+      extractMensalidadeReferenceFromDescription('PIX mensalidade Carlos'),
+    ).toBeNull()
+    expect(
+      mensalidadeReferenceMatchesPeriod(
+        'Mensalidade - Carlos (06/2026)',
+        6,
+        2026,
+      ),
+    ).toBe(true)
+    expect(
+      mensalidadeReferenceMatchesPeriod('PIX mensalidade Carlos', 6, 2026),
+    ).toBe(false)
+
+    const sorted = sortLinkableMensalidadeRows([
+      { id: 'a', date: '2026-06-01', referenceMatch: false },
+      { id: 'b', date: '2026-05-01', referenceMatch: true },
+    ])
+    expect(sorted.map((row) => row.id)).toEqual(['b', 'a'])
+  })
+
+  it('identifica receita de mensalidade sem vínculo no cronograma', () => {
+    const linked = new Set(['tx-linked'])
+    expect(
+      isUnlinkedMensalidadeTransaction(
+        { id: 'tx-open', category: 'Mensalidade' },
+        linked,
+      ),
+    ).toBe(true)
+    expect(
+      isUnlinkedMensalidadeTransaction(
+        { id: 'tx-linked', category: 'Mensalidade' },
+        linked,
+      ),
+    ).toBe(false)
+    expect(
+      isUnlinkedMensalidadeTransaction(
+        { id: 'tx-open', category: 'Administrativo' },
+        linked,
       ),
     ).toBe(false)
   })

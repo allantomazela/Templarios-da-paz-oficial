@@ -825,34 +825,47 @@ h6 {
     text-overflow: ellipsis;
   }
 
-  #financial-balancete-container .balancete-table-ledger .balancete-col-notes,
-  #financial-balancete-container .balancete-notes-inline {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    word-break: break-word;
-    line-height: 1.1;
-    font-size: 6.5pt;
+  /* Impressão espelha a pré-visualização: mesma linha compacta e zebrado por tipo */
+  #financial-balancete-container .balancete-table-ledger .balancete-col-notes {
+    max-width: 14%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    word-break: normal;
+    line-height: 1.2;
+    font-size: 0.7rem;
   }
 
-  #financial-balancete-container .balancete-table-ledger tbody tr.balancete-row-receita > td:first-child,
-  #financial-balancete-container .balancete-table-ledger tbody tr.balancete-row-despesa > td:first-child {
-    box-shadow: none;
+  #financial-balancete-container .balancete-notes-inline {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    line-height: 1.2;
+    font-size: 0.7rem;
+  }
+
+  #financial-balancete-container .balancete-table-ledger td {
+    word-break: normal;
   }
 
   #financial-balancete-container .balancete-table-ledger {
-    font-size: 7pt;
-    line-height: 1.15;
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
 
   #financial-balancete-container .balancete-table-ledger th,
   #financial-balancete-container .balancete-table-ledger td {
-    padding: 1.5pt 3pt;
+    padding: 0.2rem 0.35rem;
+    vertical-align: middle;
   }
 
-  #financial-balancete-container .balancete-credit,
-  #financial-balancete-container .balancete-debit {
-    color: #000 !important;
+  #financial-balancete-container .balancete-table-ledger tbody tr.balancete-row-receita > td:first-child {
+    box-shadow: inset 3px 0 0 0 #86efac;
+  }
+
+  #financial-balancete-container .balancete-table-ledger tbody tr.balancete-row-despesa > td:first-child {
+    box-shadow: inset 3px 0 0 0 #fca5a5;
   }
 
   #financial-balancete-container .balancete-ledger-section {

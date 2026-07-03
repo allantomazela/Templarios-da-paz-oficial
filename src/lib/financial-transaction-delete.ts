@@ -1,8 +1,9 @@
 import { supabase } from '@/lib/supabase/client'
 import { toErrorMessage } from '@/lib/async-utils'
+import { resolvePayableStatus } from '@/lib/financial-payables-status'
 
 export interface TransactionDeleteDependency {
-  source: 'mensalidade' | 'cerimonia' | 'agape'
+  source: 'mensalidade' | 'cerimonia' | 'agape' | 'payable'
   label: string
   recordId: string
 }
@@ -12,6 +13,7 @@ export interface TransactionDeleteResult {
   unlinkedContributions: number
   unlinkedAgapeCharges: number
   unlinkedCeremonyInstallments: number
+  unlinkedPayables: number
 }
 
 /** Referência de mês/ano anterior ao corrente → Atrasado; senão Pendente. */
@@ -34,7 +36,7 @@ export async function fetchTransactionDeleteDependencies(
   const supabaseAny = supabase as any
   const dependencies: TransactionDeleteDependency[] = []
 
-  const [contributionsRes, ceremonyRes, agapeRes] = await Promise.all([
+  const [contributionsRes, ceremonyRes, agapeRes, payablesRes] = await Promise.all([
     supabaseAny
       .from('contributions')
       .select('id, month, year, status, profiles!contributions_brother_id_fkey(full_name)')
@@ -46,6 +48,10 @@ export async function fetchTransactionDeleteDependencies(
     supabaseAny
       .from('agape_brother_charges')
       .select('id, month, year')
+      .eq('transaction_id', transactionId),
+    supabaseAny
+      .from('financial_payables')
+      .select('id, description, status, due_date')
       .eq('transaction_id', transactionId),
   ])
 
@@ -74,6 +80,14 @@ export async function fetchTransactionDeleteDependencies(
     })
   }
 
+  for (const row of payablesRes.data ?? []) {
+    dependencies.push({
+      source: 'payable',
+      recordId: row.id,
+      label: `Conta a pagar: ${row.description} (${row.status})`,
+    })
+  }
+
   return dependencies
 }
 
@@ -90,6 +104,7 @@ export async function unlinkFinancialTransactionDependencies(
   let unlinkedContributions = 0
   let unlinkedAgapeCharges = 0
   let unlinkedCeremonyInstallments = 0
+  let unlinkedPayables = 0
 
   const contributionIds = dependencies
     .filter((item) => item.source === 'mensalidade')
@@ -176,11 +191,44 @@ export async function unlinkFinancialTransactionDependencies(
     unlinkedCeremonyInstallments = ceremonyIds.length
   }
 
+  const payableIds = dependencies
+    .filter((item) => item.source === 'payable')
+    .map((item) => item.recordId)
+
+  if (payableIds.length > 0) {
+    const { data: payables, error: fetchPayablesError } = await supabaseAny
+      .from('financial_payables')
+      .select('id, due_date')
+      .in('id', payableIds)
+
+    if (fetchPayablesError) {
+      throw new Error(toErrorMessage(fetchPayablesError, 'Falha ao preparar exclusão da conta a pagar.'))
+    }
+
+    for (const payable of payables ?? []) {
+      const { error } = await supabaseAny
+        .from('financial_payables')
+        .update({
+          transaction_id: null,
+          account_id: null,
+          payment_date: null,
+          status: resolvePayableStatus(payable.due_date, 'Pendente'),
+        })
+        .eq('id', payable.id)
+
+      if (error) {
+        throw new Error(toErrorMessage(error, 'Falha ao desvincular conta a pagar.'))
+      }
+      unlinkedPayables++
+    }
+  }
+
   return {
     dependencies,
     unlinkedContributions,
     unlinkedAgapeCharges,
     unlinkedCeremonyInstallments,
+    unlinkedPayables,
   }
 }
 
@@ -210,6 +258,7 @@ export async function deleteFinancialTransactionsWithDependencies(
     unlinkedContributions: 0,
     unlinkedAgapeCharges: 0,
     unlinkedCeremonyInstallments: 0,
+    unlinkedPayables: 0,
   }
 
   for (const transactionId of transactionIds) {
@@ -218,6 +267,7 @@ export async function deleteFinancialTransactionsWithDependencies(
     aggregate.unlinkedContributions += result.unlinkedContributions
     aggregate.unlinkedAgapeCharges += result.unlinkedAgapeCharges
     aggregate.unlinkedCeremonyInstallments += result.unlinkedCeremonyInstallments
+    aggregate.unlinkedPayables += result.unlinkedPayables
   }
 
   return aggregate
@@ -240,6 +290,9 @@ export function buildTransactionDeleteSuccessMessage(
     parts.push(
       `${result.unlinkedCeremonyInstallments} parcela(s) de cerimônia desvinculada(s).`,
     )
+  }
+  if (result.unlinkedPayables > 0) {
+    parts.push(`${result.unlinkedPayables} conta(s) a pagar voltaram para pendência.`)
   }
 
   return parts.join(' ')

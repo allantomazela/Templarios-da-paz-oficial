@@ -25,7 +25,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { Pencil, TrendingDown } from 'lucide-react'
+import { Pencil, TrendingDown, FilePlus2 } from 'lucide-react'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import type { ForecastComparisonRow, ForecastLinkStatus } from '@/lib/forecast-types'
 import {
@@ -56,6 +56,7 @@ const ITEMS_PER_PAGE = 10
 interface ForecastComparisonTableProps {
   rows: ForecastComparisonRow[]
   onEditOverride?: (row: ForecastComparisonRow) => void
+  onCreatePayable?: (row: ForecastComparisonRow) => void
 }
 
 function getRowBadgeVariant(
@@ -79,6 +80,7 @@ function getVarianceClassName(row: ForecastComparisonRow): string {
 export function ForecastComparisonTable({
   rows,
   onEditOverride,
+  onCreatePayable,
 }: ForecastComparisonTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'Receita' | 'Despesa'>('all')
@@ -183,14 +185,16 @@ export function ForecastComparisonTable({
               <TableHead className="text-right">Realizado</TableHead>
               <TableHead className="text-right">Variação</TableHead>
               <TableHead>Status</TableHead>
-              {onEditOverride ? <TableHead className="text-right">Ajuste</TableHead> : null}
+              {onEditOverride || onCreatePayable ? (
+                <TableHead className="text-right">Ações</TableHead>
+              ) : null}
             </TableRow>
           </TableHeader>
           <TableBody>
             {pageRows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={onEditOverride ? 8 : 7}
+                  colSpan={onEditOverride || onCreatePayable ? 8 : 7}
                   className="py-8 text-center text-muted-foreground"
                 >
                   Nenhum lançamento previsto para os filtros selecionados.
@@ -237,17 +241,37 @@ export function ForecastComparisonTable({
                         {getForecastRowStatusLabel(row)}
                       </Badge>
                     </TableCell>
-                    {onEditOverride ? (
+                    {onEditOverride || onCreatePayable ? (
                       <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEditOverride(row)}
-                          aria-label="Ajustar previsto do mês"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          {onCreatePayable &&
+                          row.type === 'Despesa' &&
+                          row.kind === 'item' &&
+                          row.linkStatus === 'pending' &&
+                          row.forecastItemId ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => onCreatePayable(row)}
+                            >
+                              <FilePlus2 className="h-3.5 w-3.5" />
+                              Conta a pagar
+                            </Button>
+                          ) : null}
+                          {onEditOverride ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEditOverride(row)}
+                              aria-label="Ajustar previsto do mês"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </div>
                       </TableCell>
                     ) : null}
                   </TableRow>

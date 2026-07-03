@@ -56,6 +56,9 @@ import {
 import { ForecastComparisonTable } from '@/components/financial/ForecastComparisonTable'
 import { ForecastOverrideDialog } from '@/components/financial/ForecastOverrideDialog'
 import { ForecastPlanningReport } from '@/components/financial/ForecastPlanningReport'
+import { PayableDialog, type PayableFormValues } from '@/components/financial/PayableDialog'
+import { createPayableFromForecast } from '@/lib/financial-payables-api'
+import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,6 +90,10 @@ export function FinancialPlanningPanel() {
   const [itemToDelete, setItemToDelete] = useState<ForecastItem | null>(null)
   const [overrideRow, setOverrideRow] = useState<ForecastComparisonRow | null>(null)
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
+  const [payableDialogOpen, setPayableDialogOpen] = useState(false)
+  const [payableDefaults, setPayableDefaults] = useState<Partial<
+    PayableFormValues & { forecastItemId?: string }
+  > | null>(null)
   const [projectionInput, setProjectionInput] = useState<PlanningDataSnapshot | null>(null)
 
   const monthRange = useMemo(() => getForecastMonthRange(new Date(), 3), [])
@@ -203,6 +210,57 @@ export function FinancialPlanningPanel() {
       errorMessage: 'Falha ao remover conta fixa.',
     },
   )
+
+  const savePayableOperation = useAsyncOperation(
+    async (values: PayableFormValues) => {
+      if (!payableDefaults?.forecastItemId) {
+        throw new Error('Item de planejamento não identificado.')
+      }
+      const forecastItem = items.find((item) => item.id === payableDefaults.forecastItemId)
+      if (!forecastItem?.categoryId) {
+        throw new Error('A conta fixa precisa de uma categoria de despesa para gerar conta a pagar.')
+      }
+      await createPayableFromForecast({
+        description: values.description,
+        categoryId: values.categoryId || forecastItem.categoryId,
+        amount: values.amount,
+        dueDate: values.dueDate,
+        forecastItemId: payableDefaults.forecastItemId,
+        notes: values.notes,
+      })
+      setPayableDefaults(null)
+      notifyFinancialDataChanged()
+      toast({
+        title: 'Conta a pagar criada',
+        description: 'Acompanhe em Financeiro → Contas a pagar.',
+      })
+    },
+    {
+      showSuccessToast: false,
+      errorMessage: 'Falha ao criar conta a pagar.',
+    },
+  )
+
+  const handleCreatePayableFromForecast = (row: ForecastComparisonRow) => {
+    if (!row.forecastItemId || row.type !== 'Despesa') return
+    const forecastItem = items.find((item) => item.id === row.forecastItemId)
+    if (!forecastItem?.categoryId) {
+      toast({
+        title: 'Categoria obrigatória',
+        description: 'Edite a conta fixa e associe uma categoria de despesa antes de continuar.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setPayableDefaults({
+      description: row.description,
+      categoryId: forecastItem.categoryId,
+      amount: row.expectedAmount,
+      dueDate: row.dueDate,
+      forecastItemId: row.forecastItemId,
+    })
+    setPayableDialogOpen(true)
+  }
 
   const saveOverride = async (values: {
     expectedAmountOverride: number
@@ -412,6 +470,7 @@ export function FinancialPlanningPanel() {
                 setOverrideRow(row)
                 setOverrideDialogOpen(true)
               }}
+              onCreatePayable={handleCreatePayableFromForecast}
             />
           ) : null}
         </TabsContent>
@@ -450,6 +509,19 @@ export function FinancialPlanningPanel() {
         onOpenChange={setOverrideDialogOpen}
         row={overrideRow}
         onSave={saveOverride}
+      />
+
+      <PayableDialog
+        open={payableDialogOpen}
+        onOpenChange={(open) => {
+          setPayableDialogOpen(open)
+          if (!open) setPayableDefaults(null)
+        }}
+        payableToEdit={null}
+        categories={categories}
+        defaultValues={payableDefaults ?? undefined}
+        saving={savePayableOperation.loading}
+        onSave={(values) => savePayableOperation.execute(values)}
       />
 
       <AlertDialog open={Boolean(itemToDelete)} onOpenChange={() => setItemToDelete(null)}>

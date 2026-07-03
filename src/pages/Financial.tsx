@@ -4,12 +4,14 @@ import { useModuleActivation } from '@/hooks/use-module-activation'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { FinancialOverview } from '@/components/financial/FinancialOverview'
 import { IncomeList } from '@/components/financial/IncomeList'
+import { PayablesPanel } from '@/components/financial/PayablesPanel'
 import { ExpenseList } from '@/components/financial/ExpenseList'
 import { MembershipPayments } from '@/components/financial/MembershipPayments'
 import { FinancialReports } from '@/components/financial/FinancialReports'
 import { CategoryList } from '@/components/financial/CategoryList'
 import { BudgetsAndGoals } from '@/components/financial/BudgetsAndGoals'
 import { ReminderSettings } from '@/components/financial/ReminderSettings'
+import { PayableReminderSettings } from '@/components/financial/PayableReminderSettings'
 import { MembershipFeeSettings } from '@/components/financial/MembershipFeeSettings'
 import { BankAccounts } from '@/components/financial/BankAccounts'
 import { CashFlowReport } from '@/components/financial/CashFlowReport'
@@ -26,6 +28,7 @@ const FINANCIAL_TABS = [
   { value: 'bank-accounts', label: 'Contas Bancárias' },
   { value: 'cash-flow', label: 'Fluxo de Caixa' },
   { value: 'income', label: 'Receitas' },
+  { value: 'payables', label: 'Contas a pagar' },
   { value: 'expenses', label: 'Despesas' },
   { value: 'charity', label: 'Tronco de Beneficência' },
   { value: 'agape', label: 'Fechamento Ágape' },
@@ -128,6 +131,10 @@ export default function Financial() {
           {activeTab === 'income' ? <IncomeList /> : null}
         </TabsContent>
 
+        <TabsContent value="payables">
+          {activeTab === 'payables' ? <PayablesPanel /> : null}
+        </TabsContent>
+
         <TabsContent value="expenses">
           {activeTab === 'expenses' ? <ExpenseList /> : null}
         </TabsContent>
@@ -165,6 +172,7 @@ export default function Financial() {
             <div className="space-y-6">
               <MembershipFeeSettings />
               <ReminderSettings />
+              <PayableReminderSettings />
             </div>
           ) : null}
         </TabsContent>

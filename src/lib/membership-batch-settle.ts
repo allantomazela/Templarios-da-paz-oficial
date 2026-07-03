@@ -5,6 +5,7 @@ import {
   monthNameToNumber,
   monthNumberToName,
   MENSALIDADE_CATEGORY,
+  formatContributionNotesForFinancialTransaction,
   saveContribution,
   type ContributionFormData,
 } from '@/lib/contribution-payments'
@@ -58,6 +59,7 @@ async function createSharedFinancialTransaction(params: {
   totalAmount: number
   paymentDate: string
   accountId: string
+  notes?: string
 }): Promise<string> {
   const supabaseAny = supabase as any
   const categoryId = await resolveMensalidadeCategoryId(supabaseAny)
@@ -79,6 +81,7 @@ async function createSharedFinancialTransaction(params: {
       type: 'Receita',
       amount: params.totalAmount,
       account_id: params.accountId,
+      attachment_notes: formatContributionNotesForFinancialTransaction(params.notes),
       created_by: user?.id ?? null,
       idempotency_key:
         typeof crypto !== 'undefined' && crypto.randomUUID
@@ -124,6 +127,7 @@ export async function saveBatchContributionPayment(params: {
     totalAmount,
     paymentDate,
     accountId: params.accountId,
+    notes: sharedNotes,
   })
 
   let saved = 0

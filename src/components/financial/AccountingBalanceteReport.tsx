@@ -22,6 +22,7 @@ import {
   fetchAttachmentsByTransactionIds,
   type FinancialTransactionAttachment,
 } from '@/lib/financial-attachments'
+import { fetchContributionNotesByTransactionIds } from '@/lib/contribution-payments'
 import {
   FINANCIAL_REPORT_PERIOD_LABELS,
   getFinancialReportDateRange,
@@ -72,6 +73,8 @@ export function AccountingBalanceteReport({
   const [attachmentsByTransactionId, setAttachmentsByTransactionId] = useState<
     Record<string, FinancialTransactionAttachment[]>
   >({})
+  const [contributionNotesByTransactionId, setContributionNotesByTransactionId] =
+    useState<Record<string, string>>({})
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [exportingZip, setExportingZip] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
@@ -99,24 +102,36 @@ export function AccountingBalanceteReport({
     let isMounted = true
 
     const loadAttachments = async () => {
-      const needsAttachments =
+      const needsLedgerDetails =
         resolvedDisplay.showLedger && resolvedDisplay.showAttachmentDetails
 
-      if (!needsAttachments) {
-        if (isMounted) setAttachmentsByTransactionId({})
+      if (!needsLedgerDetails) {
+        if (isMounted) {
+          setAttachmentsByTransactionId({})
+          setContributionNotesByTransactionId({})
+        }
         return
       }
 
       const transactionIds = relevantTransactions.map((transaction) => transaction.id)
       if (transactionIds.length === 0) {
-        if (isMounted) setAttachmentsByTransactionId({})
+        if (isMounted) {
+          setAttachmentsByTransactionId({})
+          setContributionNotesByTransactionId({})
+        }
         return
       }
 
       setAttachmentsLoading(true)
       try {
-        const grouped = await fetchAttachmentsByTransactionIds(transactionIds)
-        if (isMounted) setAttachmentsByTransactionId(grouped)
+        const [grouped, contributionNotes] = await Promise.all([
+          fetchAttachmentsByTransactionIds(transactionIds),
+          fetchContributionNotesByTransactionIds(transactionIds),
+        ])
+        if (isMounted) {
+          setAttachmentsByTransactionId(grouped)
+          setContributionNotesByTransactionId(contributionNotes)
+        }
       } catch (error) {
         console.error('Error loading balancete attachments:', error)
         toast({
@@ -145,6 +160,7 @@ export function AccountingBalanceteReport({
         dateRange,
         accountFilter,
         typeFilter,
+        contributionNotesByTransactionId,
       )
     }
 
@@ -154,11 +170,13 @@ export function AccountingBalanceteReport({
       attachmentsByTransactionId,
       accountFilter,
       typeFilter,
+      contributionNotesByTransactionId,
     )
   }, [
     accounts,
     transactions,
     attachmentsByTransactionId,
+    contributionNotesByTransactionId,
     dateRange,
     accountFilter,
     typeFilter,

@@ -40,10 +40,10 @@ export async function fetchFinancialAccountsAndTransactions(): Promise<{
   accounts: BankAccount[]
   transactions: Transaction[]
 }> {
-  const { repairOrphanTreasuryContributions } = await import(
-    '@/lib/contribution-payments'
-  )
+  const { repairOrphanTreasuryContributions, repairContributionNotesOnTransactions } =
+    await import('@/lib/contribution-payments')
   await repairOrphanTreasuryContributions()
+  await repairContributionNotesOnTransactions()
 
   const [accountsRes, transactionsRes] = await Promise.all([
     supabase.from('financial_accounts').select('*').order('name', { ascending: true }),

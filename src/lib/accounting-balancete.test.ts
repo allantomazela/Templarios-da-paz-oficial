@@ -63,6 +63,39 @@ describe('accounting-balancete', () => {
     expect(report.typeFilter).toBe('all')
   })
 
+  it('usa observações da mensalidade quando a receita não tem attachment_notes', () => {
+    const period = {
+      start: startOfMonth(new Date(2026, 2, 1)),
+      end: endOfMonth(new Date(2026, 2, 1)),
+    }
+
+    const mensalidadeOnly: Transaction[] = [
+      {
+        id: 'mens-1',
+        date: '2026-03-05',
+        description: 'Mensalidade João (03/2026)',
+        category: 'Mensalidade',
+        type: 'Receita',
+        amount: 290,
+        accountId: 'stone',
+      },
+    ]
+
+    const report = buildAccountingBalancete(
+      accounts,
+      mensalidadeOnly,
+      {},
+      period,
+      'all',
+      'all',
+      { 'mens-1': 'Forma de pagamento: PIX' },
+    )
+
+    expect(report.accountSections[0].entries[0].attachmentNotes).toBe(
+      'Forma de pagamento: PIX',
+    )
+  })
+
   it('filtra somente receitas quando solicitado', () => {
     const period = {
       start: startOfMonth(new Date(2026, 2, 1)),

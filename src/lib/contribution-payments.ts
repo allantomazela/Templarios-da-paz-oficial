@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
-import type { Contribution } from '@/lib/data'
+import type { Contribution, Transaction } from '@/lib/data'
 import { isMembershipHistoricalPeriod, isMembershipBackfillContribution, isMembershipControlOnlyContribution } from '@/lib/membership-schedule'
 import {
   buildControlOnlyNotes,
@@ -9,12 +9,125 @@ import {
   mensalidadeDescriptionMatchesBrother,
   mensalidadeReferenceMatchesPeriod,
   sortLinkableMensalidadeRows,
+  stripControlOnlyNote,
   type ContributionTreasuryMode,
 } from '@/lib/membership-control-only'
 
 export type { ContributionTreasuryMode }
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
+
+/** Observações da mensalidade prontas para `attachment_notes` da receita no caixa. */
+export function formatContributionNotesForFinancialTransaction(
+  notes?: string | null,
+): string | null {
+  const cleaned = stripControlOnlyNote(notes)
+  return cleaned || null
+}
+
+export function enrichTransactionsWithContributionNotes(
+  transactions: Transaction[],
+  notesByTransactionId: Record<string, string>,
+): Transaction[] {
+  return transactions.map((transaction) => {
+    const fromContribution = notesByTransactionId[transaction.id]?.trim()
+    if (!fromContribution || transaction.attachmentNotes?.trim()) {
+      return transaction
+    }
+    return { ...transaction, attachmentNotes: fromContribution }
+  })
+}
+
+export async function fetchContributionNotesByTransactionIds(
+  transactionIds: string[],
+): Promise<Record<string, string>> {
+  if (transactionIds.length === 0) return {}
+
+  const supabaseAny = supabase as any
+  const { data, error } = await supabaseAny
+    .from('contributions')
+    .select('transaction_id, notes')
+    .in('transaction_id', transactionIds)
+    .not('transaction_id', 'is', null)
+
+  if (error) {
+    throw toError(error, 'Falha ao carregar observações das mensalidades.')
+  }
+
+  const result: Record<string, string> = {}
+
+  for (const row of data ?? []) {
+    const transactionId = row.transaction_id as string | null
+    if (!transactionId) continue
+
+    const formatted = formatContributionNotesForFinancialTransaction(row.notes)
+    if (!formatted) continue
+
+    if (result[transactionId] && result[transactionId] !== formatted) {
+      if (!result[transactionId].includes(formatted)) {
+        result[transactionId] = `${result[transactionId]}\n${formatted}`
+      }
+      continue
+    }
+
+    result[transactionId] = formatted
+  }
+
+  return result
+}
+
+/** Copia observações das mensalidades para receitas que ainda não têm `attachment_notes`. */
+export async function repairContributionNotesOnTransactions(): Promise<number> {
+  const supabaseAny = supabase as any
+  const { data, error } = await supabaseAny
+    .from('contributions')
+    .select('transaction_id, notes')
+    .not('transaction_id', 'is', null)
+    .not('notes', 'is', null)
+
+  if (error) {
+    throw toError(error, 'Falha ao reparar observações das mensalidades.')
+  }
+
+  const notesByTransactionId: Record<string, string> = {}
+
+  for (const row of data ?? []) {
+    const transactionId = row.transaction_id as string | null
+    if (!transactionId) continue
+
+    const formatted = formatContributionNotesForFinancialTransaction(row.notes)
+    if (!formatted) continue
+
+    if (!notesByTransactionId[transactionId]) {
+      notesByTransactionId[transactionId] = formatted
+    } else if (!notesByTransactionId[transactionId].includes(formatted)) {
+      notesByTransactionId[transactionId] = `${notesByTransactionId[transactionId]}\n${formatted}`
+    }
+  }
+
+  let repaired = 0
+
+  for (const [transactionId, notes] of Object.entries(notesByTransactionId)) {
+    const { data: transaction, error: fetchError } = await supabaseAny
+      .from('financial_transactions')
+      .select('attachment_notes')
+      .eq('id', transactionId)
+      .maybeSingle()
+
+    if (fetchError) throw toError(fetchError, 'Falha ao verificar receita da mensalidade.')
+    if (transaction?.attachment_notes?.trim()) continue
+
+    const { error: updateError } = await supabaseAny
+      .from('financial_transactions')
+      .update({ attachment_notes: notes })
+      .eq('id', transactionId)
+
+    if (updateError) throw toError(updateError, 'Falha ao gravar observação na receita.')
+    repaired++
+  }
+
+  return repaired
+}
 
 export const CONTRIBUTION_MONTHS = [
   'Janeiro',
@@ -289,6 +402,7 @@ async function syncFinancialTransaction(
     accountId?: string
     existingTransactionId?: string | null
     controlOnly?: boolean
+    notes?: string | null
   },
 ): Promise<string | null> {
   const isPaid = params.status === 'Pago'
@@ -349,6 +463,8 @@ async function syncFinancialTransaction(
     paymentDate,
   )
 
+  const attachmentNotes = formatContributionNotesForFinancialTransaction(params.notes)
+
   const payload = {
     date: paymentDate,
     description,
@@ -357,6 +473,7 @@ async function syncFinancialTransaction(
     type: 'Receita' as const,
     amount: params.amount,
     account_id: params.accountId,
+    attachment_notes: attachmentNotes,
   }
 
   if (params.existingTransactionId) {
@@ -501,6 +618,7 @@ export async function repairOrphanTreasuryContributions(): Promise<number> {
       paymentDate: row.payment_date ?? undefined,
       accountId: row.account_id ?? undefined,
       existingTransactionId: null,
+      notes: row.notes,
     })
     repaired++
   }
@@ -818,6 +936,18 @@ export async function saveContribution(
           .eq('id', existingTransactionId)
         if (deleteError) throw deleteError
       }
+
+      const attachmentNotes = formatContributionNotesForFinancialTransaction(
+        basePayload.notes,
+      )
+      if (attachmentNotes) {
+        const { error: notesError } = await supabaseAny
+          .from('financial_transactions')
+          .update({ attachment_notes: attachmentNotes })
+          .eq('id', sharedTransactionId)
+        if (notesError) throw notesError
+      }
+
       const { error: linkError } = await supabaseAny
         .from('contributions')
         .update({
@@ -852,6 +982,7 @@ export async function saveContribution(
       paymentDate: basePayload.payment_date ?? undefined,
       accountId: data.accountId,
       existingTransactionId,
+      notes: basePayload.notes,
     })
   }
 

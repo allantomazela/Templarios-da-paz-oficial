@@ -73,7 +73,13 @@ function mapToLedgerEntry(
   transaction: Transaction,
   accountName: string,
   attachments: BalanceteAttachmentInput[],
+  contributionNotesByTransactionId: Record<string, string> = {},
 ): BalanceteLedgerEntry {
+  const attachmentNotes =
+    transaction.attachmentNotes?.trim() ||
+    contributionNotesByTransactionId[transaction.id]?.trim() ||
+    undefined
+
   return {
     id: transaction.id,
     date: transaction.date,
@@ -84,7 +90,7 @@ function mapToLedgerEntry(
     credit: transaction.type === 'Receita' ? transaction.amount : 0,
     debit: transaction.type === 'Despesa' ? transaction.amount : 0,
     accountName,
-    attachmentNotes: transaction.attachmentNotes,
+    attachmentNotes,
     attachments: attachments.map((attachment) => ({
       documentTypeLabel: getFinancialDocumentTypeLabel(attachment.documentType),
       fileName: attachment.fileName,
@@ -154,6 +160,7 @@ function mapAccountSection(
   periodTransactions: Transaction[],
   attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
   typeFilter: BalanceteTypeFilter,
+  contributionNotesByTransactionId: Record<string, string> = {},
 ): BalanceteAccountSection {
   const accountTransactions = filterTransactionsByType(
     periodTransactions.filter((transaction) => transaction.accountId === summary.accountId),
@@ -164,6 +171,7 @@ function mapAccountSection(
       transaction,
       summary.accountName,
       attachmentsByTransactionId[transaction.id] ?? [],
+      contributionNotesByTransactionId,
     ),
   )
 
@@ -207,6 +215,7 @@ function buildUnassignedEntries(
   periodTransactions: Transaction[],
   attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
   typeFilter: BalanceteTypeFilter,
+  contributionNotesByTransactionId: Record<string, string> = {},
 ): BalanceteLedgerEntry[] {
   return sortTransactionsByDate(
     filterTransactionsByType(
@@ -218,6 +227,7 @@ function buildUnassignedEntries(
       transaction,
       'Sem conta',
       attachmentsByTransactionId[transaction.id] ?? [],
+      contributionNotesByTransactionId,
     ),
   )
 }
@@ -255,6 +265,7 @@ export function buildAccountingBalancete(
   period: CashFlowPeriod,
   accountFilter: string = 'all',
   typeFilter: BalanceteTypeFilter = 'all',
+  contributionNotesByTransactionId: Record<string, string> = {},
 ): AccountingBalanceteData {
   const cashFlow = buildCashFlowReport(accounts, transactions, period, accountFilter)
   const periodTransactions = filterTransactionsInPeriod(
@@ -269,6 +280,7 @@ export function buildAccountingBalancete(
       periodTransactions,
       attachmentsByTransactionId,
       typeFilter,
+      contributionNotesByTransactionId,
     ),
   )
 
@@ -276,6 +288,7 @@ export function buildAccountingBalancete(
     periodTransactions,
     attachmentsByTransactionId,
     typeFilter,
+    contributionNotesByTransactionId,
   )
 
   return finalizeBalanceteData(
@@ -316,6 +329,7 @@ export function buildAccountingBalanceteAllPeriods(
   attachmentsByTransactionId: Record<string, BalanceteAttachmentInput[]>,
   accountFilter: string = 'all',
   typeFilter: BalanceteTypeFilter = 'all',
+  contributionNotesByTransactionId: Record<string, string> = {},
 ): AccountingBalanceteData {
   const filteredAccounts =
     accountFilter === 'all'
@@ -355,6 +369,7 @@ export function buildAccountingBalanceteAllPeriods(
       filteredTransactions,
       attachmentsByTransactionId,
       typeFilter,
+      contributionNotesByTransactionId,
     )
   })
 
@@ -362,6 +377,7 @@ export function buildAccountingBalanceteAllPeriods(
     filteredTransactions,
     attachmentsByTransactionId,
     typeFilter,
+    contributionNotesByTransactionId,
   )
 
   return finalizeBalanceteData(

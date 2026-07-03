@@ -3,6 +3,7 @@ import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import type { AccountingBalanceteData, BalanceteTypeFilter } from '@/lib/accounting-balancete'
 import { BALANCETE_TYPE_FILTER_LABELS } from '@/lib/accounting-balancete'
 import type { BalanceteReportDisplayOptions } from '@/lib/balancete-report-display'
+import { formatBalanceteEntryNotesCompact } from '@/lib/balancete-entry-notes'
 import { cn } from '@/lib/utils'
 
 interface BalancetePrintDocumentProps {
@@ -250,8 +251,23 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
             </tr>
           </thead>
           <tbody>
-            {section.entries.map((entry) => (
-              <tr key={entry.id}>
+            {section.entries.map((entry) => {
+              const notesDisplay = showAttachmentDetails
+                ? formatBalanceteEntryNotesCompact(
+                    entry.attachmentNotes,
+                    entry.attachments,
+                  )
+                : null
+
+              return (
+              <tr
+                key={entry.id}
+                className={cn(
+                  entry.type === 'Receita'
+                    ? 'balancete-row-receita'
+                    : 'balancete-row-despesa',
+                )}
+              >
                 <td className="balancete-col-date">{formatDateBR(entry.date)}</td>
                 <td
                   className="balancete-col-description"
@@ -259,7 +275,9 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
                 >
                   {entry.description}
                 </td>
-                <td className="balancete-col-category">{entry.category}</td>
+                <td className="balancete-col-category" title={entry.category}>
+                  {entry.category}
+                </td>
                 {showBothAmountColumns ? (
                   <>
                     <td className="balancete-num balancete-credit">
@@ -280,30 +298,19 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
                   </td>
                 )}
                 {showAttachmentDetails && (
-                  <td className="balancete-col-notes">
-                    {entry.attachmentNotes?.trim() ? (
-                      <span className="balancete-note-line">
-                        <span className="balancete-strong">Obs:</span>{' '}
-                        {entry.attachmentNotes.trim()}
+                  <td
+                    className="balancete-col-notes"
+                    title={notesDisplay?.title}
+                  >
+                    {notesDisplay ? (
+                      <span className="balancete-notes-inline">
+                        {notesDisplay.text}
                       </span>
                     ) : null}
-                    {entry.attachments.length > 0 ? (
-                      <ul className="balancete-attachment-list">
-                        {entry.attachments.map((attachment) => (
-                          <li key={`${entry.id}-${attachment.fileName}`}>
-                            {attachment.documentTypeLabel}: {attachment.fileName}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      !entry.attachmentNotes?.trim() && (
-                        <span className="balancete-muted">Sem observação ou comprovante</span>
-                      )
-                    )}
                   </td>
                 )}
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

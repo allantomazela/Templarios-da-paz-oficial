@@ -662,6 +662,9 @@ h6 {
 
 .balancete-table-ledger .balancete-col-category {
   width: 11%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .balancete-table-ledger .balancete-col-amount {
@@ -672,10 +675,23 @@ h6 {
   width: 14%;
   max-width: 14%;
   font-size: 0.7rem;
-  line-height: 1.25;
+  line-height: 1.2;
   font-weight: 400;
-  white-space: normal;
-  word-break: break-word;
+}
+
+.balancete-notes-inline {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.balancete-table-ledger tbody tr.balancete-row-receita > td:first-child {
+  box-shadow: inset 3px 0 0 0 #86efac;
+}
+
+.balancete-table-ledger tbody tr.balancete-row-despesa > td:first-child {
+  box-shadow: inset 3px 0 0 0 #fca5a5;
 }
 
 /* Razão analítico — linhas mais compactas (só esta tabela) */
@@ -801,6 +817,27 @@ h6 {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  #financial-balancete-container .balancete-table-ledger .balancete-col-category {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #financial-balancete-container .balancete-table-ledger .balancete-col-notes,
+  #financial-balancete-container .balancete-notes-inline {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+    line-height: 1.1;
+    font-size: 6.5pt;
+  }
+
+  #financial-balancete-container .balancete-table-ledger tbody tr.balancete-row-receita > td:first-child,
+  #financial-balancete-container .balancete-table-ledger tbody tr.balancete-row-despesa > td:first-child {
+    box-shadow: none;
   }
 
   #financial-balancete-container .balancete-table-ledger {

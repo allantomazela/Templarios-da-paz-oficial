@@ -2,7 +2,14 @@ import { supabase } from '@/lib/supabase/client'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
-import { isMembershipHistoricalPeriod, isMembershipBackfillContribution } from '@/lib/membership-schedule'
+import { isMembershipHistoricalPeriod, isMembershipBackfillContribution, isMembershipControlOnlyContribution } from '@/lib/membership-schedule'
+import {
+  buildControlOnlyNotes,
+  mensalidadeDescriptionMatchesBrother,
+  type ContributionTreasuryMode,
+} from '@/lib/membership-control-only'
+
+export type { ContributionTreasuryMode }
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
 
@@ -154,6 +161,17 @@ export interface ContributionFormData {
   paymentDate?: string
   accountId?: string
   notes?: string
+  treasuryMode?: ContributionTreasuryMode
+  linkedTransactionId?: string
+}
+
+export interface LinkableMensalidadeTransaction {
+  id: string
+  date: string
+  description: string
+  amount: number
+  accountId: string | null
+  accountName?: string
 }
 
 export interface BrotherContributionSummary {
@@ -264,11 +282,12 @@ async function syncFinancialTransaction(
     paymentDate?: string
     accountId?: string
     existingTransactionId?: string | null
+    controlOnly?: boolean
   },
 ): Promise<string | null> {
   const isPaid = params.status === 'Pago'
   const isHistorical = isMembershipHistoricalPeriod(params.year, params.month)
-  const isBackfillOnly = isHistorical && isPaid && !params.accountId
+  const isBackfillOnly = isHistorical && isPaid && !params.accountId && !params.controlOnly
 
   if (isBackfillOnly) {
     if (params.existingTransactionId) {
@@ -278,6 +297,14 @@ async function syncFinancialTransaction(
         .eq('id', params.existingTransactionId)
       if (error) throw error
     }
+    await supabaseAny
+      .from('contributions')
+      .update({ transaction_id: null, account_id: null })
+      .eq('id', params.contributionId)
+    return null
+  }
+
+  if (isPaid && params.controlOnly) {
     await supabaseAny
       .from('contributions')
       .update({ transaction_id: null, account_id: null })
@@ -374,6 +401,27 @@ async function syncFinancialTransaction(
   return created.id as string
 }
 
+async function assertTransactionLinkable(
+  supabaseAny: ReturnType<typeof supabase> & object,
+  transactionId: string,
+  excludeContributionId?: string,
+): Promise<void> {
+  let query = supabaseAny
+    .from('contributions')
+    .select('id')
+    .eq('transaction_id', transactionId)
+
+  if (excludeContributionId) {
+    query = query.neq('id', excludeContributionId)
+  }
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw error
+  if (data) {
+    throw new Error('Esta receita já está vinculada a outra mensalidade.')
+  }
+}
+
 interface ContributionRepairRow {
   id: string
   brother_id: string
@@ -418,6 +466,16 @@ export async function repairOrphanTreasuryContributions(): Promise<number> {
     if (isMembershipHistoricalPeriod(row.year, row.month)) continue
     if (
       isMembershipBackfillContribution(row.year, row.month, {
+        status: row.status,
+        transactionId: row.transaction_id,
+        accountId: row.account_id,
+        notes: row.notes,
+      })
+    ) {
+      continue
+    }
+    if (
+      isMembershipControlOnlyContribution(row.year, row.month, {
         status: row.status,
         transactionId: row.transaction_id,
         accountId: row.account_id,
@@ -513,6 +571,60 @@ export async function fetchBankAccounts(): Promise<
 
   if (error) throw error
   return data || []
+}
+
+/** Receitas de mensalidade ainda não vinculadas a um pagamento no cronograma. */
+export async function fetchLinkableMensalidadeTransactions(params: {
+  brotherName: string
+  referenceMonth?: number
+  referenceYear?: number
+}): Promise<LinkableMensalidadeTransaction[]> {
+  const supabaseAny = supabase as any
+  const brotherName = params.brotherName.trim()
+  if (!brotherName) return []
+
+  const [{ data: transactions, error: txError }, { data: linkedRows, error: linkError }] =
+    await Promise.all([
+      supabaseAny
+        .from('financial_transactions')
+        .select('id, date, description, amount, account_id, financial_accounts(name)')
+        .eq('type', 'Receita')
+        .eq('category', MENSALIDADE_CATEGORY)
+        .order('date', { ascending: false })
+        .limit(200),
+      supabaseAny.from('contributions').select('transaction_id').not('transaction_id', 'is', null),
+    ])
+
+  if (txError) throw txError
+  if (linkError) throw linkError
+
+  const linkedIds = new Set(
+    (linkedRows ?? [])
+      .map((row: { transaction_id: string | null }) => row.transaction_id)
+      .filter(Boolean),
+  )
+
+  const referenceToken =
+    params.referenceMonth && params.referenceYear
+      ? `${String(params.referenceMonth).padStart(2, '0')}/${params.referenceYear}`
+      : null
+
+  return (transactions ?? [])
+    .filter((row: Record<string, unknown>) => {
+      if (linkedIds.has(String(row.id))) return false
+      const description = String(row.description ?? '')
+      if (!mensalidadeDescriptionMatchesBrother(description, brotherName)) return false
+      if (referenceToken && !description.includes(`(${referenceToken})`)) return false
+      return true
+    })
+    .map((row: Record<string, unknown>) => ({
+      id: String(row.id),
+      date: String(row.date),
+      description: String(row.description),
+      amount: Number(row.amount),
+      accountId: row.account_id ? String(row.account_id) : null,
+      accountName: (row.financial_accounts as { name?: string } | null)?.name,
+    }))
 }
 
 export function buildBrotherSummaries(
@@ -612,6 +724,31 @@ export async function saveContribution(
   const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
+  const treasuryMode = data.treasuryMode ?? 'standard'
+  const isControlOnly =
+    treasuryMode === 'control_only' && data.status === 'Pago'
+  const linkedTransactionId =
+    treasuryMode === 'link_existing' &&
+    data.status === 'Pago' &&
+    data.linkedTransactionId
+      ? data.linkedTransactionId
+      : null
+
+  let linkedAccountId: string | null = null
+  if (linkedTransactionId) {
+    await assertTransactionLinkable(
+      supabaseAny,
+      linkedTransactionId,
+      options?.contributionId,
+    )
+    const { data: linkedTx, error: linkedError } = await supabaseAny
+      .from('financial_transactions')
+      .select('account_id')
+      .eq('id', linkedTransactionId)
+      .single()
+    if (linkedError) throw formatSupabaseError(linkedError)
+    linkedAccountId = linkedTx?.account_id ?? null
+  }
 
   const {
     data: { user },
@@ -627,8 +764,17 @@ export async function saveContribution(
       data.status === 'Pago'
         ? data.paymentDate || todayLocalISODate()
         : null,
-    account_id: data.status === 'Pago' ? data.accountId ?? null : null,
-    notes: data.notes?.trim() || null,
+    account_id:
+      data.status === 'Pago'
+        ? isControlOnly
+          ? null
+          : linkedTransactionId
+            ? linkedAccountId
+            : data.accountId ?? null
+        : null,
+    notes: isControlOnly
+      ? buildControlOnlyNotes(data.notes)
+      : data.notes?.trim() || null,
     recorded_by: user?.id ?? null,
   }
 
@@ -636,8 +782,14 @@ export async function saveContribution(
     contributionId: string,
     existingTransactionId?: string | null,
   ) => {
-    if (options?.sharedTransactionId && data.status === 'Pago') {
-      if (existingTransactionId && existingTransactionId !== options.sharedTransactionId) {
+    const sharedTransactionId =
+      options?.sharedTransactionId ?? linkedTransactionId
+
+    if (sharedTransactionId && data.status === 'Pago') {
+      if (
+        existingTransactionId &&
+        existingTransactionId !== sharedTransactionId
+      ) {
         const { error: deleteError } = await supabaseAny
           .from('financial_transactions')
           .delete()
@@ -647,11 +799,24 @@ export async function saveContribution(
       const { error: linkError } = await supabaseAny
         .from('contributions')
         .update({
-          transaction_id: options.sharedTransactionId,
-          account_id: data.accountId ?? null,
+          transaction_id: sharedTransactionId,
+          account_id: linkedAccountId ?? data.accountId ?? null,
         })
         .eq('id', contributionId)
       if (linkError) throw linkError
+      return
+    }
+
+    if (isControlOnly) {
+      await syncFinancialTransaction(supabaseAny, {
+        contributionId,
+        brotherName,
+        month,
+        year: data.year,
+        amount: data.amount,
+        status: data.status,
+        controlOnly: true,
+      })
       return
     }
 

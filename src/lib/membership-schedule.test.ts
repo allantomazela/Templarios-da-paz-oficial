@@ -229,4 +229,15 @@ describe('isOrphanTreasuryContribution', () => {
       }),
     ).toBe(false)
   })
+
+  it('ignora mensalidade só controle em produção', () => {
+    expect(
+      isOrphanTreasuryContribution(2026, 6, {
+        status: 'Pago',
+        accountId: null,
+        notes:
+          'Só controle — receita já lançada na tesouraria (não duplicar)',
+      }),
+    ).toBe(false)
+  })
 })

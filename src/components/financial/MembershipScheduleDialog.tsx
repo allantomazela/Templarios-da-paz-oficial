@@ -33,13 +33,15 @@ import {
 } from '@/components/ui/collapsible'
 import { CalendarDays, ChevronDown, Info, Loader2, Pencil, Plus } from 'lucide-react'
 import { formatCurrencyBRL } from '@/lib/member-payments'
-import { formatDateBR } from '@/lib/format-utils'
+import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
 import {
   buildMembershipBackfillPeriods,
   buildMembershipScheduleForBrother,
   contributionCountsInTreasury,
   isOrphanTreasuryContribution,
   isMembershipBackfillContribution,
+  isMembershipControlOnlyContribution,
+  isMembershipHistoricalPeriod,
   membershipStatusLabel,
   MEMBERSHIP_TRACKING_START_YEAR,
   type MembershipFeeScheduleSettings,
@@ -55,6 +57,7 @@ import {
 import { MembershipBatchSettleDialog } from '@/components/financial/MembershipBatchSettleDialog'
 import {
   CONTRIBUTION_MONTHS,
+  saveContribution,
   type ApprovedBrotherOption,
 } from '@/lib/contribution-payments'
 import type { Contribution } from '@/lib/data'
@@ -332,6 +335,55 @@ export function MembershipScheduleDialog({
     await onSaved()
   }
 
+  async function handleControlOnlySettle(entry: MembershipScheduleEntry) {
+    if (!brotherId || !brother) return
+
+    const monthName =
+      CONTRIBUTION_MONTHS[entry.month - 1] ?? String(entry.month)
+    const amount =
+      entry.remainingAmount > 0 ? entry.remainingAmount : entry.expectedAmount
+
+    const confirmed = window.confirm(
+      `Marcar ${entry.periodLabel} como pago (somente controle)?\n\n` +
+        'O mês será quitado no cronograma sem gerar nova receita no caixa. ' +
+        'Use quando o pagamento já estiver lançado na tesouraria.',
+    )
+    if (!confirmed) return
+
+    setSaving(true)
+    setError(null)
+    try {
+      const periodContributions = contributionsForPeriod(entry.year, entry.month)
+      const primary = periodContributions[0]
+
+      await saveContribution(
+        {
+          brotherId,
+          brotherName: brother.full_name?.trim() || 'Irmão',
+          month: monthName,
+          year: entry.year,
+          amount,
+          status: 'Pago',
+          paymentDate: todayLocalISODate(),
+          treasuryMode: 'control_only',
+        },
+        primary
+          ? {
+              contributionId: primary.id,
+              existingTransactionId: primary.transactionId,
+            }
+          : undefined,
+      )
+      await onSaved()
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Erro ao quitar mensalidade (só controle).',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
 
   return (
     <>
@@ -461,6 +513,21 @@ export function MembershipScheduleDialog({
                         periodContributions.some((c) =>
                           isOrphanTreasuryContribution(entry.year, entry.month, c),
                         )
+                      const controlOnlyPaid =
+                        entry.status === 'paid' &&
+                        !paidViaTreasury &&
+                        !isHistorical &&
+                        periodContributions.some((c) =>
+                          isMembershipControlOnlyContribution(
+                            entry.year,
+                            entry.month,
+                            c,
+                          ),
+                        )
+                      const canControlOnlySettle =
+                        entry.remainingAmount > 0 &&
+                        !isHistorical &&
+                        !isMembershipHistoricalPeriod(entry.year, entry.month)
 
                       return (
                         <TableRow
@@ -495,6 +562,10 @@ export function MembershipScheduleDialog({
                                 >
                                   Pago — receita não lançada no caixa
                                 </Badge>
+                              ) : controlOnlyPaid ? (
+                                <Badge variant="outline" className="w-fit text-xs">
+                                  Pago — somente controle
+                                </Badge>
                               ) : isHistorical && !paidViaTreasury && entry.status === 'paid' ? (
                                 <Badge variant="outline" className="w-fit text-xs">
                                   Só controle
@@ -516,6 +587,7 @@ export function MembershipScheduleDialog({
                           </TableCell>
                           <TableCell>{statusBadge(entry.status)}</TableCell>
                           <TableCell className="text-right">
+                            <div className="flex flex-wrap justify-end gap-1">
                             {primary ? (
                               <Button
                                 variant="outline"
@@ -526,29 +598,42 @@ export function MembershipScheduleDialog({
                                 Editar
                               </Button>
                             ) : entry.remainingAmount > 0 ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  onRegisterPayment({
-                                    brotherId: brotherId!,
-                                    brotherName:
-                                      brother?.full_name?.trim() ||
-                                      schedule?.brotherName ||
-                                      'Irmão',
-                                    month:
-                                      CONTRIBUTION_MONTHS[entry.month - 1] ??
-                                      String(entry.month),
-                                    year: entry.year,
-                                  })
-                                }
-                              >
-                                <Plus className="mr-1 h-3 w-3" />
-                                Lançar
-                              </Button>
+                              <>
+                                {canControlOnlySettle ? (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    disabled={saving}
+                                    onClick={() => handleControlOnlySettle(entry)}
+                                  >
+                                    Quitar (só controle)
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    onRegisterPayment({
+                                      brotherId: brotherId!,
+                                      brotherName:
+                                        brother?.full_name?.trim() ||
+                                        schedule?.brotherName ||
+                                        'Irmão',
+                                      month:
+                                        CONTRIBUTION_MONTHS[entry.month - 1] ??
+                                        String(entry.month),
+                                      year: entry.year,
+                                    })
+                                  }
+                                >
+                                  <Plus className="mr-1 h-3 w-3" />
+                                  Lançar
+                                </Button>
+                              </>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
                             )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )

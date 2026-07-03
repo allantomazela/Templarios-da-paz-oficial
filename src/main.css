@@ -292,6 +292,17 @@ body {
     box-sizing: border-box;
   }
 
+  #financial-summary-report-container,
+  #financial-summary-report-container p,
+  #financial-summary-report-container h1,
+  #financial-summary-report-container h2,
+  #financial-summary-report-container h3,
+  #financial-summary-report-container td,
+  #financial-summary-report-container th,
+  #financial-summary-report-container span {
+    color: #000000 !important;
+  }
+
   #financial-balancete-container {
     position: absolute;
     left: 0;
@@ -516,9 +527,23 @@ h6 {
 .balancete-document {
   width: 100%;
   min-width: 0;
-  color: #111827;
+  color: #000000 !important;
   font-size: 0.8125rem;
   line-height: 1.45;
+}
+
+.balancete-document p,
+.balancete-document h1,
+.balancete-document h2,
+.balancete-document h3,
+.balancete-document h4,
+.balancete-document h5,
+.balancete-document h6,
+.balancete-document td,
+.balancete-document th,
+.balancete-document span,
+.balancete-document li {
+  color: #000000 !important;
 }
 
 .balancete-section {
@@ -608,10 +633,49 @@ h6 {
 
 .balancete-col-description {
   width: 14rem;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .balancete-col-notes {
-  width: auto;
+  width: 7.5rem;
+  max-width: 7.5rem;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.balancete-table-ledger .balancete-col-date {
+  width: 6%;
+}
+
+.balancete-table-ledger .balancete-col-description {
+  width: 36%;
+  min-width: 9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.balancete-table-ledger .balancete-col-category {
+  width: 11%;
+}
+
+.balancete-table-ledger .balancete-col-amount {
+  width: 8%;
+}
+
+.balancete-table-ledger .balancete-col-notes {
+  width: 14%;
+  max-width: 14%;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  font-weight: 400;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .balancete-credit {
@@ -627,7 +691,7 @@ h6 {
 }
 
 .balancete-muted {
-  color: #6b7280;
+  color: #4b5563 !important;
 }
 
 .balancete-total-row td {
@@ -683,6 +747,24 @@ h6 {
   #financial-balancete-container .balancete-table th,
   #financial-balancete-container .balancete-table td {
     padding: 3pt 4pt;
+  }
+
+  #financial-balancete-container .balancete-document,
+  #financial-balancete-container .balancete-document p,
+  #financial-balancete-container .balancete-document h1,
+  #financial-balancete-container .balancete-document h2,
+  #financial-balancete-container .balancete-document h3,
+  #financial-balancete-container .balancete-document td,
+  #financial-balancete-container .balancete-document th,
+  #financial-balancete-container .balancete-document span,
+  #financial-balancete-container .balancete-document li {
+    color: #000000 !important;
+  }
+
+  #financial-balancete-container .balancete-table-ledger .balancete-col-description {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   #financial-balancete-container .balancete-credit,
@@ -751,4 +833,21 @@ h6 {
 
 .balancete-economy-row td {
   background: #ecfdf5;
+}
+
+.financial-summary-print-document,
+.financial-summary-print-document p,
+.financial-summary-print-document h1,
+.financial-summary-print-document h2,
+.financial-summary-print-document h3,
+.financial-summary-print-document td,
+.financial-summary-print-document th,
+.financial-summary-print-document span {
+  color: #000000 !important;
+}
+
+#financial-balancete-container .balancete-document p,
+#financial-balancete-container .balancete-document .balancete-note-line,
+#financial-balancete-container .balancete-document .balancete-attachment-list li {
+  color: #000000 !important;
 }

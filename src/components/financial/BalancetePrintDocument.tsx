@@ -245,7 +245,7 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
                 <th className="balancete-num balancete-col-amount">Valor</th>
               )}
               {showAttachmentDetails && (
-                <th className="balancete-col-notes">Observações / Comprovantes</th>
+                <th className="balancete-col-notes">Observações</th>
               )}
             </tr>
           </thead>
@@ -253,7 +253,12 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
             {section.entries.map((entry) => (
               <tr key={entry.id}>
                 <td className="balancete-col-date">{formatDateBR(entry.date)}</td>
-                <td className="balancete-col-description">{entry.description}</td>
+                <td
+                  className="balancete-col-description"
+                  title={entry.description}
+                >
+                  {entry.description}
+                </td>
                 <td className="balancete-col-category">{entry.category}</td>
                 {showBothAmountColumns ? (
                   <>

@@ -517,7 +517,7 @@ function FinancialSummaryPrintDocument({
   )
 
   return (
-    <div className="bg-white p-8 text-black">
+    <div className="financial-summary-print-document bg-white p-8 text-black">
       <ReportHeader
         title="Relatório Financeiro — Resumo por Categoria"
         subtitle={periodLabel}
@@ -556,14 +556,19 @@ function FinancialSummaryPrintDocument({
         <TableBody>
           {transactions.map((transaction) => (
             <TableRow key={transaction.id}>
-              <TableCell>{formatDateBR(transaction.date)}</TableCell>
-              <TableCell>{transaction.description}</TableCell>
-              <TableCell>{transaction.category}</TableCell>
-              <TableCell>{transaction.type}</TableCell>
-              <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs">
+              <TableCell className="whitespace-nowrap">{formatDateBR(transaction.date)}</TableCell>
+              <TableCell
+                className="max-w-[14rem] whitespace-nowrap font-semibold"
+                title={transaction.description}
+              >
+                {transaction.description}
+              </TableCell>
+              <TableCell className="whitespace-nowrap">{transaction.category}</TableCell>
+              <TableCell className="whitespace-nowrap">{transaction.type}</TableCell>
+              <TableCell className="max-w-[6rem] whitespace-pre-wrap text-xs">
                 {transaction.attachmentNotes?.trim() || '—'}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right whitespace-nowrap">
                 {formatCurrencyBRL(transaction.amount)}
               </TableCell>
             </TableRow>

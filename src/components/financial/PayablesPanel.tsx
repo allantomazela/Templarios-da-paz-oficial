@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Loader2, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
+import { Loader2, MoreHorizontal, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { usePayablesList } from '@/hooks/use-payables-list'
 import useFinancialStore from '@/stores/useFinancialStore'
@@ -50,7 +50,18 @@ import {
   PayablePaymentDialog,
   type PayablePaymentFormValues,
 } from '@/components/financial/PayablePaymentDialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+
+function canModifyPayable(payable: FinancialPayable): boolean {
+  return payable.status !== 'Pago'
+}
 
 type StatusFilter = 'open' | PayableStatus | 'all'
 
@@ -120,7 +131,8 @@ export function PayablesPanel({
       await saveFinancialPayable(
         {
           ...values,
-          forecastItemId: pendingForecastItemId,
+          forecastItemId:
+            pendingForecastItemId ?? selectedPayable?.forecastItemId ?? undefined,
         },
         selectedPayable?.id,
       )
@@ -211,7 +223,10 @@ export function PayablesPanel({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Compromissos</CardTitle>
-          <CardDescription>Filtre por situação e busque por descrição ou fornecedor.</CardDescription>
+          <CardDescription>
+            Filtre por situação e busque por descrição ou fornecedor. Use Editar ou Excluir na
+            coluna Ações para ajustar lançamentos em aberto.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row">
@@ -254,7 +269,7 @@ export function PayablesPanel({
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="min-w-[11rem] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -296,43 +311,19 @@ export function PayablesPanel({
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            {isPayableOpen(payable.status) ? (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="gap-1"
-                                onClick={() => {
-                                  setSelectedPayable(payable)
-                                  setPaymentDialogOpen(true)
-                                }}
-                              >
-                                <Wallet className="h-3.5 w-3.5" />
-                                Pagar
-                              </Button>
-                            ) : null}
-                            {payable.status !== 'Pago' ? (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => {
-                                  setSelectedPayable(payable)
-                                  setDialogOpen(true)
-                                }}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            ) : null}
-                            {payable.status !== 'Pago' ? (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => setPayableToDelete(payable)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            ) : null}
-                          </div>
+                          <PayableRowActions
+                            payable={payable}
+                            onPay={() => {
+                              setSelectedPayable(payable)
+                              setPaymentDialogOpen(true)
+                            }}
+                            onEdit={() => {
+                              setSelectedPayable(payable)
+                              setPendingForecastItemId(payable.forecastItemId ?? null)
+                              setDialogOpen(true)
+                            }}
+                            onDelete={() => setPayableToDelete(payable)}
+                          />
                         </TableCell>
                       </TableRow>
                     ))
@@ -394,6 +385,95 @@ export function PayablesPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+interface PayableRowActionsProps {
+  payable: FinancialPayable
+  onPay: () => void
+  onEdit: () => void
+  onDelete: () => void
+}
+
+function PayableRowActions({ payable, onPay, onEdit, onDelete }: PayableRowActionsProps) {
+  const showPay = isPayableOpen(payable.status)
+  const showModify = canModifyPayable(payable)
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <div className="hidden flex-wrap justify-end gap-1 md:flex">
+        {showPay ? (
+          <Button size="sm" variant="default" className="h-8 gap-1" onClick={onPay}>
+            <Wallet className="h-3.5 w-3.5" />
+            Pagar
+          </Button>
+        ) : null}
+        {showModify ? (
+          <>
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1 text-destructive hover:text-destructive"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Excluir
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={onPay}>
+            Estornar
+          </Button>
+        )}
+      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 md:hidden"
+            aria-label="Ações da conta a pagar"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            Ações
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          {showPay ? (
+            <DropdownMenuItem onClick={onPay}>
+              <Wallet className="mr-2 h-4 w-4" />
+              Pagar
+            </DropdownMenuItem>
+          ) : null}
+          {showModify ? (
+            <>
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem onClick={onPay}>
+              <Wallet className="mr-2 h-4 w-4" />
+              Estornar pagamento
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

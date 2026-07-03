@@ -1,17 +1,28 @@
 import type { BankAccount, Transaction } from '@/lib/data'
 import type { BrotherMembershipSchedule } from '@/lib/membership-schedule'
 import {
+  computeAllAccountsCashFlow,
+  computePeriodTotals,
+  computeTotalsRow,
+  filterTransactionsInPeriod,
+  type CashFlowPeriod,
+} from '@/lib/cash-flow'
+import {
   computeAccountBalance,
   computeGlobalBalance,
 } from '@/lib/financial-balance-math'
+import { endOfMonth, startOfMonth } from 'date-fns'
 import type {
   AccountProjectedBalance,
   ForecastComparisonRow,
   ForecastItem,
   ForecastLinkStatus,
+  ForecastMonthCashFlow,
+  ForecastMonthCashFlowAccount,
   ForecastMonthOverride,
   ForecastMonthSummary,
   ForecastProjectionResult,
+  ForecastUnplannedTransaction,
   MembershipForecastOverride,
 } from '@/lib/forecast-types'
 
@@ -43,7 +54,14 @@ export interface ForecastProjectionInput {
   transactions: Array<
     Pick<
       Transaction,
-      'id' | 'date' | 'type' | 'amount' | 'category' | 'accountId' | 'forecastItemId'
+      | 'id'
+      | 'date'
+      | 'type'
+      | 'amount'
+      | 'category'
+      | 'accountId'
+      | 'forecastItemId'
+      | 'description'
     >
   >
   accounts: Pick<BankAccount, 'id' | 'name' | 'initialBalance'>[]
@@ -207,6 +225,153 @@ function sumMembershipRealized(
         transactionInMonth(transaction, year, month),
     )
     .reduce((sum, transaction) => sum + transaction.amount, 0)
+}
+
+function getMonthCashFlowPeriod(year: number, month: number): CashFlowPeriod {
+  const start = startOfMonth(new Date(year, month - 1, 1))
+  return { start, end: endOfMonth(start) }
+}
+
+function toCashFlowBankAccounts(
+  accounts: ForecastProjectionInput['accounts'],
+): BankAccount[] {
+  return accounts.map((account) => ({
+    ...account,
+    type: 'Corrente' as const,
+  }))
+}
+
+/** Transação já contabilizada no previsto × realizado do planejamento. */
+export function isTransactionCountedInForecastPlanning(
+  transaction: Pick<Transaction, 'type' | 'category' | 'forecastItemId'>,
+): boolean {
+  if (transaction.forecastItemId) return true
+  if (
+    transaction.type === 'Receita' &&
+    isMembershipCategory(transaction.category)
+  ) {
+    return true
+  }
+  return false
+}
+
+function buildUnplannedTransactions(
+  transactions: ForecastProjectionInput['transactions'],
+  year: number,
+  month: number,
+  accountNameById: Map<string, string>,
+): ForecastUnplannedTransaction[] {
+  return transactions
+    .filter(
+      (transaction) =>
+        transactionInMonth(transaction, year, month) &&
+        !isTransactionCountedInForecastPlanning(transaction),
+    )
+    .map((transaction) => ({
+      id: transaction.id,
+      date: transaction.date,
+      description: transaction.description?.trim() || '—',
+      category: transaction.category,
+      type: transaction.type,
+      amount: transaction.amount,
+      accountId: transaction.accountId,
+      accountName: transaction.accountId
+        ? accountNameById.get(transaction.accountId)
+        : undefined,
+    }))
+    .sort((left, right) => left.date.localeCompare(right.date))
+}
+
+function mapCashFlowAccountRow(
+  summary: {
+    accountId: string
+    accountName: string
+    periodIncome: number
+    periodExpense: number
+  },
+): ForecastMonthCashFlowAccount {
+  return {
+    accountId: summary.accountId,
+    accountName: summary.accountName,
+    periodIncome: summary.periodIncome,
+    periodExpense: summary.periodExpense,
+    netCashFlow: summary.periodIncome - summary.periodExpense,
+  }
+}
+
+function buildMonthCashFlow(
+  input: ForecastProjectionInput,
+  year: number,
+  month: number,
+): ForecastMonthCashFlow {
+  const period = getMonthCashFlowPeriod(year, month)
+  const bankAccounts = toCashFlowBankAccounts(input.accounts)
+  const fullTransactions = input.transactions as Transaction[]
+  const periodTransactions = filterTransactionsInPeriod(
+    fullTransactions,
+    period,
+    'all',
+  )
+  const periodTotals = computePeriodTotals(periodTransactions)
+  const accountSummaries = computeAllAccountsCashFlow(
+    bankAccounts,
+    fullTransactions,
+    period,
+  )
+  const totalsRow = computeTotalsRow(accountSummaries)
+  const accountNameById = new Map(
+    input.accounts.map((account) => [account.id, account.name]),
+  )
+  const unplannedTransactions = buildUnplannedTransactions(
+    input.transactions,
+    year,
+    month,
+    accountNameById,
+  )
+
+  const unplannedIncome = unplannedTransactions
+    .filter((transaction) => transaction.type === 'Receita')
+    .reduce((sum, transaction) => sum + transaction.amount, 0)
+  const unplannedExpense = unplannedTransactions
+    .filter((transaction) => transaction.type === 'Despesa')
+    .reduce((sum, transaction) => sum + transaction.amount, 0)
+
+  return {
+    accounts: accountSummaries.map(mapCashFlowAccountRow),
+    totals: mapCashFlowAccountRow(totalsRow),
+    cashFlowIncome: periodTotals.totalIncome,
+    cashFlowExpense: periodTotals.totalExpense,
+    cashFlowNet: periodTotals.netCashFlow,
+    unplannedIncome,
+    unplannedExpense,
+    unplannedNet: unplannedIncome - unplannedExpense,
+    unplannedTransactions,
+  }
+}
+
+function computeAccountProjectionsTotals(
+  projections: AccountProjectedBalance[],
+): AccountProjectedBalance {
+  return projections.reduce<AccountProjectedBalance>(
+    (accumulator, row) => ({
+      accountId: 'total',
+      accountName: 'TOTAL GERAL',
+      currentBalance: accumulator.currentBalance + row.currentBalance,
+      expectedIncomeRemaining:
+        accumulator.expectedIncomeRemaining + row.expectedIncomeRemaining,
+      expectedExpenseRemaining:
+        accumulator.expectedExpenseRemaining + row.expectedExpenseRemaining,
+      projectedBalance: accumulator.projectedBalance + row.projectedBalance,
+    }),
+    {
+      accountId: 'total',
+      accountName: 'TOTAL GERAL',
+      currentBalance: 0,
+      expectedIncomeRemaining: 0,
+      expectedExpenseRemaining: 0,
+      projectedBalance: 0,
+    },
+  )
 }
 
 function buildItemRows(
@@ -410,6 +575,7 @@ export function buildForecastProjection(
       a.dueDate.localeCompare(b.dueDate),
     )
     const totals = summarizeMonth(rows)
+    const cashFlow = buildMonthCashFlow(input, year, month)
 
     return {
       year,
@@ -421,6 +587,7 @@ export function buildForecastProjection(
       realizedExpense: totals.realizedExpense,
       netExpected: totals.expectedIncome - totals.expectedExpense,
       netRealized: totals.realizedIncome - totals.realizedExpense,
+      cashFlow,
       rows,
     }
   })
@@ -434,10 +601,12 @@ export function buildForecastProjection(
     0,
   )
   const accountProjections = buildAccountProjections(input, months)
+  const accountProjectionsTotals = computeAccountProjectionsTotals(accountProjections)
 
   return {
     months,
     accountProjections,
+    accountProjectionsTotals,
     globalCurrentBalance,
     globalProjectedBalance: globalCurrentBalance + globalRemainingNet,
   }

@@ -88,18 +88,27 @@ export function ForecastPlanningReportDocument({
       {display.showMonthSummary ? (
         <section className="balancete-section">
           <h3 className="balancete-section-title">Resumo por mês</h3>
+          <p className="balancete-muted mb-2 text-xs">
+            &quot;Real. planejamento&quot; considera itens previstos e mensalidades. &quot;Caixa
+            (fluxo)&quot; soma todas as movimentações do mês, como no relatório de fluxo de
+            caixa.
+          </p>
           <div className="balancete-table-wrap">
             <table className="balancete-table">
               <thead>
                 <tr>
                   <th>Mês</th>
                   <th className="balancete-num">Prev. receitas</th>
-                  <th className="balancete-num">Real. receitas</th>
+                  <th className="balancete-num">Real. planej.</th>
+                  <th className="balancete-num">Caixa receitas</th>
                   <th className="balancete-num">Prev. despesas</th>
-                  <th className="balancete-num">Real. despesas</th>
+                  <th className="balancete-num">Real. planej.</th>
+                  <th className="balancete-num">Caixa despesas</th>
                   <th className="balancete-num">Economia</th>
                   <th className="balancete-num">Líq. previsto</th>
-                  <th className="balancete-num">Líq. realizado</th>
+                  <th className="balancete-num">Líq. planej.</th>
+                  <th className="balancete-num">Líq. caixa</th>
+                  <th className="balancete-num">Fora do prev.</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,11 +121,17 @@ export function ForecastPlanningReportDocument({
                     <td className="balancete-num balancete-credit">
                       {formatCurrencyBRL(row.realizedIncome)}
                     </td>
+                    <td className="balancete-num balancete-credit">
+                      {formatCurrencyBRL(row.cashFlowIncome)}
+                    </td>
                     <td className="balancete-num">
                       {formatCurrencyBRL(row.expectedExpense)}
                     </td>
                     <td className="balancete-num balancete-debit">
                       {formatCurrencyBRL(row.realizedExpense)}
+                    </td>
+                    <td className="balancete-num balancete-debit">
+                      {formatCurrencyBRL(row.cashFlowExpense)}
                     </td>
                     <td className="balancete-num balancete-credit">
                       {row.economyTotal > 0
@@ -127,6 +142,23 @@ export function ForecastPlanningReportDocument({
                     <td className="balancete-num balancete-strong">
                       {formatCurrencyBRL(row.netRealized)}
                     </td>
+                    <td className="balancete-num balancete-strong">
+                      {formatCurrencyBRL(row.cashFlowNet)}
+                    </td>
+                    <td
+                      className={cn(
+                        'balancete-num',
+                        row.unplannedNet > 0
+                          ? 'balancete-credit'
+                          : row.unplannedNet < 0
+                            ? 'balancete-debit'
+                            : '',
+                      )}
+                    >
+                      {row.unplannedNet === 0
+                        ? '—'
+                        : formatCurrencyBRL(row.unplannedNet)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -134,6 +166,134 @@ export function ForecastPlanningReportDocument({
           </div>
         </section>
       ) : null}
+
+      {display.showCashFlowComparison
+        ? detailMonths.map((month) => (
+            <section
+              key={`cashflow-${month.year}-${month.month}`}
+              className="balancete-section"
+            >
+              <h3 className="balancete-section-title">
+                Fluxo de caixa — {month.label}
+              </h3>
+              <div className="balancete-table-wrap">
+                <table className="balancete-table balancete-table-compact">
+                  <thead>
+                    <tr>
+                      <th>Conta</th>
+                      <th className="balancete-num">Receitas</th>
+                      <th className="balancete-num">Despesas</th>
+                      <th className="balancete-num">Líquido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {month.cashFlow.accounts.map((account) => (
+                      <tr key={account.accountId}>
+                        <td>{account.accountName}</td>
+                        <td className="balancete-num balancete-credit">
+                          {formatCurrencyBRL(account.periodIncome)}
+                        </td>
+                        <td className="balancete-num balancete-debit">
+                          {formatCurrencyBRL(account.periodExpense)}
+                        </td>
+                        <td className="balancete-num balancete-strong">
+                          {formatCurrencyBRL(account.netCashFlow)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="balancete-total-row">
+                      <td>{month.cashFlow.totals.accountName}</td>
+                      <td className="balancete-num balancete-credit">
+                        {formatCurrencyBRL(month.cashFlow.totals.periodIncome)}
+                      </td>
+                      <td className="balancete-num balancete-debit">
+                        {formatCurrencyBRL(month.cashFlow.totals.periodExpense)}
+                      </td>
+                      <td className="balancete-num balancete-strong">
+                        {formatCurrencyBRL(month.cashFlow.totals.netCashFlow)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ))
+        : null}
+
+      {display.showUnplannedTransactions
+        ? detailMonths
+            .filter((month) => month.cashFlow.unplannedTransactions.length > 0)
+            .map((month) => (
+              <section
+                key={`unplanned-${month.year}-${month.month}`}
+                className="balancete-section balancete-ledger-section"
+              >
+                <h3 className="balancete-subsection-title">
+                  Lançamentos fora do previsto — {month.label}
+                </h3>
+                <p className="balancete-muted mb-2 text-xs">
+                  Movimentações do mês que não entram no previsto × realizado (sem vínculo
+                  com item de planejamento e que não são mensalidades).
+                </p>
+                <div className="balancete-table-wrap">
+                  <table className="balancete-table balancete-table-ledger-compact">
+                    <thead>
+                      <tr>
+                        <th className="balancete-col-date">Data</th>
+                        <th className="balancete-col-description">Descrição</th>
+                        <th className="balancete-col-category">Categoria</th>
+                        <th>Conta</th>
+                        <th>Tipo</th>
+                        <th className="balancete-col-amount balancete-num">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {month.cashFlow.unplannedTransactions.map((transaction) => (
+                        <tr key={transaction.id}>
+                          <td className="balancete-col-date">
+                            {formatDateBR(transaction.date)}
+                          </td>
+                          <td className="balancete-col-description">
+                            {transaction.description}
+                          </td>
+                          <td className="balancete-col-category">
+                            {transaction.category}
+                          </td>
+                          <td>{transaction.accountName ?? '—'}</td>
+                          <td>{transaction.type}</td>
+                          <td
+                            className={cn(
+                              'balancete-num',
+                              transaction.type === 'Receita'
+                                ? 'balancete-credit'
+                                : 'balancete-debit',
+                            )}
+                          >
+                            {formatCurrencyBRL(transaction.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="balancete-total-row">
+                        <td colSpan={5}>Total fora do previsto (líquido)</td>
+                        <td
+                          className={cn(
+                            'balancete-num balancete-strong',
+                            month.cashFlow.unplannedNet >= 0
+                              ? 'balancete-credit'
+                              : 'balancete-debit',
+                          )}
+                        >
+                          {formatCurrencyBRL(month.cashFlow.unplannedNet)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </section>
+            ))
+        : null}
 
       {display.showAccountProjections && projection.accountProjections.length > 0 ? (
         <section className="balancete-section">
@@ -167,6 +327,25 @@ export function ForecastPlanningReportDocument({
                     </td>
                   </tr>
                 ))}
+                <tr className="balancete-total-row">
+                  <td>{projection.accountProjectionsTotals.accountName}</td>
+                  <td className="balancete-num">
+                    {formatCurrencyBRL(projection.accountProjectionsTotals.currentBalance)}
+                  </td>
+                  <td className="balancete-num balancete-credit">
+                    {formatCurrencyBRL(
+                      projection.accountProjectionsTotals.expectedIncomeRemaining,
+                    )}
+                  </td>
+                  <td className="balancete-num balancete-debit">
+                    {formatCurrencyBRL(
+                      projection.accountProjectionsTotals.expectedExpenseRemaining,
+                    )}
+                  </td>
+                  <td className="balancete-num balancete-strong">
+                    {formatCurrencyBRL(projection.accountProjectionsTotals.projectedBalance)}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -238,7 +417,8 @@ export function ForecastPlanningReportDocument({
         <p className="balancete-footer">
           Documento gerado em {generatedAt} pelo módulo financeiro. Horizonte de
           planejamento: {periodLabel}. Mensalidades utilizam o cronograma de
-          cobrança; demais itens exigem vínculo explícito nas transações.
+          cobrança; demais itens exigem vínculo explícito nas transações. Colunas
+          &quot;Caixa&quot; refletem todas as movimentações do mês (fluxo de caixa).
         </p>
       ) : null}
     </div>

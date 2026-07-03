@@ -57,6 +57,37 @@ export interface ForecastComparisonRow {
   hasLinkedTransactions: boolean
 }
 
+export interface ForecastMonthCashFlowAccount {
+  accountId: string
+  accountName: string
+  periodIncome: number
+  periodExpense: number
+  netCashFlow: number
+}
+
+export interface ForecastUnplannedTransaction {
+  id: string
+  date: string
+  description: string
+  category: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  accountId?: string
+  accountName?: string
+}
+
+export interface ForecastMonthCashFlow {
+  accounts: ForecastMonthCashFlowAccount[]
+  totals: ForecastMonthCashFlowAccount
+  cashFlowIncome: number
+  cashFlowExpense: number
+  cashFlowNet: number
+  unplannedIncome: number
+  unplannedExpense: number
+  unplannedNet: number
+  unplannedTransactions: ForecastUnplannedTransaction[]
+}
+
 export interface ForecastMonthSummary {
   year: number
   month: number
@@ -67,6 +98,7 @@ export interface ForecastMonthSummary {
   realizedExpense: number
   netExpected: number
   netRealized: number
+  cashFlow: ForecastMonthCashFlow
   rows: ForecastComparisonRow[]
 }
 
@@ -82,6 +114,7 @@ export interface AccountProjectedBalance {
 export interface ForecastProjectionResult {
   months: ForecastMonthSummary[]
   accountProjections: AccountProjectedBalance[]
+  accountProjectionsTotals: AccountProjectedBalance
   globalProjectedBalance: number
   globalCurrentBalance: number
 }

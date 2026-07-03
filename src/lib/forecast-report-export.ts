@@ -76,9 +76,13 @@ export function buildForecastPlanningSummaryRows(
   expectedExpense: number
   realizedIncome: number
   realizedExpense: number
+  cashFlowIncome: number
+  cashFlowExpense: number
+  cashFlowNet: number
   netExpected: number
   netRealized: number
   economyTotal: number
+  unplannedNet: number
 }> {
   return projection.months.map((month) => ({
     label: month.label,
@@ -86,9 +90,13 @@ export function buildForecastPlanningSummaryRows(
     expectedExpense: month.expectedExpense,
     realizedIncome: month.realizedIncome,
     realizedExpense: month.realizedExpense,
+    cashFlowIncome: month.cashFlow.cashFlowIncome,
+    cashFlowExpense: month.cashFlow.cashFlowExpense,
+    cashFlowNet: month.cashFlow.cashFlowNet,
     netExpected: month.netExpected,
     netRealized: month.netRealized,
     economyTotal: computeMonthEconomyTotal(month.rows),
+    unplannedNet: month.cashFlow.unplannedNet,
   }))
 }
 

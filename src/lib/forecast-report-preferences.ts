@@ -22,8 +22,9 @@ function parseDisplayOptions(value: unknown): ForecastReportDisplayOptions | nul
 
   const options = { ...DEFAULT_FORECAST_REPORT_DISPLAY_OPTIONS }
   for (const key of keys) {
-    if (typeof raw[key] !== 'boolean') return null
-    options[key] = raw[key]
+    if (typeof raw[key] === 'boolean') {
+      options[key] = raw[key]
+    }
   }
 
   return options

@@ -276,11 +276,12 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
                 )}
                 {showAttachmentDetails && (
                   <td className="balancete-col-notes">
-                    {entry.attachmentNotes && (
+                    {entry.attachmentNotes?.trim() ? (
                       <p className="balancete-note-line">
-                        <span className="balancete-strong">Obs:</span> {entry.attachmentNotes}
+                        <span className="balancete-strong">Obs:</span>{' '}
+                        {entry.attachmentNotes.trim()}
                       </p>
-                    )}
+                    ) : null}
                     {entry.attachments.length > 0 ? (
                       <ul className="balancete-attachment-list">
                         {entry.attachments.map((attachment) => (
@@ -290,8 +291,8 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
                         ))}
                       </ul>
                     ) : (
-                      !entry.attachmentNotes && (
-                        <span className="balancete-muted">Sem comprovante anexado</span>
+                      !entry.attachmentNotes?.trim() && (
+                        <span className="balancete-muted">Sem observação ou comprovante</span>
                       )
                     )}
                   </td>

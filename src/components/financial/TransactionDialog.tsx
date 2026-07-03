@@ -414,33 +414,31 @@ export function TransactionDialog({
               )}
             />
 
-            {canManageAttachments ? (
-              <>
-                <FormField
-                  control={form.control}
-                  name="attachmentNotes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observações sobre comprovantes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Ex.: comprovante será anexado após recebimento da NF..."
-                          rows={2}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="attachmentNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Observações (comprovante / lançamento)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Ex.: PIX confirmado, NF pendente, detalhes do pagamento..."
+                      rows={2}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <TransactionAttachmentsPanel
-                  transactionId={transactionToEdit?.id ?? null}
-                  pendingFiles={pendingFiles}
-                  onPendingFilesChange={setPendingFiles}
-                  onStoredAttachmentCountChange={setStoredAttachmentCount}
-                />
-              </>
+            {canManageAttachments ? (
+              <TransactionAttachmentsPanel
+                transactionId={transactionToEdit?.id ?? null}
+                pendingFiles={pendingFiles}
+                onPendingFilesChange={setPendingFiles}
+                onStoredAttachmentCountChange={setStoredAttachmentCount}
+              />
             ) : null}
 
             <DialogFooter>

@@ -285,12 +285,13 @@ export async function fetchTransactionsForForecast(): Promise<
     category: string
     accountId?: string
     forecastItemId?: string
+    description: string
   }>
 > {
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('financial_transactions')
-    .select('id, date, type, amount, category, account_id, forecast_item_id')
+    .select('id, date, type, amount, category, account_id, forecast_item_id, description')
     .order('date', { ascending: false })
 
   if (error) throw error
@@ -304,6 +305,7 @@ export async function fetchTransactionsForForecast(): Promise<
       category: string
       account_id: string | null
       forecast_item_id: string | null
+      description: string
     }) => ({
       id: row.id,
       date: row.date,
@@ -312,6 +314,7 @@ export async function fetchTransactionsForForecast(): Promise<
       category: row.category,
       accountId: row.account_id ?? undefined,
       forecastItemId: row.forecast_item_id ?? undefined,
+      description: row.description,
     }),
   )
 }

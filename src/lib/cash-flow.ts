@@ -246,6 +246,90 @@ export function computeReconciliation(
   }
 }
 
+export interface AccountPeriodBreakdown {
+  accountId: string
+  accountName: string
+  periodIncome: number
+  periodExpense: number
+  netCashFlow: number
+}
+
+export interface AccountPeriodBreakdownResult {
+  rows: AccountPeriodBreakdown[]
+  totals: AccountPeriodBreakdown
+}
+
+/** Movimentação do período por conta (receitas, despesas e líquido). */
+export function computeAccountPeriodBreakdown(
+  accounts: BankAccount[],
+  periodTransactions: Transaction[],
+): AccountPeriodBreakdownResult {
+  const totalsByAccount = new Map<string, { income: number; expense: number }>()
+
+  for (const account of accounts) {
+    totalsByAccount.set(account.id, { income: 0, expense: 0 })
+  }
+
+  let orphanIncome = 0
+  let orphanExpense = 0
+
+  for (const transaction of periodTransactions) {
+    if (!transaction.accountId) {
+      if (transaction.type === 'Receita') orphanIncome += transaction.amount
+      else orphanExpense += transaction.amount
+      continue
+    }
+
+    const bucket = totalsByAccount.get(transaction.accountId) ?? {
+      income: 0,
+      expense: 0,
+    }
+    if (transaction.type === 'Receita') bucket.income += transaction.amount
+    else bucket.expense += transaction.amount
+    totalsByAccount.set(transaction.accountId, bucket)
+  }
+
+  const rows: AccountPeriodBreakdown[] = accounts.map((account) => {
+    const bucket = totalsByAccount.get(account.id) ?? { income: 0, expense: 0 }
+    return {
+      accountId: account.id,
+      accountName: account.name,
+      periodIncome: bucket.income,
+      periodExpense: bucket.expense,
+      netCashFlow: bucket.income - bucket.expense,
+    }
+  })
+
+  if (orphanIncome > 0 || orphanExpense > 0) {
+    rows.push({
+      accountId: 'unassigned',
+      accountName: 'Sem conta vinculada',
+      periodIncome: orphanIncome,
+      periodExpense: orphanExpense,
+      netCashFlow: orphanIncome - orphanExpense,
+    })
+  }
+
+  const totals = rows.reduce<AccountPeriodBreakdown>(
+    (accumulator, row) => ({
+      accountId: 'total',
+      accountName: 'TOTAL GERAL',
+      periodIncome: accumulator.periodIncome + row.periodIncome,
+      periodExpense: accumulator.periodExpense + row.periodExpense,
+      netCashFlow: accumulator.netCashFlow + row.netCashFlow,
+    }),
+    {
+      accountId: 'total',
+      accountName: 'TOTAL GERAL',
+      periodIncome: 0,
+      periodExpense: 0,
+      netCashFlow: 0,
+    },
+  )
+
+  return { rows, totals }
+}
+
 export function groupByCategory(
   transactions: Transaction[],
   type: 'Receita' | 'Despesa',

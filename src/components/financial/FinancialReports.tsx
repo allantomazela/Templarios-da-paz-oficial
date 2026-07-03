@@ -43,6 +43,10 @@ import {
 import { formatCurrencyBRL, formatDateBR, parseCalendarDate } from '@/lib/format-utils'
 import type { BankAccount, Transaction } from '@/lib/data'
 import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
+import {
+  computeAccountPeriodBreakdown,
+  type AccountPeriodBreakdownResult,
+} from '@/lib/cash-flow'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { isWithinInterval } from 'date-fns'
 import {
@@ -155,6 +159,10 @@ export function FinancialReports() {
   const hasIncome = incomeByCategory.length > 0
   const hasExpenses = expenseByCategory.length > 0
   const hasAnyData = hasIncome || hasExpenses
+
+  const accountBreakdown = useMemo<AccountPeriodBreakdownResult>(() => {
+    return computeAccountPeriodBreakdown(accounts, filteredTransactions)
+  }, [accounts, filteredTransactions])
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -300,6 +308,8 @@ export function FinancialReports() {
                   className={balance >= 0 ? 'text-green-600' : 'text-red-600'}
                 />
               </div>
+
+              <AccountBreakdownCard breakdown={accountBreakdown} periodLabel={periodLabel} />
             </>
           )}
 
@@ -312,6 +322,7 @@ export function FinancialReports() {
               periodLabel={periodLabel}
               incomeByCategory={incomeByCategory}
               expenseByCategory={expenseByCategory}
+              accountBreakdown={accountBreakdown}
               transactions={filteredTransactions}
               totalIncome={totalIncome}
               totalExpense={totalExpense}
@@ -395,10 +406,96 @@ function SummaryCard({ title, value, className }: SummaryCardProps) {
   )
 }
 
+interface AccountBreakdownCardProps {
+  breakdown: AccountPeriodBreakdownResult
+  periodLabel: string
+}
+
+function AccountBreakdownCard({ breakdown, periodLabel }: AccountBreakdownCardProps) {
+  const hasMovement = breakdown.rows.some(
+    (row) => row.periodIncome > 0 || row.periodExpense > 0,
+  )
+
+  if (!hasMovement) return null
+
+  return (
+    <Card className="no-print">
+      <CardHeader>
+        <CardTitle>Movimentação por conta</CardTitle>
+        <CardDescription>
+          Receitas, despesas e líquido do período — {periodLabel}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <AccountBreakdownTable breakdown={breakdown} />
+      </CardContent>
+    </Card>
+  )
+}
+
+interface AccountBreakdownTableProps {
+  breakdown: AccountPeriodBreakdownResult
+  compact?: boolean
+}
+
+function AccountBreakdownTable({ breakdown, compact = false }: AccountBreakdownTableProps) {
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Conta</TableHead>
+            <TableHead className="text-right">Receitas</TableHead>
+            <TableHead className="text-right">Despesas</TableHead>
+            <TableHead className="text-right">Líquido</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {breakdown.rows.map((row) => (
+            <TableRow key={row.accountId}>
+              <TableCell className={compact ? 'text-sm' : undefined}>{row.accountName}</TableCell>
+              <TableCell className="text-right text-green-600">
+                {formatCurrencyBRL(row.periodIncome)}
+              </TableCell>
+              <TableCell className="text-right text-red-600">
+                {formatCurrencyBRL(row.periodExpense)}
+              </TableCell>
+              <TableCell
+                className={`text-right font-medium ${
+                  row.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
+                {formatCurrencyBRL(row.netCashFlow)}
+              </TableCell>
+            </TableRow>
+          ))}
+          <TableRow className="bg-muted/50 font-semibold">
+            <TableCell>{breakdown.totals.accountName}</TableCell>
+            <TableCell className="text-right text-green-600">
+              {formatCurrencyBRL(breakdown.totals.periodIncome)}
+            </TableCell>
+            <TableCell className="text-right text-red-600">
+              {formatCurrencyBRL(breakdown.totals.periodExpense)}
+            </TableCell>
+            <TableCell
+              className={`text-right ${
+                breakdown.totals.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {formatCurrencyBRL(breakdown.totals.netCashFlow)}
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
 interface FinancialSummaryPrintDocumentProps {
   periodLabel: string
   incomeByCategory: { category: string; amount: number }[]
   expenseByCategory: { category: string; amount: number }[]
+  accountBreakdown: AccountPeriodBreakdownResult
   transactions: Transaction[]
   totalIncome: number
   totalExpense: number
@@ -409,11 +506,16 @@ function FinancialSummaryPrintDocument({
   periodLabel,
   incomeByCategory,
   expenseByCategory,
+  accountBreakdown,
   transactions,
   totalIncome,
   totalExpense,
   balance,
 }: FinancialSummaryPrintDocumentProps) {
+  const hasAccountMovement = accountBreakdown.rows.some(
+    (row) => row.periodIncome > 0 || row.periodExpense > 0,
+  )
+
   return (
     <div className="bg-white p-8 text-black">
       <ReportHeader
@@ -426,6 +528,13 @@ function FinancialSummaryPrintDocument({
         <PrintMetric label="Despesas" value={totalExpense} />
         <PrintMetric label="Saldo" value={balance} />
       </div>
+
+      {hasAccountMovement ? (
+        <div className="mb-8">
+          <h3 className="mb-2 text-sm font-bold">Movimentação por conta</h3>
+          <AccountBreakdownTable breakdown={accountBreakdown} compact />
+        </div>
+      ) : null}
 
       <div className="mb-8 grid grid-cols-2 gap-6">
         <PrintCategoryTable title="Receitas por categoria" items={incomeByCategory} />
@@ -440,6 +549,7 @@ function FinancialSummaryPrintDocument({
             <TableHead>Descrição</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Tipo</TableHead>
+            <TableHead>Observações</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow>
         </TableHeader>
@@ -450,6 +560,9 @@ function FinancialSummaryPrintDocument({
               <TableCell>{transaction.description}</TableCell>
               <TableCell>{transaction.category}</TableCell>
               <TableCell>{transaction.type}</TableCell>
+              <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs">
+                {transaction.attachmentNotes?.trim() || '—'}
+              </TableCell>
               <TableCell className="text-right">
                 {formatCurrencyBRL(transaction.amount)}
               </TableCell>

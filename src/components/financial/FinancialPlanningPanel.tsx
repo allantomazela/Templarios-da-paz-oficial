@@ -301,18 +301,60 @@ export function FinancialPlanningPanel() {
               meses).
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {projection.accountProjections.map((account) => (
-              <div key={account.accountId} className="rounded-lg border p-4">
-                <p className="font-medium">{account.accountName}</p>
-                <p className="text-sm text-muted-foreground">
-                  Atual: {formatCurrencyBRL(account.currentBalance)}
-                </p>
-                <p className="text-lg font-semibold">
-                  Projetado: {formatCurrencyBRL(account.projectedBalance)}
-                </p>
-              </div>
-            ))}
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Conta</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Saldo atual</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Receitas pend.</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Despesas pend.</th>
+                    <th className="pb-2 text-right font-medium">Saldo projetado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projection.accountProjections.map((account) => (
+                    <tr key={account.accountId} className="border-b last:border-0">
+                      <td className="py-2 pr-4 font-medium">{account.accountName}</td>
+                      <td className="py-2 pr-4 text-right">
+                        {formatCurrencyBRL(account.currentBalance)}
+                      </td>
+                      <td className="py-2 pr-4 text-right text-green-600">
+                        {formatCurrencyBRL(account.expectedIncomeRemaining)}
+                      </td>
+                      <td className="py-2 pr-4 text-right text-red-600">
+                        {formatCurrencyBRL(account.expectedExpenseRemaining)}
+                      </td>
+                      <td className="py-2 text-right font-semibold">
+                        {formatCurrencyBRL(account.projectedBalance)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-muted/40 font-semibold">
+                    <td className="py-2 pr-4">
+                      {projection.accountProjectionsTotals.accountName}
+                    </td>
+                    <td className="py-2 pr-4 text-right">
+                      {formatCurrencyBRL(projection.accountProjectionsTotals.currentBalance)}
+                    </td>
+                    <td className="py-2 pr-4 text-right text-green-600">
+                      {formatCurrencyBRL(
+                        projection.accountProjectionsTotals.expectedIncomeRemaining,
+                      )}
+                    </td>
+                    <td className="py-2 pr-4 text-right text-red-600">
+                      {formatCurrencyBRL(
+                        projection.accountProjectionsTotals.expectedExpenseRemaining,
+                      )}
+                    </td>
+                    <td className="py-2 text-right">
+                      {formatCurrencyBRL(projection.accountProjectionsTotals.projectedBalance)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -342,12 +384,23 @@ export function FinancialPlanningPanel() {
               </SelectContent>
             </Select>
             {selectedMonth ? (
-              <div className="text-sm text-muted-foreground">
-                Previsto líquido: {formatCurrencyBRL(selectedMonth.netExpected)} · Realizado
-                líquido: {formatCurrencyBRL(selectedMonth.netRealized)}
-                {selectedMonthEconomy > 0
-                  ? ` · Economia: ${formatCurrencyBRL(selectedMonthEconomy)}`
-                  : ''}
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>
+                  Previsto líquido: {formatCurrencyBRL(selectedMonth.netExpected)} · Realizado
+                  (planej.): {formatCurrencyBRL(selectedMonth.netRealized)}
+                  {selectedMonthEconomy > 0
+                    ? ` · Economia: ${formatCurrencyBRL(selectedMonthEconomy)}`
+                    : ''}
+                </p>
+                <p>
+                  Caixa do mês (fluxo): receitas{' '}
+                  {formatCurrencyBRL(selectedMonth.cashFlow.cashFlowIncome)} · despesas{' '}
+                  {formatCurrencyBRL(selectedMonth.cashFlow.cashFlowExpense)} · líquido{' '}
+                  {formatCurrencyBRL(selectedMonth.cashFlow.cashFlowNet)}
+                  {selectedMonth.cashFlow.unplannedNet !== 0
+                    ? ` · fora do previsto: ${formatCurrencyBRL(selectedMonth.cashFlow.unplannedNet)}`
+                    : ''}
+                </p>
               </div>
             ) : null}
           </div>

@@ -3,6 +3,7 @@ import {
   buildForecastProjection,
   computeMembershipExpectedForMonth,
   getExpectedAmountForItem,
+  isTransactionCountedInForecastPlanning,
   itemAppliesToMonth,
   isMembershipCategory,
 } from '@/lib/forecast-projection'
@@ -149,6 +150,7 @@ describe('forecast-projection', () => {
           category: 'Utilidades',
           accountId: 'acc-1',
           forecastItemId: 'item-luz',
+          description: 'Conta de luz junho',
         },
         {
           id: 'tx-2',
@@ -157,6 +159,16 @@ describe('forecast-projection', () => {
           amount: 150,
           category: 'Mensalidade',
           accountId: 'acc-1',
+          description: 'Mensalidade Irmão A',
+        },
+        {
+          id: 'tx-3',
+          date: '2026-06-05',
+          type: 'Receita',
+          amount: 80,
+          category: 'Doação',
+          accountId: 'acc-1',
+          description: 'Doação evento',
         },
       ],
     })
@@ -171,6 +183,34 @@ describe('forecast-projection', () => {
     expect(luzRow?.linkStatus).toBe('under')
 
     expect(membershipRow?.realizedAmount).toBe(150)
-    expect(projection.globalCurrentBalance).toBe(920)
+    expect(projection.globalCurrentBalance).toBe(1000)
+    expect(month.cashFlow.cashFlowIncome).toBe(230)
+    expect(month.cashFlow.cashFlowExpense).toBe(230)
+    expect(month.cashFlow.cashFlowNet).toBe(0)
+    expect(month.cashFlow.unplannedTransactions).toHaveLength(1)
+    expect(month.cashFlow.unplannedTransactions[0].id).toBe('tx-3')
+    expect(projection.accountProjectionsTotals.currentBalance).toBe(1000)
+  })
+
+  it('identifica transações fora do previsto', () => {
+    expect(
+      isTransactionCountedInForecastPlanning({
+        type: 'Receita',
+        category: 'Mensalidade',
+      }),
+    ).toBe(true)
+    expect(
+      isTransactionCountedInForecastPlanning({
+        type: 'Receita',
+        category: 'Doação',
+        forecastItemId: 'item-1',
+      }),
+    ).toBe(true)
+    expect(
+      isTransactionCountedInForecastPlanning({
+        type: 'Despesa',
+        category: 'Utilidades',
+      }),
+    ).toBe(false)
   })
 })

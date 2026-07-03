@@ -3,6 +3,7 @@ import type { BankAccount, Transaction } from '@/lib/data'
 import {
   buildCashFlowReport,
   computeAccountCashFlowSummary,
+  computeAccountPeriodBreakdown,
   computePeriodTotals,
   computeReconciliation,
   detectOrphanTransactions,
@@ -147,6 +148,22 @@ describe('reconciliation', () => {
     expect(reconciliation.isBalanced).toBe(true)
     expect(reconciliation.globalClosingBalance).toBe(7600)
     expect(reconciliation.orphanPeriodExpense).toBe(150)
+  })
+})
+
+describe('computeAccountPeriodBreakdown', () => {
+  it('agrupa receitas e despesas por conta com total geral', () => {
+    const inPeriod = filterTransactionsInPeriod(transactions, period, 'all')
+    const breakdown = computeAccountPeriodBreakdown(accounts, inPeriod)
+
+    expect(breakdown.rows).toHaveLength(3)
+    expect(breakdown.rows[0].periodIncome).toBe(500)
+    expect(breakdown.rows[0].periodExpense).toBe(200)
+    expect(breakdown.rows[1].periodIncome).toBe(1000)
+    expect(breakdown.rows[2].accountName).toBe('Sem conta vinculada')
+    expect(breakdown.totals.periodIncome).toBe(1500)
+    expect(breakdown.totals.periodExpense).toBe(350)
+    expect(breakdown.totals.netCashFlow).toBe(1150)
   })
 })
 

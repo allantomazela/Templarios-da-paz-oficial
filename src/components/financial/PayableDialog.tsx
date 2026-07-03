@@ -50,7 +50,7 @@ interface PayableDialogProps {
   payableToEdit: FinancialPayable | null
   categories: Category[]
   defaultValues?: Partial<PayableFormValues & { forecastItemId?: string }>
-  onSave: (data: PayableFormValues) => Promise<void>
+  onSave: (data: PayableFormValues) => Promise<boolean>
   saving?: boolean
 }
 
@@ -106,8 +106,8 @@ export function PayableDialog({
   }, [open, payableToEdit, defaultValues, form])
 
   const handleSubmit = async (values: PayableFormValues) => {
-    await onSave(values)
-    onOpenChange(false)
+    const saved = await onSave(values)
+    if (saved) onOpenChange(false)
   }
 
   return (

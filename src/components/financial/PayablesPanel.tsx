@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -29,8 +29,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { usePayablesList } from '@/hooks/use-payables-list'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
@@ -41,7 +41,6 @@ import {
 } from '@/lib/financial-payable-types'
 import {
   deleteFinancialPayable,
-  fetchFinancialPayables,
   saveFinancialPayable,
   updatePayablePayment,
 } from '@/lib/financial-payables-api'
@@ -75,9 +74,7 @@ export function PayablesPanel({
   createDefaults,
   onCreateDefaultsConsumed,
 }: PayablesPanelProps) {
-  const { toast } = useToast()
   const categories = useFinancialStore((state) => state.categories)
-  const [payables, setPayables] = useState<FinancialPayable[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open')
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -86,24 +83,9 @@ export function PayablesPanel({
   const [payableToDelete, setPayableToDelete] = useState<FinancialPayable | null>(null)
   const [pendingForecastItemId, setPendingForecastItemId] = useState<string | null>(null)
 
-  const loadPayables = useAsyncOperation(
-    async () => {
-      const data = await fetchFinancialPayables({
-        status: statusFilter === 'all' ? 'all' : statusFilter,
-      })
-      setPayables(data)
-    },
-    { showSuccessToast: false, errorMessage: 'Falha ao carregar contas a pagar.' },
-  )
-
-  const refresh = useCallback(() => {
-    void loadPayables.execute()
-  }, [loadPayables])
-
-  useEffect(() => {
-    void useFinancialStore.getState().fetchCategories()
-    refresh()
-  }, [refresh, statusFilter])
+  const { payables, loading: listLoading, reload } = usePayablesList(statusFilter)
+  const reloadRef = useRef(reload)
+  reloadRef.current = reload
 
   useEffect(() => {
     if (!createDefaults) return
@@ -143,8 +125,7 @@ export function PayablesPanel({
         selectedPayable?.id,
       )
       setPendingForecastItemId(null)
-      notifyFinancialDataChanged()
-      refresh()
+      await reloadRef.current()
     },
     {
       successMessage: 'Conta a pagar salva.',
@@ -157,7 +138,7 @@ export function PayablesPanel({
       if (!selectedPayable) return
       await updatePayablePayment(selectedPayable.id, values)
       notifyFinancialDataChanged()
-      refresh()
+      await reloadRef.current()
     },
     {
       successMessage: 'Pagamento atualizado.',
@@ -169,7 +150,7 @@ export function PayablesPanel({
     async (id: string) => {
       await deleteFinancialPayable(id)
       notifyFinancialDataChanged()
-      refresh()
+      await reloadRef.current()
     },
     {
       successMessage: 'Conta a pagar excluída.',
@@ -258,7 +239,7 @@ export function PayablesPanel({
             </Select>
           </div>
 
-          {loadPayables.loading && payables.length === 0 ? (
+          {listLoading && payables.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
               Carregando...
@@ -370,7 +351,10 @@ export function PayablesPanel({
         categories={categories}
         defaultValues={createDefaults}
         saving={saveOperation.loading}
-        onSave={(values) => saveOperation.execute(values)}
+        onSave={async (values) => {
+          const result = await saveOperation.execute(values)
+          return result !== null
+        }}
       />
 
       <PayablePaymentDialog
@@ -378,7 +362,10 @@ export function PayablesPanel({
         onOpenChange={setPaymentDialogOpen}
         payable={selectedPayable}
         saving={paymentOperation.loading}
-        onSave={(values) => paymentOperation.execute(values)}
+        onSave={async (values) => {
+          const result = await paymentOperation.execute(values)
+          return result !== null
+        }}
       />
 
       <AlertDialog

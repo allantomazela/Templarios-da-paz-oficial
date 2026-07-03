@@ -57,7 +57,7 @@ interface PayablePaymentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   payable: FinancialPayable | null
-  onSave: (data: PayablePaymentFormValues) => Promise<void>
+  onSave: (data: PayablePaymentFormValues) => Promise<boolean>
   saving?: boolean
 }
 
@@ -104,8 +104,8 @@ export function PayablePaymentDialog({
   }, [open, payable, form])
 
   const handleSubmit = async (values: PayablePaymentFormValues) => {
-    await onSave(values)
-    onOpenChange(false)
+    const saved = await onSave(values)
+    if (saved) onOpenChange(false)
   }
 
   if (!payable) return null

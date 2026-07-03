@@ -1,5 +1,9 @@
--- Correção: função update_updated_at_column() não existe neste projeto.
--- Use este script se a migração 20260703120000 falhou no trigger de updated_at.
+-- =============================================================================
+-- NÃO execute este arquivo sozinho se financial_payables ainda não existir.
+-- Use: supabase/migrations/APLICAR_FINANCIAL_PAYABLES.sql
+--   ou: supabase/migrations/20260703120000_financial_payables.sql (completo)
+-- Este script só corrige o trigger updated_at quando a tabela JÁ foi criada.
+-- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.update_financial_payables_updated_at()
 RETURNS TRIGGER AS $$

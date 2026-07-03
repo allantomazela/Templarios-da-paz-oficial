@@ -21,7 +21,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Scale,
+  Upload,
   Wrench,
 } from 'lucide-react'
 import type { BankAccount, Transaction } from '@/lib/data'
@@ -33,48 +33,41 @@ import {
   type AccountReconciliationWithReal,
 } from '@/lib/account-reconciliation'
 import { fetchLinkedMensalidadeTransactionIds, fetchMensalidadeLinkContext } from '@/lib/account-reconciliation-api'
-import {
-  applyAcknowledgmentsToAudit,
-  fetchReconciliationAlertAcknowledgments,
-} from '@/lib/account-reconciliation-acknowledgments'
 import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { cn } from '@/lib/utils'
-import { ReconciliationAuditAlerts } from '@/components/financial/ReconciliationAuditAlerts'
 import { MensalidadeBalanceHintPanel } from '@/components/financial/MensalidadeBalanceHintPanel'
 import { buildMensalidadeBalanceHints } from '@/lib/account-reconciliation-mensalidade-hints'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import type { AccountReconciliationAudit } from '@/lib/account-reconciliation'
+import { CashReconciliationSummaryCard } from '@/components/financial/CashReconciliationSummary'
+import { BankStatementImportDialog } from '@/components/financial/BankStatementImportDialog'
+import { DifferenceCausesPanel } from '@/components/financial/DifferenceCausesPanel'
+import { buildCashReconciliationSummary } from '@/lib/account-reconciliation-difference-causes'
+import type { BankStatementLine } from '@/lib/bank-statement-csv-import'
+import { Badge } from '@/components/ui/badge'
 
 const BALANCE_TOLERANCE = 0.01
+const REAL_BALANCE_STORAGE_KEY = 'cash-reconciliation-real-balances'
 
-function countAuditAlerts(audit: AccountReconciliationAudit): number {
-  const unlinkedErrors = audit.unlinkedMensalidade.filter(
-    (item) => item.reason === 'sem_vinculo_mensalidade',
-  )
-  const unlinkedReview = audit.unlinkedMensalidade.filter(
-    (item) => item.reason === 'possivel_duplicata',
-  )
-  const sameMonthErrors = audit.sameMonthMensalidadeGroups.filter(
-    (group) => group.kind === 'duplicate_same_reference',
-  )
-  const sameMonthReview = audit.sameMonthMensalidadeGroups.filter(
-    (group) => group.kind === 'late_same_brother' || group.kind === 'unknown',
-  )
+function loadStoredRealBalances(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(REAL_BALANCE_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Record<string, string>
+    return typeof parsed === 'object' && parsed !== null ? parsed : {}
+  } catch {
+    return {}
+  }
+}
 
-  return (
-    audit.orphanTransactions.length +
-    audit.duplicateGroups.length +
-    unlinkedErrors.length +
-    sameMonthErrors.length +
-    unlinkedReview.length +
-    sameMonthReview.length +
-    audit.sameMonthMensalidadeInformative.length
-  )
+function persistRealBalances(balances: Record<string, string>) {
+  try {
+    localStorage.setItem(REAL_BALANCE_STORAGE_KEY, JSON.stringify(balances))
+  } catch {
+    // ignore quota errors
+  }
 }
 
 function parseRealBalanceInput(value: string): number | null {
@@ -91,16 +84,21 @@ export function AccountReconciliationPanel() {
   const [mensalidadeLinkContext, setMensalidadeLinkContext] = useState<
     Awaited<ReturnType<typeof fetchMensalidadeLinkContext>> | null
   >(null)
-  const [ackRevision, setAckRevision] = useState(0)
-  const [acknowledgments, setAcknowledgments] = useState<
-    Awaited<ReturnType<typeof fetchReconciliationAlertAcknowledgments>>
-  >([])
-  const [realBalances, setRealBalances] = useState<Record<string, string>>({})
-  const [showAcknowledgedAlerts, setShowAcknowledgedAlerts] = useState(false)
+  const [realBalances, setRealBalances] = useState<Record<string, string>>(
+    () => loadStoredRealBalances(),
+  )
+  const [importedLinesByAccount, setImportedLinesByAccount] = useState<
+    Record<string, BankStatementLine[]>
+  >({})
+  const [importOpen, setImportOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
   const { toast } = useToast()
   const supabaseAny = supabase as any
+
+  useEffect(() => {
+    persistRealBalances(realBalances)
+  }, [realBalances])
 
   useEffect(() => {
     let isMounted = true
@@ -108,23 +106,21 @@ export function AccountReconciliationPanel() {
     const loadData = async () => {
       setLoading(true)
       try {
-        const [financialData, mensalidadeIds, linkContext, ackRows] = await Promise.all([
+        const [financialData, mensalidadeIds, linkContext] = await Promise.all([
           fetchFinancialAccountsAndTransactions(),
           fetchLinkedMensalidadeTransactionIds(),
           fetchMensalidadeLinkContext(),
-          fetchReconciliationAlertAcknowledgments().catch(() => []),
         ])
         if (!isMounted) return
         setAccounts(financialData.accounts)
         setTransactions(financialData.transactions)
         setLinkedIds(mensalidadeIds)
         setMensalidadeLinkContext(linkContext)
-        setAcknowledgments(ackRows)
       } catch (error) {
         console.error('Error loading reconciliation data:', error)
         toast({
           title: 'Erro',
-          description: 'Falha ao carregar dados de conferência.',
+          description: 'Falha ao carregar conferência de caixa.',
           variant: 'destructive',
         })
       } finally {
@@ -136,7 +132,7 @@ export function AccountReconciliationPanel() {
     return () => {
       isMounted = false
     }
-  }, [dataRevision, ackRevision, toast])
+  }, [dataRevision, toast])
 
   const details = useMemo(
     () => buildAccountReconciliationDetails(accounts, transactions),
@@ -151,7 +147,12 @@ export function AccountReconciliationPanel() {
     [details, realBalances],
   )
 
-  const rawAudit = useMemo(
+  const cashSummary = useMemo(
+    () => buildCashReconciliationSummary(enrichedDetails),
+    [enrichedDetails],
+  )
+
+  const audit = useMemo(
     () =>
       buildReconciliationAudit(
         transactions,
@@ -160,19 +161,6 @@ export function AccountReconciliationPanel() {
       ),
     [transactions, linkedIds, mensalidadeLinkContext],
   )
-
-  const audit = useMemo(
-    () =>
-      showAcknowledgedAlerts
-        ? rawAudit
-        : applyAcknowledgmentsToAudit(rawAudit, acknowledgments),
-    [rawAudit, acknowledgments, showAcknowledgedAlerts],
-  )
-
-  const hiddenAlertCount = useMemo(() => {
-    const filtered = applyAcknowledgmentsToAudit(rawAudit, acknowledgments)
-    return Math.max(0, countAuditAlerts(rawAudit) - countAuditAlerts(filtered))
-  }, [rawAudit, acknowledgments])
 
   const mensalidadeHints = useMemo(
     () =>
@@ -187,10 +175,6 @@ export function AccountReconciliationPanel() {
       ),
     [accounts, transactions, linkedIds, enrichedDetails],
   )
-
-  const handleAlertAcknowledged = () => {
-    setAckRevision((current) => current + 1)
-  }
 
   const accountNameById = useMemo(
     () => Object.fromEntries(accounts.map((account) => [account.id, account.name])),
@@ -215,20 +199,24 @@ export function AccountReconciliationPanel() {
     },
   )
 
-  const totalDifference = enrichedDetails.reduce((sum, detail) => {
-    if (detail.difference === null) return sum
-    return sum + Math.abs(detail.difference)
-  }, 0)
-
-  const accountsWithRealBalance = enrichedDetails.filter(
-    (detail) => detail.realBalance !== null,
-  ).length
-
-  const allMatched =
-    accountsWithRealBalance > 0 &&
-    enrichedDetails
-      .filter((detail) => detail.realBalance !== null)
-      .every((detail) => Math.abs(detail.difference ?? 0) < BALANCE_TOLERANCE)
+  const handleImportApply = (params: {
+    accountId: string
+    closingBalance: number
+    lines: BankStatementLine[]
+  }) => {
+    setRealBalances((current) => ({
+      ...current,
+      [params.accountId]: String(params.closingBalance),
+    }))
+    setImportedLinesByAccount((current) => ({
+      ...current,
+      [params.accountId]: params.lines,
+    }))
+    toast({
+      title: 'Extrato importado',
+      description: `Saldo de ${formatCurrencyBRL(params.closingBalance)} aplicado à conta.`,
+    })
+  }
 
   if (loading) {
     return (
@@ -243,40 +231,48 @@ export function AccountReconciliationPanel() {
 
   return (
     <div className="space-y-4">
+      <CashReconciliationSummaryCard summary={cashSummary} />
+
       <Card>
         <CardHeader>
-          <div className="flex items-start gap-3">
-            <Scale className="mt-0.5 h-5 w-5 text-muted-foreground" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <CardTitle className="text-base">Conferência com extrato bancário</CardTitle>
+              <CardTitle className="text-base">Contas e extrato</CardTitle>
               <CardDescription>
-                Informe o saldo real de cada conta no extrato. O sistema calcula a diferença e
-                sugere um saldo inicial para alinhar os valores.
+                Informe o saldo do extrato manualmente ou importe um CSV. O sistema
+                compara com os lançamentos e mostra o que pode explicar divergências.
               </CardDescription>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setImportOpen(true)}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Importar extrato CSV
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {accountsWithRealBalance > 0 && (
-            <Alert
-              className={cn(
-                allMatched
-                  ? 'border-green-200 bg-green-50 text-green-800'
-                  : 'border-amber-200 bg-amber-50 text-amber-800',
-              )}
-            >
-              {allMatched ? (
-                <CheckCircle2 className="h-4 w-4" />
-              ) : (
-                <AlertCircle className="h-4 w-4" />
-              )}
-              <AlertTitle>
-                {allMatched ? 'Contas conferidas' : 'Divergências encontradas'}
-              </AlertTitle>
+          {cashSummary.accountsWithExtrato > 0 && !cashSummary.allInformedMatched && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Divergência entre sistema e extrato</AlertTitle>
               <AlertDescription>
-                {allMatched
-                  ? 'Os saldos informados batem com o sistema em todas as contas preenchidas.'
-                  : `Diferença acumulada de ${formatCurrencyBRL(totalDifference)} entre sistema e extrato nas contas informadas.`}
+                Corrija lançamentos abaixo ou ajuste o saldo inicial sugerido. O
+                objetivo é o saldo do sistema bater com o extrato bancário.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {cashSummary.allInformedMatched && (
+            <Alert className="border-green-200 bg-green-50 text-green-800">
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>Caixa conferido</AlertTitle>
+              <AlertDescription>
+                Todas as contas com extrato informado estão alinhadas ao sistema.
               </AlertDescription>
             </Alert>
           )}
@@ -289,6 +285,7 @@ export function AccountReconciliationPanel() {
                   <TableHead className="text-right">Sistema</TableHead>
                   <TableHead className="w-[140px]">Extrato (R$)</TableHead>
                   <TableHead className="text-right">Diferença</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Saldo inicial</TableHead>
                   <TableHead className="text-right">Sugerido</TableHead>
                   <TableHead />
@@ -300,6 +297,9 @@ export function AccountReconciliationPanel() {
                     key={detail.accountId}
                     detail={detail}
                     realBalanceInput={realBalances[detail.accountId] ?? ''}
+                    hasImportedStatement={Boolean(
+                      importedLinesByAccount[detail.accountId]?.length,
+                    )}
                     onRealBalanceChange={(value) =>
                       setRealBalances((current) => ({
                         ...current,
@@ -324,30 +324,20 @@ export function AccountReconciliationPanel() {
 
       <MensalidadeBalanceHintPanel hints={mensalidadeHints} />
 
-      {(hiddenAlertCount > 0 || showAcknowledgedAlerts) && (
-        <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2">
-          <Checkbox
-            id="show-acknowledged-alerts"
-            checked={showAcknowledgedAlerts}
-            onCheckedChange={(checked) => setShowAcknowledgedAlerts(checked === true)}
-          />
-          <Label htmlFor="show-acknowledged-alerts" className="text-sm font-normal cursor-pointer">
-            Mostrar alertas já verificados
-            {hiddenAlertCount > 0 && !showAcknowledgedAlerts && (
-              <span className="text-muted-foreground">
-                {' '}
-                ({hiddenAlertCount} oculto{hiddenAlertCount === 1 ? '' : 's'})
-              </span>
-            )}
-          </Label>
-        </div>
-      )}
-
-      <ReconciliationAuditAlerts
+      <DifferenceCausesPanel
         audit={audit}
+        enrichedDetails={enrichedDetails}
         accountNameById={accountNameById}
         linkedMensalidadeIds={linkedIds}
-        onAlertAcknowledged={handleAlertAcknowledged}
+        onResolved={() => useFinancialStore.getState().notifyFinancialDataChanged()}
+      />
+
+      <BankStatementImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        accounts={accounts}
+        transactions={transactions}
+        onApply={handleImportApply}
       />
     </div>
   )
@@ -356,6 +346,7 @@ export function AccountReconciliationPanel() {
 interface ReconciliationRowProps {
   detail: AccountReconciliationWithReal
   realBalanceInput: string
+  hasImportedStatement: boolean
   onRealBalanceChange: (value: string) => void
   onApply: () => void
   applying: boolean
@@ -364,18 +355,28 @@ interface ReconciliationRowProps {
 function ReconciliationRow({
   detail,
   realBalanceInput,
+  hasImportedStatement,
   onRealBalanceChange,
   onApply,
   applying,
 }: ReconciliationRowProps) {
   const hasDifference =
     detail.difference !== null && Math.abs(detail.difference) >= BALANCE_TOLERANCE
+  const isMatched =
+    detail.realBalance !== null && !hasDifference
   const suggestedNegative =
     detail.suggestedInitialBalance !== null && detail.suggestedInitialBalance < 0
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{detail.accountName}</TableCell>
+      <TableCell className="font-medium">
+        <div className="flex flex-col gap-1">
+          <span>{detail.accountName}</span>
+          {hasImportedStatement ? (
+            <span className="text-xs text-muted-foreground">CSV importado</span>
+          ) : null}
+        </div>
+      </TableCell>
       <TableCell className="text-right">{formatCurrencyBRL(detail.systemBalance)}</TableCell>
       <TableCell>
         <Input
@@ -391,12 +392,19 @@ function ReconciliationRow({
         className={cn(
           'text-right',
           hasDifference && 'text-amber-600 font-medium',
-          detail.difference !== null &&
-            Math.abs(detail.difference) < BALANCE_TOLERANCE &&
-            'text-green-600',
+          isMatched && 'text-green-600',
         )}
       >
         {detail.difference === null ? '—' : formatCurrencyBRL(detail.difference)}
+      </TableCell>
+      <TableCell>
+        {detail.realBalance === null ? (
+          <Badge variant="secondary">Pendente</Badge>
+        ) : isMatched ? (
+          <Badge className="bg-green-600 hover:bg-green-700">Conferida</Badge>
+        ) : (
+          <Badge variant="destructive">Divergente</Badge>
+        )}
       </TableCell>
       <TableCell className="text-right text-muted-foreground">
         {formatCurrencyBRL(detail.initialBalance)}

@@ -56,6 +56,8 @@ interface ReconciliationAuditAlertsProps {
   accountNameById: Record<string, string>
   linkedMensalidadeIds: Set<string>
   onAlertAcknowledged: () => void
+  /** Modo simplificado: só causas de diferença, sem abas nem informativos. */
+  variant?: 'full' | 'difference-causes'
 }
 
 export function ReconciliationAuditAlerts({
@@ -63,6 +65,7 @@ export function ReconciliationAuditAlerts({
   accountNameById,
   linkedMensalidadeIds,
   onAlertAcknowledged,
+  variant = 'full',
 }: ReconciliationAuditAlertsProps) {
   const unlinkedErrors = audit.unlinkedMensalidade.filter(
     (item) => item.reason === 'sem_vinculo_mensalidade',
@@ -95,6 +98,92 @@ export function ReconciliationAuditAlerts({
 
   const defaultTab =
     errorCount > 0 ? 'errors' : reviewCount > 0 ? 'review' : 'info'
+
+  const errorsContent = (
+    <>
+      {audit.orphanTransactions.length > 0 && (
+        <AlertSection
+          title="Transações sem conta"
+          description="Não entram no saldo até serem vinculadas a uma conta."
+        >
+          {audit.orphanTransactions.slice(0, 10).map((transaction) => (
+            <AuditTransactionRow
+              key={transaction.id}
+              transaction={transaction}
+              alertType="orphan_transaction"
+              alertKey={transaction.id}
+              onAlertAcknowledged={onAlertAcknowledged}
+              allowAcknowledge={false}
+            />
+          ))}
+        </AlertSection>
+      )}
+
+      {audit.duplicateGroups.length > 0 && (
+        <AlertSection
+          title="Lançamentos duplicados"
+          description="Mesma conta, data, tipo e valor — mantenha um e exclua as cópias."
+        >
+          {audit.duplicateGroups.slice(0, 8).map((group) => (
+            <DuplicateGroupResolver
+              key={group.key}
+              groupKey={group.key}
+              alertType="duplicate_group"
+              accountName={accountNameById[group.accountId ?? ''] ?? 'Sem conta'}
+              dateLabel={group.date}
+              amount={group.amount}
+              type={group.type}
+              transactions={group.transactions}
+              linkedMensalidadeIds={linkedMensalidadeIds}
+              onAlertAcknowledged={onAlertAcknowledged}
+              allowAcknowledge={false}
+            />
+          ))}
+        </AlertSection>
+      )}
+
+      {unlinkedErrors.length > 0 && (
+        <AlertSection
+          title="Mensalidades sem vínculo"
+          description="Receitas de Mensalidade que explicam a diferença de saldo — vincule no cronograma ou exclua se for duplicata."
+        >
+          {unlinkedErrors.slice(0, 15).map((item) => (
+            <AuditTransactionRow
+              key={item.transaction.id}
+              transaction={item.transaction}
+              accountName={accountNameById[item.transaction.accountId ?? '']}
+              badge="Sem vínculo"
+              alertType="unlinked_mensalidade"
+              alertKey={item.transaction.id}
+              onAlertAcknowledged={onAlertAcknowledged}
+              allowAcknowledge={false}
+            />
+          ))}
+        </AlertSection>
+      )}
+
+      {sameMonthErrors.length > 0 && (
+        <AlertSection
+          title="Mensalidade repetida (mesmo irmão e referência)"
+          description="Mesmo irmão com a mesma referência MM/AAAA lançada mais de uma vez."
+        >
+          {sameMonthErrors.slice(0, 8).map((group) => (
+            <SameMonthGroupResolver
+              key={group.key}
+              group={group}
+              accountName={accountNameById[group.accountId] ?? 'Sem conta'}
+              linkedMensalidadeIds={linkedMensalidadeIds}
+              onAlertAcknowledged={onAlertAcknowledged}
+            />
+          ))}
+        </AlertSection>
+      )}
+    </>
+  )
+
+  if (variant === 'difference-causes') {
+    return <div className="space-y-6">{errorsContent}</div>
+  }
 
   return (
     <Card>
@@ -142,85 +231,7 @@ export function ReconciliationAuditAlerts({
             {errorCount === 0 ? (
               <EmptyTabMessage message="Nenhum erro real pendente." />
             ) : (
-              <>
-                {audit.orphanTransactions.length > 0 && (
-                  <AlertSection
-                    title="Transações sem conta"
-                    description="Não entram no saldo até serem vinculadas a uma conta."
-                  >
-                    {audit.orphanTransactions.slice(0, 10).map((transaction) => (
-                      <AuditTransactionRow
-                        key={transaction.id}
-                        transaction={transaction}
-                        alertType="orphan_transaction"
-                        alertKey={transaction.id}
-                        onAlertAcknowledged={onAlertAcknowledged}
-                        allowAcknowledge={false}
-                      />
-                    ))}
-                  </AlertSection>
-                )}
-
-                {audit.duplicateGroups.length > 0 && (
-                  <AlertSection
-                    title="Lançamentos duplicados"
-                    description="Mesma conta, data, tipo e valor — mantenha um e exclua as cópias."
-                  >
-                    {audit.duplicateGroups.slice(0, 8).map((group) => (
-                      <DuplicateGroupResolver
-                        key={group.key}
-                        groupKey={group.key}
-                        alertType="duplicate_group"
-                        accountName={accountNameById[group.accountId ?? ''] ?? 'Sem conta'}
-                        dateLabel={group.date}
-                        amount={group.amount}
-                        type={group.type}
-                        transactions={group.transactions}
-                        linkedMensalidadeIds={linkedMensalidadeIds}
-                        onAlertAcknowledged={onAlertAcknowledged}
-                        allowAcknowledge={false}
-                      />
-                    ))}
-                  </AlertSection>
-                )}
-
-                {unlinkedErrors.length > 0 && (
-                  <AlertSection
-                    title="Mensalidades sem vínculo"
-                    description="Receitas de Mensalidade sem pagamento registrado — provável lançamento manual indevido."
-                  >
-                    {unlinkedErrors.slice(0, 15).map((item) => (
-                      <AuditTransactionRow
-                        key={item.transaction.id}
-                        transaction={item.transaction}
-                        accountName={accountNameById[item.transaction.accountId ?? '']}
-                        badge="Sem vínculo"
-                        alertType="unlinked_mensalidade"
-                        alertKey={item.transaction.id}
-                        onAlertAcknowledged={onAlertAcknowledged}
-                        allowAcknowledge={false}
-                      />
-                    ))}
-                  </AlertSection>
-                )}
-
-                {sameMonthErrors.length > 0 && (
-                  <AlertSection
-                    title="Mensalidade repetida (mesmo irmão e referência)"
-                    description="Mesmo irmão com a mesma referência MM/AAAA lançada mais de uma vez."
-                  >
-                    {sameMonthErrors.slice(0, 8).map((group) => (
-                      <SameMonthGroupResolver
-                        key={group.key}
-                        group={group}
-                        accountName={accountNameById[group.accountId] ?? 'Sem conta'}
-                        linkedMensalidadeIds={linkedMensalidadeIds}
-                        onAlertAcknowledged={onAlertAcknowledged}
-                      />
-                    ))}
-                  </AlertSection>
-                )}
-              </>
+              errorsContent
             )}
           </TabsContent>
 

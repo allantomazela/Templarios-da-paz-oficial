@@ -80,12 +80,16 @@ export function buildMensalidadeBalanceHints(
     })
   }
 
-  return hints.sort((left, right) => {
-    if (left.matchesDifference !== right.matchesDifference) {
-      return left.matchesDifference ? -1 : 1
-    }
-    return right.systemOverReal - left.systemOverReal
-  })
+  return hints
+    .filter((hint) => hint.matchesDifference)
+    .map((hint) => ({
+      ...hint,
+      unlinkedTransactions: hint.unlinkedTransactions.filter(({ transaction }) =>
+        Math.abs(transaction.amount - hint.systemOverReal) <= BALANCE_TOLERANCE,
+      ),
+    }))
+    .filter((hint) => hint.unlinkedTransactions.length > 0)
+    .sort((left, right) => right.systemOverReal - left.systemOverReal)
 }
 
 export function canAcknowledgeReconciliationAlert(

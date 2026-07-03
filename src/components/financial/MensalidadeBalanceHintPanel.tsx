@@ -22,12 +22,11 @@ export function MensalidadeBalanceHintPanel({ hints }: MensalidadeBalanceHintPan
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2 text-amber-900 dark:text-amber-200">
           <AlertCircle className="h-4 w-4" />
-          Possível mensalidade duplicada no saldo
+          Mensalidade que explica a diferença
         </CardTitle>
         <CardDescription className="text-amber-800/90 dark:text-amber-300/90">
-          O sistema está acima do extrato e há receitas de Mensalidade sem vínculo no
-          cronograma. Exclua o lançamento manual extra — marcar alerta como verificado{' '}
-          <strong>não corrige</strong> o saldo.
+          O valor abaixo bate com a diferença entre sistema e extrato. Vincule no
+          cronograma de Mensalidades ou exclua se for lançamento duplicado.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -48,8 +47,8 @@ export function MensalidadeBalanceHintPanel({ hints }: MensalidadeBalanceHintPan
                     {' — '}
                     {formatCurrencyBRL(transaction.amount)}
                     <span className="block text-xs text-muted-foreground mt-0.5">
-                      Sem vínculo no cronograma de Mensalidades — candidata a exclusão nos
-                      Alertas de auditoria (aba Erros reais).
+                      Valor coincide com a divergência — use Mensalidades para vincular
+                      ou exclua a receita duplicada em Receitas.
                     </span>
                   </li>
                 ))}

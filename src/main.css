@@ -678,6 +678,47 @@ h6 {
   word-break: break-word;
 }
 
+/* Razão analítico — linhas mais compactas (só esta tabela) */
+.balancete-table-ledger {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.balancete-table-ledger th,
+.balancete-table-ledger td {
+  padding: 0.2rem 0.35rem;
+  vertical-align: middle;
+}
+
+.balancete-table-ledger p,
+.balancete-table-ledger .balancete-note-line {
+  margin: 0;
+  line-height: 1.2;
+  font-size: inherit;
+  letter-spacing: normal;
+}
+
+.balancete-table-ledger .balancete-attachment-list {
+  margin: 0.1rem 0 0;
+  padding-left: 0.75rem;
+  line-height: 1.2;
+}
+
+.balancete-table-ledger .balancete-attachment-list li {
+  margin: 0;
+}
+
+.balancete-ledger-section .balancete-subsection-title {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+}
+
+.balancete-ledger-section {
+  margin-bottom: 0.85rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 .balancete-credit {
   color: #15803d;
 }
@@ -700,7 +741,7 @@ h6 {
 }
 
 .balancete-note-line {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
 }
 
 .balancete-attachment-list {
@@ -714,11 +755,6 @@ h6 {
   border-top: 1px solid #d1d5db;
   font-size: 0.6875rem;
   color: #6b7280;
-}
-
-.balancete-ledger-section {
-  break-inside: avoid;
-  page-break-inside: avoid;
 }
 
 @media print {
@@ -765,6 +801,16 @@ h6 {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  #financial-balancete-container .balancete-table-ledger {
+    font-size: 7pt;
+    line-height: 1.15;
+  }
+
+  #financial-balancete-container .balancete-table-ledger th,
+  #financial-balancete-container .balancete-table-ledger td {
+    padding: 1.5pt 3pt;
   }
 
   #financial-balancete-container .balancete-credit,

@@ -282,10 +282,10 @@ function LedgerSection({ section, typeFilter, showAttachmentDetails }: LedgerSec
                 {showAttachmentDetails && (
                   <td className="balancete-col-notes">
                     {entry.attachmentNotes?.trim() ? (
-                      <p className="balancete-note-line">
+                      <span className="balancete-note-line">
                         <span className="balancete-strong">Obs:</span>{' '}
                         {entry.attachmentNotes.trim()}
-                      </p>
+                      </span>
                     ) : null}
                     {entry.attachments.length > 0 ? (
                       <ul className="balancete-attachment-list">

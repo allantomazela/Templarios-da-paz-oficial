@@ -216,8 +216,9 @@ export function CashFlowReport() {
           <CheckCircle2 className="h-4 w-4 text-green-700" />
           <AlertTitle className="text-green-800">Conferência ok</AlertTitle>
           <AlertDescription className="text-green-700">
-            A soma dos saldos por conta ({formatCurrencyBRL(reconciliation.sumOfAccountClosingBalances)})
-            corresponde ao saldo global ({formatCurrencyBRL(reconciliation.globalClosingBalance)}).
+            A soma dos saldos por conta ao fim do período (
+            {formatCurrencyBRL(reconciliation.sumOfAccountClosingBalances)}) corresponde ao saldo
+            consolidado ({formatCurrencyBRL(reconciliation.periodEndGlobalBalance)}).
           </AlertDescription>
         </Alert>
       ) : (
@@ -225,8 +226,8 @@ export function CashFlowReport() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Divergência detectada</AlertTitle>
           <AlertDescription>
-            Diferença de {formatCurrencyBRL(reconciliation.difference)} entre saldo global e
-            soma das contas. Verifique transações sem conta vinculada.
+            Diferença de {formatCurrencyBRL(reconciliation.difference)} entre o saldo consolidado ao
+            fim do período e a soma das contas. Verifique transações sem conta vinculada.
           </AlertDescription>
         </Alert>
       )}
@@ -487,8 +488,8 @@ export function CashFlowReport() {
             className={periodTotals.netCashFlow >= 0 ? 'text-blue-700' : 'text-red-700'}
           />
           <PrintMetric
-            label="Saldo Global"
-            value={reconciliation.globalClosingBalance}
+            label="Saldo fim do período"
+            value={reconciliation.periodEndGlobalBalance}
             className="text-black"
           />
         </div>

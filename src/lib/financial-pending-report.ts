@@ -36,10 +36,20 @@ export function computePendingAmount(
   return Math.max(0, expectedAmount - realizedAmount)
 }
 
+export interface BuildPendingItemsFromForecastRowsOptions {
+  /** Evita dupla contagem quando mensalidades vêm do cronograma por irmão. */
+  excludeMembershipRows?: boolean
+}
+
 export function buildPendingItemsFromForecastRows(
   rows: ForecastComparisonRow[],
+  options: BuildPendingItemsFromForecastRowsOptions = {},
 ): PendingFinancialReportItem[] {
-  return rows
+  const filteredRows = options.excludeMembershipRows
+    ? rows.filter((row) => row.kind !== 'membership')
+    : rows
+
+  return filteredRows
     .map((row) => {
       const amount = computePendingAmount(row.expectedAmount, row.realizedAmount)
       if (amount <= PENDING_TOLERANCE) return null
@@ -111,10 +121,23 @@ function membershipStatusLabel(
   }
 }
 
+export function buildCombinedPendingFinancialItems(
+  forecastRows: ForecastComparisonRow[],
+  schedules: BrotherMembershipSchedule[],
+): PendingFinancialReportItem[] {
+  return mergePendingFinancialItems(
+    buildPendingItemsFromForecastRows(forecastRows, {
+      excludeMembershipRows: true,
+    }),
+    buildPendingItemsFromMembershipSchedules(schedules),
+  )
+}
+
 export function filterPendingItemsByDueDateRange(
   items: PendingFinancialReportItem[],
-  range: CashFlowPeriod,
+  range: CashFlowPeriod | null,
 ): PendingFinancialReportItem[] {
+  if (!range) return items
   return items.filter((item) => isDateInFinancialReportRange(item.dueDate, range))
 }
 

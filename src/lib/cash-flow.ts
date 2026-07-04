@@ -33,7 +33,10 @@ export interface AccountCashFlowSummary {
 
 export interface CashFlowReconciliation {
   isBalanced: boolean
+  /** Saldo acumulado atual (todas as transações). */
   globalClosingBalance: number
+  /** Saldo acumulado até o fim do período analisado. */
+  periodEndGlobalBalance: number
   sumOfAccountClosingBalances: number
   difference: number
   orphanTransactions: Transaction[]
@@ -196,6 +199,19 @@ export function detectOrphanTransactions(transactions: Transaction[]): Transacti
   return transactions.filter((transaction) => !transaction.accountId)
 }
 
+export function filterTransactionsOnOrBeforePeriodEnd(
+  transactions: Transaction[],
+  period: CashFlowPeriod,
+): Transaction[] {
+  const periodEndTimestamp = period.end.getTime()
+
+  return transactions.filter((transaction) => {
+    const timestamp = getCalendarDateTimestamp(transaction.date)
+    if (!timestamp) return false
+    return timestamp <= periodEndTimestamp
+  })
+}
+
 export function computeReconciliation(
   accounts: BankAccount[],
   allTransactions: Transaction[],
@@ -204,11 +220,15 @@ export function computeReconciliation(
   periodTotals: PeriodTotals,
 ): CashFlowReconciliation {
   const globalClosingBalance = computeGlobalBalance(accounts, allTransactions)
+  const periodEndGlobalBalance = computeGlobalBalance(
+    accounts,
+    filterTransactionsOnOrBeforePeriodEnd(allTransactions, period),
+  )
   const sumOfAccountClosingBalances = accountSummaries.reduce(
     (sum, row) => sum + row.closingBalance,
     0,
   )
-  const difference = Math.abs(globalClosingBalance - sumOfAccountClosingBalances)
+  const difference = Math.abs(periodEndGlobalBalance - sumOfAccountClosingBalances)
 
   const orphans = detectOrphanTransactions(allTransactions)
   const orphanPeriodTransactions = orphans.filter((transaction) =>
@@ -229,6 +249,7 @@ export function computeReconciliation(
   return {
     isBalanced: difference < BALANCE_TOLERANCE,
     globalClosingBalance,
+    periodEndGlobalBalance,
     sumOfAccountClosingBalances,
     difference,
     orphanTransactions: orphans,

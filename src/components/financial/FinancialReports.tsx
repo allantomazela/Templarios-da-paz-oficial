@@ -40,7 +40,7 @@ import {
   type AccountPeriodBreakdownResult,
 } from '@/lib/cash-flow'
 import useFinancialStore from '@/stores/useFinancialStore'
-import { isWithinInterval } from 'date-fns'
+import { filterTransactionsInPeriod } from '@/lib/cash-flow'
 import {
   DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
   getFinancialReportPeriodLabelFromConfig,
@@ -106,15 +106,7 @@ export function FinancialReports() {
 
   const filteredTransactions = useMemo(() => {
     if (!dateRange) return transactions
-
-    return transactions.filter((transaction) => {
-      const transactionDate = parseCalendarDate(transaction.date)
-      if (!transactionDate) return false
-      return isWithinInterval(transactionDate, {
-        start: dateRange.start,
-        end: dateRange.end,
-      })
-    })
+    return filterTransactionsInPeriod(transactions, dateRange, 'all')
   }, [transactions, dateRange])
 
   const incomeByCategory = useMemo(() => {

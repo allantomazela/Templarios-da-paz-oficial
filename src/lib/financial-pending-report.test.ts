@@ -3,6 +3,7 @@ import { endOfDay, startOfDay } from 'date-fns'
 import type { ForecastComparisonRow } from '@/lib/forecast-types'
 import type { BrotherMembershipSchedule } from '@/lib/membership-schedule'
 import {
+  buildCombinedPendingFinancialItems,
   buildPendingItemsFromForecastRows,
   buildPendingItemsFromMembershipSchedules,
   computePendingAmount,
@@ -115,7 +116,94 @@ describe('financial-pending-report', () => {
     })
   })
 
-  it('filters pending items by due date range and summarizes totals', () => {
+  it('não duplica mensalidades ao combinar planejamento e cronograma', () => {
+    const forecastRows: ForecastComparisonRow[] = [
+      {
+        id: 'membership-2026-4',
+        kind: 'membership',
+        type: 'Receita',
+        year: 2026,
+        month: 4,
+        dueDate: '2026-04-10',
+        description: 'Mensalidades (cronograma)',
+        categoryName: 'Mensalidade',
+        expectedAmount: 300,
+        realizedAmount: 0,
+        variance: 300,
+        linkStatus: 'pending',
+        hasLinkedTransactions: false,
+      },
+    ]
+
+    const schedules: BrotherMembershipSchedule[] = [
+      {
+        brotherId: 'bro-1',
+        brotherName: 'João',
+        entries: [
+          {
+            year: 2026,
+            month: 4,
+            dueDate: '2026-04-05',
+            periodLabel: 'Abr/2026',
+            expectedAmount: 150,
+            paidAmount: 0,
+            remainingAmount: 150,
+            pendingAmount: 150,
+            paymentsCount: 0,
+            status: 'upcoming',
+          },
+        ],
+        overdueEntries: [],
+        openEntries: [],
+        paidEntries: [],
+        totalPaid: 0,
+        totalOverdue: 0,
+        totalOpen: 150,
+        overdueMonthCount: 0,
+        isUpToDate: false,
+      },
+      {
+        brotherId: 'bro-2',
+        brotherName: 'Maria',
+        entries: [
+          {
+            year: 2026,
+            month: 4,
+            dueDate: '2026-04-05',
+            periodLabel: 'Abr/2026',
+            expectedAmount: 150,
+            paidAmount: 0,
+            remainingAmount: 150,
+            pendingAmount: 150,
+            paymentsCount: 0,
+            status: 'upcoming',
+          },
+        ],
+        overdueEntries: [],
+        openEntries: [],
+        paidEntries: [],
+        totalPaid: 0,
+        totalOverdue: 0,
+        totalOpen: 150,
+        overdueMonthCount: 0,
+        isUpToDate: false,
+      },
+    ]
+
+    const duplicated = mergePendingFinancialItems(
+      buildPendingItemsFromForecastRows(forecastRows),
+      buildPendingItemsFromMembershipSchedules(schedules),
+    )
+    const combined = buildCombinedPendingFinancialItems(forecastRows, schedules)
+
+    expect(duplicated).toHaveLength(3)
+    expect(summarizePendingFinancialItems(duplicated).totalReceivable).toBe(600)
+
+    expect(combined).toHaveLength(2)
+    expect(summarizePendingFinancialItems(combined).totalReceivable).toBe(300)
+  })
+
+  it('mantém todos os pendentes quando o período é aberto (all)', () => {
     const items = mergePendingFinancialItems(
       [
         {
@@ -148,6 +236,9 @@ describe('financial-pending-report', () => {
 
     expect(filtered).toHaveLength(1)
     expect(filtered[0].id).toBe('a')
+
+    const allPeriod = filterPendingItemsByDueDateRange(items, null)
+    expect(allPeriod).toHaveLength(2)
 
     const summary = summarizePendingFinancialItems(items)
     expect(summary).toEqual({

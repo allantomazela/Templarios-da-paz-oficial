@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { format, isWithinInterval } from 'date-fns'
+import { format } from 'date-fns'
 import { useReactToPrint } from 'react-to-print'
 import { Download, Loader2, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -48,10 +48,8 @@ import {
   type FinancialReportPeriodConfig,
 } from '@/lib/financial-report-period'
 import {
-  buildPendingItemsFromForecastRows,
-  buildPendingItemsFromMembershipSchedules,
+  buildCombinedPendingFinancialItems,
   filterPendingItemsByDueDateRange,
-  mergePendingFinancialItems,
   summarizePendingFinancialItems,
 } from '@/lib/financial-pending-report'
 import {
@@ -62,7 +60,6 @@ import {
   type FinancialCustomReportContentMode,
   type FinancialCustomReportDisplayOptions,
 } from '@/lib/financial-custom-report-display'
-import { parseCalendarDate } from '@/lib/format-utils'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { FinancialReportPeriodSelector } from '@/components/financial/FinancialReportPeriodSelector'
 import { FinancialCustomReportContentOptions } from '@/components/financial/FinancialCustomReportContentOptions'
@@ -204,11 +201,9 @@ export function FinancialCustomReport({
   }, [dataRevision, storeAccounts, toast])
 
   const pendingItems = useMemo(() => {
-    if (!dateRange) return []
-
-    const items = mergePendingFinancialItems(
-      buildPendingItemsFromForecastRows(forecastRows),
-      buildPendingItemsFromMembershipSchedules(membershipSchedules),
+    const items = buildCombinedPendingFinancialItems(
+      forecastRows,
+      membershipSchedules,
     )
 
     return filterPendingItemsByDueDateRange(items, dateRange)
@@ -220,22 +215,11 @@ export function FinancialCustomReport({
   )
 
   const filteredTransactions = useMemo(() => {
-    let rows = transactions
-
-    if (dateRange) {
-      rows = rows.filter((transaction) => {
-        const transactionDate = parseCalendarDate(transaction.date)
-        if (!transactionDate) return false
-        return isWithinInterval(transactionDate, {
-          start: dateRange.start,
-          end: dateRange.end,
-        })
-      })
-    }
-
-    if (accountFilter !== 'all') {
-      rows = rows.filter((transaction) => transaction.accountId === accountFilter)
-    }
+    let rows = dateRange
+      ? filterTransactionsInPeriod(transactions, dateRange, accountFilter)
+      : accountFilter === 'all'
+        ? transactions
+        : transactions.filter((transaction) => transaction.accountId === accountFilter)
 
     if (typeFilter !== 'all') {
       rows = rows.filter((transaction) => transaction.type === typeFilter)
@@ -297,19 +281,13 @@ export function FinancialCustomReport({
   }, [filteredTransactions])
 
   const accountBreakdown = useMemo(() => {
-    const periodTransactions = dateRange
-      ? filterTransactionsInPeriod(transactions, dateRange, accountFilter)
-      : accountFilter === 'all'
-        ? transactions
-        : transactions.filter((transaction) => transaction.accountId === accountFilter)
-
     const filteredAccounts =
       accountFilter === 'all'
         ? accounts
         : accounts.filter((account) => account.id === accountFilter)
 
-    return computeAccountPeriodBreakdown(filteredAccounts, periodTransactions)
-  }, [accounts, transactions, dateRange, accountFilter])
+    return computeAccountPeriodBreakdown(filteredAccounts, filteredTransactions)
+  }, [accounts, accountFilter, filteredTransactions])
 
   const realizedTotals = useMemo(() => {
     const totalIncome = filteredTransactions

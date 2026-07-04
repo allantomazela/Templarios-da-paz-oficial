@@ -132,7 +132,7 @@ describe('reconciliation', () => {
     expect(detectOrphanTransactions(transactions)).toHaveLength(1)
   })
 
-  it('mantém saldo global igual à soma dos saldos por conta', () => {
+  it('mantém saldo global igual à soma dos saldos por conta no fim do período', () => {
     const summaries = accounts.map((account) =>
       computeAccountCashFlowSummary(account, transactions, period),
     )
@@ -147,7 +147,46 @@ describe('reconciliation', () => {
 
     expect(reconciliation.isBalanced).toBe(true)
     expect(reconciliation.globalClosingBalance).toBe(7600)
+    expect(reconciliation.periodEndGlobalBalance).toBe(7600)
     expect(reconciliation.orphanPeriodExpense).toBe(150)
+  })
+
+  it('permanece balanceado em período histórico mesmo com lançamentos posteriores', () => {
+    const historicalPeriod = {
+      start: startOfMonth(new Date(2026, 0, 1)),
+      end: endOfMonth(new Date(2026, 0, 1)),
+    }
+    const withLaterTransaction: Transaction[] = [
+      ...transactions,
+      tx({
+        id: '6',
+        date: '2026-03-15',
+        type: 'Receita',
+        amount: 999,
+        accountId: 'acc-2',
+        category: 'Extra',
+      }),
+    ]
+    const summaries = accounts.map((account) =>
+      computeAccountCashFlowSummary(account, withLaterTransaction, historicalPeriod),
+    )
+    const inPeriod = filterTransactionsInPeriod(
+      withLaterTransaction,
+      historicalPeriod,
+      'all',
+    )
+    const reconciliation = computeReconciliation(
+      accounts,
+      withLaterTransaction,
+      historicalPeriod,
+      summaries,
+      computePeriodTotals(inPeriod),
+    )
+
+    expect(reconciliation.isBalanced).toBe(true)
+    expect(reconciliation.periodEndGlobalBalance).toBe(6300)
+    expect(reconciliation.globalClosingBalance).toBe(8599)
+    expect(reconciliation.periodEndGlobalBalance).not.toBe(reconciliation.globalClosingBalance)
   })
 })
 

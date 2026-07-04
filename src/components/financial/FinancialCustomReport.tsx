@@ -421,9 +421,10 @@ export function FinancialCustomReport({
           </p>
         </div>
 
-        <FinancialReportPeriodSelector value={periodConfig} onChange={setPeriodConfig} />
+        <div className="space-y-4 rounded-lg border bg-card p-4">
+          <FinancialReportPeriodSelector value={periodConfig} onChange={setPeriodConfig} />
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Conteúdo</Label>
             <Select
@@ -512,6 +513,7 @@ export function FinancialCustomReport({
             <Download className="h-4 w-4" />
             Imprimir / Salvar PDF
           </Button>
+        </div>
         </div>
       </div>
 

@@ -221,7 +221,7 @@ export function FinancialReports() {
       </div>
 
       {activeTab !== 'personalizado' ? (
-        <div className="no-print">
+        <div className="no-print rounded-lg border bg-card p-4">
           <FinancialReportPeriodSelector
             value={periodConfig}
             onChange={setPeriodConfig}

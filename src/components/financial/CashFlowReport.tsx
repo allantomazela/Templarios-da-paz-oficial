@@ -34,6 +34,7 @@ import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import {
   formatCurrencyBRL,
   formatDateBR,
@@ -144,7 +145,9 @@ export function CashFlowReport() {
             Saldos por conta, movimentações e conferência consolidada.
           </p>
         </div>
-        <FinancialReportPeriodSelector value={periodConfig} onChange={setPeriodConfig} />
+        <div className="rounded-lg border bg-card p-4">
+          <FinancialReportPeriodSelector value={periodConfig} onChange={setPeriodConfig} />
+        </div>
         <Card>
           <CardContent className="py-8 text-center text-sm text-destructive">
             {periodError ?? 'Período inválido para o relatório.'}
@@ -176,28 +179,35 @@ export function CashFlowReport() {
             atuais refletem ajustes feitos em Contas Bancárias e na auditoria.
           </p>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[min(100%,42rem)] lg:max-w-3xl">
           <FinancialReportPeriodSelector
             value={periodConfig}
             onChange={setPeriodConfig}
-            className="min-w-[280px] flex-1"
+            className="w-full"
           />
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Conta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as contas</SelectItem>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon" onClick={() => handlePrint()}>
-            <Printer className="h-4 w-4" />
-          </Button>
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            <div className="flex min-w-[200px] flex-1 flex-col gap-1 sm:flex-none">
+              <Label htmlFor="cash-flow-account-filter" className="text-xs text-muted-foreground">
+                Conta
+              </Label>
+              <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <SelectTrigger id="cash-flow-account-filter" className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as contas</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" size="icon" className="shrink-0" onClick={() => handlePrint()}>
+              <Printer className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

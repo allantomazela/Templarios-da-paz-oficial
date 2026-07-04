@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Download, Loader2, Package } from 'lucide-react'
 import type { BankAccount, Transaction } from '@/lib/data'
 import {
@@ -263,36 +264,46 @@ export function AccountingBalanceteReport({
         </div>
 
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-2 xl:max-w-2xl">
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => setTypeFilter(value as BalanceteTypeFilter)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(BALANCETE_TYPE_FILTER_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2 xl:max-w-2xl">
+            <div className="flex min-w-0 flex-col gap-1">
+              <Label htmlFor="balancete-type-filter" className="text-xs text-muted-foreground">
+                Tipo
+              </Label>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) => setTypeFilter(value as BalanceteTypeFilter)}
+              >
+                <SelectTrigger id="balancete-type-filter">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(BALANCETE_TYPE_FILTER_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={accountFilter} onValueChange={setAccountFilter}>
-              <SelectTrigger className="sm:col-span-2 lg:col-span-1">
-                <SelectValue placeholder="Conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as contas</SelectItem>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex min-w-0 flex-col gap-1">
+              <Label htmlFor="balancete-account-filter" className="text-xs text-muted-foreground">
+                Conta
+              </Label>
+              <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <SelectTrigger id="balancete-account-filter">
+                  <SelectValue placeholder="Conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as contas</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">

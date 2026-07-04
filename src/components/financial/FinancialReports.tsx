@@ -170,7 +170,7 @@ export function FinancialReports() {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Relatorio_Financeiro_${period}`,
+    documentTitle: `Relatorio_Financeiro_${periodConfig.period}`,
     pageStyle: `
       @page { size: A4; margin: 15mm 20mm; }
       @media print {

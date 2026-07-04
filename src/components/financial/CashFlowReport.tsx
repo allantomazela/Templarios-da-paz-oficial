@@ -23,11 +23,11 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
+  endOfDay,
   endOfMonth,
-  endOfYear,
+  format,
+  startOfDay,
   startOfMonth,
-  startOfYear,
-  subMonths,
 } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useReactToPrint } from 'react-to-print'
@@ -37,43 +37,74 @@ import { Badge } from '@/components/ui/badge'
 import {
   formatCurrencyBRL,
   formatDateBR,
+  parseCalendarDate,
 } from '@/lib/format-utils'
 import { buildCashFlowReport, type CashFlowPeriod } from '@/lib/cash-flow'
 import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
+import {
+  DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
+  getFinancialReportPeriodLabelFromConfig,
+  resolveFinancialReportDateRange,
+  validateFinancialReportPeriodConfig,
+  type FinancialReportPeriodConfig,
+} from '@/lib/financial-report-period'
+import { FinancialReportPeriodSelector } from '@/components/financial/FinancialReportPeriodSelector'
 
-const PERIOD_LABELS: Record<string, string> = {
-  current_month: 'Mês Atual',
-  last_month: 'Mês Passado',
-  current_year: 'Ano Atual',
-}
+function resolveCashFlowReportPeriod(
+  config: FinancialReportPeriodConfig,
+  transactionDates: string[],
+): CashFlowPeriod | null {
+  const resolved = resolveFinancialReportDateRange(config)
+  if (resolved) return resolved
 
-function getDateRange(period: string): CashFlowPeriod {
-  const now = new Date()
-  switch (period) {
-    case 'current_month':
-      return { start: startOfMonth(now), end: endOfMonth(now) }
-    case 'last_month': {
-      const lastMonth = subMonths(now, 1)
-      return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) }
-    }
-    case 'current_year':
-      return { start: startOfYear(now), end: endOfYear(now) }
-    default:
-      return { start: startOfMonth(now), end: endOfMonth(now) }
+  if (config.period !== 'all') return null
+
+  const parsedDates = transactionDates
+    .map((date) => parseCalendarDate(date))
+    .filter((date): date is Date => date !== null)
+
+  if (parsedDates.length === 0) {
+    const now = new Date()
+    return { start: startOfMonth(now), end: endOfMonth(now) }
+  }
+
+  const timestamps = parsedDates.map((date) => date.getTime())
+  return {
+    start: startOfDay(new Date(Math.min(...timestamps))),
+    end: endOfDay(new Date(Math.max(...timestamps))),
   }
 }
 
 export function CashFlowReport() {
   const { accounts, transactions, loading } = useFinancialCoreData()
   const { toast } = useToast()
-  const [period, setPeriod] = useState('current_month')
+  const [periodConfig, setPeriodConfig] = useState<FinancialReportPeriodConfig>(
+    DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
+  )
   const [accountFilter, setAccountFilter] = useState('all')
   const printRef = useRef<HTMLDivElement>(null)
 
-  const dateRange = useMemo(() => getDateRange(period), [period])
+  const periodError = validateFinancialReportPeriodConfig(periodConfig)
+  const dateRange = useMemo(
+    () =>
+      periodError
+        ? null
+        : resolveCashFlowReportPeriod(
+            periodConfig,
+            transactions.map((transaction) => transaction.date),
+          ),
+    [periodConfig, periodError, transactions],
+  )
+  const periodLabel = useMemo(
+    () => getFinancialReportPeriodLabelFromConfig(periodConfig),
+    [periodConfig],
+  )
 
   const report = useMemo(
-    () => buildCashFlowReport(accounts, transactions, dateRange, accountFilter),
+    () =>
+      dateRange
+        ? buildCashFlowReport(accounts, transactions, dateRange, accountFilter)
+        : null,
     [accounts, transactions, dateRange, accountFilter],
   )
 
@@ -84,7 +115,7 @@ export function CashFlowReport() {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Fluxo_Caixa_${period}`,
+    documentTitle: `Fluxo_Caixa_${format(new Date(), 'yyyy-MM-dd')}`,
     onAfterPrint: () => {
       toast({
         title: 'Relatório Impresso',
@@ -100,6 +131,25 @@ export function CashFlowReport() {
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Carregando dados do fluxo de caixa...</span>
         </div>
+      </div>
+    )
+  }
+
+  if (!report) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium">Fluxo de Caixa Detalhado</h3>
+          <p className="text-sm text-muted-foreground">
+            Saldos por conta, movimentações e conferência consolidada.
+          </p>
+        </div>
+        <FinancialReportPeriodSelector value={periodConfig} onChange={setPeriodConfig} />
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-destructive">
+            {periodError ?? 'Período inválido para o relatório.'}
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -126,17 +176,12 @@ export function CashFlowReport() {
             atuais refletem ajustes feitos em Contas Bancárias e na auditoria.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current_month">Mês Atual</SelectItem>
-              <SelectItem value="last_month">Mês Passado</SelectItem>
-              <SelectItem value="current_year">Ano Atual</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-end gap-3">
+          <FinancialReportPeriodSelector
+            value={periodConfig}
+            onChange={setPeriodConfig}
+            className="min-w-[280px] flex-1"
+          />
           <Select value={accountFilter} onValueChange={setAccountFilter}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Conta" />
@@ -416,7 +461,7 @@ export function CashFlowReport() {
       <div className="hidden print:block p-8 bg-white text-black" ref={printRef}>
         <ReportHeader
           title="Relatório de Fluxo de Caixa"
-          description={`Período: ${PERIOD_LABELS[period] ?? period}${
+          description={`Período: ${periodLabel}${
             accountFilter !== 'all'
               ? ` — Conta: ${accountNames[accountFilter] ?? accountFilter}`
               : ''

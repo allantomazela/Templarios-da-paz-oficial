@@ -925,6 +925,50 @@ h6 {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  #financial-custom-report-container {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+
+  #financial-custom-report-container .balancete-document {
+    font-size: 8.5pt;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #financial-custom-report-container .balancete-table-wrap {
+    overflow: visible;
+  }
+
+  #financial-custom-report-container .balancete-table {
+    min-width: 0 !important;
+    width: 100%;
+    font-size: 8pt;
+    table-layout: fixed;
+  }
+
+  #financial-custom-report-container .balancete-table th,
+  #financial-custom-report-container .balancete-table td {
+    padding: 3pt 4pt;
+  }
+
+  #financial-custom-report-container .balancete-document,
+  #financial-custom-report-container .balancete-document p,
+  #financial-custom-report-container .balancete-document h1,
+  #financial-custom-report-container .balancete-document h2,
+  #financial-custom-report-container .balancete-document h3,
+  #financial-custom-report-container .balancete-document td,
+  #financial-custom-report-container .balancete-document th,
+  #financial-custom-report-container .balancete-document span,
+  #financial-custom-report-container .balancete-document li {
+    color: #000000 !important;
+  }
+
+  #financial-custom-report-container .balancete-credit,
+  #financial-custom-report-container .balancete-debit {
+    color: #000 !important;
+  }
 }
 
 .balancete-economy-row td {

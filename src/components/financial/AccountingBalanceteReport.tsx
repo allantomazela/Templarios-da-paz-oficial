@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Download, Filter, Loader2, Package } from 'lucide-react'
+import { Download, Loader2, Package } from 'lucide-react'
 import type { BankAccount, Transaction } from '@/lib/data'
 import {
   BALANCETE_TYPE_FILTER_LABELS,
@@ -24,10 +24,9 @@ import {
 } from '@/lib/financial-attachments'
 import { fetchContributionNotesByTransactionIds } from '@/lib/contribution-payments'
 import {
-  FINANCIAL_REPORT_PERIOD_LABELS,
-  getFinancialReportDateRange,
-  getFinancialReportPeriodLabel,
-  type FinancialReportPeriodKey,
+  getFinancialReportPeriodLabelFromConfig,
+  resolveFinancialReportDateRange,
+  type FinancialReportPeriodConfig,
 } from '@/lib/financial-report-period'
 import {
   DEFAULT_BALANCETE_DISPLAY_OPTIONS,
@@ -53,16 +52,16 @@ const BALANCETE_PRINT_PAGE_STYLE = `
 interface AccountingBalanceteReportProps {
   accounts: BankAccount[]
   transactions: Transaction[]
-  period: FinancialReportPeriodKey
-  onPeriodChange: (period: FinancialReportPeriodKey) => void
+  periodConfig: FinancialReportPeriodConfig
+  periodError?: string | null
   loading?: boolean
 }
 
 export function AccountingBalanceteReport({
   accounts,
   transactions,
-  period,
-  onPeriodChange,
+  periodConfig,
+  periodError = null,
   loading = false,
 }: AccountingBalanceteReportProps) {
   const [accountFilter, setAccountFilter] = useState('all')
@@ -80,8 +79,14 @@ export function AccountingBalanceteReport({
   const previewRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
-  const dateRange = useMemo(() => getFinancialReportDateRange(period), [period])
-  const periodLabel = useMemo(() => getFinancialReportPeriodLabel(period), [period])
+  const dateRange = useMemo(
+    () => resolveFinancialReportDateRange(periodConfig),
+    [periodConfig],
+  )
+  const periodLabel = useMemo(
+    () => getFinancialReportPeriodLabelFromConfig(periodConfig),
+    [periodConfig],
+  )
   const resolvedDisplay = useMemo(
     () => resolveBalanceteDisplayOptions(displayOptions, typeFilter),
     [displayOptions, typeFilter],
@@ -189,7 +194,7 @@ export function AccountingBalanceteReport({
 
   const handlePrint = useReactToPrint({
     contentRef: previewRef,
-    documentTitle: `Balancete_Contabil_${period}_${typeFilter}`,
+    documentTitle: `Balancete_Contabil_${periodConfig.period}_${typeFilter}`,
     pageStyle: BALANCETE_PRINT_PAGE_STYLE,
     onAfterPrint: () => {
       toast({
@@ -208,7 +213,8 @@ export function AccountingBalanceteReport({
 
   const isBusy = loading || attachmentsLoading
   const hasData = balancete.periodTransactionCount > 0
-  const canRenderReport = hasData && hasVisibleBalanceteSection(resolvedDisplay)
+  const canRenderReport =
+    !periodError && hasData && hasVisibleBalanceteSection(resolvedDisplay)
 
   const handleExportZip = async () => {
     setExportingZip(true)
@@ -257,24 +263,7 @@ export function AccountingBalanceteReport({
         </div>
 
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:max-w-3xl">
-            <Select
-              value={period}
-              onValueChange={(value) => onPeriodChange(value as FinancialReportPeriodKey)}
-            >
-              <SelectTrigger>
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(FINANCIAL_REPORT_PERIOD_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-2 xl:max-w-2xl">
             <Select
               value={typeFilter}
               onValueChange={(value) => setTypeFilter(value as BalanceteTypeFilter)}
@@ -353,6 +342,10 @@ export function AccountingBalanceteReport({
               <Loader2 className="h-5 w-5 animate-spin" />
               Carregando balancete...
             </div>
+          ) : periodError ? (
+            <p className="px-6 py-8 text-center text-sm text-destructive sm:px-0">
+              {periodError}
+            </p>
           ) : !hasData ? (
             <p className="px-6 py-8 text-center text-sm text-muted-foreground sm:px-0">
               Nenhum lançamento encontrado para os filtros selecionados.

@@ -17,20 +17,12 @@ import { Pie, PieChart } from 'recharts'
 import { Button } from '@/components/ui/button'
 import {
   Download,
-  Filter,
   BarChart3,
   Calendar,
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useReactToPrint } from 'react-to-print'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -50,20 +42,25 @@ import {
 import useFinancialStore from '@/stores/useFinancialStore'
 import { isWithinInterval } from 'date-fns'
 import {
-  FINANCIAL_REPORT_PERIOD_LABELS,
-  getFinancialReportDateRange,
-  getFinancialReportPeriodLabel,
-  type FinancialReportPeriodKey,
+  DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
+  getFinancialReportPeriodLabelFromConfig,
+  resolveFinancialReportDateRange,
+  validateFinancialReportPeriodConfig,
+  type FinancialReportPeriodConfig,
 } from '@/lib/financial-report-period'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { AccountingBalanceteReport } from '@/components/financial/AccountingBalanceteReport'
+import { FinancialCustomReport } from '@/components/financial/FinancialCustomReport'
+import { FinancialReportPeriodSelector } from '@/components/financial/FinancialReportPeriodSelector'
 
 export function FinancialReports() {
   const { toast } = useToast()
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<FinancialReportPeriodKey>('current_month')
+  const [periodConfig, setPeriodConfig] = useState<FinancialReportPeriodConfig>(
+    DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
+  )
   const [activeTab, setActiveTab] = useState('balancete')
   const printRef = useRef<HTMLDivElement>(null)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
@@ -97,8 +94,15 @@ export function FinancialReports() {
     }
   }, [dataRevision, toast])
 
-  const dateRange = useMemo(() => getFinancialReportDateRange(period), [period])
-  const periodLabel = useMemo(() => getFinancialReportPeriodLabel(period), [period])
+  const periodError = validateFinancialReportPeriodConfig(periodConfig)
+  const dateRange = useMemo(
+    () => resolveFinancialReportDateRange(periodConfig),
+    [periodConfig],
+  )
+  const periodLabel = useMemo(
+    () => getFinancialReportPeriodLabelFromConfig(periodConfig),
+    [periodConfig],
+  )
 
   const filteredTransactions = useMemo(() => {
     if (!dateRange) return transactions
@@ -211,22 +215,40 @@ export function FinancialReports() {
       <div>
         <h3 className="text-lg font-medium">Relatórios Financeiros</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Resumo por categoria e balancete contábil completo para envio à contabilidade.
+          Balancete, resumo por categoria e relatório personalizado com período por data e
+          valores a vencer.
         </p>
       </div>
+
+      {activeTab !== 'personalizado' ? (
+        <div className="no-print">
+          <FinancialReportPeriodSelector
+            value={periodConfig}
+            onChange={setPeriodConfig}
+          />
+        </div>
+      ) : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="balancete">Balancete Contábil</TabsTrigger>
           <TabsTrigger value="resumo">Resumo por Categoria</TabsTrigger>
+          <TabsTrigger value="personalizado">Personalizado</TabsTrigger>
         </TabsList>
 
         <TabsContent value="balancete">
           <AccountingBalanceteReport
             accounts={accounts}
             transactions={transactions}
-            period={period}
-            onPeriodChange={setPeriod}
+            periodConfig={periodConfig}
+            periodError={periodError}
+          />
+        </TabsContent>
+
+        <TabsContent value="personalizado">
+          <FinancialCustomReport
+            periodConfig={periodConfig}
+            onPeriodConfigChange={setPeriodConfig}
           />
         </TabsContent>
 
@@ -236,26 +258,10 @@ export function FinancialReports() {
               Distribuição de receitas e despesas — {periodLabel}
             </p>
             <div className="flex items-center gap-2">
-              <Select
-                value={period}
-                onValueChange={(value) => setPeriod(value as FinancialReportPeriodKey)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(FINANCIAL_REPORT_PERIOD_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Button
                 onClick={() => handlePrint()}
                 variant="outline"
-                disabled={!hasAnyData}
+                disabled={!hasAnyData || Boolean(periodError)}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
@@ -264,7 +270,13 @@ export function FinancialReports() {
             </div>
           </div>
 
-          {!hasAnyData ? (
+          {periodError ? (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-destructive">
+                {periodError}
+              </CardContent>
+            </Card>
+          ) : !hasAnyData ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <div className="rounded-full bg-muted p-3 mb-4">

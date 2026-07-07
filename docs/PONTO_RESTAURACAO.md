@@ -1,3 +1,20 @@
+# Ponto de restauração — baseline 06/07/2026 (CORS payables reminders)
+
+| Item | Valor |
+|------|--------|
+| **Tag Git** | `restore-point-2026-07-06-pre-payables-cors` |
+| **Branch de backup** | `restore/pre-payables-cors-fix-2026-07-06` |
+| **Commit de referência** | `26b16e9` — docs checklist mensalidades (estado imediatamente anterior) |
+
+Correção aplicada: deploy da Edge Function `run-payables-reminders` + tratamento de erro no frontend.
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-07-06-pre-payables-cors
+```
+
+---
+
 # Ponto de restauração — baseline 29/06/2026 (PWA)
 
 Documento atualizado após validação do deploy **PWA** (ícones instaláveis, prompt iOS/Android, geração de ícones a partir do logo).

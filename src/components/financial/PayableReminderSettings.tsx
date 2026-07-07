@@ -98,12 +98,16 @@ export function PayableReminderSettings() {
       } else {
         toast({
           title: 'Execução não concluída',
-          description: result.error ?? result.message,
+          description: result.error ?? result.message ?? 'Verifique se a função está publicada no Supabase.',
           variant: 'destructive',
         })
       }
     } catch {
-      toast({ title: 'Falha ao executar lembretes', variant: 'destructive' })
+      toast({
+        title: 'Falha ao executar lembretes',
+        description: 'Erro inesperado ao contactar o servidor.',
+        variant: 'destructive',
+      })
     } finally {
       setRunning(false)
     }

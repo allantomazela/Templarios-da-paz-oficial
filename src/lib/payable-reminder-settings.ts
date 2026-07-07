@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import type { PayableReminderSettings, PayableReminderRun } from '@/lib/financial-payable-types'
+import { formatEdgeFunctionInvokeError } from '@/lib/edge-function-invoke'
+import { logError } from '@/lib/logger'
 
 const DEFAULT_SETTINGS: PayableReminderSettings = {
   enabled: false,
@@ -60,13 +62,45 @@ export interface PayableReminderRunResult {
 }
 
 export async function runPayablesRemindersManual(): Promise<PayableReminderRunResult> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny.functions.invoke('run-payables-reminders', {
-    body: { source: 'manual' },
-  })
+  try {
+    const { data, error } = await supabase.functions.invoke('run-payables-reminders', {
+      body: { source: 'manual' },
+    })
 
-  if (error) throw error
-  return (data ?? { ok: false }) as PayableReminderRunResult
+    if (error) {
+      logError('run-payables-reminders invoke error', error)
+      return { ok: false, error: formatEdgeFunctionInvokeError(error) }
+    }
+
+    const payload = (data ?? { ok: false }) as PayableReminderRunResult & {
+      error?: string
+    }
+
+    if (payload.error) {
+      return { ok: false, error: payload.error }
+    }
+
+    return {
+      ok: Boolean(payload.ok),
+      skipped: payload.skipped,
+      message: payload.message,
+      sent: payload.sent,
+      skippedCount: payload.skippedCount,
+      failed: payload.failed,
+    }
+  } catch (error) {
+    logError('runPayablesRemindersManual failed', error)
+    return {
+      ok: false,
+      error: formatEdgeFunctionInvokeError(error),
+    }
+  }
+}
+
+function isMissingRelationError(error: { code?: string; message?: string }): boolean {
+  if (error.code === '42P01' || error.code === 'PGRST205') return true
+  const message = error.message?.toLowerCase() ?? ''
+  return message.includes('payable_reminder_runs') && message.includes('does not exist')
 }
 
 export async function fetchPayableReminderRuns(
@@ -79,7 +113,10 @@ export async function fetchPayableReminderRuns(
     .order('started_at', { ascending: false })
     .limit(limit)
 
-  if (error) throw error
+  if (error) {
+    if (isMissingRelationError(error)) return []
+    throw error
+  }
 
   return (data ?? []).map((row: Record<string, unknown>) => ({
     id: row.id as string,

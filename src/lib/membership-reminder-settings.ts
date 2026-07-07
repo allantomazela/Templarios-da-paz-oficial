@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import type { ReminderSettings } from '@/lib/data'
+import { formatEdgeFunctionInvokeError } from '@/lib/edge-function-invoke'
 import { logError } from '@/lib/logger'
 
 const DEFAULT_SETTINGS: ReminderSettings = {
@@ -122,7 +123,7 @@ export async function runMembershipRemindersManual(): Promise<MembershipReminder
 
     if (error) {
       logError('run-membership-reminders invoke error', error)
-      return { ok: false, error: error.message }
+      return { ok: false, error: formatEdgeFunctionInvokeError(error) }
     }
 
     const payload = data as MembershipReminderRunResult & { error?: string }
@@ -142,7 +143,7 @@ export async function runMembershipRemindersManual(): Promise<MembershipReminder
     logError('runMembershipRemindersManual failed', e)
     return {
       ok: false,
-      error: e instanceof Error ? e.message : 'Erro ao executar lembretes',
+      error: formatEdgeFunctionInvokeError(e),
     }
   }
 }

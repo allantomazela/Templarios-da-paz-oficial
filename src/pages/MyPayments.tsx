@@ -89,6 +89,12 @@ export default function MyPayments() {
 
   const monthlyPayments = payments.filter((p) => p.type === 'monthly')
   const charityPayments = payments.filter((p) => p.type === 'charity')
+  const ceremonyPayments = payments.filter((p) => p.type === 'ceremony')
+  const agapePayments = payments.filter((p) => p.type === 'agape')
+  const pendingPayments = useMemo(
+    () => payments.filter((p) => p.status !== 'paid'),
+    [payments],
+  )
   const paidPayments = useMemo(
     () => getPaidMemberPayments(payments),
     [payments],
@@ -185,21 +191,21 @@ export default function MyPayments() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Em aberto</CardTitle>
+            <CardTitle className="text-sm font-medium">Em aberto (mensalidades)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
               {formatCurrencyBRL(schedule?.totalOpen ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {openSchedule.length} mês(es) no cronograma
+              {openSchedule.length} mês(es) à vencer ou parcial
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Em atraso</CardTitle>
+            <CardTitle className="text-sm font-medium">Em atraso (mensalidades)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
@@ -239,13 +245,22 @@ export default function MyPayments() {
             Cronograma
           </TabsTrigger>
           <TabsTrigger value="open">
-            Em aberto ({openSchedule.length})
+            À vencer ({openSchedule.length})
+          </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pendências ({pendingPayments.length})
           </TabsTrigger>
           <TabsTrigger value="paid">
             Pagas ({schedule?.paidEntries.length ?? 0})
           </TabsTrigger>
           <TabsTrigger value="entries">
             Mensalidades ({monthlyPayments.length})
+          </TabsTrigger>
+          <TabsTrigger value="ceremony">
+            Taxas de grau ({ceremonyPayments.length})
+          </TabsTrigger>
+          <TabsTrigger value="agape">
+            Ágape ({agapePayments.length})
           </TabsTrigger>
           <TabsTrigger value="charity">
             Tronco ({charityPayments.length})
@@ -327,13 +342,55 @@ export default function MyPayments() {
         <TabsContent value="open">
           <Card>
             <CardHeader>
-              <CardTitle>Meses em aberto</CardTitle>
+              <CardTitle>Mensalidades à vencer ou parciais</CardTitle>
             </CardHeader>
             <CardContent>
               <MembershipScheduleTable
                 entries={openSchedule}
-                emptyMessage="Nenhuma mensalidade em aberto. Parabéns!"
+                emptyMessage="Nenhuma mensalidade à vencer no momento."
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pending">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pendências (todas as categorias)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendingPayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma pendência registrada.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingPayments.map((payment) => (
+                      <TableRow key={`${payment.type}-${payment.id}`}>
+                        <TableCell>{getMemberPaymentCategoryLabel(payment)}</TableCell>
+                        <TableCell className="font-medium">
+                          {payment.description}
+                        </TableCell>
+                        <TableCell>{formatDateBR(payment.dueDate)}</TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrencyBRL(payment.amount)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -376,6 +433,100 @@ export default function MyPayments() {
                   </TableHeader>
                   <TableBody>
                     {monthlyPayments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">
+                          {payment.description}
+                        </TableCell>
+                        <TableCell>{formatDateBR(payment.dueDate)}</TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrencyBRL(payment.amount)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                        <TableCell>
+                          {payment.paymentDate
+                            ? formatDateBR(payment.paymentDate)
+                            : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ceremony">
+          <Card>
+            <CardHeader>
+              <CardTitle>Taxas de grau (iniciação, elevação, exaltação)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ceremonyPayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma taxa de grau registrada. Se você já pagou, solicite à
+                  tesouraria o lançamento em Financeiro → Mensalidades → Iniciação,
+                  Elevação e Outros.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data pagamento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ceremonyPayments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">
+                          {payment.description}
+                        </TableCell>
+                        <TableCell>{formatDateBR(payment.dueDate)}</TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrencyBRL(payment.amount)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                        <TableCell>
+                          {payment.paymentDate
+                            ? formatDateBR(payment.paymentDate)
+                            : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agape">
+          <Card>
+            <CardHeader>
+              <CardTitle>Consumo do Ágape</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {agapePayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma cobrança de ágape registrada.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data pagamento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {agapePayments.map((payment) => (
                       <TableRow key={payment.id}>
                         <TableCell className="font-medium">
                           {payment.description}

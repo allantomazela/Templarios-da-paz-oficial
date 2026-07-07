@@ -1,12 +1,38 @@
 import type { Contribution } from '@/lib/data'
 import { monthNameToNumber } from '@/lib/contribution-payments'
 import {
+  getMemberPaymentCategoryLabel,
+  getPaidMemberPayments,
+  memberPaymentStatusLabel,
+  sumPaidMemberPayments,
+  type MemberPayment,
+  type MemberPaymentType,
+} from '@/lib/member-payments'
+import {
   buildOverdueBrotherAlerts,
   membershipStatusLabel,
   type BrotherMembershipSchedule,
   type MembershipScheduleEntry,
   type OverdueBrotherAlert,
 } from '@/lib/membership-schedule'
+
+export interface BrotherStatementTypeSummary {
+  paidTotal: number
+  paidCount: number
+  openCount: number
+}
+
+export interface MembershipBrotherStatementData {
+  brotherId: string
+  brotherName: string
+  generatedAt: string
+  schedule: BrotherMembershipSchedule
+  contributions: Contribution[]
+  memberPayments: MemberPayment[]
+  paidPayments: MemberPayment[]
+  totalPaidAll: number
+  summaryByType: Record<MemberPaymentType, BrotherStatementTypeSummary>
+}
 
 export interface MembershipOverdueReportSummary {
   brotherCount: number
@@ -21,12 +47,38 @@ export interface MembershipOverdueReportData {
   schedulesByBrotherId: Record<string, BrotherMembershipSchedule>
 }
 
-export interface MembershipBrotherStatementData {
-  brotherId: string
-  brotherName: string
-  generatedAt: string
-  schedule: BrotherMembershipSchedule
-  contributions: Contribution[]
+function emptyTypeSummary(): BrotherStatementTypeSummary {
+  return { paidTotal: 0, paidCount: 0, openCount: 0 }
+}
+
+export function buildBrotherStatementSummaryByType(
+  memberPayments: MemberPayment[],
+): Record<MemberPaymentType, BrotherStatementTypeSummary> {
+  const summary: Record<MemberPaymentType, BrotherStatementTypeSummary> = {
+    monthly: emptyTypeSummary(),
+    charity: emptyTypeSummary(),
+    ceremony: emptyTypeSummary(),
+    agape: emptyTypeSummary(),
+  }
+
+  for (const payment of memberPayments) {
+    const bucket = summary[payment.type]
+    if (payment.status === 'paid') {
+      bucket.paidTotal += payment.amount
+      bucket.paidCount += 1
+    } else {
+      bucket.openCount += 1
+    }
+  }
+
+  return summary
+}
+
+export function filterMemberPaymentsByType(
+  payments: MemberPayment[],
+  type: MemberPaymentType,
+): MemberPayment[] {
+  return payments.filter((payment) => payment.type === type)
 }
 
 export function buildMembershipOverdueReportData(
@@ -62,6 +114,7 @@ export function buildMembershipBrotherStatementData(
   brotherName: string,
   schedule: BrotherMembershipSchedule,
   contributions: Contribution[],
+  memberPayments: MemberPayment[] = [],
   referenceDate: Date = new Date(),
 ): MembershipBrotherStatementData {
   const brotherContributions = contributions
@@ -71,14 +124,22 @@ export function buildMembershipBrotherStatementData(
       return monthNameToNumber(right.month) - monthNameToNumber(left.month)
     })
 
+  const paidPayments = getPaidMemberPayments(memberPayments)
+
   return {
     brotherId,
     brotherName,
     generatedAt: referenceDate.toISOString(),
     schedule,
     contributions: brotherContributions,
+    memberPayments,
+    paidPayments,
+    totalPaidAll: sumPaidMemberPayments(memberPayments),
+    summaryByType: buildBrotherStatementSummaryByType(memberPayments),
   }
 }
+
+export { getMemberPaymentCategoryLabel, memberPaymentStatusLabel }
 
 export function membershipContributionStatusLabel(
   status: Contribution['status'],

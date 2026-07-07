@@ -451,7 +451,8 @@ export function buildMembershipScheduleForBrother(
       .reduce((sum, c) => sum + c.amount, 0)
 
     const dueDate = buildDueDateIso(year, month, dueDay)
-    const remainingAmount = Math.max(0, expectedAmount - paidAmount)
+    const theoreticalRemaining = Math.max(0, expectedAmount - paidAmount)
+    const remainingAmount = Math.max(theoreticalRemaining, pendingAmount)
 
     const status = resolveMonthStatus(
       paidAmount,
@@ -484,10 +485,7 @@ export function buildMembershipScheduleForBrother(
 
   const overdueEntries = entries.filter((e) => e.status === 'overdue')
   const openEntries = entries.filter(
-    (e) =>
-      e.status === 'upcoming' ||
-      e.status === 'partial' ||
-      e.status === 'overdue',
+    (e) => e.status === 'upcoming' || e.status === 'partial',
   )
   const paidEntries = entries.filter((e) => e.status === 'paid')
 

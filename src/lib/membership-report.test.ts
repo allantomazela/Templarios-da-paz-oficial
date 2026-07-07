@@ -138,9 +138,35 @@ describe('membership-report', () => {
       'João',
       brotherSchedule,
       contributions,
+      [
+        {
+          id: 'c1',
+          type: 'monthly',
+          description: 'Mensalidade 03/2026',
+          amount: 150,
+          status: 'paid',
+          dueDate: '2026-03-10',
+          paymentDate: '2026-03-05',
+          month: 3,
+          year: 2026,
+        },
+        {
+          id: 'ex1',
+          type: 'ceremony',
+          categoryLabel: 'Exaltação',
+          description: 'Exaltação — parcela 1/1',
+          amount: 500,
+          status: 'paid',
+          dueDate: '2026-05-01',
+          paymentDate: '2026-05-02',
+        },
+      ],
     )
 
     expect(statement.contributions).toHaveLength(1)
     expect(statement.schedule.totalPaid).toBe(150)
+    expect(statement.paidPayments).toHaveLength(2)
+    expect(statement.totalPaidAll).toBe(650)
+    expect(statement.summaryByType.ceremony.paidTotal).toBe(500)
   })
 })

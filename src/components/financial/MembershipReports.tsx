@@ -26,7 +26,9 @@ import {
   exportMembershipBrotherStatementScheduleCsv,
   exportMembershipOverdueDetailCsv,
   exportMembershipOverdueReportCsv,
+  exportUnifiedBrotherStatementCsv,
 } from '@/lib/membership-report-export'
+import { fetchMemberPayments } from '@/lib/member-payments'
 import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
 import { MembershipOverdueReportDocument } from '@/components/financial/MembershipOverdueReportDocument'
 import { MembershipBrotherStatementDocument } from '@/components/financial/MembershipBrotherStatementDocument'
@@ -55,6 +57,10 @@ export function MembershipReports() {
     Awaited<ReturnType<typeof fetchContributionsWithProfiles>>['contributions']
   >([])
   const [feeSettings, setFeeSettings] = useState<MembershipFeeScheduleSettings | null>(null)
+  const [brotherMemberPayments, setBrotherMemberPayments] = useState<
+    Awaited<ReturnType<typeof fetchMemberPayments>>
+  >([])
+  const [loadingBrotherPayments, setLoadingBrotherPayments] = useState(false)
 
   const overduePrintRef = useRef<HTMLDivElement>(null)
   const statementPrintRef = useRef<HTMLDivElement>(null)
@@ -104,6 +110,40 @@ export function MembershipReports() {
     }
   }, [toast])
 
+  useEffect(() => {
+    if (!selectedBrotherId) {
+      setBrotherMemberPayments([])
+      return
+    }
+
+    let isMounted = true
+    setLoadingBrotherPayments(true)
+
+    void fetchMemberPayments(selectedBrotherId)
+      .then((payments) => {
+        if (isMounted) setBrotherMemberPayments(payments)
+      })
+      .catch((error) => {
+        console.error('Error loading brother payments:', error)
+        if (isMounted) {
+          setBrotherMemberPayments([])
+          toast({
+            title: 'Aviso',
+            description:
+              'Não foi possível carregar taxas de grau, ágape e tronco deste irmão.',
+            variant: 'destructive',
+          })
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoadingBrotherPayments(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [selectedBrotherId, toast])
+
   const overdueReport = useMemo(
     () => buildMembershipOverdueReportData(schedules),
     [schedules],
@@ -129,8 +169,16 @@ export function MembershipReports() {
       brotherName,
       schedule,
       contributions,
+      brotherMemberPayments,
     )
-  }, [selectedBrotherId, brothers, brotherNames, contributions, feeSettings])
+  }, [
+    selectedBrotherId,
+    brothers,
+    brotherNames,
+    contributions,
+    feeSettings,
+    brotherMemberPayments,
+  ])
 
   const handlePrintOverdue = useReactToPrint({
     contentRef: overduePrintRef,
@@ -196,6 +244,20 @@ export function MembershipReports() {
     }
   }
 
+  const handleExportUnifiedStatement = () => {
+    if (!brotherStatement) return
+    try {
+      exportUnifiedBrotherStatementCsv(brotherStatement)
+      toast({ title: 'CSV exportado', description: 'Extrato completo baixado.' })
+    } catch (error) {
+      toast({
+        title: 'Erro ao exportar',
+        description: error instanceof Error ? error.message : 'Falha na exportação.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleExportStatementPayments = () => {
     if (!brotherStatement) return
     try {
@@ -226,8 +288,8 @@ export function MembershipReports() {
       <div>
         <h3 className="text-lg font-medium">Relatórios de Mensalidades</h3>
         <p className="text-sm text-muted-foreground">
-          Verificação de atrasos para a tesouraria e extrato individual para conferência
-          quando o irmão solicitar.
+          Verificação de atrasos para a tesouraria e extrato completo do irmão
+          (mensalidades, taxas de grau, ágape e tronco) para conferência.
         </p>
       </div>
 
@@ -320,7 +382,8 @@ export function MembershipReports() {
                 Selecione o irmão
               </p>
               <p className="text-xs text-muted-foreground">
-                Gere o extrato completo (cronograma + lançamentos) para entregar ao irmão.
+                Gere o extrato completo (mensalidades, taxas de grau, ágape e tronco)
+                para entregar ao irmão.
               </p>
             </div>
             <BrotherSearchCombobox
@@ -337,6 +400,15 @@ export function MembershipReports() {
                 <Button
                   variant="outline"
                   className="gap-2"
+                  onClick={handleExportUnifiedStatement}
+                  disabled={brotherStatement.paidPayments.length === 0}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  CSV extrato completo
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
                   onClick={handleExportStatementSchedule}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
@@ -349,17 +421,25 @@ export function MembershipReports() {
                   disabled={brotherStatement.contributions.length === 0}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
-                  CSV lançamentos
+                  CSV mensalidades
                 </Button>
                 <Button
                   variant="outline"
                   className="gap-2"
                   onClick={() => handlePrintStatement()}
+                  disabled={loadingBrotherPayments}
                 >
                   <Download className="h-4 w-4" />
                   Imprimir / PDF
                 </Button>
               </div>
+
+              {loadingBrotherPayments ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando taxas de grau, ágape e tronco...
+                </div>
+              ) : null}
 
               <Card className="overflow-hidden">
                 <CardHeader className="no-print">
@@ -378,7 +458,7 @@ export function MembershipReports() {
           ) : (
             <Card>
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Selecione um irmão para gerar o extrato de mensalidades.
+                Selecione um irmão para gerar o extrato financeiro completo.
               </CardContent>
             </Card>
           )}

@@ -1,3 +1,20 @@
+# Ponto de restauração — baseline 07/07/2026 (extrato unificado do irmão)
+
+| Item | Valor |
+|------|--------|
+| **Tag Git** | `restore-point-2026-07-07-pre-unified-statement` |
+| **Branch de backup** | `restore/pre-unified-brother-statement-2026-07-07` |
+| **Commit de referência** | `31f853a` — docs membership reminders (estado imediatamente anterior) |
+
+Alteração: extrato unificado (mensalidades + taxas de grau + ágape + tronco), correção de status de vencimento e relatório da tesouraria ampliado.
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-07-07-pre-unified-statement
+```
+
+---
+
 # Ponto de restauração — baseline 06/07/2026 (CORS payables reminders)
 
 | Item | Valor |

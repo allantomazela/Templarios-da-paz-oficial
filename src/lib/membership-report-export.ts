@@ -3,6 +3,8 @@ import { formatDateBR } from '@/lib/format-utils'
 import {
   formatOverdueLabels,
   getOverdueEntriesForBrother,
+  getMemberPaymentCategoryLabel,
+  memberPaymentStatusLabel,
   membershipContributionStatusLabel,
   membershipStatusLabel,
   type MembershipBrotherStatementData,
@@ -102,6 +104,35 @@ export function exportMembershipBrotherStatementPaymentsCsv(
     ],
     rows,
     `lancamentos-mensalidade-${slug || statement.brotherId}`,
+  )
+}
+
+export function exportUnifiedBrotherStatementCsv(
+  statement: MembershipBrotherStatementData,
+): void {
+  const slug = statement.brotherName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+
+  const rows = statement.paidPayments.map((payment) => [
+    getMemberPaymentCategoryLabel(payment),
+    payment.description,
+    payment.paymentDate ?? payment.dueDate,
+    payment.amount.toFixed(2),
+    memberPaymentStatusLabel(payment.status),
+  ])
+
+  if (rows.length === 0) {
+    throw new Error('Nenhum pagamento registrado para exportar.')
+  }
+
+  downloadCsvFile(
+    ['Categoria', 'Descrição', 'Data', 'Valor (R$)', 'Status'],
+    rows,
+    `extrato-completo-${slug || statement.brotherId}`,
   )
 }
 

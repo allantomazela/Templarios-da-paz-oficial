@@ -5,7 +5,6 @@ import {
 } from '@/lib/ceremony-payment-types'
 import { fetchCeremonyPaymentPlans } from '@/lib/ceremony-payments'
 import { supabase } from '@/lib/supabase/client'
-import { format } from 'date-fns'
 import {
   formatDateBR,
   getCalendarDateTimestamp,
@@ -16,6 +15,10 @@ import {
   DEFAULT_MEMBERSHIP_DUE_DAY,
   fetchMembershipFeeSettings,
 } from '@/lib/contribution-payments'
+import {
+  buildDueDateIsoFromParts,
+  isMembershipPastDue,
+} from '@/lib/membership-schedule'
 
 export type MemberPaymentType = 'monthly' | 'charity' | 'ceremony' | 'agape'
 
@@ -58,6 +61,36 @@ function mapDbStatusToMemberStatus(
 
 export function getMemberPaymentCategoryLabel(payment: MemberPayment): string {
   return payment.categoryLabel ?? MEMBER_PAYMENT_TYPE_LABELS[payment.type]
+}
+
+export function memberPaymentStatusLabel(
+  status: MemberPayment['status'],
+): string {
+  switch (status) {
+    case 'paid':
+      return 'Pago'
+    case 'overdue':
+      return 'Em atraso'
+    case 'pending':
+      return 'À vencer'
+    default:
+      return status
+  }
+}
+
+/** Alinha status de mensalidade com o cronograma (mesma regra de vencimento). */
+export function mapContributionStatusToMemberPayment(
+  dbStatus: string | undefined,
+  year: number,
+  month: number,
+  dueDay: number,
+): MemberPayment['status'] {
+  if (dbStatus === 'Pago') return 'paid'
+  if (dbStatus === 'Atrasado') return 'overdue'
+
+  const dueDateIso = buildDueDateIsoFromParts(year, month, dueDay)
+  if (isMembershipPastDue(dueDateIso)) return 'overdue'
+  return 'pending'
 }
 
 export function sortMemberPaymentsForExtrato(
@@ -130,18 +163,20 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
       status?: string
       payment_date?: string | null
     }) => {
-      const dueDate = new Date(cont.year, cont.month - 1, dueDay)
-      const today = new Date()
-      const isOverdue = today > dueDate && cont.status !== 'Pago'
+      const dueDateIso = buildDueDateIsoFromParts(cont.year, cont.month, dueDay)
 
       mappedPayments.push({
         id: cont.id,
         type: 'monthly',
-        description: `Mensalidade ${cont.month}/${cont.year}`,
+        description: `Mensalidade ${String(cont.month).padStart(2, '0')}/${cont.year}`,
         amount: Number(cont.amount) || 0,
-        status:
-          cont.status === 'Pago' ? 'paid' : isOverdue ? 'overdue' : 'pending',
-        dueDate: format(dueDate, 'yyyy-MM-dd'),
+        status: mapContributionStatusToMemberPayment(
+          cont.status,
+          cont.year,
+          cont.month,
+          dueDay,
+        ),
+        dueDate: dueDateIso,
         paymentDate: cont.payment_date
           ? toDateInputValue(cont.payment_date)
           : undefined,
@@ -175,8 +210,8 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
           donation.description || 'Doação ao Tronco de Beneficência',
         amount: Number(donation.amount) || 0,
         status: 'paid',
-        dueDate: format(new Date(donation.created_at), 'yyyy-MM-dd'),
-        paymentDate: format(new Date(donation.created_at), 'yyyy-MM-dd'),
+        dueDate: toDateInputValue(donation.created_at),
+        paymentDate: toDateInputValue(donation.created_at),
       })
     })
   }

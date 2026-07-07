@@ -969,6 +969,43 @@ h6 {
   #financial-custom-report-container .balancete-debit {
     color: #000 !important;
   }
+
+  #membership-overdue-report-container,
+  #membership-statement-report-container {
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+
+  #membership-overdue-report-container .balancete-document,
+  #membership-statement-report-container .balancete-document {
+    font-size: 8.5pt;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #membership-overdue-report-container .balancete-table-wrap,
+  #membership-statement-report-container .balancete-table-wrap {
+    overflow: visible;
+  }
+
+  #membership-overdue-report-container .balancete-document,
+  #membership-overdue-report-container .balancete-document p,
+  #membership-overdue-report-container .balancete-document h1,
+  #membership-overdue-report-container .balancete-document h2,
+  #membership-overdue-report-container .balancete-document h3,
+  #membership-overdue-report-container .balancete-document td,
+  #membership-overdue-report-container .balancete-document th,
+  #membership-overdue-report-container .balancete-document span,
+  #membership-statement-report-container .balancete-document,
+  #membership-statement-report-container .balancete-document p,
+  #membership-statement-report-container .balancete-document h1,
+  #membership-statement-report-container .balancete-document h2,
+  #membership-statement-report-container .balancete-document h3,
+  #membership-statement-report-container .balancete-document td,
+  #membership-statement-report-container .balancete-document th,
+  #membership-statement-report-container .balancete-document span {
+    color: #000000 !important;
+  }
 }
 
 .balancete-economy-row td {

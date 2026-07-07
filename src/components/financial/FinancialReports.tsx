@@ -52,6 +52,7 @@ import { ReportHeader } from '@/components/reports/ReportHeader'
 import { AccountingBalanceteReport } from '@/components/financial/AccountingBalanceteReport'
 import { FinancialCustomReport } from '@/components/financial/FinancialCustomReport'
 import { FinancialReportPeriodSelector } from '@/components/financial/FinancialReportPeriodSelector'
+import { MembershipReports } from '@/components/financial/MembershipReports'
 
 export function FinancialReports() {
   const { toast } = useToast()
@@ -207,12 +208,12 @@ export function FinancialReports() {
       <div>
         <h3 className="text-lg font-medium">Relatórios Financeiros</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Balancete, resumo por categoria e relatório personalizado com período por data e
-          valores a vencer.
+          Balancete, resumo por categoria, relatório personalizado, mensalidades em atraso e
+          extrato por irmão.
         </p>
       </div>
 
-      {activeTab !== 'personalizado' ? (
+      {activeTab !== 'personalizado' && activeTab !== 'mensalidades' ? (
         <div className="no-print rounded-lg border bg-card p-4">
           <FinancialReportPeriodSelector
             value={periodConfig}
@@ -226,6 +227,7 @@ export function FinancialReports() {
           <TabsTrigger value="balancete">Balancete Contábil</TabsTrigger>
           <TabsTrigger value="resumo">Resumo por Categoria</TabsTrigger>
           <TabsTrigger value="personalizado">Personalizado</TabsTrigger>
+          <TabsTrigger value="mensalidades">Mensalidades</TabsTrigger>
         </TabsList>
 
         <TabsContent value="balancete">
@@ -242,6 +244,10 @@ export function FinancialReports() {
             periodConfig={periodConfig}
             onPeriodConfigChange={setPeriodConfig}
           />
+        </TabsContent>
+
+        <TabsContent value="mensalidades">
+          <MembershipReports />
         </TabsContent>
 
         <TabsContent value="resumo" className="space-y-6">

@@ -8,6 +8,8 @@
 
 Correção aplicada: deploy da Edge Function `run-payables-reminders` + tratamento de erro no frontend.
 
+Verificação em 06/07/2026: `run-membership-reminders` também publicada e com CORS OK (HTTP 204 no preflight).
+
 ```bash
 git fetch origin --tags
 git checkout restore-point-2026-07-06-pre-payables-cors

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollableTabsList } from '@/components/ui/scrollable-tabs-list'
 import { useModuleActivation } from '@/hooks/use-module-activation'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { FinancialOverview } from '@/components/financial/FinancialOverview'
@@ -104,15 +105,13 @@ export default function Financial() {
         className="space-y-4"
       >
         {visibleTabs.length > 1 && (
-          <div className="flex items-center overflow-x-auto">
-            <TabsList className="w-full justify-start md:w-auto">
-              {visibleTabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <ScrollableTabsList>
+            {visibleTabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </ScrollableTabsList>
         )}
 
         <TabsContent value="overview">

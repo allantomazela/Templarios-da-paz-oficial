@@ -121,8 +121,9 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      {/* Sidebar apenas a partir de md; em telas estreitas o menu fica no Sheet do AppHeader */}
-      <div className="hidden h-screen shrink-0 md:flex">
+      {/* Sidebar fixa a partir de lg (>=1024px); em telas menores (celular e tablet em retrato)
+          o menu fica no Sheet do AppHeader, liberando toda a largura para o conteúdo. */}
+      <div className="hidden h-screen shrink-0 lg:flex">
         <AppSidebar />
       </div>
 

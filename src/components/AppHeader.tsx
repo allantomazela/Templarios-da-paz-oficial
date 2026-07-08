@@ -64,7 +64,7 @@ export function AppHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 md:hidden"
+              className="shrink-0 lg:hidden"
               aria-label="Abrir menu de navegação"
             >
               <Menu className="h-5 w-5" />
@@ -91,7 +91,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4 flex-1 justify-end">
-        <div className="relative w-full max-w-[300px] hidden md:block">
+        <div className="relative w-full max-w-[300px] hidden lg:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"

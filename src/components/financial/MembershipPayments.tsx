@@ -12,7 +12,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollableTabsList } from '@/components/ui/scrollable-tabs-list'
 import {
   Select,
   SelectContent,
@@ -504,7 +505,7 @@ export function MembershipPayments() {
         onValueChange={(value) => setMainSection(value as 'membership' | 'ceremony')}
         className="space-y-4"
       >
-        <TabsList>
+        <ScrollableTabsList>
           <TabsTrigger value="membership">
             <Wallet className="mr-2 h-4 w-4" />
             Mensalidades
@@ -513,7 +514,7 @@ export function MembershipPayments() {
             <GraduationCap className="mr-2 h-4 w-4" />
             Iniciação, Elevação e Outros
           </TabsTrigger>
-        </TabsList>
+        </ScrollableTabsList>
 
         <TabsContent value="ceremony">
           <CeremonyPaymentsPanel
@@ -599,7 +600,7 @@ export function MembershipPayments() {
       />
 
       <Tabs value={viewTab} onValueChange={setViewTab} className="space-y-4">
-        <TabsList>
+        <ScrollableTabsList>
           <TabsTrigger value="by-member">
             <User className="mr-2 h-4 w-4" />
             Por irmão
@@ -612,7 +613,7 @@ export function MembershipPayments() {
             <History className="mr-2 h-4 w-4" />
             Todos os lançamentos
           </TabsTrigger>
-        </TabsList>
+        </ScrollableTabsList>
 
         <TabsContent value="by-member" className="space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">

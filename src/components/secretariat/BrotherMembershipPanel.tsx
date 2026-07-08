@@ -170,14 +170,14 @@ export function BrotherMembershipPanel({
               <AlertTitle>Mensalidades em atraso</AlertTitle>
               <AlertDescription>
                 {overdueCount} mês(es) em atraso — total{' '}
-                {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}. Vencimento dia{' '}
-                {feeSettings.dueDay}.
+                {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}. Meses fechados
+                sem pagamento.
               </AlertDescription>
             </Alert>
           ) : schedule && schedule.entries.length > 0 ? (
             <div className="flex items-center gap-2 text-green-600 text-sm">
               <CheckCircle className="h-4 w-4 shrink-0" />
-              Cronograma em dia — vencimento dia {feeSettings.dueDay}.
+              Cronograma em dia — mensalidade do mês pode ser paga a qualquer dia.
             </div>
           ) : null}
 

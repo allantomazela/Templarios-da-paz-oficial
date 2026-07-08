@@ -8,6 +8,8 @@ import {
   buildMembershipBackfillPeriods,
   isMembershipHistoricalPeriod,
   isMembershipPastDue,
+  isMembershipMonthOverdue,
+  membershipMonthEndDueDateIso,
   contributionCountsInTreasury,
   isOrphanTreasuryContribution,
 } from '@/lib/membership-schedule'
@@ -127,34 +129,60 @@ describe('isMembershipPastDue', () => {
     expect(isMembershipPastDue(dueDate, new Date(2026, 5, 11))).toBe(true)
   })
 
-  it('marca mês corrente como pendente no dia 10 e atraso só depois', () => {
+  it('mantém mês corrente à vencer em qualquer dia e só marca atraso no mês seguinte', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 5, 10))
 
-    const scheduleOnDueDay = buildMembershipScheduleForBrother(
+    // Fim do mês de referência: ainda pode pagar, então continua "à vencer".
+    vi.setSystemTime(new Date(2026, 5, 30))
+    const scheduleEndOfMonth = buildMembershipScheduleForBrother(
       'brother-1',
       'Irmão Teste',
       [],
       settings,
       '2026-06-01T00:00:00Z',
     )
-    const juneOnDue = scheduleOnDueDay.entries.find(
+    const juneEndOfMonth = scheduleEndOfMonth.entries.find(
       (e) => e.month === 6 && e.year === 2026,
     )
-    expect(juneOnDue?.status).toBe('upcoming')
+    expect(juneEndOfMonth?.status).toBe('upcoming')
 
-    vi.setSystemTime(new Date(2026, 5, 11))
-    const scheduleAfterDue = buildMembershipScheduleForBrother(
+    // Mês fechado (já é julho): junho passa a constar em atraso.
+    vi.setSystemTime(new Date(2026, 6, 1))
+    const scheduleNextMonth = buildMembershipScheduleForBrother(
       'brother-1',
       'Irmão Teste',
       [],
       settings,
       '2026-06-01T00:00:00Z',
     )
-    const juneOverdue = scheduleAfterDue.entries.find(
+    const juneOverdue = scheduleNextMonth.entries.find(
       (e) => e.month === 6 && e.year === 2026,
     )
     expect(juneOverdue?.status).toBe('overdue')
+
+    vi.useRealTimers()
+  })
+
+  it('respeita status Atrasado marcado manualmente no mês corrente', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15))
+
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Teste',
+      [
+        contribution({
+          month: 'Junho',
+          year: 2026,
+          status: 'Atrasado',
+          amount: 0,
+        }),
+      ],
+      settings,
+      '2026-06-01T00:00:00Z',
+    )
+    const june = schedule.entries.find((e) => e.month === 6 && e.year === 2026)
+    expect(june?.status).toBe('overdue')
 
     vi.useRealTimers()
   })
@@ -192,6 +220,33 @@ describe('isMembershipPastDue', () => {
     expect(isMembershipHistoricalPeriod(2026, 5)).toBe(true)
     expect(isMembershipHistoricalPeriod(2026, 6)).toBe(false)
     expect(isMembershipHistoricalPeriod(2026, 7)).toBe(false)
+  })
+})
+
+describe('isMembershipMonthOverdue', () => {
+  const reference = new Date(2026, 6, 15) // 15/07/2026
+
+  it('mês corrente não está em atraso', () => {
+    expect(isMembershipMonthOverdue(2026, 7, reference)).toBe(false)
+  })
+
+  it('mês anterior está em atraso', () => {
+    expect(isMembershipMonthOverdue(2026, 6, reference)).toBe(true)
+    expect(isMembershipMonthOverdue(2025, 12, reference)).toBe(true)
+  })
+
+  it('mês futuro não está em atraso', () => {
+    expect(isMembershipMonthOverdue(2026, 8, reference)).toBe(false)
+    expect(isMembershipMonthOverdue(2027, 1, reference)).toBe(false)
+  })
+})
+
+describe('membershipMonthEndDueDateIso', () => {
+  it('retorna o último dia do mês', () => {
+    expect(membershipMonthEndDueDateIso(2026, 7)).toBe('2026-07-31')
+    expect(membershipMonthEndDueDateIso(2026, 2)).toBe('2026-02-28')
+    expect(membershipMonthEndDueDateIso(2024, 2)).toBe('2024-02-29')
+    expect(membershipMonthEndDueDateIso(2026, 4)).toBe('2026-04-30')
   })
 })
 

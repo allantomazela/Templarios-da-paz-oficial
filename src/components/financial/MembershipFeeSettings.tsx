@@ -30,11 +30,6 @@ const schema = z.object({
     .number()
     .min(0.01, 'Informe um valor maior que zero')
     .max(999999, 'Valor muito alto'),
-  dueDay: z.coerce
-    .number()
-    .int()
-    .min(1, 'Mínimo dia 1')
-    .max(28, 'Máximo dia 28'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -48,31 +43,27 @@ export function MembershipFeeSettings() {
     resolver: zodResolver(schema),
     defaultValues: {
       defaultAmount: membershipFee.defaultAmount,
-      dueDay: membershipFee.dueDay,
     },
   })
 
   useEffect(() => {
-    const key = `${membershipFee.defaultAmount}|${membershipFee.dueDay}`
+    const key = `${membershipFee.defaultAmount}`
     if (prevRef.current !== key) {
       prevRef.current = key
       form.reset({
         defaultAmount: membershipFee.defaultAmount,
-        dueDay: membershipFee.dueDay,
       })
     }
-  }, [membershipFee.defaultAmount, membershipFee.dueDay, form])
+  }, [membershipFee.defaultAmount, form])
 
   const { execute: handleSave, loading } = useAsyncOperation(
     async (data: FormValues) => {
       await updateMembershipFeeSettings({
         defaultAmount: data.defaultAmount,
-        dueDay: data.dueDay,
       })
       toast({
         title: 'Configurações salvas',
-        description:
-          'Valor padrão e vencimento das mensalidades foram atualizados.',
+        description: 'Valor padrão das mensalidades foi atualizado.',
       })
     },
     {
@@ -94,9 +85,9 @@ export function MembershipFeeSettings() {
           Mensalidades da Loja
         </CardTitle>
         <CardDescription>
-          Valor padrão usado em novos lançamentos e na geração em lote. O dia de
-          vencimento define quando uma mensalidade pendente passa a ser
-          considerada em atraso.
+          Valor padrão usado em novos lançamentos e na geração em lote. A
+          mensalidade pode ser paga em qualquer dia do mês de referência; só
+          passa a constar em atraso após o fechamento do mês.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -117,22 +108,6 @@ export function MembershipFeeSettings() {
                     </FormControl>
                     <FormDescription>
                       Aplicado ao registrar ou gerar mensalidades do mês.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dueDay"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dia de vencimento</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} max={28} {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Dia do mês (1 a 28) para controle de atraso.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

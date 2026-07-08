@@ -242,10 +242,6 @@ export function buildDueDateIsoFromParts(
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-function buildDueDateIso(year: number, month: number, dueDay: number): string {
-  return buildDueDateIsoFromParts(year, month, dueDay)
-}
-
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
@@ -269,6 +265,30 @@ export function isMembershipPastDue(
   const [y, m, d] = dueDateIso.split('-').map(Number)
   const dueStart = new Date(y, m - 1, d)
   return startOfDay(referenceDate).getTime() > dueStart.getTime()
+}
+
+/**
+ * Vencimento por fechamento do mês: a mensalidade pode ser paga em qualquer dia
+ * do mês de referência. Só é considerada em atraso a partir do 1º dia do mês
+ * seguinte (quando o mês de referência fecha).
+ */
+export function isMembershipMonthOverdue(
+  year: number,
+  month: number,
+  referenceDate: Date = new Date(),
+): boolean {
+  const refYear = referenceDate.getFullYear()
+  const refMonth = referenceDate.getMonth() + 1
+  return year < refYear || (year === refYear && month < refMonth)
+}
+
+/** Vencimento exibido: último dia do mês de referência (fechamento do mês). */
+export function membershipMonthEndDueDateIso(
+  year: number,
+  month: number,
+): string {
+  const lastDay = new Date(year, month, 0).getDate()
+  return `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 }
 
 function* iterMonths(
@@ -334,16 +354,17 @@ function resolveMonthStatus(
   paidAmount: number,
   pendingAmount: number,
   expectedAmount: number,
-  dueDateIso: string,
   today: Date,
   year: number,
   month: number,
+  hasManualOverdue: boolean,
 ): MembershipMonthStatus {
   if (paidAmount >= expectedAmount) return 'paid'
 
   if (isMembershipPeriodFuture(year, month, today)) return 'upcoming'
 
-  const isPastDue = isMembershipPastDue(dueDateIso, today)
+  // Atraso só quando o mês de referência fecha (ou marcado manualmente).
+  const isPastDue = hasManualOverdue || isMembershipMonthOverdue(year, month, today)
 
   if (paidAmount > 0 && paidAmount < expectedAmount) {
     return isPastDue ? 'overdue' : 'partial'
@@ -428,7 +449,6 @@ export function buildMembershipScheduleForBrother(
   const endYear = now.getFullYear()
   const endMonth = now.getMonth() + 1
   const today = startOfDay(now)
-  const dueDay = settings.dueDay || DEFAULT_MEMBERSHIP_DUE_DAY
   const expectedAmount = settings.defaultAmount
 
   const entries: MembershipScheduleEntry[] = []
@@ -450,7 +470,11 @@ export function buildMembershipScheduleForBrother(
       .filter((c) => c.status !== 'Pago')
       .reduce((sum, c) => sum + c.amount, 0)
 
-    const dueDate = buildDueDateIso(year, month, dueDay)
+    const hasManualOverdue = periodContributions.some(
+      (c) => c.status === 'Atrasado',
+    )
+
+    const dueDate = membershipMonthEndDueDateIso(year, month)
     const theoreticalRemaining = Math.max(0, expectedAmount - paidAmount)
     const remainingAmount = Math.max(theoreticalRemaining, pendingAmount)
 
@@ -458,10 +482,10 @@ export function buildMembershipScheduleForBrother(
       paidAmount,
       pendingAmount,
       expectedAmount,
-      dueDate,
       today,
       year,
       month,
+      hasManualOverdue,
     )
 
     entries.push({

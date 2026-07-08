@@ -13,11 +13,10 @@ import {
 } from '@/lib/format-utils'
 import {
   DEFAULT_MEMBERSHIP_DUE_DAY,
-  fetchMembershipFeeSettings,
 } from '@/lib/contribution-payments'
 import {
-  buildDueDateIsoFromParts,
-  isMembershipPastDue,
+  isMembershipMonthOverdue,
+  membershipMonthEndDueDateIso,
 } from '@/lib/membership-schedule'
 
 export type MemberPaymentType = 'monthly' | 'charity' | 'ceremony' | 'agape'
@@ -78,18 +77,20 @@ export function memberPaymentStatusLabel(
   }
 }
 
-/** Alinha status de mensalidade com o cronograma (mesma regra de vencimento). */
+/**
+ * Alinha status de mensalidade com o cronograma: a mensalidade só fica em atraso
+ * quando o mês de referência fecha (pode ser paga em qualquer dia do mês).
+ */
 export function mapContributionStatusToMemberPayment(
   dbStatus: string | undefined,
   year: number,
   month: number,
-  dueDay: number,
+  referenceDate: Date = new Date(),
 ): MemberPayment['status'] {
   if (dbStatus === 'Pago') return 'paid'
   if (dbStatus === 'Atrasado') return 'overdue'
 
-  const dueDateIso = buildDueDateIsoFromParts(year, month, dueDay)
-  if (isMembershipPastDue(dueDateIso)) return 'overdue'
+  if (isMembershipMonthOverdue(year, month, referenceDate)) return 'overdue'
   return 'pending'
 }
 
@@ -136,13 +137,6 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
   const supabaseAny = supabase as any
   const mappedPayments: MemberPayment[] = []
 
-  let dueDay = DEFAULT_MEMBERSHIP_DUE_DAY
-  try {
-    const settings = await fetchMembershipFeeSettings()
-    dueDay = settings.dueDay
-  } catch {
-    // mantém padrão
-  }
   const { data: contributions, error: contributionsError } = await supabaseAny
     .from('contributions')
     .select('*')
@@ -163,7 +157,7 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
       status?: string
       payment_date?: string | null
     }) => {
-      const dueDateIso = buildDueDateIsoFromParts(cont.year, cont.month, dueDay)
+      const dueDateIso = membershipMonthEndDueDateIso(cont.year, cont.month)
 
       mappedPayments.push({
         id: cont.id,
@@ -174,7 +168,6 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
           cont.status,
           cont.year,
           cont.month,
-          dueDay,
         ),
         dueDate: dueDateIso,
         paymentDate: cont.payment_date

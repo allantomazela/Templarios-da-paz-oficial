@@ -771,7 +771,6 @@ export function buildBrotherSummaries(
   contributions: Contribution[],
   brotherNames: Record<string, string>,
   approvedBrothers: { id: string; full_name: string | null }[],
-  dueDay: number = DEFAULT_MEMBERSHIP_DUE_DAY,
 ): BrotherContributionSummary[] {
   const now = new Date()
   const currentMonth = now.getMonth() + 1
@@ -811,21 +810,10 @@ export function buildBrotherSummaries(
         if (!hasUnpaid) {
           currentStatus = 'paid'
         } else if (currentMonthItems.some((i) => i.status === 'Atrasado')) {
+          // Só fica em atraso se marcado manualmente; o mês corrente ainda está aberto.
           currentStatus = 'overdue'
         } else {
-          const dueIso = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(Math.min(dueDay, 28)).padStart(2, '0')}`
-          const todayStart = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate(),
-          )
-          const [dy, dm, dd] = dueIso.split('-').map(Number)
-          const dueStart = new Date(dy, dm - 1, dd)
-          if (todayStart.getTime() > dueStart.getTime()) {
-            currentStatus = 'overdue'
-          } else {
-            currentStatus = 'upcoming'
-          }
+          currentStatus = 'upcoming'
         }
       }
 

@@ -1,3 +1,28 @@
+# Ponto de restauração — baseline 07/07/2026 (vencimento por fechamento do mês)
+
+| Item | Valor |
+|------|--------|
+| **Tag Git** | `restore-point-2026-07-07-pre-vencimento-fim-mes` |
+| **Branch de backup** | `restore/pre-vencimento-fim-mes-2026-07-07` |
+| **Commit de referência** | `ffbcfdc` — extrato unificado do irmão (estado imediatamente anterior) |
+
+Alteração: a mensalidade deixa de ter dia fixo de vencimento. Agora pode ser
+paga em qualquer dia do mês de referência e só passa a constar **em atraso**
+após o fechamento do mês (a partir do 1º dia do mês seguinte). O campo "Dia de
+vencimento" foi removido das configurações. Status manual `Atrasado` continua
+sendo respeitado.
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-07-07-pre-vencimento-fim-mes
+```
+
+> Observação: para os **lembretes por e-mail** refletirem a nova regra em
+> produção, republique a Edge Function (opcional, exige credenciais Supabase):
+> `npx supabase functions deploy run-membership-reminders`.
+
+---
+
 # Ponto de restauração — baseline 07/07/2026 (extrato unificado do irmão)
 
 | Item | Valor |

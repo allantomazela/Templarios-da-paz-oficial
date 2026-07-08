@@ -292,9 +292,8 @@ export function MembershipPayments() {
         contributions,
         brotherNames,
         approvedBrothers,
-        feeSettings.dueDay,
       ),
-    [contributions, brotherNames, approvedBrothers, feeSettings.dueDay],
+    [contributions, brotherNames, approvedBrothers],
   )
 
   const allSchedules = useMemo(

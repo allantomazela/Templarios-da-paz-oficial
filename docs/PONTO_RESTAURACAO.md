@@ -1,3 +1,30 @@
+# Ponto de restauração — baseline 07/07/2026 (dedupe de mensalidades)
+
+| Item | Valor |
+|------|--------|
+| **Tag Git** | `restore-point-2026-07-07-pre-dedupe-mensalidade` |
+| **Branch de backup** | `restore/pre-dedupe-mensalidade-2026-07-07` |
+| **Commit de referência** | `88c8b63` — vencimento por fechamento do mês (estado imediatamente anterior) |
+
+Alteração: `saveContribution` passou a ser **idempotente** — se já existe
+mensalidade para (irmão, mês, ano), atualiza a existente em vez de inserir outra
+(evita a duplicidade do botão "Lançar para este irmão"). Adicionada migração
+`20260707130000_contributions_unique_brother_month_year.sql` que limpa
+duplicatas seguras e cria a constraint `UNIQUE(brother_id, month, year)`.
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-07-07-pre-dedupe-mensalidade
+```
+
+> **Ação manual necessária:** aplicar a migração no Supabase para reativar a
+> trava no banco (a correção de app já impede novas duplicatas):
+> `npx supabase db push` (ou colar o SQL no *SQL Editor*). A migração aborta com
+> mensagem clara se restarem duplicatas de risco (linhas pagas/vinculadas),
+> sem apagar receita — nesse caso, consolide manualmente e reaplique.
+
+---
+
 # Ponto de restauração — baseline 07/07/2026 (vencimento por fechamento do mês)
 
 | Item | Valor |

@@ -974,13 +974,31 @@ export async function saveContribution(
     })
   }
 
-  if (options?.contributionId) {
+  // Lançamento idempotente: se já existe mensalidade para (irmão, mês, ano),
+  // atualiza a existente em vez de inserir outra — evita duplicidade mesmo
+  // quando o lançamento vem do botão "Lançar para este irmão".
+  let effectiveContributionId = options?.contributionId
+  let effectiveExistingTransactionId = options?.existingTransactionId
+  if (!effectiveContributionId) {
+    const existing = await findExistingContributionForPeriod(
+      supabaseAny,
+      data.brotherId,
+      month,
+      data.year,
+    )
+    if (existing) {
+      effectiveContributionId = existing.id
+      effectiveExistingTransactionId = existing.transaction_id ?? null
+    }
+  }
+
+  if (effectiveContributionId) {
     const { data: previous, error: previousError } = await supabaseAny
       .from('contributions')
       .select(
         'brother_id, month, year, amount, status, payment_date, account_id, notes, recorded_by',
       )
-      .eq('id', options.contributionId)
+      .eq('id', effectiveContributionId)
       .single()
 
     if (previousError) throw formatSupabaseError(previousError)
@@ -988,16 +1006,19 @@ export async function saveContribution(
     const { error } = await supabaseAny
       .from('contributions')
       .update(basePayload)
-      .eq('id', options.contributionId)
+      .eq('id', effectiveContributionId)
     if (error) throw formatSupabaseError(error)
 
     try {
-      await persistAndSync(options.contributionId, options.existingTransactionId)
+      await persistAndSync(
+        effectiveContributionId,
+        effectiveExistingTransactionId,
+      )
     } catch (syncError) {
       const { error: rollbackError } = await supabaseAny
         .from('contributions')
         .update(previous)
-        .eq('id', options.contributionId)
+        .eq('id', effectiveContributionId)
 
       if (rollbackError) {
         throw formatSupabaseError(
@@ -1026,6 +1047,44 @@ export async function saveContribution(
     await supabaseAny.from('contributions').delete().eq('id', created.id)
     throw formatSupabaseError(syncError)
   }
+}
+
+interface ExistingContributionRef {
+  id: string
+  transaction_id: string | null
+  status: string
+}
+
+/**
+ * Busca uma mensalidade já lançada para o período. Se houver duplicatas legadas,
+ * escolhe a "melhor" para atualizar: prioriza a vinculada à tesouraria e, depois,
+ * a que está paga — evitando criar novas linhas e sobrescrever a receita real.
+ */
+async function findExistingContributionForPeriod(
+  supabaseAny: any,
+  brotherId: string,
+  month: number,
+  year: number,
+): Promise<ExistingContributionRef | null> {
+  const { data, error } = await supabaseAny
+    .from('contributions')
+    .select('id, transaction_id, status')
+    .eq('brother_id', brotherId)
+    .eq('month', month)
+    .eq('year', year)
+
+  if (error) throw formatSupabaseError(error)
+  const rows = (data ?? []) as ExistingContributionRef[]
+  if (rows.length === 0) return null
+
+  return [...rows].sort((a, b) => {
+    const aLinked = a.transaction_id ? 1 : 0
+    const bLinked = b.transaction_id ? 1 : 0
+    if (aLinked !== bLinked) return bLinked - aLinked
+    const aPaid = a.status === 'Pago' ? 1 : 0
+    const bPaid = b.status === 'Pago' ? 1 : 0
+    return bPaid - aPaid
+  })[0]
 }
 
 export async function deleteContribution(contribution: Contribution): Promise<void> {

@@ -152,7 +152,7 @@ function ContributionsTable({
         <TableBody>
           {rows.map((contribution) => (
             <TableRow key={contribution.id}>
-              <TableCell className="font-medium">
+              <TableCell className="font-medium whitespace-nowrap">
                 {brotherNames[contribution.brotherId] ||
                   contribution.brotherName ||
                   'Desconhecido'}
@@ -777,7 +777,7 @@ export function MembershipPayments() {
                 <TableBody>
                   {overdueAlerts.map((alert) => (
                     <TableRow key={alert.brotherId}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium whitespace-nowrap">
                         {alert.brotherName}
                       </TableCell>
                       <TableCell>{alert.overdueLabels.join(', ')}</TableCell>

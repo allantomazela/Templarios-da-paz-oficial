@@ -1,3 +1,5 @@
+import { MEMBERSHIP_LABELS } from './membership-labels.ts'
+
 export interface Contribution {
   id: string
   brotherId: string
@@ -521,14 +523,5 @@ export function buildOverdueBrotherAlerts(
 }
 
 export function membershipStatusLabel(status: MembershipMonthStatus): string {
-  switch (status) {
-    case 'paid':
-      return 'Pago'
-    case 'partial':
-      return 'Parcial'
-    case 'upcoming':
-      return 'À vencer'
-    case 'overdue':
-      return 'Em atraso'
-  }
+  return MEMBERSHIP_LABELS[status]
 }

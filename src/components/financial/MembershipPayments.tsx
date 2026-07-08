@@ -527,7 +527,7 @@ export function MembershipPayments() {
         </TabsContent>
 
         <TabsContent value="membership" className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <p className="text-sm text-muted-foreground max-w-2xl">
           Registre pagamentos a partir de jun/2026 — entram na tesouraria quando
           marcados como <strong>Pago</strong> com conta bancária. Meses anteriores

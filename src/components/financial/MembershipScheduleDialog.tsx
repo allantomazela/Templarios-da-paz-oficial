@@ -217,6 +217,13 @@ export function MembershipScheduleDialog({
     [schedule],
   )
 
+  // Separação clara: "em atraso" (mês já fechado) x "à vencer" (mês corrente/futuro).
+  const overdueEntries = useMemo(
+    () => schedule?.overdueEntries ?? [],
+    [schedule],
+  )
+  const upcomingEntries = useMemo(() => schedule?.openEntries ?? [], [schedule])
+
   const treasuryPaidTotal = useMemo(
     () =>
       brotherContributions
@@ -419,11 +426,11 @@ export function MembershipScheduleDialog({
           {openEntries.length >= 2 ? (
             <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
               <AlertTitle className="text-sm font-medium">
-                {openEntries.length} meses em aberto neste irmão
+                {openEntries.length} meses com valor a receber neste irmão
               </AlertTitle>
               <AlertDescription className="text-sm">
                 Se o pagamento recebido cobre mais de um mês, selecione todos os meses
-                quitados antes de registrar. Use &quot;Selecionar todos em aberto&quot; e
+                quitados antes de registrar. Use &quot;Selecionar todos a receber&quot; e
                 depois &quot;Registrar pagamento na tesouraria&quot;.
               </AlertDescription>
             </Alert>
@@ -431,19 +438,34 @@ export function MembershipScheduleDialog({
 
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertDescription>
-              {openEntries.length > 0 ? (
-                <>
-                  <strong>{openEntries.length} mês(es) em aberto</strong> —{' '}
-                  {openEntries.map((e) => e.periodLabel).join(', ')}. Marque os
-                  meses pagos e clique em &quot;Registrar pagamento na
-                  tesouraria&quot;.
-                </>
-              ) : (
-                'Cronograma quitado nos meses exibidos.'
-              )}{' '}
-              Receita registrada:{' '}
-              <strong>{formatCurrencyBRL(treasuryPaidTotal)}</strong>.
+            <AlertDescription className="space-y-1">
+              {overdueEntries.length > 0 ? (
+                <p>
+                  <strong className="text-destructive">
+                    {overdueEntries.length} mês(es) em atraso
+                  </strong>{' '}
+                  — {overdueEntries.map((e) => e.periodLabel).join(', ')} (
+                  {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}). Meses já
+                  fechados sem pagamento — priorize a cobrança.
+                </p>
+              ) : null}
+              {upcomingEntries.length > 0 ? (
+                <p>
+                  <strong className="text-sky-700">
+                    {upcomingEntries.length} mês(es) à vencer
+                  </strong>{' '}
+                  — {upcomingEntries.map((e) => e.periodLabel).join(', ')} (
+                  {formatCurrencyBRL(schedule?.totalOpen ?? 0)}). Podem ser pagos
+                  em qualquer dia do mês, sem constar atraso.
+                </p>
+              ) : null}
+              {overdueEntries.length === 0 && upcomingEntries.length === 0 ? (
+                <p>Cronograma quitado nos meses exibidos.</p>
+              ) : null}
+              <p>
+                Receita registrada:{' '}
+                <strong>{formatCurrencyBRL(treasuryPaidTotal)}</strong>.
+              </p>
             </AlertDescription>
           </Alert>
 
@@ -455,7 +477,7 @@ export function MembershipScheduleDialog({
             <>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={selectAllOpen}>
-                  Selecionar todos em aberto
+                  Selecionar todos a receber
                 </Button>
                 {selectedOpenPeriods.length > 0 ? (
                   <Button
@@ -478,7 +500,7 @@ export function MembershipScheduleDialog({
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Previsto</TableHead>
                       <TableHead>Pago</TableHead>
-                      <TableHead>Em aberto</TableHead>
+                      <TableHead>A receber</TableHead>
                       <TableHead>Situação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>

@@ -76,7 +76,7 @@ export function MembershipScheduleTable({
             <TableHead>Vencimento</TableHead>
             <TableHead>Previsto</TableHead>
             <TableHead>Pago</TableHead>
-            <TableHead>Em aberto</TableHead>
+            <TableHead>A receber</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>

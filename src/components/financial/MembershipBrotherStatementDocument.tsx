@@ -147,7 +147,7 @@ export function MembershipBrotherStatementDocument({
                 <th>Vencimento</th>
                 <th className="balancete-num">Previsto</th>
                 <th className="balancete-num">Pago</th>
-                <th className="balancete-num">Em aberto</th>
+                <th className="balancete-num">A receber</th>
                 <th>Status</th>
               </tr>
             </thead>

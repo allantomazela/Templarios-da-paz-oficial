@@ -191,7 +191,7 @@ export default function MyPayments() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Em aberto (mensalidades)</CardTitle>
+            <CardTitle className="text-sm font-medium">A vencer (mensalidades)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">

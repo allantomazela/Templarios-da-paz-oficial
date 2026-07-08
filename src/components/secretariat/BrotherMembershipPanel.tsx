@@ -189,7 +189,7 @@ export function BrotherMembershipPanel({
               </p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Em aberto</p>
+              <p className="text-xs text-muted-foreground">A vencer</p>
               <p className="font-semibold text-amber-600">
                 {formatCurrencyBRL(totalPending)}
               </p>

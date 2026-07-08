@@ -23,6 +23,33 @@ git checkout restore-point-2026-07-07-pre-dedupe-mensalidade
 > mensagem clara se restarem duplicatas de risco (linhas pagas/vinculadas),
 > sem apagar receita — nesse caso, consolide manualmente e reaplique.
 
+## Manutenção aplicada em produção — 07/07/2026
+
+Limpeza de duplicidades executada no banco de produção (via SQL Editor) e trava
+de unicidade confirmada ativa (`contributions_brother_month_year_unique`).
+
+Casos tratados (7 períodos duplicados encontrados):
+
+- **6 mensalidades de jul/2026** (Carlos, Claudinei, Claudio, Eduardo, Paulo
+  Henrique, Valmir): cada uma tinha 1 linha paga/vinculada + 1 pendente órfã
+  (R$ 290). As pendentes órfãs foram removidas com segurança (sem afetar o caixa).
+- **1 caso de risco — Cristiano (jun/2026):** havia duas receitas reais no caixa
+  (conta Stone): R$ 290 (mensalidade real de junho) e R$ 1.215,75 (taxa de
+  **iniciação 4/4** lançada por engano como mensalidade). Resolução:
+  - Removida a contribuição de R$ 1.215,75 do controle de mensalidades (a receita
+    permaneceu no caixa — FK `ON DELETE SET NULL`, não apaga a transação).
+  - Mantida a mensalidade de R$ 290 como junho/2026.
+  - Receita de R$ 1.215,75 **reclassificada** de categoria `Mensalidade` para
+    `Iniciação`, para não inflar o relatório de mensalidades.
+
+Verificação final: consulta de duplicatas retornou vazio e a constraint única
+existe em `public.contributions`.
+
+**Lição/rotina para a tesouraria:** taxas ritualísticas (Iniciação, Elevação,
+Exaltação) devem ser lançadas pelo módulo de taxas de grau, nunca como
+mensalidade; mensalidades normais devem ser quitadas pelo "Gerenciar Cronograma"
+(Lançar/Editar na linha), que nunca duplica.
+
 ---
 
 # Ponto de restauração — baseline 07/07/2026 (vencimento por fechamento do mês)

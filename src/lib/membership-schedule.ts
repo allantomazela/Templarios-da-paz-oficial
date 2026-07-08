@@ -1,4 +1,5 @@
 import type { Contribution } from '@/lib/data'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 
 export type MembershipMonthStatus =
   | 'paid'
@@ -584,14 +585,5 @@ export function buildOverdueBrotherAlerts(
 }
 
 export function membershipStatusLabel(status: MembershipMonthStatus): string {
-  switch (status) {
-    case 'paid':
-      return 'Pago'
-    case 'partial':
-      return 'Parcial'
-    case 'upcoming':
-      return 'À vencer'
-    case 'overdue':
-      return 'Em atraso'
-  }
+  return MEMBERSHIP_LABELS[status]
 }

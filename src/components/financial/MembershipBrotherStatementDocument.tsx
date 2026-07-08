@@ -8,6 +8,7 @@ import {
 } from '@/lib/membership-report'
 import { MEMBER_PAYMENT_TYPE_LABELS } from '@/lib/member-payments'
 import { membershipStatusLabel } from '@/lib/membership-schedule'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 
 interface MembershipBrotherStatementDocumentProps {
   statement: MembershipBrotherStatementData
@@ -147,7 +148,7 @@ export function MembershipBrotherStatementDocument({
                 <th>Vencimento</th>
                 <th className="balancete-num">Previsto</th>
                 <th className="balancete-num">Pago</th>
-                <th className="balancete-num">A receber</th>
+                <th className="balancete-num">{MEMBERSHIP_LABELS.toReceive}</th>
                 <th>Status</th>
               </tr>
             </thead>

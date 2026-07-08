@@ -30,6 +30,7 @@ import { MembershipScheduleTable } from '@/components/financial/MembershipSchedu
 import {
   buildMembershipScheduleForBrother,
 } from '@/lib/membership-schedule'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 
 export default function MyPayments() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -191,7 +192,7 @@ export default function MyPayments() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">A vencer (mensalidades)</CardTitle>
+            <CardTitle className="text-sm font-medium">{MEMBERSHIP_LABELS.upcoming} (mensalidades)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">

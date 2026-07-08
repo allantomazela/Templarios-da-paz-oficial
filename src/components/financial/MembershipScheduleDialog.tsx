@@ -48,6 +48,7 @@ import {
   type MembershipMonthStatus,
   type MembershipScheduleEntry,
 } from '@/lib/membership-schedule'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 import { saveMembershipBackfillPeriods } from '@/lib/membership-history-backfill'
 import {
   saveBatchContributionPayment,
@@ -442,7 +443,8 @@ export function MembershipScheduleDialog({
               {overdueEntries.length > 0 ? (
                 <p>
                   <strong className="text-destructive">
-                    {overdueEntries.length} mês(es) em atraso
+                    {overdueEntries.length} mês(es){' '}
+                    {MEMBERSHIP_LABELS.overdue.toLowerCase()}
                   </strong>{' '}
                   — {overdueEntries.map((e) => e.periodLabel).join(', ')} (
                   {formatCurrencyBRL(schedule?.totalOverdue ?? 0)}). Meses já
@@ -452,7 +454,8 @@ export function MembershipScheduleDialog({
               {upcomingEntries.length > 0 ? (
                 <p>
                   <strong className="text-sky-700">
-                    {upcomingEntries.length} mês(es) à vencer
+                    {upcomingEntries.length} mês(es){' '}
+                    {MEMBERSHIP_LABELS.upcoming.toLowerCase()}
                   </strong>{' '}
                   — {upcomingEntries.map((e) => e.periodLabel).join(', ')} (
                   {formatCurrencyBRL(schedule?.totalOpen ?? 0)}). Podem ser pagos
@@ -500,7 +503,7 @@ export function MembershipScheduleDialog({
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Previsto</TableHead>
                       <TableHead>Pago</TableHead>
-                      <TableHead>A receber</TableHead>
+                      <TableHead>{MEMBERSHIP_LABELS.toReceive}</TableHead>
                       <TableHead>Situação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>

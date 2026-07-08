@@ -18,6 +18,7 @@ import {
   isMembershipMonthOverdue,
   membershipMonthEndDueDateIso,
 } from '@/lib/membership-schedule'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 
 export type MemberPaymentType = 'monthly' | 'charity' | 'ceremony' | 'agape'
 
@@ -67,11 +68,11 @@ export function memberPaymentStatusLabel(
 ): string {
   switch (status) {
     case 'paid':
-      return 'Pago'
+      return MEMBERSHIP_LABELS.paid
     case 'overdue':
-      return 'Em atraso'
+      return MEMBERSHIP_LABELS.overdue
     case 'pending':
-      return 'À vencer'
+      return MEMBERSHIP_LABELS.upcoming
     default:
       return status
   }

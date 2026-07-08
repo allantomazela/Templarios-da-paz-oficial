@@ -20,6 +20,7 @@ import {
   buildMembershipScheduleForBrother,
   type MembershipFeeScheduleSettings,
 } from '@/lib/membership-schedule'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
 import { supabase } from '@/lib/supabase/client'
 import type { Contribution } from '@/lib/data'
@@ -189,7 +190,7 @@ export function BrotherMembershipPanel({
               </p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">A vencer</p>
+              <p className="text-xs text-muted-foreground">{MEMBERSHIP_LABELS.upcoming}</p>
               <p className="font-semibold text-amber-600">
                 {formatCurrencyBRL(totalPending)}
               </p>

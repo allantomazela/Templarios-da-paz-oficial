@@ -14,6 +14,7 @@ import {
   type MembershipScheduleEntry,
   type MembershipMonthStatus,
 } from '@/lib/membership-schedule'
+import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 import { cn } from '@/lib/utils'
 
 function statusBadge(status: MembershipMonthStatus) {
@@ -76,7 +77,7 @@ export function MembershipScheduleTable({
             <TableHead>Vencimento</TableHead>
             <TableHead>Previsto</TableHead>
             <TableHead>Pago</TableHead>
-            <TableHead>A receber</TableHead>
+            <TableHead>{MEMBERSHIP_LABELS.toReceive}</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>

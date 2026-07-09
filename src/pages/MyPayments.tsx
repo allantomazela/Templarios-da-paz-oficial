@@ -15,7 +15,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import {
-  fetchMemberPayments,
+  fetchMemberPaymentsBundle,
   getMemberPaymentCategoryLabel,
   getPaidMemberPayments,
   sumPaidMemberPayments,
@@ -23,7 +23,6 @@ import {
 } from '@/lib/member-payments'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import {
-  fetchContributionsForProfile,
   fetchMembershipFeeSettings,
 } from '@/lib/contribution-payments'
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
@@ -49,24 +48,23 @@ export default function MyPayments() {
       }
 
       const supabaseAny = supabase as any
-      const [{ data: profile }, mappedPayments, settings] = await Promise.all([
+      const [{ data: profile }, bundle, settings] = await Promise.all([
         supabaseAny
           .from('profiles')
           .select('created_at')
           .eq('id', user.id)
           .maybeSingle(),
-        fetchMemberPayments(user.id),
+        fetchMemberPaymentsBundle(user.id),
         fetchMembershipFeeSettings(),
       ])
 
       setMemberSince(profile?.created_at ?? null)
-      setPayments(mappedPayments)
+      setPayments(bundle.payments)
 
-      const contributions = await fetchContributionsForProfile(user.id)
       return buildMembershipScheduleForBrother(
         user.id,
         'Você',
-        contributions,
+        bundle.contributions,
         settings,
         profile?.created_at,
       )

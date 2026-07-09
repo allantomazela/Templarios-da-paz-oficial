@@ -4,6 +4,8 @@ import {
   CEREMONY_PAYMENT_TYPE_LABELS,
 } from '@/lib/ceremony-payment-types'
 import { fetchCeremonyPaymentPlans } from '@/lib/ceremony-payments'
+import type { Contribution } from '@/lib/data'
+import { mapContributionFromDB } from '@/lib/financial-mappers'
 import { supabase } from '@/lib/supabase/client'
 import {
   formatDateBR,
@@ -133,31 +135,66 @@ function isMissingTableError(error: { code?: string; message?: string }): boolea
   )
 }
 
-/** Carrega extrato unificado do irmão: mensalidades, tronco, taxas de grau e ágape. */
-export async function fetchMemberPayments(userId: string): Promise<MemberPayment[]> {
+export interface MemberPaymentsBundle {
+  payments: MemberPayment[]
+  /** Mensalidades no formato do cronograma (mês como nome), sem segunda query. */
+  contributions: Contribution[]
+}
+
+/**
+ * Carrega extrato unificado + contributions do irmão em paralelo
+ * (mensalidades, tronco, taxas de grau e ágape).
+ */
+export async function fetchMemberPaymentsBundle(
+  userId: string,
+): Promise<MemberPaymentsBundle> {
   const supabaseAny = supabase as any
   const mappedPayments: MemberPayment[] = []
+  let contributions: Contribution[] = []
 
-  const { data: contributions, error: contributionsError } = await supabaseAny
-    .from('contributions')
-    .select('*')
-    .eq('brother_id', userId)
-    .order('year', { ascending: false })
-    .order('month', { ascending: false })
+  const [contributionsResult, charityResult, ceremonyResult, agapeResult] =
+    await Promise.all([
+      supabaseAny
+        .from('contributions')
+        .select('*')
+        .eq('brother_id', userId)
+        .order('year', { ascending: false })
+        .order('month', { ascending: false }),
+      supabaseAny
+        .from('charity_donations')
+        .select('*')
+        .eq('brother_id', userId)
+        .order('created_at', { ascending: false }),
+      fetchCeremonyPaymentPlans(userId).catch((error: unknown) => {
+        if (!isMissingTableError(error as { code?: string; message?: string })) {
+          console.warn('Falha ao carregar taxas de grau do irmão.', error)
+        }
+        return [] as Awaited<ReturnType<typeof fetchCeremonyPaymentPlans>>
+      }),
+      supabaseAny
+        .from('agape_brother_charges')
+        .select('*')
+        .eq('brother_id', userId)
+        .order('year', { ascending: false })
+        .order('month', { ascending: false }),
+    ])
 
+  const { data: contributionRows, error: contributionsError } =
+    contributionsResult
   if (contributionsError) {
     if (!isMissingTableError(contributionsError)) {
       throw contributionsError
     }
-  } else if (contributions) {
-    contributions.forEach((cont: {
+  } else if (contributionRows) {
+    contributions = contributionRows.map(mapContributionFromDB)
+    for (const cont of contributionRows as {
       id: string
       month: number
       year: number
       amount?: number
       status?: string
       payment_date?: string | null
-    }) => {
+    }[]) {
       const dueDateIso = membershipMonthEndDueDateIso(cont.year, cont.month)
 
       mappedPayments.push({
@@ -177,26 +214,21 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
         month: cont.month,
         year: cont.year,
       })
-    })
+    }
   }
 
-  const { data: charity, error: charityError } = await supabaseAny
-    .from('charity_donations')
-    .select('*')
-    .eq('brother_id', userId)
-    .order('created_at', { ascending: false })
-
+  const { data: charity, error: charityError } = charityResult
   if (charityError) {
     if (!isMissingTableError(charityError)) {
       throw charityError
     }
   } else if (charity) {
-    charity.forEach((donation: {
+    for (const donation of charity as {
       id: string
       amount?: number
       description?: string | null
       created_at: string
-    }) => {
+    }[]) {
       mappedPayments.push({
         id: donation.id,
         type: 'charity',
@@ -207,46 +239,33 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
         dueDate: toDateInputValue(donation.created_at),
         paymentDate: toDateInputValue(donation.created_at),
       })
-    })
-  }
-
-  try {
-    const ceremonyPlans = await fetchCeremonyPaymentPlans(userId)
-    for (const plan of ceremonyPlans) {
-      const categoryLabel = CEREMONY_PAYMENT_TYPE_LABELS[plan.paymentType]
-      const planLabel = ceremonyPlanLabel(plan)
-
-      for (const installment of plan.installments ?? []) {
-        mappedPayments.push({
-          id: installment.id,
-          type: 'ceremony',
-          categoryLabel,
-          description: `${planLabel} — parcela ${installment.installmentNumber}/${plan.installmentsCount}`,
-          amount: installment.amount,
-          status: mapDbStatusToMemberStatus(
-            installment.status,
-            installment.dueDate,
-          ),
-          dueDate: installment.dueDate || todayLocalISODate(),
-          paymentDate: installment.paymentDate
-            ? toDateInputValue(installment.paymentDate)
-            : undefined,
-        })
-      }
-    }
-  } catch (error) {
-    if (!isMissingTableError(error as { code?: string; message?: string })) {
-      console.warn('Falha ao carregar taxas de grau do irmão.', error)
     }
   }
 
-  const { data: agapeCharges, error: agapeError } = await supabaseAny
-    .from('agape_brother_charges')
-    .select('*')
-    .eq('brother_id', userId)
-    .order('year', { ascending: false })
-    .order('month', { ascending: false })
+  for (const plan of ceremonyResult) {
+    const categoryLabel = CEREMONY_PAYMENT_TYPE_LABELS[plan.paymentType]
+    const planLabel = ceremonyPlanLabel(plan)
 
+    for (const installment of plan.installments ?? []) {
+      mappedPayments.push({
+        id: installment.id,
+        type: 'ceremony',
+        categoryLabel,
+        description: `${planLabel} — parcela ${installment.installmentNumber}/${plan.installmentsCount}`,
+        amount: installment.amount,
+        status: mapDbStatusToMemberStatus(
+          installment.status,
+          installment.dueDate,
+        ),
+        dueDate: installment.dueDate || todayLocalISODate(),
+        paymentDate: installment.paymentDate
+          ? toDateInputValue(installment.paymentDate)
+          : undefined,
+      })
+    }
+  }
+
+  const { data: agapeCharges, error: agapeError } = agapeResult
   if (agapeError) {
     if (!isMissingTableError(agapeError)) {
       console.warn('Falha ao carregar cobranças do ágape do irmão.', agapeError)
@@ -273,7 +292,16 @@ export async function fetchMemberPayments(userId: string): Promise<MemberPayment
     }
   }
 
-  return sortMemberPaymentsForExtrato(mappedPayments)
+  return {
+    payments: sortMemberPaymentsForExtrato(mappedPayments),
+    contributions,
+  }
+}
+
+/** Carrega extrato unificado do irmão: mensalidades, tronco, taxas de grau e ágape. */
+export async function fetchMemberPayments(userId: string): Promise<MemberPayment[]> {
+  const { payments } = await fetchMemberPaymentsBundle(userId)
+  return payments
 }
 
 function todayLocalISODate(): string {

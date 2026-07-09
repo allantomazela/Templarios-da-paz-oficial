@@ -1,28 +1,83 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollableTabsList } from '@/components/ui/scrollable-tabs-list'
 import { useModuleActivation } from '@/hooks/use-module-activation'
 import useFinancialStore from '@/stores/useFinancialStore'
-import { FinancialOverview } from '@/components/financial/FinancialOverview'
-import { IncomeList } from '@/components/financial/IncomeList'
-import { PayablesPanel } from '@/components/financial/PayablesPanel'
-import { ExpenseList } from '@/components/financial/ExpenseList'
-import { MembershipPayments } from '@/components/financial/MembershipPayments'
-import { FinancialReports } from '@/components/financial/FinancialReports'
-import { CategoryList } from '@/components/financial/CategoryList'
-import { BudgetsAndGoals } from '@/components/financial/BudgetsAndGoals'
-import { ReminderSettings } from '@/components/financial/ReminderSettings'
-import { PayableReminderSettings } from '@/components/financial/PayableReminderSettings'
-import { MembershipFeeSettings } from '@/components/financial/MembershipFeeSettings'
-import { BankAccounts } from '@/components/financial/BankAccounts'
-import { CashFlowReport } from '@/components/financial/CashFlowReport'
-import { FinancialPlanningPanel } from '@/components/financial/FinancialPlanningPanel'
-import { CharityCollection } from '@/components/financial/CharityCollection'
-import { AgapeClosing } from '@/components/financial/AgapeClosing'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
 import { usePositionsReady } from '@/hooks/use-positions-ready'
 import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import { Navigate } from 'react-router-dom'
+
+const FinancialOverview = lazy(() =>
+  import('@/components/financial/FinancialOverview').then((m) => ({
+    default: m.FinancialOverview,
+  })),
+)
+const BankAccounts = lazy(() =>
+  import('@/components/financial/BankAccounts').then((m) => ({
+    default: m.BankAccounts,
+  })),
+)
+const CashFlowReport = lazy(() =>
+  import('@/components/financial/CashFlowReport').then((m) => ({
+    default: m.CashFlowReport,
+  })),
+)
+const IncomeList = lazy(() =>
+  import('@/components/financial/IncomeList').then((m) => ({
+    default: m.IncomeList,
+  })),
+)
+const PayablesPanel = lazy(() =>
+  import('@/components/financial/PayablesPanel').then((m) => ({
+    default: m.PayablesPanel,
+  })),
+)
+const ExpenseList = lazy(() =>
+  import('@/components/financial/ExpenseList').then((m) => ({
+    default: m.ExpenseList,
+  })),
+)
+const CharityCollection = lazy(() =>
+  import('@/components/financial/CharityCollection').then((m) => ({
+    default: m.CharityCollection,
+  })),
+)
+const AgapeClosing = lazy(() =>
+  import('@/components/financial/AgapeClosing').then((m) => ({
+    default: m.AgapeClosing,
+  })),
+)
+const MembershipPayments = lazy(() =>
+  import('@/components/financial/MembershipPayments').then((m) => ({
+    default: m.MembershipPayments,
+  })),
+)
+const BudgetsAndGoals = lazy(() =>
+  import('@/components/financial/BudgetsAndGoals').then((m) => ({
+    default: m.BudgetsAndGoals,
+  })),
+)
+const FinancialPlanningPanel = lazy(() =>
+  import('@/components/financial/FinancialPlanningPanel').then((m) => ({
+    default: m.FinancialPlanningPanel,
+  })),
+)
+const FinancialReports = lazy(() =>
+  import('@/components/financial/FinancialReports').then((m) => ({
+    default: m.FinancialReports,
+  })),
+)
+const CategoryList = lazy(() =>
+  import('@/components/financial/CategoryList').then((m) => ({
+    default: m.CategoryList,
+  })),
+)
+const FinancialSettingsPanel = lazy(() =>
+  import('@/components/financial/FinancialSettingsPanel').then((m) => ({
+    default: m.FinancialSettingsPanel,
+  })),
+)
 
 const FINANCIAL_TABS = [
   { value: 'overview', label: 'Dashboard' },
@@ -42,6 +97,17 @@ const FINANCIAL_TABS = [
 ] as const
 
 type FinancialTabValue = (typeof FINANCIAL_TABS)[number]['value']
+
+function FinancialTabPanel({
+  active,
+  children,
+}: {
+  active: boolean
+  children: ReactNode
+}) {
+  if (!active) return null
+  return <Suspense fallback={<DashboardModuleLoader />}>{children}</Suspense>
+}
 
 export default function Financial() {
   const positionsReady = usePositionsReady()
@@ -115,65 +181,87 @@ export default function Financial() {
         )}
 
         <TabsContent value="overview">
-          {activeTab === 'overview' ? <FinancialOverview /> : null}
+          <FinancialTabPanel active={activeTab === 'overview'}>
+            <FinancialOverview />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="bank-accounts">
-          {activeTab === 'bank-accounts' ? <BankAccounts /> : null}
+          <FinancialTabPanel active={activeTab === 'bank-accounts'}>
+            <BankAccounts />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="cash-flow">
-          {activeTab === 'cash-flow' ? <CashFlowReport /> : null}
+          <FinancialTabPanel active={activeTab === 'cash-flow'}>
+            <CashFlowReport />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="income">
-          {activeTab === 'income' ? <IncomeList /> : null}
+          <FinancialTabPanel active={activeTab === 'income'}>
+            <IncomeList />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="payables">
-          {activeTab === 'payables' ? <PayablesPanel /> : null}
+          <FinancialTabPanel active={activeTab === 'payables'}>
+            <PayablesPanel />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="expenses">
-          {activeTab === 'expenses' ? <ExpenseList /> : null}
+          <FinancialTabPanel active={activeTab === 'expenses'}>
+            <ExpenseList />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="charity">
-          {activeTab === 'charity' ? <CharityCollection /> : null}
+          <FinancialTabPanel active={activeTab === 'charity'}>
+            <CharityCollection />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="agape">
-          {activeTab === 'agape' ? <AgapeClosing /> : null}
+          <FinancialTabPanel active={activeTab === 'agape'}>
+            <AgapeClosing />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="contributions">
-          {activeTab === 'contributions' ? <MembershipPayments /> : null}
+          <FinancialTabPanel active={activeTab === 'contributions'}>
+            <MembershipPayments />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="budgets">
-          {activeTab === 'budgets' ? <BudgetsAndGoals /> : null}
+          <FinancialTabPanel active={activeTab === 'budgets'}>
+            <BudgetsAndGoals />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="planning">
-          {activeTab === 'planning' ? <FinancialPlanningPanel /> : null}
+          <FinancialTabPanel active={activeTab === 'planning'}>
+            <FinancialPlanningPanel />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="reports">
-          {activeTab === 'reports' ? <FinancialReports /> : null}
+          <FinancialTabPanel active={activeTab === 'reports'}>
+            <FinancialReports />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="categories">
-          {activeTab === 'categories' ? <CategoryList /> : null}
+          <FinancialTabPanel active={activeTab === 'categories'}>
+            <CategoryList />
+          </FinancialTabPanel>
         </TabsContent>
 
         <TabsContent value="settings">
-          {activeTab === 'settings' ? (
-            <div className="space-y-6">
-              <MembershipFeeSettings />
-              <ReminderSettings />
-              <PayableReminderSettings />
-            </div>
-          ) : null}
+          <FinancialTabPanel active={activeTab === 'settings'}>
+            <FinancialSettingsPanel />
+          </FinancialTabPanel>
         </TabsContent>
       </Tabs>
     </div>

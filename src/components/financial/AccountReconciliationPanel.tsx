@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -47,13 +48,23 @@ import { DifferenceCausesPanel } from '@/components/financial/DifferenceCausesPa
 import { buildCashReconciliationSummary } from '@/lib/account-reconciliation-difference-causes'
 import type { BankStatementLine } from '@/lib/bank-statement-csv-import'
 import { Badge } from '@/components/ui/badge'
+import {
+  buildExtratoStateMap,
+  fetchAccountReconciliationExtrato,
+  upsertAccountReconciliationExtrato,
+} from '@/lib/account-reconciliation-extrato-api'
 
 const BALANCE_TOLERANCE = 0.01
-const REAL_BALANCE_STORAGE_KEY = 'cash-reconciliation-real-balances'
+const LEGACY_REAL_BALANCE_STORAGE_KEY = 'cash-reconciliation-real-balances'
 
-function loadStoredRealBalances(): Record<string, string> {
+interface ExtratoFieldState {
+  balance: string
+  note: string
+}
+
+function loadLegacyRealBalances(): Record<string, string> {
   try {
-    const raw = localStorage.getItem(REAL_BALANCE_STORAGE_KEY)
+    const raw = localStorage.getItem(LEGACY_REAL_BALANCE_STORAGE_KEY)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as Record<string, string>
     return typeof parsed === 'object' && parsed !== null ? parsed : {}
@@ -62,11 +73,11 @@ function loadStoredRealBalances(): Record<string, string> {
   }
 }
 
-function persistRealBalances(balances: Record<string, string>) {
+function clearLegacyRealBalances() {
   try {
-    localStorage.setItem(REAL_BALANCE_STORAGE_KEY, JSON.stringify(balances))
+    localStorage.removeItem(LEGACY_REAL_BALANCE_STORAGE_KEY)
   } catch {
-    // ignore quota errors
+    // ignore
   }
 }
 
@@ -84,8 +95,11 @@ export function AccountReconciliationPanel() {
   const [mensalidadeLinkContext, setMensalidadeLinkContext] = useState<
     Awaited<ReturnType<typeof fetchMensalidadeLinkContext>> | null
   >(null)
-  const [realBalances, setRealBalances] = useState<Record<string, string>>(
-    () => loadStoredRealBalances(),
+  const [extratoByAccount, setExtratoByAccount] = useState<
+    Record<string, ExtratoFieldState>
+  >({})
+  const [savingAccountIds, setSavingAccountIds] = useState<Set<string>>(
+    () => new Set(),
   )
   const [importedLinesByAccount, setImportedLinesByAccount] = useState<
     Record<string, BankStatementLine[]>
@@ -96,9 +110,47 @@ export function AccountReconciliationPanel() {
   const { toast } = useToast()
   const supabaseAny = supabase as any
 
-  useEffect(() => {
-    persistRealBalances(realBalances)
-  }, [realBalances])
+  const persistExtratoFields = async (
+    accountId: string,
+    fields: ExtratoFieldState,
+  ) => {
+    setSavingAccountIds((current) => new Set(current).add(accountId))
+    try {
+      await upsertAccountReconciliationExtrato({
+        accountId,
+        extratoBalance: parseRealBalanceInput(fields.balance),
+        note: fields.note,
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível salvar extrato/observação.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingAccountIds((current) => {
+        const next = new Set(current)
+        next.delete(accountId)
+        return next
+      })
+    }
+  }
+
+  const updateExtratoField = (
+    accountId: string,
+    patch: Partial<ExtratoFieldState>,
+  ) => {
+    setExtratoByAccount((current) => ({
+      ...current,
+      [accountId]: {
+        balance: patch.balance ?? current[accountId]?.balance ?? '',
+        note: patch.note ?? current[accountId]?.note ?? '',
+      },
+    }))
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -106,16 +158,49 @@ export function AccountReconciliationPanel() {
     const loadData = async () => {
       setLoading(true)
       try {
-        const [financialData, mensalidadeIds, linkContext] = await Promise.all([
-          fetchFinancialAccountsAndTransactions(),
-          fetchLinkedMensalidadeTransactionIds(),
-          fetchMensalidadeLinkContext(),
-        ])
+        const [financialData, mensalidadeIds, linkContext, extratoRows] =
+          await Promise.all([
+            fetchFinancialAccountsAndTransactions(),
+            fetchLinkedMensalidadeTransactionIds(),
+            fetchMensalidadeLinkContext(),
+            fetchAccountReconciliationExtrato().catch(() => []),
+          ])
         if (!isMounted) return
         setAccounts(financialData.accounts)
         setTransactions(financialData.transactions)
         setLinkedIds(mensalidadeIds)
         setMensalidadeLinkContext(linkContext)
+
+        const extratoMap = buildExtratoStateMap(extratoRows)
+        const legacyBalances = loadLegacyRealBalances()
+        const mergedExtrato: Record<string, ExtratoFieldState> = {
+          ...extratoMap,
+        }
+
+        const migrationTasks: Promise<unknown>[] = []
+        for (const [accountId, balance] of Object.entries(legacyBalances)) {
+          if (!balance.trim()) continue
+          const existing = mergedExtrato[accountId]
+          if (existing?.balance.trim()) continue
+          mergedExtrato[accountId] = {
+            balance,
+            note: existing?.note ?? '',
+          }
+          migrationTasks.push(
+            upsertAccountReconciliationExtrato({
+              accountId,
+              extratoBalance: parseRealBalanceInput(balance),
+              note: existing?.note ?? '',
+            }),
+          )
+        }
+
+        setExtratoByAccount(mergedExtrato)
+
+        if (migrationTasks.length > 0) {
+          await Promise.all(migrationTasks)
+          clearLegacyRealBalances()
+        }
       } catch (error) {
         console.error('Error loading reconciliation data:', error)
         toast({
@@ -142,9 +227,12 @@ export function AccountReconciliationPanel() {
   const enrichedDetails = useMemo(
     () =>
       details.map((detail) =>
-        enrichWithRealBalance(detail, parseRealBalanceInput(realBalances[detail.accountId] ?? '')),
+        enrichWithRealBalance(
+          detail,
+          parseRealBalanceInput(extratoByAccount[detail.accountId]?.balance ?? ''),
+        ),
       ),
-    [details, realBalances],
+    [details, extratoByAccount],
   )
 
   const cashSummary = useMemo(
@@ -204,14 +292,16 @@ export function AccountReconciliationPanel() {
     closingBalance: number
     lines: BankStatementLine[]
   }) => {
-    setRealBalances((current) => ({
-      ...current,
-      [params.accountId]: String(params.closingBalance),
-    }))
+    const nextFields: ExtratoFieldState = {
+      balance: String(params.closingBalance),
+      note: extratoByAccount[params.accountId]?.note ?? '',
+    }
+    updateExtratoField(params.accountId, nextFields)
     setImportedLinesByAccount((current) => ({
       ...current,
       [params.accountId]: params.lines,
     }))
+    void persistExtratoFields(params.accountId, nextFields)
     toast({
       title: 'Extrato importado',
       description: `Saldo de ${formatCurrencyBRL(params.closingBalance)} aplicado à conta.`,
@@ -239,8 +329,9 @@ export function AccountReconciliationPanel() {
             <div>
               <CardTitle className="text-base">Contas e extrato</CardTitle>
               <CardDescription>
-                Informe o saldo do extrato manualmente ou importe um CSV. O sistema
-                compara com os lançamentos e mostra o que pode explicar divergências.
+                Informe o saldo do extrato manualmente ou importe um CSV. Use
+                observações para registrar o motivo de divergências — visíveis para
+                todos os tesoureiros.
               </CardDescription>
             </div>
             <Button
@@ -286,6 +377,7 @@ export function AccountReconciliationPanel() {
                   <TableHead className="w-[140px]">Extrato (R$)</TableHead>
                   <TableHead className="text-right">Diferença</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="min-w-[220px]">Observação</TableHead>
                   <TableHead className="text-right">Saldo inicial</TableHead>
                   <TableHead className="text-right">Sugerido</TableHead>
                   <TableHead />
@@ -296,16 +388,32 @@ export function AccountReconciliationPanel() {
                   <ReconciliationRow
                     key={detail.accountId}
                     detail={detail}
-                    realBalanceInput={realBalances[detail.accountId] ?? ''}
+                    realBalanceInput={
+                      extratoByAccount[detail.accountId]?.balance ?? ''
+                    }
+                    noteInput={extratoByAccount[detail.accountId]?.note ?? ''}
+                    saving={savingAccountIds.has(detail.accountId)}
                     hasImportedStatement={Boolean(
                       importedLinesByAccount[detail.accountId]?.length,
                     )}
                     onRealBalanceChange={(value) =>
-                      setRealBalances((current) => ({
-                        ...current,
-                        [detail.accountId]: value,
-                      }))
+                      updateExtratoField(detail.accountId, { balance: value })
                     }
+                    onRealBalanceBlur={(balance) => {
+                      void persistExtratoFields(detail.accountId, {
+                        balance,
+                        note: extratoByAccount[detail.accountId]?.note ?? '',
+                      })
+                    }}
+                    onNoteChange={(value) =>
+                      updateExtratoField(detail.accountId, { note: value })
+                    }
+                    onNoteBlur={(note) => {
+                      void persistExtratoFields(detail.accountId, {
+                        balance: extratoByAccount[detail.accountId]?.balance ?? '',
+                        note,
+                      })
+                    }}
                     onApply={() => {
                       if (detail.suggestedInitialBalance === null) return
                       void applyInitialBalance.execute(
@@ -346,8 +454,13 @@ export function AccountReconciliationPanel() {
 interface ReconciliationRowProps {
   detail: AccountReconciliationWithReal
   realBalanceInput: string
+  noteInput: string
+  saving: boolean
   hasImportedStatement: boolean
   onRealBalanceChange: (value: string) => void
+  onRealBalanceBlur: (balance: string) => void
+  onNoteChange: (value: string) => void
+  onNoteBlur: (note: string) => void
   onApply: () => void
   applying: boolean
 }
@@ -355,8 +468,13 @@ interface ReconciliationRowProps {
 function ReconciliationRow({
   detail,
   realBalanceInput,
+  noteInput,
+  saving,
   hasImportedStatement,
   onRealBalanceChange,
+  onRealBalanceBlur,
+  onNoteChange,
+  onNoteBlur,
   onApply,
   applying,
 }: ReconciliationRowProps) {
@@ -385,6 +503,7 @@ function ReconciliationRow({
           placeholder="0,00"
           value={realBalanceInput}
           onChange={(event) => onRealBalanceChange(event.target.value)}
+          onBlur={(event) => onRealBalanceBlur(event.target.value)}
           className="h-8"
         />
       </TableCell>
@@ -405,6 +524,21 @@ function ReconciliationRow({
         ) : (
           <Badge variant="destructive">Divergente</Badge>
         )}
+      </TableCell>
+      <TableCell>
+        <div className="space-y-1">
+          <Textarea
+            value={noteInput}
+            onChange={(event) => onNoteChange(event.target.value)}
+            onBlur={(event) => onNoteBlur(event.target.value)}
+            placeholder="Ex.: pagamento no extrato ainda não lançado..."
+            rows={2}
+            className="min-h-[56px] resize-y text-xs"
+          />
+          {saving ? (
+            <span className="text-[10px] text-muted-foreground">Salvando...</span>
+          ) : null}
+        </div>
       </TableCell>
       <TableCell className="text-right text-muted-foreground">
         {formatCurrencyBRL(detail.initialBalance)}

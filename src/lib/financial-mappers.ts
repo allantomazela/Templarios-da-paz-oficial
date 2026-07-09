@@ -11,7 +11,28 @@ import type {
   FinancialGoal,
   Contribution,
 } from '@/lib/data'
+import { CONTRIBUTION_MONTHS } from '@/lib/contribution-payments'
 import { todayLocalISODate, toLocalISODate } from '@/lib/format-utils'
+
+function contributionMonthNumberToName(month: number | string): string {
+  if (typeof month === 'string' && CONTRIBUTION_MONTHS.includes(month as (typeof CONTRIBUTION_MONTHS)[number])) {
+    return month
+  }
+  const monthNumber = typeof month === 'number' ? month : Number(month)
+  if (Number.isFinite(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+    return CONTRIBUTION_MONTHS[monthNumber - 1]
+  }
+  return String(month)
+}
+
+function contributionMonthNameToNumber(month: string | number | undefined): number | undefined {
+  if (month == null) return undefined
+  if (typeof month === 'number') return month
+  const index = CONTRIBUTION_MONTHS.indexOf(month as (typeof CONTRIBUTION_MONTHS)[number])
+  if (index >= 0) return index + 1
+  const asNumber = Number(month)
+  return Number.isFinite(asNumber) ? asNumber : undefined
+}
 
 // ========== BANK ACCOUNTS ==========
 export interface BankAccountDB {
@@ -222,34 +243,44 @@ export function mapFinancialGoalToDB(goal: Partial<FinancialGoal>): Partial<Fina
 export interface ContributionDB {
   id: string
   brother_id: string
-  month: string
+  /** No banco é INTEGER 1–12; o app usa nome do mês (ex.: "Junho"). */
+  month: number | string
   year: number
   amount: number
   status: 'Pago' | 'Pendente' | 'Atrasado'
   payment_date?: string | null
-  created_at: string
-  updated_at: string
+  transaction_id?: string | null
+  account_id?: string | null
+  notes?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export function mapContributionFromDB(row: ContributionDB): Contribution {
   return {
     id: row.id,
     brotherId: row.brother_id,
-    month: row.month,
+    month: contributionMonthNumberToName(row.month),
     year: row.year,
     amount: Number(row.amount),
     status: row.status,
     paymentDate: row.payment_date || undefined,
+    transactionId: row.transaction_id || undefined,
+    accountId: row.account_id || undefined,
+    notes: row.notes || undefined,
   }
 }
 
 export function mapContributionToDB(contribution: Partial<Contribution>): Partial<ContributionDB> {
   return {
     brother_id: contribution.brotherId,
-    month: contribution.month,
+    month: contributionMonthNameToNumber(contribution.month),
     year: contribution.year,
     amount: contribution.amount,
     status: contribution.status,
     payment_date: contribution.paymentDate || null,
+    transaction_id: contribution.transactionId || null,
+    account_id: contribution.accountId || null,
+    notes: contribution.notes || null,
   }
 }

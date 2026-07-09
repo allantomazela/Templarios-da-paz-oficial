@@ -55,7 +55,6 @@ import {
   buildBrotherSummaries,
   deleteContribution,
   fetchApprovedBrothers,
-  fetchContributionsWithProfiles,
   filterContributionsByBrother,
   fetchMembershipFeeSettings,
   generatePendingContributionsForMonth,
@@ -65,7 +64,7 @@ import {
   type ContributionFormData,
 } from '@/lib/contribution-payments'
 import { formatCurrencyBRL } from '@/lib/member-payments'
-import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import useFinancialStore, { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import { MembershipOverduePanel } from '@/components/financial/MembershipOverduePanel'
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
 import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfoPanel'
@@ -86,6 +85,25 @@ import {
   isMembershipHistoricalPeriod,
 } from '@/lib/membership-schedule'
 import type { ApprovedBrotherOption } from '@/lib/contribution-payments'
+
+function buildBrotherNamesMap(
+  brothers: ApprovedBrotherOption[],
+  contributions: Contribution[],
+): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const brother of brothers) {
+    if (brother.full_name?.trim()) {
+      map[brother.id] = brother.full_name.trim()
+    }
+  }
+  for (const contribution of contributions) {
+    const name = contribution.brotherName?.trim()
+    if (name && !map[contribution.brotherId]) {
+      map[contribution.brotherId] = name
+    }
+  }
+  return map
+}
 
 function statusBadge(status: Contribution['status']) {
   if (status === 'Pago') {
@@ -228,12 +246,13 @@ export function MembershipPayments() {
   const updateMembershipFeeSettings = useSiteSettingsStore(
     (s) => s.updateMembershipFeeSettings,
   )
-  const [contributions, setContributions] = useState<Contribution[]>([])
-  const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
+  const contributions = useFinancialStore((s) => s.contributions)
+  const financialLoading = useFinancialStore((s) => s.loading)
+  const fetchStoreContributions = useFinancialStore((s) => s.fetchContributions)
   const [approvedBrothers, setApprovedBrothers] = useState<
     ApprovedBrotherOption[]
   >([])
-  const [loading, setLoading] = useState(true)
+  const [brothersLoading, setBrothersLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBrotherId, setSelectedBrotherId] = useState('')
   const [viewTab, setViewTab] = useState('by-member')
@@ -257,30 +276,35 @@ export function MembershipPayments() {
   const [selectedContribution, setSelectedContribution] =
     useState<Contribution | null>(null)
 
-  const loadData = useAsyncOperation(
+  const brotherNames = useMemo(
+    () => buildBrotherNamesMap(approvedBrothers, contributions),
+    [approvedBrothers, contributions],
+  )
+
+  const loading =
+    brothersLoading || (financialLoading && contributions.length === 0)
+
+  const refreshContributions = async () => {
+    await fetchStoreContributions()
+  }
+
+  const loadBrothers = useAsyncOperation(
     async () => {
-      setLoading(true)
-      const [contribResult, brothers] = await Promise.all([
-        fetchContributionsWithProfiles(),
-        fetchApprovedBrothers(),
-      ])
-      setContributions(contribResult.contributions)
-      setBrotherNames(contribResult.brotherNames)
+      setBrothersLoading(true)
+      const brothers = await fetchApprovedBrothers()
       setApprovedBrothers(brothers)
-      if (!selectedBrotherId && brothers.length > 0) {
-        setSelectedBrotherId(brothers[0].id)
-      }
-      setLoading(false)
+      setSelectedBrotherId((current) => current || brothers[0]?.id || '')
+      setBrothersLoading(false)
       return null
     },
     {
       showSuccessToast: false,
-      errorMessage: 'Falha ao carregar mensalidades.',
+      errorMessage: 'Falha ao carregar irmãos.',
     },
   )
 
   useEffect(() => {
-    loadData.execute()
+    void loadBrothers.execute()
     fetchMembershipFeeSettings()
       .then(setFeeSettings)
       .catch(() => {})
@@ -381,7 +405,7 @@ export function MembershipPayments() {
           : undefined,
       )
 
-      await loadData.execute()
+      await refreshContributions()
       notifyFinancialDataChanged()
       return selectedContribution
         ? 'Mensalidade atualizada com sucesso.'
@@ -396,7 +420,7 @@ export function MembershipPayments() {
   const deleteOperation = useAsyncOperation(
     async (contribution: Contribution) => {
       await deleteContribution(contribution)
-      await loadData.execute()
+      await refreshContributions()
       notifyFinancialDataChanged()
       return 'Mensalidade removida.'
     },
@@ -417,7 +441,7 @@ export function MembershipPayments() {
         generateYear,
         feeSettings.defaultAmount,
       )
-      await loadData.execute()
+      await refreshContributions()
       notifyFinancialDataChanged()
       setGenerateOpen(false)
       return `${result.created} mensalidade(s) criada(s). ${result.skipped} irmão(s) já tinham lançamento para ${generateMonth}/${generateYear}.`
@@ -912,7 +936,7 @@ export function MembershipPayments() {
         contributions={contributions}
         feeSettings={feeSettings}
         onSaved={async () => {
-          await loadData.execute()
+          await refreshContributions()
           notifyFinancialDataChanged()
         }}
         onRegisterPayment={({ brotherId, brotherName, month, year }) => {

@@ -79,6 +79,8 @@ interface FinancialState {
   reminderSettings: ReminderSettings
   reminderLogs: ReminderLog[]
   loading: boolean
+  /** Evita refetch completo do módulo quando os dados já foram carregados nesta sessão. */
+  financialHydrated: boolean
   /** Incrementado quando transações/contas mudam (ex.: mensalidade paga). */
   dataRevision: number
   refreshFinancialCoreData: (bumpRevision?: boolean) => Promise<void>
@@ -93,7 +95,7 @@ interface FinancialState {
   fetchAccounts: () => Promise<void>
   fetchAll: () => Promise<void>
   resetLoadingFlags: () => void
-  hydrateModule: () => Promise<void>
+  hydrateModule: (options?: { force?: boolean }) => Promise<void>
 
   // Transaction methods
   addTransaction: (t: Transaction) => Promise<void>
@@ -144,6 +146,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   },
   reminderLogs: [],
   loading: false,
+  financialHydrated: false,
   dataRevision: 0,
 
   refreshFinancialCoreData: async (bumpRevision = false) => {
@@ -172,13 +175,18 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     set({ loading: false })
   },
 
-  hydrateModule: async () => {
+  hydrateModule: async (options?: { force?: boolean }) => {
+    if (!options?.force && get().financialHydrated) {
+      return
+    }
+
     try {
       await withTimeout(
         get().fetchAll(),
         45_000,
         'Carregamento do módulo financeiro demorou demais.',
       )
+      set({ financialHydrated: true })
     } catch (error) {
       if (!handleAuthError(error)) {
         logError('hydrateModule timeout or failure', error)

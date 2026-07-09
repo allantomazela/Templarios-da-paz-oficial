@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useModuleActivation } from '@/hooks/use-module-activation'
+import useChancellorStore from '@/stores/useChancellorStore'
 import { GOBAttendanceReport } from '@/components/reports/GOBAttendanceReport'
 import { CustomReportBuilder } from '@/components/reports/CustomReportBuilder'
 import { ReportHistory } from '@/components/reports/ReportHistory'
@@ -22,6 +24,16 @@ import { Lock } from 'lucide-react'
 export default function Reports() {
   const { user } = useAuthStore()
   const { permissions } = useReportStore()
+  const fetchChancellorData = useChancellorStore((s) => s.fetchChancellorData)
+
+  useModuleActivation(
+    '/dashboard/reports',
+    () => {
+      void fetchChancellorData()
+    },
+    { refreshOnVisible: true },
+  )
+
   const defaultTab = user?.role && permissions.find((p) => p.role === user.role)?.canViewReports
     ? 'gob'
     : 'stats'

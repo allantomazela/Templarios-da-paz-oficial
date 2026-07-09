@@ -4,7 +4,6 @@ import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import useAuthStore from '@/stores/useAuthStore'
-import useChancellorStore from '@/stores/useChancellorStore'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,19 +12,12 @@ import { resetStuckModuleLoading } from '@/lib/module-loading-reset'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, initialized, signOut } = useAuthStore()
-  const fetchChancellorData = useChancellorStore((s) => s.fetchChancellorData)
   const location = useLocation()
   const [showTimeout, setShowTimeout] = useState(false)
 
   useEffect(() => {
     resetStuckModuleLoading()
   }, [location.pathname])
-
-  useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      void fetchChancellorData()
-    }
-  }, [isAuthenticated, user?.id, fetchChancellorData])
 
   // Resilient Timeout Logic: 3 seconds (somente na inicialização da sessão)
   useEffect(() => {

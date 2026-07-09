@@ -36,7 +36,7 @@ export default function Chancellor() {
   useModuleActivation(
     '/dashboard/chancellor',
     () => {
-      void fetchChancellorData({ force: true })
+      void fetchChancellorData()
     },
     { refreshOnVisible: true },
   )

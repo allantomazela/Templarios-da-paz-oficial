@@ -3,6 +3,7 @@ import type { BankAccount, Transaction } from '@/lib/data'
 import {
   mapBankAccountFromDB,
   mapTransactionFromDB,
+  FINANCIAL_TRANSACTION_COLUMNS,
 } from '@/lib/financial-mappers'
 import {
   computeAccountBalance,
@@ -49,7 +50,7 @@ export async function fetchFinancialAccountsAndTransactions(): Promise<{
     supabase.from('financial_accounts').select('*').order('name', { ascending: true }),
     supabase
       .from('financial_transactions')
-      .select('*')
+      .select(FINANCIAL_TRANSACTION_COLUMNS)
       .order('date', { ascending: false }),
   ])
 

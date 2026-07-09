@@ -37,6 +37,7 @@ import {
   mapFinancialGoalToDB,
   mapContributionFromDB,
   mapContributionToDB,
+  FINANCIAL_TRANSACTION_COLUMNS,
 } from '@/lib/financial-mappers'
 
 /** Evita que cada fetch individual ligue/desligue `loading` durante `fetchAll`. */
@@ -203,7 +204,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('financial_transactions')
-        .select('*')
+        .select(FINANCIAL_TRANSACTION_COLUMNS)
         .order('date', { ascending: false })
 
       if (error) throw error

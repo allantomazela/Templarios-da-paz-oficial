@@ -8,6 +8,14 @@ import type {
   Location,
 } from '@/lib/data'
 import { sanitizeLocationIdForDb } from '@/lib/event-locations'
+import {
+  ATTENDANCE_COLUMNS,
+  CHANCELLOR_EVENT_COLUMNS,
+  chunkArray,
+  getChancellorLookbackSinceIso,
+  SESSION_RECORD_COLUMNS,
+  SUPABASE_IN_CHUNK_SIZE,
+} from '@/lib/chancellor-query-limits'
 
 const LOCATIONS_STORAGE_KEY = 'chancellor_locations'
 
@@ -84,10 +92,19 @@ function isMissingTable(error: { code?: string; message?: string }): boolean {
   )
 }
 
-export async function fetchChancellorEvents(): Promise<Event[]> {
+export interface ChancellorEventsQueryOptions {
+  /** ISO date (YYYY-MM-DD). Padrão: últimos CHANCELLOR_DATA_LOOKBACK_YEARS anos. */
+  sinceDate?: string
+}
+
+export async function fetchChancellorEvents(
+  options?: ChancellorEventsQueryOptions,
+): Promise<Event[]> {
+  const sinceDate = options?.sinceDate ?? getChancellorLookbackSinceIso()
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select(CHANCELLOR_EVENT_COLUMNS)
+    .gte('date', sinceDate)
     .order('date', { ascending: true })
 
   if (error) {
@@ -97,8 +114,19 @@ export async function fetchChancellorEvents(): Promise<Event[]> {
   return (data ?? []).map((row) => mapEventFromDB(row))
 }
 
-export async function fetchChancellorSessionRecords(): Promise<SessionRecord[]> {
-  const { data, error } = await supabase.from('session_records').select('*')
+export interface ChancellorSessionRecordsQueryOptions {
+  sinceDate?: string
+}
+
+export async function fetchChancellorSessionRecords(
+  options?: ChancellorSessionRecordsQueryOptions,
+): Promise<SessionRecord[]> {
+  const sinceDate = options?.sinceDate ?? getChancellorLookbackSinceIso()
+  const { data, error } = await supabase
+    .from('session_records')
+    .select(SESSION_RECORD_COLUMNS)
+    .gte('date', sinceDate)
+    .order('date', { ascending: false })
 
   if (error) {
     if (isMissingTable(error)) return []
@@ -107,14 +135,36 @@ export async function fetchChancellorSessionRecords(): Promise<SessionRecord[]> 
   return (data ?? []).map((row) => mapSessionRecordFromDB(row))
 }
 
-export async function fetchChancellorAttendance(): Promise<Attendance[]> {
-  const { data, error } = await supabase.from('attendance').select('*')
+export interface ChancellorAttendanceQueryOptions {
+  sessionRecordIds: string[]
+}
 
-  if (error) {
-    if (isMissingTable(error)) return []
-    throw error
+export async function fetchChancellorAttendance(
+  options: ChancellorAttendanceQueryOptions,
+): Promise<Attendance[]> {
+  const uniqueIds = [...new Set(options.sessionRecordIds.filter(Boolean))]
+  if (uniqueIds.length === 0) return []
+
+  const chunks = chunkArray(uniqueIds, SUPABASE_IN_CHUNK_SIZE)
+  const rows: Record<string, unknown>[] = []
+
+  for (const ids of chunks) {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select(ATTENDANCE_COLUMNS)
+      .in('session_record_id', ids)
+
+    if (error) {
+      if (isMissingTable(error)) return []
+      throw error
+    }
+
+    if (data?.length) {
+      rows.push(...data)
+    }
   }
-  return (data ?? []).map((row) => mapAttendanceFromDB(row))
+
+  return rows.map((row) => mapAttendanceFromDB(row))
 }
 
 export async function fetchChancellorBrothers(): Promise<Brother[]> {

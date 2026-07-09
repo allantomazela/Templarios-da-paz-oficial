@@ -109,6 +109,10 @@ export interface TransactionDB {
   updated_at: string
 }
 
+/** Colunas usadas pelo app — evita select('*') em listagens grandes. */
+export const FINANCIAL_TRANSACTION_COLUMNS =
+  'id, date, description, category, type, amount, account_id, forecast_item_id, attachment_notes, created_at, updated_at' as const
+
 export function mapTransactionFromDB(row: TransactionDB): Transaction {
   return {
     id: row.id,

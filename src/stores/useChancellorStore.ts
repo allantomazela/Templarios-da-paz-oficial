@@ -179,13 +179,14 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
     set({ chancellorDataLoading: true })
     try {
-      const [events, sessionRecords, attendanceRecords, brothers] =
-        await Promise.all([
-          fetchChancellorEvents(),
-          fetchChancellorSessionRecords(),
-          fetchChancellorAttendance(),
-          fetchChancellorBrothers(),
-        ])
+      const [events, sessionRecords, brothers] = await Promise.all([
+        fetchChancellorEvents(),
+        fetchChancellorSessionRecords(),
+        fetchChancellorBrothers(),
+      ])
+      const attendanceRecords = await fetchChancellorAttendance({
+        sessionRecordIds: sessionRecords.map((record) => record.id),
+      })
       const normalizedAttendance = attendanceRecords.map((record) => ({
         ...record,
         brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),

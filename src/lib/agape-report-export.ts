@@ -1,18 +1,37 @@
 import type { AgapeBrotherReportRow } from '@/lib/agape-report'
 import { downloadCsvFile } from '@/lib/export-utils'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 
 export function exportAgapeReportCsv(
   reportData: AgapeBrotherReportRow[],
   filenameSlug: string,
 ): void {
+  const rows: string[][] = []
+
+  for (const brother of reportData) {
+    for (const item of brother.consumptions) {
+      rows.push([
+        brother.brotherName,
+        formatDateBR(item.date),
+        item.itemName,
+        item.quantity.toString(),
+        item.unitPrice.toFixed(2),
+        item.amount.toFixed(2),
+      ])
+    }
+    rows.push([
+      brother.brotherName,
+      '',
+      'TOTAL',
+      brother.totalItems.toString(),
+      '',
+      brother.totalAmount.toFixed(2),
+    ])
+  }
+
   downloadCsvFile(
-    ['Irmão', 'Total de Itens', 'Valor Total'],
-    reportData.map((row) => [
-      row.brotherName,
-      row.totalItems.toString(),
-      row.totalAmount.toFixed(2),
-    ]),
+    ['Irmão', 'Data', 'Item', 'Quantidade', 'Valor Unit.', 'Total'],
+    rows,
     filenameSlug,
     { appendDate: false },
   )
@@ -32,14 +51,19 @@ export function buildAgapeReportShareText(
     `Total de itens: ${totalItems}`,
     `Valor total: ${formatCurrencyBRL(totalAmount)}`,
     '',
-    ...reportData.map(
-      (row) =>
-        `• ${row.brotherName}: ${row.totalItems} item(ns) — ${formatCurrencyBRL(row.totalAmount)}`,
-    ),
-    '',
-    'Documento gerado pelo sistema Templários da Paz',
   ]
 
+  for (const row of reportData) {
+    lines.push(`${row.brotherName} — ${formatCurrencyBRL(row.totalAmount)}`)
+    for (const item of row.consumptions) {
+      lines.push(
+        `  • ${formatDateBR(item.date)} · ${item.itemName} · ${item.quantity}x ${formatCurrencyBRL(item.unitPrice)} = ${formatCurrencyBRL(item.amount)}`,
+      )
+    }
+    lines.push('')
+  }
+
+  lines.push('Documento gerado pelo sistema Templários da Paz')
   return lines.join('\n')
 }
 

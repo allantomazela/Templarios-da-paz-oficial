@@ -577,36 +577,68 @@ export function AgapeReports() {
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b border-black">
-                <TableHead className="py-1 text-xs font-bold text-black print:py-0.5 print:text-[10px]">
-                  Irmão
-                </TableHead>
-                <TableHead className="py-1 text-center text-xs font-bold text-black print:py-0.5 print:text-[10px]">
-                  Total de Itens
-                </TableHead>
-                <TableHead className="py-1 text-right text-xs font-bold text-black print:py-0.5 print:text-[10px]">
-                  Valor Total
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reportData.map((row) => (
-                <TableRow key={row.brotherId} className="border-b border-gray-200">
-                  <TableCell className="py-1 text-xs font-medium text-black print:py-0.5 print:text-[10px]">
+          <div className="space-y-6">
+            {reportData.map((row) => (
+              <div
+                key={row.brotherId}
+                className="break-inside-avoid rounded-md border border-gray-200 print:break-inside-avoid"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 print:px-2 print:py-1">
+                  <h3 className="text-sm font-bold text-black print:text-[11px]">
                     {row.brotherName}
-                  </TableCell>
-                  <TableCell className="py-1 text-center text-xs text-black print:py-0.5 print:text-[10px]">
-                    {row.totalItems}
-                  </TableCell>
-                  <TableCell className="py-1 text-right text-xs font-medium text-black print:py-0.5 print:text-[10px]">
-                    {formatCurrencyBRL(row.totalAmount)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </h3>
+                  <p className="text-xs text-gray-600 print:text-[10px]">
+                    {row.totalItems} item(ns) · {formatCurrencyBRL(row.totalAmount)}
+                  </p>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-gray-200">
+                      <TableHead className="py-1 text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                        Data
+                      </TableHead>
+                      <TableHead className="py-1 text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                        Item
+                      </TableHead>
+                      <TableHead className="py-1 text-center text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                        Qtd.
+                      </TableHead>
+                      <TableHead className="py-1 text-right text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                        Valor unit.
+                      </TableHead>
+                      <TableHead className="py-1 text-right text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                        Total
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {row.consumptions.map((consumption, index) => (
+                      <TableRow
+                        key={`${row.brotherId}-${index}`}
+                        className="border-b border-gray-100"
+                      >
+                        <TableCell className="py-1 text-xs text-black print:py-0.5 print:text-[10px]">
+                          {formatDateBR(consumption.date)}
+                        </TableCell>
+                        <TableCell className="py-1 text-xs text-black print:py-0.5 print:text-[10px]">
+                          {consumption.itemName}
+                        </TableCell>
+                        <TableCell className="py-1 text-center text-xs text-black print:py-0.5 print:text-[10px]">
+                          {consumption.quantity}
+                        </TableCell>
+                        <TableCell className="py-1 text-right text-xs text-black print:py-0.5 print:text-[10px]">
+                          {formatCurrencyBRL(consumption.unitPrice)}
+                        </TableCell>
+                        <TableCell className="py-1 text-right text-xs font-medium text-black print:py-0.5 print:text-[10px]">
+                          {formatCurrencyBRL(consumption.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
+          </div>
         )}
 
         <div className="mt-4 border-t pt-2 text-center text-[10px] text-gray-400 print:mt-3 print:pt-1 print:text-[9px]">

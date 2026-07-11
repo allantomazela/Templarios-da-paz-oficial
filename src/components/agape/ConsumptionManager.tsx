@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { logError } from '@/lib/logger'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import {
@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Plus, Loader2, Trash2, Pencil } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, UserRound, ArrowRight } from 'lucide-react'
 import { useAgapeStore, type AgapeConsumption } from '@/stores/useAgapeStore'
 import { useToast } from '@/hooks/use-toast'
 import { useAgapePermissions } from '@/hooks/use-agape-permissions'
@@ -85,6 +85,49 @@ export function ConsumptionManager({
   const sessionConsumptions = consumptions.filter((c) => c.session_id === sessionId)
   const activeMenuItems = menuItems.filter((m) => m.is_active)
 
+  const brothersWithConsumptions = useMemo(
+    () => new Set(sessionConsumptions.map((consumption) => consumption.brother_id)),
+    [sessionConsumptions],
+  )
+
+  const selectedBrotherConsumptions = useMemo(
+    () =>
+      selectedBrother
+        ? sessionConsumptions.filter(
+            (consumption) => consumption.brother_id === selectedBrother,
+          )
+        : [],
+    [selectedBrother, sessionConsumptions],
+  )
+
+  const selectedBrotherName = useMemo(() => {
+    if (!selectedBrother) return ''
+    return (
+      brothers.find((brother) => brother.id === selectedBrother)?.full_name ||
+      selectedBrotherConsumptions[0]?.brother?.full_name ||
+      'Sem nome'
+    )
+  }, [brothers, selectedBrother, selectedBrotherConsumptions])
+
+  const groupedSessionConsumptions = useMemo(() => {
+    const groups = new Map<string, AgapeConsumption[]>()
+    for (const consumption of sessionConsumptions) {
+      const list = groups.get(consumption.brother_id) ?? []
+      list.push(consumption)
+      groups.set(consumption.brother_id, list)
+    }
+    return Array.from(groups.entries())
+      .map(([brotherId, items]) => ({
+        brotherId,
+        brotherName: items[0]?.brother?.full_name || 'Sem nome',
+        items,
+        totalAmount: items.reduce((sum, item) => sum + item.total_amount, 0),
+      }))
+      .sort((left, right) =>
+        left.brotherName.localeCompare(right.brotherName, 'pt-BR'),
+      )
+  }, [sessionConsumptions])
+
   const loadBrothers = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -121,6 +164,24 @@ export function ConsumptionManager({
     setConsumptionsLoading(true)
     void fetchConsumptions(sessionId).finally(() => setConsumptionsLoading(false))
   }, [open, sessionId, fetchMenuItems, fetchConsumptions, loadBrothers, loadSessionTotal])
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedBrother('')
+      setSelectedMenuItem('')
+      setQuantity(1)
+    }
+  }, [open])
+
+  const handleNextBrother = () => {
+    setSelectedBrother('')
+    setSelectedMenuItem('')
+    setQuantity(1)
+    toast({
+      title: 'Próximo irmão',
+      description: 'Selecione outro irmão para continuar os lançamentos.',
+    })
+  }
 
   const handleAddConsumption = async () => {
     // Proteção contra cliques duplos
@@ -182,9 +243,8 @@ export function ConsumptionManager({
         })
       }
 
-      // Limpar campos apenas se não houver erro crítico
+      // Mantém o irmão selecionado para lançar vários itens seguidos
       if (!error || error.code === '23505' || error.status === 409) {
-        setSelectedBrother('')
         setSelectedMenuItem('')
         setQuantity(1)
         loadSessionTotal()
@@ -249,7 +309,8 @@ export function ConsumptionManager({
             Gerenciar Consumos - {session ? formatDateBR(session.date) : 'Sessão'}
           </DialogTitle>
           <DialogDescription>
-            Adicione e gerencie os consumos dos irmãos nesta sessão de ágape.
+            Selecione o irmão, lance todos os itens consumidos por ele e use
+            &quot;Próximo irmão&quot; para passar ao seguinte.
           </DialogDescription>
         </DialogHeader>
 
@@ -264,8 +325,23 @@ export function ConsumptionManager({
 
         {session?.status === 'open' && (
           <div className="space-y-4 rounded-lg border p-4">
-            <h4 className="font-semibold">Adicionar Consumo</h4>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="font-semibold">Lançar consumos por irmão</h4>
+              {selectedBrother ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextBrother}
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Próximo irmão
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">1. Selecione o irmão</label>
               <Select value={selectedBrother} onValueChange={setSelectedBrother}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o irmão" />
@@ -273,50 +349,109 @@ export function ConsumptionManager({
                 <SelectContent position="popper">
                   {brothers.map((brother) => (
                     <SelectItem key={brother.id} value={brother.id}>
-                      {brother.full_name || 'Sem nome'}
+                      {(brother.full_name || 'Sem nome') +
+                        (brothersWithConsumptions.has(brother.id) ? ' (lançado)' : '')}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
-              <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o item" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  {activeMenuItems.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name} - {formatCurrencyBRL(item.price)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                placeholder="Quantidade"
-              />
-
-              <Button
-                onClick={handleAddConsumption}
-                disabled={
-                  !selectedBrother ||
-                  !selectedMenuItem ||
-                  isSubmitting ||
-                  activeMenuItems.length === 0
-                }
-              >
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                {isSubmitting ? 'Adicionando...' : 'Adicionar'}
-              </Button>
             </div>
+
+            {selectedBrother ? (
+              <div className="rounded-md border bg-muted/40 p-3 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <UserRound className="h-4 w-4" />
+                  <span>{selectedBrotherName}</span>
+                  <span className="text-muted-foreground font-normal">
+                    — {selectedBrotherConsumptions.length} item(ns) nesta sessão
+                  </span>
+                </div>
+
+                {selectedBrotherConsumptions.length > 0 ? (
+                  <div className="rounded-md border bg-background">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Item</TableHead>
+                          <TableHead className="text-center">Qtd.</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedBrotherConsumptions.map((consumption) => (
+                          <TableRow key={consumption.id}>
+                            <TableCell>
+                              {consumption.menu_item?.name || 'Item removido'}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {consumption.quantity}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrencyBRL(consumption.total_amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum item lançado para este irmão ainda.
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    2. Adicione os itens consumidos
+                  </label>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px_auto]">
+                    <Select
+                      value={selectedMenuItem}
+                      onValueChange={setSelectedMenuItem}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o item" />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        {activeMenuItems.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} - {formatCurrencyBRL(item.price)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Input
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      placeholder="Qtd."
+                    />
+
+                    <Button
+                      onClick={handleAddConsumption}
+                      disabled={
+                        !selectedMenuItem ||
+                        isSubmitting ||
+                        activeMenuItems.length === 0
+                      }
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="mr-2 h-4 w-4" />
+                      )}
+                      {isSubmitting ? 'Adicionando...' : 'Adicionar'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Escolha um irmão para começar a lançar os consumos dele.
+              </p>
+            )}
           </div>
         )}
 
@@ -353,78 +488,79 @@ export function ConsumptionManager({
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Irmão</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Preço Unit.</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Registrado por</TableHead>
-                  {canManageConsumptions && (
-                    <TableHead className="text-right">Ações</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessionConsumptions.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={canManageConsumptions ? 7 : 6}
-                      className="text-center text-muted-foreground"
-                    >
-                      Nenhum consumo registrado ainda.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sessionConsumptions.map((consumption) => (
-                    <TableRow key={consumption.id}>
-                      <TableCell>
-                        {consumption.brother?.full_name || 'Sem nome'}
-                      </TableCell>
-                      <TableCell>
-                        {consumption.menu_item?.name || 'Item removido'}
-                      </TableCell>
-                      <TableCell>{consumption.quantity}</TableCell>
-                      <TableCell>
-                        {formatCurrencyBRL(consumption.unit_price)}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrencyBRL(consumption.total_amount)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {consumption.recorded_by_profile?.full_name || '—'}
-                      </TableCell>
-                      {canManageConsumptions && (
-                        <TableCell className="text-right space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            type="button"
-                            title="Editar quantidade"
-                            onClick={() => setEditTarget(consumption)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            type="button"
-                            className="text-destructive hover:text-destructive"
-                            title="Excluir consumo"
-                            onClick={() => setDeleteTargetId(consumption.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+          <div className="space-y-4">
+            {groupedSessionConsumptions.length === 0 ? (
+              <div className="rounded-md border p-6 text-center text-muted-foreground">
+                Nenhum consumo registrado ainda.
+              </div>
+            ) : (
+              groupedSessionConsumptions.map((group) => (
+                <div key={group.brotherId} className="rounded-md border">
+                  <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2">
+                    <span className="font-medium">{group.brotherName}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatCurrencyBRL(group.totalAmount)}
+                    </span>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Preço Unit.</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Registrado por</TableHead>
+                        {canManageConsumptions && (
+                          <TableHead className="text-right">Ações</TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map((consumption) => (
+                        <TableRow key={consumption.id}>
+                          <TableCell>
+                            {consumption.menu_item?.name || 'Item removido'}
+                          </TableCell>
+                          <TableCell>{consumption.quantity}</TableCell>
+                          <TableCell>
+                            {formatCurrencyBRL(consumption.unit_price)}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrencyBRL(consumption.total_amount)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {consumption.recorded_by_profile?.full_name || '—'}
+                          </TableCell>
+                          {canManageConsumptions && (
+                            <TableCell className="text-right space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                title="Editar quantidade"
+                                onClick={() => setEditTarget(consumption)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                className="text-destructive hover:text-destructive"
+                                title="Excluir consumo"
+                                onClick={() => setDeleteTargetId(consumption.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))
+            )}
           </div>
         )}
       </DialogContent>

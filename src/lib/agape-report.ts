@@ -23,6 +23,7 @@ export interface AgapeBrotherReportRow {
     date: string
     itemName: string
     quantity: number
+    unitPrice: number
     amount: number
   }>
 }
@@ -114,6 +115,7 @@ export function buildAgapeReportData(
       date: session.date,
       itemName: consumption.menu_item?.name || 'Item removido',
       quantity: consumption.quantity,
+      unitPrice: consumption.unit_price,
       amount: consumption.total_amount,
     })
   }

@@ -99,6 +99,8 @@ interface ChancellorState {
   bulkAddEvents: (events: Event[]) => Promise<{ created: Event[]; failed: number }>
   updateEvent: (event: Event) => Promise<boolean>
   deleteEvent: (id: string) => void
+  /** Remove todas as sessões de um lote gerado automaticamente (desfazer geração). */
+  deleteEventsByBatch: (batchId: string) => Promise<number>
 
   // Solids
   addSolid: (solid: Solid) => void
@@ -457,6 +459,30 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
         logError('deleteEvent persist', error)
       }
     })()
+  },
+
+  deleteEventsByBatch: async (batchId) => {
+    if (!batchId) return 0
+    const removed = get().events.filter((e) => e.generatedBatchId === batchId)
+    if (removed.length === 0) return 0
+
+    set((state) => ({
+      events: state.events.filter((e) => e.generatedBatchId !== batchId),
+    }))
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('generated_batch_id', batchId)
+      if (error) throw error
+      return removed.length
+    } catch (error) {
+      if (handleAuthError(error)) return 0
+      logError('deleteEventsByBatch persist', error)
+      set((state) => ({ events: [...state.events, ...removed] }))
+      return 0
+    }
   },
 
   addSolid: (solid) => set((state) => ({ solids: [...state.solids, solid] })),

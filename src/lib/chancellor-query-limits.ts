@@ -16,7 +16,7 @@ export const ATTENDANCE_COLUMNS =
   'id, session_record_id, brother_id, status, justification'
 
 export const CHANCELLOR_EVENT_COLUMNS =
-  'id, title, date, time, type, location, location_id, description'
+  'id, title, date, time, type, location, location_id, description, is_auto_generated, generated_batch_id'
 
 /** Limite de IDs por consulta .in() no PostgREST (margem de segurança). */
 export const SUPABASE_IN_CHUNK_SIZE = 200

@@ -18,6 +18,7 @@ export interface FinancialTransactionSaveInput {
   accountId: string
   attachmentNotes?: string
   forecastItemId?: string | null
+  controlOnly?: boolean
 }
 
 export interface LoadTransactionsOptions {
@@ -82,15 +83,21 @@ async function assertCategoryExists(
   }
 }
 
-function buildTransactionPayload(data: FinancialTransactionSaveInput) {
+function buildTransactionPayload(
+  data: FinancialTransactionSaveInput,
+  type: FinancialTransactionType,
+) {
+  const controlOnly = type === 'Despesa' && Boolean(data.controlOnly)
+
   return {
     description: data.description,
     amount: data.amount,
     date: data.date,
     category: data.category,
-    account_id: data.accountId || null,
+    account_id: controlOnly ? null : data.accountId || null,
     attachment_notes: data.attachmentNotes?.trim() || null,
     forecast_item_id: data.forecastItemId ?? null,
+    is_control_only: controlOnly,
   }
 }
 
@@ -104,7 +111,16 @@ export async function saveFinancialTransaction(params: {
   const supabaseAny = supabase as any
 
   await assertCategoryExists(data.category, type)
-  const payload = buildTransactionPayload(data)
+  if (type === 'Despesa' && data.controlOnly && data.accountId) {
+    throw new Error(
+      'Despesas somente controle não devem ter conta bancária vinculada.',
+    )
+  }
+  if (!data.controlOnly && !data.accountId?.trim()) {
+    throw new Error('Selecione a conta bancária.')
+  }
+
+  const payload = buildTransactionPayload(data, type)
 
   if (existingId) {
     const { error } = await supabaseAny

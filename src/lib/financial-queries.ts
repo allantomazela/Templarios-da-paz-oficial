@@ -15,6 +15,7 @@ export type FinancialTransactionRow = {
   amount: number | string
   account_id: string | null
   attachment_notes?: string | null
+  is_control_only?: boolean | null
 }
 
 /**

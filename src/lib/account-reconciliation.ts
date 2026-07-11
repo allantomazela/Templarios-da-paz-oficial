@@ -3,6 +3,7 @@ import {
   computeAccountBalance,
   sumTransactionsByType,
 } from '@/lib/financial-balance-math'
+import { isControlOnlyTransaction } from '@/lib/transaction-control-only'
 import type { EnrichedSameMonthMensalidadeGroup } from '@/lib/account-reconciliation-mensalidade-context'
 import {
   enrichSameMonthMensalidadeGroups,
@@ -379,6 +380,9 @@ export function buildReconciliationAudit(
     duplicateGroups: findDuplicateTransactionGroups(transactions),
     sameMonthMensalidadeGroups: [...partitioned.errors, ...partitioned.review],
     sameMonthMensalidadeInformative: partitioned.informative,
-    orphanTransactions: transactions.filter((transaction) => !transaction.accountId),
+    orphanTransactions: transactions.filter(
+      (transaction) =>
+        !transaction.accountId && !isControlOnlyTransaction(transaction),
+    ),
   }
 }

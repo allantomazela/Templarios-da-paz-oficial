@@ -35,11 +35,20 @@ const transactions: Transaction[] = [
     amount: 800,
     accountId: 'a2',
   },
+  {
+    id: '4',
+    date: '2026-01-22',
+    description: 'Ajuste interno',
+    category: 'Administrativo',
+    type: 'Despesa',
+    amount: 120,
+    controlOnly: true,
+  },
 ]
 
 describe('financial-balance-math cash summary', () => {
   it('soma valores da lista', () => {
-    expect(sumTransactionAmounts(transactions)).toBe(1600)
+    expect(sumTransactionAmounts(transactions)).toBe(1720)
   })
 
   it('calcula caixa disponível com conferência', () => {
@@ -50,5 +59,10 @@ describe('financial-balance-math cash summary', () => {
     expect(summary.netMovement).toBe(1000)
     expect(summary.availableCash).toBe(4000)
     expect(summary.isBalanced).toBe(true)
+  })
+
+  it('ignora despesas somente controle no caixa', () => {
+    const summary = computeCashAvailability(accounts, transactions)
+    expect(summary.totalExpense).not.toBe(420)
   })
 })

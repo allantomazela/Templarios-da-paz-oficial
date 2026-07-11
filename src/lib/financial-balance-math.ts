@@ -1,6 +1,10 @@
 import type { BankAccount, Transaction } from '@/lib/data'
+import { isTreasuryTransaction } from '@/lib/transaction-control-only'
 
-export type BalanceTransaction = Pick<Transaction, 'accountId' | 'type' | 'amount'>
+export type BalanceTransaction = Pick<
+  Transaction,
+  'accountId' | 'type' | 'amount' | 'controlOnly'
+>
 
 /** Saldo atual = saldo inicial + receitas − despesas da conta. */
 export function computeAccountBalance(
@@ -9,7 +13,11 @@ export function computeAccountBalance(
   transactions: BalanceTransaction[],
 ): number {
   return transactions
-    .filter((transaction) => transaction.accountId === accountId)
+    .filter(
+      (transaction) =>
+        isTreasuryTransaction(transaction) &&
+        transaction.accountId === accountId,
+    )
     .reduce(
       (sum, transaction) =>
         sum + (transaction.type === 'Receita' ? transaction.amount : -transaction.amount),
@@ -57,6 +65,7 @@ export function sumTransactionsByType(
     .filter(
       (transaction) =>
         transaction.type === type &&
+        isTreasuryTransaction(transaction) &&
         (!accountLinkedOnly || Boolean(transaction.accountId)),
     )
     .reduce((sum, transaction) => sum + transaction.amount, 0)

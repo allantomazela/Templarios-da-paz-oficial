@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -41,17 +42,30 @@ import {
 
 import { fetchForecastItems } from '@/lib/forecast-items-api'
 import type { ForecastItem } from '@/lib/forecast-types'
+import { isControlOnlyTransaction } from '@/lib/transaction-control-only'
 
-const transactionSchema = z.object({
-  description: z.string().min(3, 'Descrição é obrigatória'),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-  date: z.string().min(1, 'Data é obrigatória'),
-  category: z.string().min(1, 'Categoria é obrigatória'),
-  type: z.enum(['Receita', 'Despesa']),
-  accountId: z.string().min(1, 'Conta é obrigatória'),
-  attachmentNotes: z.string().optional(),
-  forecastItemId: z.string().optional(),
-})
+const transactionSchema = z
+  .object({
+    description: z.string().min(3, 'Descrição é obrigatória'),
+    amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+    date: z.string().min(1, 'Data é obrigatória'),
+    category: z.string().min(1, 'Categoria é obrigatória'),
+    type: z.enum(['Receita', 'Despesa']),
+    accountId: z.string().optional(),
+    attachmentNotes: z.string().optional(),
+    forecastItemId: z.string().optional(),
+    controlOnly: z.boolean().optional(),
+  })
+  .superRefine((values, ctx) => {
+    const controlOnly = values.type === 'Despesa' && values.controlOnly
+    if (!controlOnly && !values.accountId?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Conta é obrigatória',
+        path: ['accountId'],
+      })
+    }
+  })
 
 export type TransactionFormValues = z.infer<typeof transactionSchema>
 
@@ -97,6 +111,7 @@ export function TransactionDialog({
       accountId: '',
       attachmentNotes: '',
       forecastItemId: '',
+      controlOnly: false,
     },
   })
 
@@ -167,6 +182,7 @@ export function TransactionDialog({
         accountId: transactionToEdit.accountId || '',
         attachmentNotes: transactionToEdit.attachmentNotes || '',
         forecastItemId: transactionToEdit.forecastItemId || '',
+        controlOnly: isControlOnlyTransaction(transactionToEdit),
       })
     } else if (open) {
       form.reset({
@@ -178,12 +194,16 @@ export function TransactionDialog({
         accountId: accounts.length > 0 ? accounts[0].id : '',
         attachmentNotes: '',
         forecastItemId: '',
+        controlOnly: false,
       })
       setPendingFiles([])
     }
   }, [transactionToEdit, form, open, defaultType, accounts])
 
   const currentType = form.watch('type') || defaultType
+  const controlOnly = Boolean(form.watch('controlOnly'))
+  const isExpenseControlOnly =
+    defaultType === 'Despesa' && currentType === 'Despesa' && controlOnly
   const availableCategories = categories.filter((category) => category.type === currentType)
   const availableForecastItems = forecastItems.filter((item) => item.type === currentType)
 
@@ -200,7 +220,7 @@ export function TransactionDialog({
         setPendingFiles([])
       }
 
-      if (canManageAttachments && defaultType === 'Despesa') {
+      if (canManageAttachments && defaultType === 'Despesa' && !values.controlOnly) {
         const hasAttachments =
           storedAttachmentCount + pendingCount > 0
 
@@ -288,6 +308,40 @@ export function TransactionDialog({
               />
             </div>
 
+            {defaultType === 'Despesa' ? (
+              <FormField
+                control={form.control}
+                name="controlOnly"
+                render={({ field }) => (
+                  <FormItem className="flex items-start gap-3 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={Boolean(field.value)}
+                        onCheckedChange={(checked) => {
+                          const next = checked === true
+                          field.onChange(next)
+                          if (next) {
+                            form.setValue('accountId', '')
+                          } else if (!form.getValues('accountId') && accounts.length > 0) {
+                            form.setValue('accountId', accounts[0].id)
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer font-medium">
+                        Somente controle (não afeta o caixa)
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Registra a despesa para acompanhamento, sem debitar conta
+                        bancária nem alterar a tesouraria.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            ) : null}
+
             <FormField
               control={form.control}
               name="accountId"
@@ -297,7 +351,7 @@ export function TransactionDialog({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={loadingAccounts}
+                    disabled={loadingAccounts || isExpenseControlOnly}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -328,6 +382,11 @@ export function TransactionDialog({
                       )}
                     </SelectContent>
                   </Select>
+                  {isExpenseControlOnly ? (
+                    <p className="text-xs text-muted-foreground">
+                      Despesas somente controle não usam conta bancária.
+                    </p>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

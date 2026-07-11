@@ -128,6 +128,8 @@ export interface Transaction {
   type: 'Receita' | 'Despesa'
   amount: number
   accountId?: string
+  /** Despesa registrada apenas para controle — não afeta tesouraria. */
+  controlOnly?: boolean
   forecastItemId?: string
   attachmentNotes?: string
   attachmentCount?: number

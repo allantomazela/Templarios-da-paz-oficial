@@ -103,6 +103,7 @@ export interface TransactionDB {
   account_id?: string | null
   forecast_item_id?: string | null
   attachment_notes?: string | null
+  is_control_only?: boolean | null
   idempotency_key?: string | null
   created_by?: string | null
   created_at: string
@@ -111,7 +112,7 @@ export interface TransactionDB {
 
 /** Colunas usadas pelo app — evita select('*') em listagens grandes. */
 export const FINANCIAL_TRANSACTION_COLUMNS =
-  'id, date, description, category, type, amount, account_id, forecast_item_id, attachment_notes, created_at, updated_at' as const
+  'id, date, description, category, type, amount, account_id, forecast_item_id, attachment_notes, is_control_only, created_at, updated_at' as const
 
 export function mapTransactionFromDB(row: TransactionDB): Transaction {
   return {
@@ -124,6 +125,7 @@ export function mapTransactionFromDB(row: TransactionDB): Transaction {
     accountId: row.account_id || undefined,
     forecastItemId: row.forecast_item_id || undefined,
     attachmentNotes: row.attachment_notes || undefined,
+    controlOnly: Boolean(row.is_control_only),
   }
 }
 
@@ -137,6 +139,7 @@ export function mapTransactionToDB(transaction: Partial<Transaction>): Partial<T
     account_id: transaction.accountId || null,
     forecast_item_id: transaction.forecastItemId || null,
     attachment_notes: transaction.attachmentNotes || null,
+    is_control_only: transaction.controlOnly ?? false,
   }
 }
 

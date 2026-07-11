@@ -27,6 +27,7 @@ import {
   computeGlobalBalance,
   fetchFinancialAccountsAndTransactions,
 } from '@/lib/financial-balances'
+import { isTreasuryTransaction } from '@/lib/transaction-control-only'
 import { findLowBalanceAccountsForAlert } from '@/lib/financial-low-balance-alerts'
 import {
   Select,
@@ -127,10 +128,10 @@ export function FinancialOverview() {
     )
 
   const totalIncome = filteredTransactions
-    .filter((t) => t.type === 'Receita')
+    .filter((t) => t.type === 'Receita' && isTreasuryTransaction(t))
     .reduce((acc, curr) => acc + curr.amount, 0)
   const totalExpense = filteredTransactions
-    .filter((t) => t.type === 'Despesa')
+    .filter((t) => t.type === 'Despesa' && isTreasuryTransaction(t))
     .reduce((acc, curr) => acc + curr.amount, 0)
 
   const globalBalance = computeGlobalBalance(accounts, transactions)
@@ -148,8 +149,8 @@ export function FinancialOverview() {
 
       if (!acc[key]) acc[key] = { name: key, receita: 0, despesa: 0 }
 
-      if (curr.type === 'Receita') acc[key].receita += curr.amount
-      else acc[key].despesa += curr.amount
+      if (curr.type === 'Receita' && isTreasuryTransaction(curr)) acc[key].receita += curr.amount
+      else if (curr.type === 'Despesa' && isTreasuryTransaction(curr)) acc[key].despesa += curr.amount
 
       return acc
     },
@@ -160,7 +161,7 @@ export function FinancialOverview() {
 
   // Category Distribution Data
   const expenseCategoryData = filteredTransactions
-    .filter((t) => t.type === 'Despesa')
+    .filter((t) => t.type === 'Despesa' && isTreasuryTransaction(t))
     .reduce(
       (acc, curr) => {
         const found = acc.find((i) => i.name === curr.category)

@@ -207,11 +207,20 @@ export function AgapeReports() {
     contentRef: reportRef,
     documentTitle: reportMeta.filenameSlug,
     pageStyle: `
-      @page { size: A4; margin: 15mm 20mm; }
+      @page { size: A4; margin: 12mm 15mm; }
       @media print {
         body {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
+        }
+        #agape-report-container table {
+          font-size: 9px;
+          line-height: 1.15;
+        }
+        #agape-report-container th,
+        #agape-report-container td {
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
         }
       }
     `,
@@ -535,15 +544,16 @@ export function AgapeReports() {
       <div
         id="agape-report-container"
         ref={reportRef}
-        className="rounded-md border bg-white p-8 text-black print:p-0"
+        className="rounded-md border bg-white p-6 text-black print:p-3"
       >
         <ReportHeader
           title="Relatório de Consumo no Ágape"
           subtitle={reportMeta.periodLabel}
           description={reportMeta.description}
+          className="mb-1 print:mb-0.5"
         />
 
-        <div className="mb-2 grid grid-cols-3 gap-2 border-b border-black pb-1.5 print:mb-1.5 print:gap-1.5 print:pb-1">
+        <div className="mb-1.5 grid grid-cols-3 gap-1.5 border-b border-black pb-1 print:mb-1 print:gap-1 print:pb-0.5">
           <div className="text-center">
             <p className="mb-0.5 text-[10px] font-bold uppercase text-gray-500 print:mb-0 print:text-[9px]">
               Total de Irmãos
@@ -577,36 +587,36 @@ export function AgapeReports() {
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-2 print:space-y-1">
             {reportData.map((row) => (
               <div
                 key={row.brotherId}
-                className="break-inside-avoid rounded-md border border-gray-200 print:break-inside-avoid"
+                className="break-inside-avoid rounded border border-gray-200 print:break-inside-avoid"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 print:px-2 print:py-1">
-                  <h3 className="text-sm font-bold text-black print:text-[11px]">
+                <div className="flex flex-wrap items-center justify-between gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1 print:px-1.5 print:py-0.5">
+                  <h3 className="text-xs font-bold leading-tight text-black print:text-[10px]">
                     {row.brotherName}
                   </h3>
-                  <p className="text-xs text-gray-600 print:text-[10px]">
+                  <p className="text-[11px] leading-tight text-gray-600 print:text-[9px]">
                     {row.totalItems} item(ns) · {formatCurrencyBRL(row.totalAmount)}
                   </p>
                 </div>
-                <Table>
+                <Table className="[&_th]:h-7 [&_td]:h-7 print:[&_th]:h-6 print:[&_td]:h-6">
                   <TableHeader>
-                    <TableRow className="border-b border-gray-200">
-                      <TableHead className="py-1 text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                    <TableRow className="border-b border-gray-200 hover:bg-transparent">
+                      <TableHead className="h-7 px-2 py-0.5 text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
                         Data
                       </TableHead>
-                      <TableHead className="py-1 text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                      <TableHead className="h-7 px-2 py-0.5 text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
                         Item
                       </TableHead>
-                      <TableHead className="py-1 text-center text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                      <TableHead className="h-7 px-2 py-0.5 text-center text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
                         Qtd.
                       </TableHead>
-                      <TableHead className="py-1 text-right text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                      <TableHead className="h-7 px-2 py-0.5 text-right text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
                         Valor unit.
                       </TableHead>
-                      <TableHead className="py-1 text-right text-xs font-bold text-black print:py-0.5 print:text-[10px]">
+                      <TableHead className="h-7 px-2 py-0.5 text-right text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
                         Total
                       </TableHead>
                     </TableRow>
@@ -615,21 +625,21 @@ export function AgapeReports() {
                     {row.consumptions.map((consumption, index) => (
                       <TableRow
                         key={`${row.brotherId}-${index}`}
-                        className="border-b border-gray-100"
+                        className="border-b border-gray-100 hover:bg-transparent"
                       >
-                        <TableCell className="py-1 text-xs text-black print:py-0.5 print:text-[10px]">
+                        <TableCell className="px-2 py-0.5 text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {formatDateBR(consumption.date)}
                         </TableCell>
-                        <TableCell className="py-1 text-xs text-black print:py-0.5 print:text-[10px]">
+                        <TableCell className="px-2 py-0.5 text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {consumption.itemName}
                         </TableCell>
-                        <TableCell className="py-1 text-center text-xs text-black print:py-0.5 print:text-[10px]">
+                        <TableCell className="px-2 py-0.5 text-center text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {consumption.quantity}
                         </TableCell>
-                        <TableCell className="py-1 text-right text-xs text-black print:py-0.5 print:text-[10px]">
+                        <TableCell className="px-2 py-0.5 text-right text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {formatCurrencyBRL(consumption.unitPrice)}
                         </TableCell>
-                        <TableCell className="py-1 text-right text-xs font-medium text-black print:py-0.5 print:text-[10px]">
+                        <TableCell className="px-2 py-0.5 text-right text-[11px] font-medium leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {formatCurrencyBRL(consumption.amount)}
                         </TableCell>
                       </TableRow>
@@ -641,7 +651,7 @@ export function AgapeReports() {
           </div>
         )}
 
-        <div className="mt-4 border-t pt-2 text-center text-[10px] text-gray-400 print:mt-3 print:pt-1 print:text-[9px]">
+        <div className="mt-2 border-t pt-1 text-center text-[10px] text-gray-400 print:mt-1 print:pt-0.5 print:text-[8px]">
           <p>Documento gerado eletronicamente pelo sistema Templários da Paz</p>
         </div>
       </div>

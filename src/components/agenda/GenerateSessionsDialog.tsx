@@ -22,7 +22,7 @@ import type { Event } from '@/lib/data'
 import {
   formatGeneratedSessionLabel,
   generateSessionDates,
-  getExistingSessionDates,
+  getExistingSessionWeekKeys,
   partitionGeneratedSessions,
 } from '@/lib/session-generator'
 import { resolveEventLocationInput } from '@/lib/event-locations'
@@ -54,10 +54,13 @@ export function GenerateSessionsDialog({
     [sessionSchedule],
   )
 
-  const existingDates = useMemo(() => getExistingSessionDates(events), [events])
+  const existingWeekKeys = useMemo(
+    () => getExistingSessionWeekKeys(events),
+    [events],
+  )
   const { newSessions, conflicts } = useMemo(
-    () => partitionGeneratedSessions(generated, existingDates),
-    [generated, existingDates],
+    () => partitionGeneratedSessions(generated, existingWeekKeys),
+    [generated, existingWeekKeys],
   )
 
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set())
@@ -172,7 +175,7 @@ export function GenerateSessionsDialog({
           <Badge variant="secondary">{periodLabel}</Badge>
           <span>
             {generated.length} data(s) no padrão · {newSessions.length} nova(s) ·{' '}
-            {conflicts.length} já existente(s)
+            {conflicts.length} semana(s) já com sessão
           </span>
         </div>
 
@@ -180,8 +183,9 @@ export function GenerateSessionsDialog({
           <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <p>
-              Datas que já possuem sessão na agenda não serão recriadas. Edite a
-              sessão existente se precisar alterar horário ou local.
+              Semanas que já possuem uma sessão na agenda não serão recriadas
+              (mesmo que em outro dia da semana). Edite a sessão existente se
+              precisar alterar data, horário ou local.
             </p>
           </div>
         )}
@@ -225,7 +229,7 @@ export function GenerateSessionsDialog({
           {conflicts.length > 0 && (
             <>
               <p className="mt-4 mb-2 text-xs font-medium text-muted-foreground">
-                Já na agenda (ignoradas)
+                Semana já com sessão (ignoradas)
               </p>
               <ul className="space-y-1 opacity-60">
                 {conflicts.map((session) => (

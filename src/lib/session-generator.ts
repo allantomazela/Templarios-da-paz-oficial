@@ -1,4 +1,4 @@
-import { format, startOfDay } from 'date-fns'
+import { format, startOfDay, getISOWeek, getISOWeekYear } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Event } from '@/lib/data'
 
@@ -113,26 +113,41 @@ export function generateSessionDates(
   return results.sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export function getExistingSessionDates(events: Event[]): Set<string> {
+/**
+ * Chave única de semana (ano ISO + número da semana ISO) para deduplicar
+ * sessões por semana, e não só por data exata. Assim, gerar uma sessão numa
+ * semana que já possui outra (mesmo em outro dia) é tratado como conflito.
+ */
+export function getWeekKey(dateIso: string): string {
+  const date = new Date(`${dateIso}T12:00:00`)
+  return `${getISOWeekYear(date)}-W${String(getISOWeek(date)).padStart(2, '0')}`
+}
+
+export function getExistingSessionWeekKeys(events: Event[]): Set<string> {
   return new Set(
-    events.filter((event) => event.type === 'Sessão').map((event) => event.date),
+    events
+      .filter((event) => event.type === 'Sessão' && event.date)
+      .map((event) => getWeekKey(event.date)),
   )
 }
 
 export function partitionGeneratedSessions(
   generated: GeneratedSessionDate[],
-  existingSessionDates: Set<string>,
+  existingSessionWeekKeys: Set<string>,
 ): {
   newSessions: GeneratedSessionDate[]
   conflicts: GeneratedSessionDate[]
 } {
   const newSessions: GeneratedSessionDate[] = []
   const conflicts: GeneratedSessionDate[] = []
+  const seenWeeks = new Set(existingSessionWeekKeys)
 
   for (const session of generated) {
-    if (existingSessionDates.has(session.date)) {
+    const weekKey = getWeekKey(session.date)
+    if (seenWeeks.has(weekKey)) {
       conflicts.push(session)
     } else {
+      seenWeeks.add(weekKey)
       newSessions.push(session)
     }
   }

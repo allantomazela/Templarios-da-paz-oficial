@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   generateSessionDates,
   getNthWeekdayOfMonth,
-  getExistingSessionDates,
+  getExistingSessionWeekKeys,
   partitionGeneratedSessions,
   parseSessionWeeksOfMonth,
 } from '@/lib/session-generator'
@@ -61,17 +61,28 @@ describe('parseSessionWeeksOfMonth', () => {
 })
 
 describe('partitionGeneratedSessions', () => {
-  it('separa novas sessões de conflitos', () => {
+  it('separa novas sessões de conflitos por data exata', () => {
     const generated = [
-      { date: '2026-07-02', weekOfMonth: 1 },
-      { date: '2026-07-16', weekOfMonth: 3 },
+      { date: '2026-07-01', weekOfMonth: 1 },
+      { date: '2026-07-15', weekOfMonth: 3 },
     ]
-    const existing = getExistingSessionDates([
-      { id: '1', title: 'S', date: '2026-07-02', time: '20:00', type: 'Sessão' } as Event,
+    const existing = getExistingSessionWeekKeys([
+      { id: '1', title: 'S', date: '2026-07-01', time: '20:00', type: 'Sessão' } as Event,
     ])
     const { newSessions, conflicts } = partitionGeneratedSessions(generated, existing)
     expect(conflicts).toHaveLength(1)
     expect(newSessions).toHaveLength(1)
-    expect(newSessions[0].date).toBe('2026-07-16')
+    expect(newSessions[0].date).toBe('2026-07-15')
+  })
+
+  it('trata como conflito uma sessão na mesma semana, mesmo em outro dia', () => {
+    // Quarta 2026-08-05 já existe; quinta 2026-08-06 cai na mesma semana ISO.
+    const generated = [{ date: '2026-08-06', weekOfMonth: 1 }]
+    const existing = getExistingSessionWeekKeys([
+      { id: '1', title: 'S', date: '2026-08-05', time: '20:00', type: 'Sessão' } as Event,
+    ])
+    const { newSessions, conflicts } = partitionGeneratedSessions(generated, existing)
+    expect(newSessions).toHaveLength(0)
+    expect(conflicts).toHaveLength(1)
   })
 })

@@ -96,6 +96,7 @@ interface ChancellorState {
 
   // Events
   addEvent: (event: Event) => Promise<boolean>
+  bulkAddEvents: (events: Event[]) => Promise<{ created: Event[]; failed: number }>
   updateEvent: (event: Event) => Promise<boolean>
   deleteEvent: (id: string) => void
 
@@ -379,6 +380,51 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
         events: state.events.filter((e) => e.id !== event.id),
       }))
       return false
+    }
+  },
+  bulkAddEvents: async (eventsToAdd) => {
+    if (eventsToAdd.length === 0) {
+      return { created: [], failed: 0 }
+    }
+
+    set((state) => ({ events: [...state.events, ...eventsToAdd] }))
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert(eventsToAdd.map(eventToDbPayload))
+        .select('*')
+
+      if (error) throw error
+
+      const persisted = (data ?? []).map((row) => {
+        const mapped = mapEventFromDB(row)
+        const original = eventsToAdd.find((event) => event.id === mapped.id)
+        return { ...mapped, locationId: original?.locationId ?? mapped.locationId }
+      })
+
+      const persistedIds = new Set(persisted.map((event) => event.id))
+      set((state) => ({
+        events: [
+          ...state.events.filter((event) => !persistedIds.has(event.id)),
+          ...persisted,
+        ],
+      }))
+
+      return {
+        created: persisted,
+        failed: eventsToAdd.length - persisted.length,
+      }
+    } catch (error) {
+      if (handleAuthError(error)) {
+        return { created: [], failed: eventsToAdd.length }
+      }
+      logError('bulkAddEvents persist', error)
+      const ids = new Set(eventsToAdd.map((event) => event.id))
+      set((state) => ({
+        events: state.events.filter((event) => !ids.has(event.id)),
+      }))
+      return { created: [], failed: eventsToAdd.length }
     }
   },
   updateEvent: async (event) => {

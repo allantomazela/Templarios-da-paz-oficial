@@ -9,6 +9,7 @@ import { LayoutSettings } from '@/components/settings/LayoutSettings'
 import { ThemeSettings } from '@/components/settings/ThemeSettings'
 import { TypographySettings } from '@/components/settings/TypographySettings'
 import { LodgeInfoSettings } from '@/components/settings/LodgeInfoSettings'
+import { SessionScheduleSettings } from '@/components/settings/SessionScheduleSettings'
 import { AgapePaymentSettings } from '@/components/settings/AgapePaymentSettings'
 import { CheckinSettings } from '@/components/settings/CheckinSettings'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
@@ -182,7 +183,10 @@ export default function SiteSettings() {
         </TabsList>
 
         <TabsContent value="lodge">
-          <LodgeInfoSettings />
+          <div className="space-y-6">
+            <LodgeInfoSettings />
+            <SessionScheduleSettings />
+          </div>
         </TabsContent>
 
         {isAdmin && (

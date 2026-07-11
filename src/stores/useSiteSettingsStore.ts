@@ -4,6 +4,16 @@ import { logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+import {
+  DEFAULT_SESSION_MONTHS_AHEAD,
+  DEFAULT_SESSION_TIME,
+  DEFAULT_SESSION_TITLE,
+  DEFAULT_SESSION_WEEKDAY,
+  DEFAULT_SESSION_WEEKS_OF_MONTH,
+  normalizeSessionWeekday,
+  parseSessionWeeksOfMonth,
+} from '@/lib/session-generator'
+import { LODGE_EVENT_LOCATION_ID } from '@/lib/event-locations'
 
 const siteSettingsFetchSeq = createRequestSequence()
 const venerablesFetchSeq = createRequestSequence()
@@ -103,6 +113,15 @@ export interface SiteSettingsState {
     radiusMeters: number | null
     openMinutesBefore: number | null
   }
+  /** Calendário padrão de sessões para geração automática na agenda. */
+  sessionSchedule: {
+    weekday: number
+    weeksOfMonth: number[]
+    defaultTime: string
+    defaultTitle: string
+    defaultLocationId: string
+    monthsAhead: number
+  }
 
   fetchSettings: (force?: boolean, silent?: boolean) => Promise<void>
   updateLogo: (url: string) => Promise<void>
@@ -132,6 +151,9 @@ export interface SiteSettingsState {
   ) => Promise<void>
   updateTempleCheckin: (
     data: Partial<SiteSettingsState['templeCheckin']>,
+  ) => Promise<void>
+  updateSessionSchedule: (
+    data: Partial<SiteSettingsState['sessionSchedule']>,
   ) => Promise<void>
   /** Atualiza apenas a URL usada para o QR fixo do Templo. */
   updateTempleCheckinUrl?: (url: string) => Promise<void>
@@ -242,6 +264,16 @@ const mapSettingsFromDB = (data: any) => {
       openMinutesBefore: data.checkin_open_minutes_before ?? null,
     },
     templeCheckinUrl: data.checkin_temple_url || '',
+    sessionSchedule: {
+      weekday: normalizeSessionWeekday(data.session_weekday ?? DEFAULT_SESSION_WEEKDAY),
+      weeksOfMonth: parseSessionWeeksOfMonth(data.session_weeks_of_month),
+      defaultTime: String(data.session_default_time || DEFAULT_SESSION_TIME).slice(0, 5),
+      defaultTitle: data.session_default_title || DEFAULT_SESSION_TITLE,
+      defaultLocationId:
+        data.session_default_location_id || LODGE_EVENT_LOCATION_ID,
+      monthsAhead:
+        Number(data.session_months_ahead) || DEFAULT_SESSION_MONTHS_AHEAD,
+    },
   }
 }
 
@@ -305,6 +337,14 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     longitude: null as number | null,
     radiusMeters: null as number | null,
     openMinutesBefore: null as number | null,
+  },
+  sessionSchedule: {
+    weekday: DEFAULT_SESSION_WEEKDAY,
+    weeksOfMonth: [...DEFAULT_SESSION_WEEKS_OF_MONTH],
+    defaultTime: DEFAULT_SESSION_TIME,
+    defaultTitle: DEFAULT_SESSION_TITLE,
+    defaultLocationId: LODGE_EVENT_LOCATION_ID,
+    monthsAhead: DEFAULT_SESSION_MONTHS_AHEAD,
   },
 
   fetchSettings: async (force = false, silent = false) => {
@@ -628,6 +668,44 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating membership fee settings', error)
+      throw error
+    }
+  },
+
+  updateSessionSchedule: async (data) => {
+    try {
+      const updates: Record<string, unknown> = {}
+      if (data.weekday !== undefined) {
+        updates.session_weekday = normalizeSessionWeekday(data.weekday)
+      }
+      if (data.weeksOfMonth !== undefined) {
+        updates.session_weeks_of_month = parseSessionWeeksOfMonth(data.weeksOfMonth)
+      }
+      if (data.defaultTime !== undefined) {
+        updates.session_default_time = data.defaultTime.slice(0, 5)
+      }
+      if (data.defaultTitle !== undefined) {
+        updates.session_default_title = data.defaultTitle
+      }
+      if (data.defaultLocationId !== undefined) {
+        updates.session_default_location_id = data.defaultLocationId
+      }
+      if (data.monthsAhead !== undefined) {
+        updates.session_months_ahead = Math.max(1, Math.min(24, data.monthsAhead))
+      }
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', 1)
+
+      if (error) throw error
+      set((state) => ({
+        sessionSchedule: { ...state.sessionSchedule, ...data },
+      }))
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error updating session schedule settings', error)
       throw error
     }
   },

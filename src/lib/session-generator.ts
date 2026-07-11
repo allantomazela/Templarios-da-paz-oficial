@@ -1,0 +1,161 @@
+import { format, startOfDay } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import type { Event } from '@/lib/data'
+
+export const DEFAULT_SESSION_WEEKS_OF_MONTH = [1, 3, 4] as const
+export const DEFAULT_SESSION_WEEKDAY = 4
+export const DEFAULT_SESSION_MONTHS_AHEAD = 12
+export const DEFAULT_SESSION_TIME = '20:00'
+export const DEFAULT_SESSION_TITLE = 'Sessão Ordinária'
+
+export const SESSION_WEEKDAY_OPTIONS = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda-feira' },
+  { value: 2, label: 'Terça-feira' },
+  { value: 3, label: 'Quarta-feira' },
+  { value: 4, label: 'Quinta-feira' },
+  { value: 5, label: 'Sexta-feira' },
+  { value: 6, label: 'Sábado' },
+] as const
+
+export const SESSION_WEEK_OF_MONTH_OPTIONS = [
+  { value: 1, label: '1ª semana' },
+  { value: 2, label: '2ª semana' },
+  { value: 3, label: '3ª semana' },
+  { value: 4, label: '4ª semana' },
+  { value: 5, label: '5ª semana' },
+] as const
+
+export interface SessionScheduleConfig {
+  weekday: number
+  weeksOfMonth: number[]
+  monthsAhead: number
+}
+
+export interface GeneratedSessionDate {
+  date: string
+  weekOfMonth: number
+}
+
+export function parseSessionWeeksOfMonth(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [...DEFAULT_SESSION_WEEKS_OF_MONTH]
+  }
+  const weeks = value
+    .map((item) => Number(item))
+    .filter((week) => Number.isInteger(week) && week >= 1 && week <= 5)
+  if (weeks.length === 0) {
+    return [...DEFAULT_SESSION_WEEKS_OF_MONTH]
+  }
+  return [...new Set(weeks)].sort((a, b) => a - b)
+}
+
+export function normalizeSessionWeekday(value: unknown): number {
+  const weekday = Number(value)
+  if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
+    return DEFAULT_SESSION_WEEKDAY
+  }
+  return weekday
+}
+
+export function getNthWeekdayOfMonth(
+  year: number,
+  month: number,
+  weekday: number,
+  weekOfMonth: number,
+): Date | null {
+  const lastDay = new Date(year, month, 0).getDate()
+  let count = 0
+
+  for (let day = 1; day <= lastDay; day += 1) {
+    const date = new Date(year, month - 1, day)
+    if (date.getDay() !== weekday) continue
+    count += 1
+    if (count === weekOfMonth) return date
+  }
+
+  return null
+}
+
+export function generateSessionDates(
+  config: SessionScheduleConfig,
+  options?: { startFrom?: Date; skipPastDates?: boolean },
+): GeneratedSessionDate[] {
+  const start = options?.startFrom ?? new Date()
+  const skipPast = options?.skipPastDates !== false
+  const today = startOfDay(start)
+  const startYear = start.getFullYear()
+  const startMonth = start.getMonth() + 1
+  const weeks = parseSessionWeeksOfMonth(config.weeksOfMonth)
+  const weekday = normalizeSessionWeekday(config.weekday)
+  const monthsAhead = Math.max(1, Math.min(24, config.monthsAhead || DEFAULT_SESSION_MONTHS_AHEAD))
+
+  const results: GeneratedSessionDate[] = []
+  const seen = new Set<string>()
+
+  for (let offset = 0; offset < monthsAhead; offset += 1) {
+    const absoluteMonth = startMonth - 1 + offset
+    const year = startYear + Math.floor(absoluteMonth / 12)
+    const month = (absoluteMonth % 12) + 1
+
+    for (const weekOfMonth of weeks) {
+      const date = getNthWeekdayOfMonth(year, month, weekday, weekOfMonth)
+      if (!date) continue
+      if (skipPast && date < today) continue
+
+      const iso = format(date, 'yyyy-MM-dd')
+      if (seen.has(iso)) continue
+      seen.add(iso)
+      results.push({ date: iso, weekOfMonth })
+    }
+  }
+
+  return results.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export function getExistingSessionDates(events: Event[]): Set<string> {
+  return new Set(
+    events.filter((event) => event.type === 'Sessão').map((event) => event.date),
+  )
+}
+
+export function partitionGeneratedSessions(
+  generated: GeneratedSessionDate[],
+  existingSessionDates: Set<string>,
+): {
+  newSessions: GeneratedSessionDate[]
+  conflicts: GeneratedSessionDate[]
+} {
+  const newSessions: GeneratedSessionDate[] = []
+  const conflicts: GeneratedSessionDate[] = []
+
+  for (const session of generated) {
+    if (existingSessionDates.has(session.date)) {
+      conflicts.push(session)
+    } else {
+      newSessions.push(session)
+    }
+  }
+
+  return { newSessions, conflicts }
+}
+
+export function formatSessionWeekdayLabel(weekday: number): string {
+  return (
+    SESSION_WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ??
+    'Dia não definido'
+  )
+}
+
+export function formatGeneratedSessionLabel(
+  session: GeneratedSessionDate,
+  weekday: number,
+): string {
+  const dateLabel = format(new Date(`${session.date}T12:00:00`), "dd/MM/yyyy (EEEE)", {
+    locale: ptBR,
+  })
+  const weekLabel =
+    SESSION_WEEK_OF_MONTH_OPTIONS.find((option) => option.value === session.weekOfMonth)
+      ?.label ?? `${session.weekOfMonth}ª semana`
+  return `${dateLabel} — ${weekLabel} (${formatSessionWeekdayLabel(weekday)})`
+}

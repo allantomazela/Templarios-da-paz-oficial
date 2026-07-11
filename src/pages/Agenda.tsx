@@ -25,6 +25,7 @@ import {
   Clock,
   CalendarDays,
   FileText,
+  CalendarPlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
@@ -61,6 +62,7 @@ import {
   type CalendarEvent,
 } from '@/lib/agenda-events'
 import { LocationManagerDialog } from '@/components/agenda/LocationManagerDialog'
+import { GenerateSessionsDialog } from '@/components/agenda/GenerateSessionsDialog'
 import { useToast } from '@/hooks/use-toast'
 import { logError, devLog } from '@/lib/logger'
 import { Event } from '@/lib/data'
@@ -92,6 +94,7 @@ export default function Agenda() {
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
+  const [isGenerateSessionsOpen, setIsGenerateSessionsOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null)
 
@@ -467,9 +470,19 @@ export default function Agenda() {
           </Button>
 
           {canEdit && (
-            <Button onClick={handleCreateEvent}>
-              <Plus className="mr-2 h-4 w-4" /> Novo
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsGenerateSessionsOpen(true)}
+                title="Gerar sessões do calendário da loja"
+              >
+                <CalendarPlus className="mr-2 h-4 w-4" />
+                Gerar sessões
+              </Button>
+              <Button onClick={handleCreateEvent}>
+                <Plus className="mr-2 h-4 w-4" /> Novo
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -734,6 +747,11 @@ export default function Agenda() {
         event={selectedEvent}
         onEdit={handleEditEventFromDetails}
         onDelete={handleDeleteEvent}
+      />
+
+      <GenerateSessionsDialog
+        open={isGenerateSessionsOpen}
+        onOpenChange={setIsGenerateSessionsOpen}
       />
 
       <LocationManagerDialog

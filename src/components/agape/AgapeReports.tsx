@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useReactToPrint } from 'react-to-print'
@@ -50,6 +50,7 @@ import {
   saveAgapeReportPreferences,
 } from '@/lib/agape-report-preferences'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
+import { cn } from '@/lib/utils'
 
 const SCOPE_OPTIONS: { value: AgapeReportScope; label: string }[] = [
   { value: 'session', label: 'Sessão' },
@@ -587,67 +588,91 @@ export function AgapeReports() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2 print:space-y-1">
-            {reportData.map((row) => (
-              <div
-                key={row.brotherId}
-                className="break-inside-avoid rounded border border-gray-200 print:break-inside-avoid"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1 print:px-1.5 print:py-0.5">
-                  <h3 className="text-xs font-bold leading-tight text-black print:text-[10px]">
-                    {row.brotherName}
-                  </h3>
-                  <p className="text-[11px] leading-tight text-gray-600 print:text-[9px]">
-                    {row.totalItems} item(ns) · {formatCurrencyBRL(row.totalAmount)}
-                  </p>
-                </div>
-                <Table className="[&_th]:h-7 [&_td]:h-7 print:[&_th]:h-6 print:[&_td]:h-6">
-                  <TableHeader>
-                    <TableRow className="border-b border-gray-200 hover:bg-transparent">
-                      <TableHead className="h-7 px-2 py-0.5 text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
-                        Data
-                      </TableHead>
-                      <TableHead className="h-7 px-2 py-0.5 text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
-                        Item
-                      </TableHead>
-                      <TableHead className="h-7 px-2 py-0.5 text-center text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
-                        Qtd.
-                      </TableHead>
-                      <TableHead className="h-7 px-2 py-0.5 text-right text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
-                        Valor unit.
-                      </TableHead>
-                      <TableHead className="h-7 px-2 py-0.5 text-right text-[11px] font-bold leading-tight text-black print:h-6 print:px-1.5 print:py-0 print:text-[9px]">
-                        Total
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {row.consumptions.map((consumption, index) => (
-                      <TableRow
-                        key={`${row.brotherId}-${index}`}
-                        className="border-b border-gray-100 hover:bg-transparent"
+          <div className="overflow-x-auto">
+            <Table className="w-full table-fixed border-collapse [&_th]:align-middle [&_td]:align-middle">
+              <colgroup>
+                <col className="w-[13%]" />
+                <col className="w-[34%]" />
+                <col className="w-[10%]" />
+                <col className="w-[21%]" />
+                <col className="w-[22%]" />
+              </colgroup>
+              <TableHeader>
+                <TableRow className="border-b border-gray-300 bg-gray-100 hover:bg-gray-100 print:bg-gray-200">
+                  <TableHead className="px-2 py-1 text-left text-[11px] font-bold leading-tight text-black print:px-1.5 print:py-0.5 print:text-[9px]">
+                    Data
+                  </TableHead>
+                  <TableHead className="px-2 py-1 text-left text-[11px] font-bold leading-tight text-black print:px-1.5 print:py-0.5 print:text-[9px]">
+                    Item
+                  </TableHead>
+                  <TableHead className="px-2 py-1 text-center text-[11px] font-bold leading-tight text-black print:px-1.5 print:py-0.5 print:text-[9px]">
+                    Qtd.
+                  </TableHead>
+                  <TableHead className="px-2 py-1 text-right text-[11px] font-bold leading-tight text-black print:px-1.5 print:py-0.5 print:text-[9px]">
+                    Valor unit.
+                  </TableHead>
+                  <TableHead className="px-2 py-1 text-right text-[11px] font-bold leading-tight text-black print:px-1.5 print:py-0.5 print:text-[9px]">
+                    Total
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reportData.map((row, brotherIndex) => (
+                  <Fragment key={row.brotherId}>
+                    <TableRow
+                      className={cn(
+                        'border-b border-gray-300 hover:bg-transparent print:break-inside-avoid',
+                        brotherIndex % 2 === 0
+                          ? 'bg-slate-200 print:bg-slate-200'
+                          : 'bg-sky-100 print:bg-sky-100',
+                      )}
+                    >
+                      <TableCell
+                        colSpan={5}
+                        className="px-2 py-1 text-xs font-bold leading-tight text-black print:px-1.5 print:py-0.5 print:text-[10px]"
                       >
-                        <TableCell className="px-2 py-0.5 text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
+                        <span className="flex flex-wrap items-center justify-between gap-1">
+                          <span>{row.brotherName}</span>
+                          <span className="font-semibold">
+                            {row.totalItems} item(ns) ·{' '}
+                            {formatCurrencyBRL(row.totalAmount)}
+                          </span>
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    {row.consumptions.map((consumption, itemIndex) => (
+                      <TableRow
+                        key={`${row.brotherId}-${itemIndex}`}
+                        className={cn(
+                          'border-b border-gray-100 hover:bg-transparent',
+                          itemIndex % 2 === 0
+                            ? 'bg-white print:bg-white'
+                            : brotherIndex % 2 === 0
+                              ? 'bg-slate-50 print:bg-slate-50'
+                              : 'bg-sky-50 print:bg-sky-50',
+                        )}
+                      >
+                        <TableCell className="px-2 py-0.5 text-left text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {formatDateBR(consumption.date)}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
+                        <TableCell className="px-2 py-0.5 text-left text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {consumption.itemName}
                         </TableCell>
                         <TableCell className="px-2 py-0.5 text-center text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {consumption.quantity}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-right text-[11px] leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
+                        <TableCell className="px-2 py-0.5 text-right text-[11px] leading-tight tabular-nums text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {formatCurrencyBRL(consumption.unitPrice)}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-right text-[11px] font-medium leading-tight text-black print:px-1.5 print:py-0 print:text-[9px]">
+                        <TableCell className="px-2 py-0.5 text-right text-[11px] font-medium leading-tight tabular-nums text-black print:px-1.5 print:py-0 print:text-[9px]">
                           {formatCurrencyBRL(consumption.amount)}
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ))}
+                  </Fragment>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
 

@@ -8,6 +8,7 @@ import { MenuItemsList } from '@/components/agape/MenuItemsList'
 import { AgapeReports } from '@/components/agape/AgapeReports'
 import { AgapeConsumptionSimple } from '@/components/agape/AgapeConsumptionSimple'
 import { AgapeRecordPanel } from '@/components/agape/AgapeRecordPanel'
+import { AgapeMyConsumptions } from '@/components/agape/AgapeMyConsumptions'
 import { AgapeMaintenancePanel } from '@/components/agape/AgapeMaintenancePanel'
 import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
@@ -17,6 +18,7 @@ type AgapeTab =
   | 'menu'
   | 'record'
   | 'reports'
+  | 'my-spending'
   | 'maintenance'
 
 export default function Agape() {
@@ -56,6 +58,7 @@ export default function Agape() {
               <TabsTrigger value="menu">Cardápio</TabsTrigger>
               <TabsTrigger value="record">Registrar consumos</TabsTrigger>
               <TabsTrigger value="reports">Relatórios</TabsTrigger>
+              <TabsTrigger value="my-spending">Meus gastos</TabsTrigger>
               <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
             </TabsList>
           </div>
@@ -78,6 +81,10 @@ export default function Agape() {
 
           <TabsContent value="reports">
             {activeTab === 'reports' ? <AgapeReports /> : null}
+          </TabsContent>
+
+          <TabsContent value="my-spending">
+            {activeTab === 'my-spending' ? <AgapeMyConsumptions /> : null}
           </TabsContent>
 
           <TabsContent value="maintenance">

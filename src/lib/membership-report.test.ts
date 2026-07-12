@@ -3,6 +3,8 @@ import type { Contribution } from '@/lib/data'
 import {
   buildMembershipBrotherStatementData,
   buildMembershipOverdueReportData,
+  buildMembershipStatusReportData,
+  filterMembershipStatusReportRows,
   sortAlertsByPriority,
 } from '@/lib/membership-report'
 import type { BrotherMembershipSchedule } from '@/lib/membership-schedule'
@@ -168,5 +170,77 @@ describe('membership-report', () => {
     expect(statement.paidPayments).toHaveLength(2)
     expect(statement.totalPaidAll).toBe(650)
     expect(statement.summaryByType.ceremony.paidTotal).toBe(500)
+  })
+
+  it('filtra relatório de situação por atraso e busca', () => {
+    const data = buildMembershipStatusReportData([
+      schedule({
+        brotherId: 'b1',
+        brotherName: 'João',
+        isUpToDate: true,
+        overdueMonthCount: 0,
+      }),
+      schedule({
+        brotherId: 'b2',
+        brotherName: 'Pedro',
+        isUpToDate: false,
+        overdueMonthCount: 2,
+        totalOverdue: 300,
+        entries: [
+          {
+            month: 2,
+            year: 2026,
+            periodLabel: 'Fev/2026',
+            dueDate: '2026-02-10',
+            expectedAmount: 150,
+            paidAmount: 0,
+            pendingAmount: 150,
+            remainingAmount: 150,
+            status: 'overdue',
+            paymentsCount: 0,
+          },
+        ],
+        overdueEntries: [
+          {
+            month: 2,
+            year: 2026,
+            periodLabel: 'Fev/2026',
+            dueDate: '2026-02-10',
+            expectedAmount: 150,
+            paidAmount: 0,
+            pendingAmount: 150,
+            remainingAmount: 150,
+            status: 'overdue',
+            paymentsCount: 0,
+          },
+        ],
+      }),
+    ])
+
+    const overdueOnly = filterMembershipStatusReportRows(data.rows, {
+      situation: 'overdue',
+      minOverdueMonths: 0,
+      escalationOnly: false,
+      searchTerm: '',
+    })
+
+    expect(overdueOnly).toHaveLength(1)
+    expect(overdueOnly[0].brotherName).toBe('Pedro')
+
+    const searched = buildMembershipStatusReportData(
+      [
+        schedule({ brotherId: 'b1', brotherName: 'João' }),
+        schedule({ brotherId: 'b2', brotherName: 'Pedro' }),
+      ],
+      {
+        situation: 'all',
+        minOverdueMonths: 0,
+        escalationOnly: false,
+        searchTerm: 'jo',
+      },
+    )
+
+    expect(searched.rows).toHaveLength(1)
+    expect(searched.rows[0].brotherName).toBe('João')
   })
 })

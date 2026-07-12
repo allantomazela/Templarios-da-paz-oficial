@@ -9,6 +9,7 @@ import {
   membershipStatusLabel,
   type MembershipBrotherStatementData,
   type MembershipOverdueReportData,
+  type MembershipStatusReportData,
 } from '@/lib/membership-report'
 
 export function exportMembershipOverdueReportCsv(
@@ -172,5 +173,37 @@ export function exportMembershipOverdueDetailCsv(
     ],
     rows,
     'relatorio-mensalidades-atraso-detalhado',
+  )
+}
+
+export function exportMembershipStatusReportCsv(
+  data: MembershipStatusReportData,
+): void {
+  const rows = data.rows.map((row) => [
+    row.brotherName,
+    row.situationLabel,
+    String(row.overdueMonthCount),
+    row.overduePeriodsLabel,
+    row.totalOverdue.toFixed(2),
+    row.totalOpen.toFixed(2),
+    row.totalPaid.toFixed(2),
+    row.lastPaidPeriod ?? '',
+    row.requiresEscalation ? 'Sim' : 'Não',
+  ])
+
+  downloadCsvFile(
+    [
+      'Irmão',
+      'Situação',
+      'Meses em atraso',
+      'Períodos em atraso',
+      'Valor em atraso (R$)',
+      'Pendências à vencer (R$)',
+      'Total pago (R$)',
+      'Último mês quitado',
+      'Prioridade tesouraria (3+ meses)',
+    ],
+    rows,
+    'relatorio-situacao-mensalidades',
   )
 }

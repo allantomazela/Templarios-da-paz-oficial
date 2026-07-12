@@ -35,6 +35,7 @@ import {
   AlertTriangle,
   ChevronDown,
   GraduationCap,
+  FileText,
 } from 'lucide-react'
 import {
   Dialog,
@@ -71,6 +72,7 @@ import { BrotherAccessInfoPanel } from '@/components/financial/BrotherAccessInfo
 import { FinancialAccessOverview } from '@/components/financial/FinancialAccessOverview'
 import { MembershipScheduleDialog } from '@/components/financial/MembershipScheduleDialog'
 import { CeremonyPaymentsPanel } from '@/components/financial/CeremonyPaymentsPanel'
+import { MembershipStatusReportPanel } from '@/components/financial/MembershipStatusReportPanel'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -637,6 +639,10 @@ export function MembershipPayments() {
             <History className="mr-2 h-4 w-4" />
             Todos os lançamentos
           </TabsTrigger>
+          <TabsTrigger value="report">
+            <FileText className="mr-2 h-4 w-4" />
+            Relatório
+          </TabsTrigger>
         </ScrollableTabsList>
 
         <TabsContent value="by-member" className="space-y-4">
@@ -848,6 +854,10 @@ export function MembershipPayments() {
               emptyMessage="Nenhuma mensalidade encontrada."
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="report" className="space-y-4">
+          <MembershipStatusReportPanel schedules={allSchedules} />
         </TabsContent>
       </Tabs>
         </TabsContent>

@@ -22,6 +22,13 @@ import {
   mapEventFromDB,
   saveLocationsToStorage,
 } from '@/lib/chancellor-data'
+import {
+  createGenerationBatch,
+  fetchActiveGenerationBatches,
+  markGenerationBatchUndone,
+  type EventGenerationBatch,
+  type CreateGenerationBatchInput,
+} from '@/lib/event-generation-batches'
 import { devLog, logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { brotherRowIdFromAttendanceRef } from '@/lib/chancellor-attendance'
@@ -73,6 +80,7 @@ interface ChancellorState {
   visitorAttendances: VisitorAttendance[]
   brothers: Brother[]
   events: Event[]
+  generationBatches: EventGenerationBatch[]
   solids: Solid[]
   locations: Location[]
   notifications: Notification[]
@@ -97,6 +105,9 @@ interface ChancellorState {
   // Events
   addEvent: (event: Event) => Promise<boolean>
   bulkAddEvents: (events: Event[]) => Promise<{ created: Event[]; failed: number }>
+  registerGenerationBatch: (
+    input: CreateGenerationBatchInput,
+  ) => Promise<EventGenerationBatch | null>
   updateEvent: (event: Event) => Promise<boolean>
   deleteEvent: (id: string) => void
   /** Remove todas as sessões de um lote gerado automaticamente (desfazer geração). */
@@ -159,6 +170,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
   visitorAttendances: [],
   brothers: [],
   events: [],
+  generationBatches: [],
   solids: [],
   locations: loadLocationsFromStorage(),
   notifications: [],
@@ -182,11 +194,13 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
     set({ chancellorDataLoading: true })
     try {
-      const [events, sessionRecords, brothers] = await Promise.all([
-        fetchChancellorEvents(),
-        fetchChancellorSessionRecords(),
-        fetchChancellorBrothers(),
-      ])
+      const [events, sessionRecords, brothers, generationBatches] =
+        await Promise.all([
+          fetchChancellorEvents(),
+          fetchChancellorSessionRecords(),
+          fetchChancellorBrothers(),
+          fetchActiveGenerationBatches(),
+        ])
       const attendanceRecords = await fetchChancellorAttendance({
         sessionRecordIds: sessionRecords.map((record) => record.id),
       })
@@ -196,6 +210,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       }))
       set({
         events,
+        generationBatches,
         sessionRecords,
         attendanceRecords: normalizedAttendance,
         brothers,
@@ -206,6 +221,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       logError('fetchChancellorData', error)
       set({
         events: [],
+        generationBatches: [],
         sessionRecords: [],
         attendanceRecords: [],
         brothers: [],
@@ -429,6 +445,19 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       return { created: [], failed: eventsToAdd.length }
     }
   },
+  registerGenerationBatch: async (input) => {
+    try {
+      const batch = await createGenerationBatch(input)
+      set((state) => ({
+        generationBatches: [batch, ...state.generationBatches],
+      }))
+      return batch
+    } catch (error) {
+      if (handleAuthError(error)) return null
+      logError('registerGenerationBatch', error)
+      return null
+    }
+  },
   updateEvent: async (event) => {
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),
@@ -464,23 +493,41 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
   deleteEventsByBatch: async (batchId) => {
     if (!batchId) return 0
     const removed = get().events.filter((e) => e.generatedBatchId === batchId)
-    if (removed.length === 0) return 0
+    const batch = get().generationBatches.find((item) => item.id === batchId)
+    const expectedCount = removed.length || batch?.sessionsCount || 0
+    if (expectedCount === 0) return 0
+
+    const undoneBy = useAuthStore.getState().user?.id
 
     set((state) => ({
       events: state.events.filter((e) => e.generatedBatchId !== batchId),
+      generationBatches: state.generationBatches.filter(
+        (item) => item.id !== batchId,
+      ),
     }))
 
     try {
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('generated_batch_id', batchId)
-      if (error) throw error
-      return removed.length
+      if (removed.length > 0) {
+        const { error } = await supabase
+          .from('events')
+          .delete()
+          .eq('generated_batch_id', batchId)
+        if (error) throw error
+      }
+
+      await markGenerationBatchUndone(batchId, undoneBy)
+      return removed.length || expectedCount
     } catch (error) {
       if (handleAuthError(error)) return 0
       logError('deleteEventsByBatch persist', error)
-      set((state) => ({ events: [...state.events, ...removed] }))
+      if (batch) {
+        set((state) => ({
+          events: [...state.events, ...removed],
+          generationBatches: [batch, ...state.generationBatches],
+        }))
+      } else {
+        set((state) => ({ events: [...state.events, ...removed] }))
+      }
       return 0
     }
   },

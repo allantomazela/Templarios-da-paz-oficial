@@ -87,28 +87,11 @@ export default function Dashboard() {
 
   const loadAnnouncements = useAsyncOperation(
     async () => {
-      const {
-        data: { user: authUser },
-        error: userError,
-      } = await supabase.auth.getUser()
+      // Reutiliza sessão já hidratada no auth store (evita getUser + profile extras)
+      if (!user?.id) return
 
-      if (userError || !authUser) {
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabaseAny
-        .from('profiles')
-        .select('id, full_name, role')
-        .eq('id', authUser.id)
-        .maybeSingle()
-
-      if (profileError) {
-        return
-      }
-
-      const isAdminOrEditor = ['admin', 'editor'].includes(
-        profile?.role || 'member',
-      )
+      const role = user.role || user.profile?.role || 'member'
+      const isAdminOrEditor = ['admin', 'editor'].includes(role)
 
       const { data: rows, error } = await supabaseAny
         .from('announcements')

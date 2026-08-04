@@ -52,12 +52,14 @@ export default function Index() {
       : HERO_CARD_DEFAULT_BACKGROUND_URL
 
   useEffect(() => {
-    void fetchSettings(true)
+    // Sem force: reutiliza cache se App já hidratou site_settings
+    void fetchSettings()
   }, [fetchSettings])
 
   useEffect(() => {
     if (canViewVenerables) {
-      void fetchVenerables(true)
+      // Sem force: só busca se a lista ainda estiver vazia
+      void fetchVenerables()
       return
     }
     useSiteSettingsStore.setState({ venerables: [] })

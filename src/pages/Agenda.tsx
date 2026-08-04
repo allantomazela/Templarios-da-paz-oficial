@@ -77,8 +77,9 @@ export default function Agenda() {
   const { user } = useAuthStore()
 
   useEffect(() => {
-    fetchSettings(true, true)
-    useChancellorStore.getState().fetchChancellorData()
+    // silent + sem force: não refaz request se settings já hidratou
+    void fetchSettings(false, true)
+    void useChancellorStore.getState().fetchChancellorData()
   }, [fetchSettings])
   const userRole = user?.role || 'member'
   const canEdit = ['admin', 'editor'].includes(userRole)

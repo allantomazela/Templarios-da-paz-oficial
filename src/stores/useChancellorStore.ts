@@ -219,13 +219,20 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     } catch (error) {
       if (handleAuthError(error)) return
       logError('fetchChancellorData', error)
-      set({
-        events: [],
-        generationBatches: [],
-        sessionRecords: [],
-        attendanceRecords: [],
-        brothers: [],
-      })
+      // Mantém snapshot anterior em falha transitória (evita tela vazia / "precisa F5").
+      // Só limpa se ainda não houver dados carregados nesta sessão.
+      const current = get()
+      const hasCachedData =
+        current.events.length > 0 || current.brothers.length > 0
+      if (!hasCachedData) {
+        set({
+          events: [],
+          generationBatches: [],
+          sessionRecords: [],
+          attendanceRecords: [],
+          brothers: [],
+        })
+      }
     } finally {
       set({ chancellorDataLoading: false })
     }

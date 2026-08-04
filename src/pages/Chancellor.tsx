@@ -1,14 +1,44 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { useModuleActivation } from '@/hooks/use-module-activation'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { ChancellorOverview } from '@/components/chancellor/ChancellorOverview'
-import { AttendanceManager } from '@/components/chancellor/AttendanceManager'
-import { DegreeManager } from '@/components/chancellor/DegreeManager'
-import { ChancellorReports } from '@/components/chancellor/ChancellorReports'
-import { SolidsManager } from '@/components/chancellor/SolidsManager'
-import { EventsManager } from '@/components/chancellor/EventsManager'
-import { VisitorCertificate } from '@/components/chancellor/VisitorCertificate'
+import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
+
+const ChancellorOverview = lazy(() =>
+  import('@/components/chancellor/ChancellorOverview').then((m) => ({
+    default: m.ChancellorOverview,
+  })),
+)
+const AttendanceManager = lazy(() =>
+  import('@/components/chancellor/AttendanceManager').then((m) => ({
+    default: m.AttendanceManager,
+  })),
+)
+const DegreeManager = lazy(() =>
+  import('@/components/chancellor/DegreeManager').then((m) => ({
+    default: m.DegreeManager,
+  })),
+)
+const ChancellorReports = lazy(() =>
+  import('@/components/chancellor/ChancellorReports').then((m) => ({
+    default: m.ChancellorReports,
+  })),
+)
+const SolidsManager = lazy(() =>
+  import('@/components/chancellor/SolidsManager').then((m) => ({
+    default: m.SolidsManager,
+  })),
+)
+const EventsManager = lazy(() =>
+  import('@/components/chancellor/EventsManager').then((m) => ({
+    default: m.EventsManager,
+  })),
+)
+const VisitorCertificate = lazy(() =>
+  import('@/components/chancellor/VisitorCertificate').then((m) => ({
+    default: m.VisitorCertificate,
+  })),
+)
 
 type ChancellorTabId =
   | 'overview'
@@ -28,6 +58,17 @@ const CHANCELLOR_TABS: { id: ChancellorTabId; label: string }[] = [
   { id: 'reports', label: 'Relatórios' },
   { id: 'certificate', label: 'Certificado de Visitante' },
 ]
+
+function ChancellorTabPanel({
+  active,
+  children,
+}: {
+  active: boolean
+  children: ReactNode
+}) {
+  if (!active) return null
+  return <Suspense fallback={<DashboardModuleLoader />}>{children}</Suspense>
+}
 
 export default function Chancellor() {
   const [tab, setTab] = useState<ChancellorTabId>('overview')
@@ -87,13 +128,27 @@ export default function Chancellor() {
           aria-labelledby={`chancellor-tab-${tab}`}
           className="mt-2 ring-offset-background focus-visible:outline-none"
         >
-          {tab === 'overview' && <ChancellorOverview />}
-          {tab === 'attendance' && <AttendanceManager />}
-          {tab === 'events' && <EventsManager />}
-          {tab === 'solids' && <SolidsManager />}
-          {tab === 'degrees' && <DegreeManager />}
-          {tab === 'reports' && <ChancellorReports />}
-          {tab === 'certificate' && <VisitorCertificate />}
+          <ChancellorTabPanel active={tab === 'overview'}>
+            <ChancellorOverview />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'attendance'}>
+            <AttendanceManager />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'events'}>
+            <EventsManager />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'solids'}>
+            <SolidsManager />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'degrees'}>
+            <DegreeManager />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'reports'}>
+            <ChancellorReports />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'certificate'}>
+            <VisitorCertificate />
+          </ChancellorTabPanel>
         </div>
       </div>
     </div>

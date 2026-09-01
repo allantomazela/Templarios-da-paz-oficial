@@ -87,7 +87,7 @@ function buildTransactionPayload(
   data: FinancialTransactionSaveInput,
   type: FinancialTransactionType,
 ) {
-  const controlOnly = type === 'Despesa' && Boolean(data.controlOnly)
+  const controlOnly = Boolean(data.controlOnly)
 
   return {
     description: data.description,
@@ -111,9 +111,9 @@ export async function saveFinancialTransaction(params: {
   const supabaseAny = supabase as any
 
   await assertCategoryExists(data.category, type)
-  if (type === 'Despesa' && data.controlOnly && data.accountId) {
+  if (data.controlOnly && data.accountId) {
     throw new Error(
-      'Despesas somente controle não devem ter conta bancária vinculada.',
+      'Lançamentos somente controle não devem ter conta bancária vinculada.',
     )
   }
   if (!data.controlOnly && !data.accountId?.trim()) {

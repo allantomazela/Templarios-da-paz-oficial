@@ -10,6 +10,7 @@ import type {
 import { sanitizeLocationIdForDb } from '@/lib/event-locations'
 import {
   ATTENDANCE_COLUMNS,
+  CHANCELLOR_BROTHER_COLUMNS,
   CHANCELLOR_EVENT_COLUMNS,
   chunkArray,
   getChancellorLookbackSinceIso,
@@ -150,23 +151,23 @@ export async function fetchChancellorAttendance(
   if (uniqueIds.length === 0) return []
 
   const chunks = chunkArray(uniqueIds, SUPABASE_IN_CHUNK_SIZE)
-  const rows: Record<string, unknown>[] = []
+  const chunkResults = await Promise.all(
+    chunks.map(async (ids) => {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select(ATTENDANCE_COLUMNS)
+        .in('session_record_id', ids)
 
-  for (const ids of chunks) {
-    const { data, error } = await supabase
-      .from('attendance')
-      .select(ATTENDANCE_COLUMNS)
-      .in('session_record_id', ids)
+      if (error) {
+        if (isMissingTable(error)) return []
+        throw error
+      }
 
-    if (error) {
-      if (isMissingTable(error)) return []
-      throw error
-    }
+      return data ?? []
+    }),
+  )
 
-    if (data?.length) {
-      rows.push(...data)
-    }
-  }
+  const rows = chunkResults.flat()
 
   return rows.map((row) => mapAttendanceFromDB(row))
 }
@@ -175,7 +176,7 @@ export async function fetchChancellorBrothers(): Promise<Brother[]> {
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('brothers')
-    .select('*')
+    .select(CHANCELLOR_BROTHER_COLUMNS)
     .order('name', { ascending: true })
 
   if (error) {

@@ -89,7 +89,9 @@ export function FinancialCustomReport({
 }: FinancialCustomReportProps) {
   const { toast } = useToast()
   const dataRevision = useFinancialStore((state) => state.dataRevision)
+  const financialHydrated = useFinancialStore((state) => state.financialHydrated)
   const storeAccounts = useFinancialStore((state) => state.accounts)
+  const storeTransactions = useFinancialStore((state) => state.transactions)
 
   const [internalPeriodConfig, setInternalPeriodConfig] = useState(
     DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
@@ -135,6 +137,13 @@ export function FinancialCustomReport({
       setLoading(true)
       try {
         const monthRange = getForecastMonthRange(new Date(), 12)
+        const financialDataPromise = financialHydrated
+          ? Promise.resolve({
+              accounts: storeAccounts,
+              transactions: storeTransactions,
+            })
+          : fetchFinancialAccountsAndTransactions()
+
         const [
           financialData,
           forecastItems,
@@ -145,7 +154,7 @@ export function FinancialCustomReport({
           monthOverrides,
           membershipOverrides,
         ] = await Promise.all([
-          fetchFinancialAccountsAndTransactions(),
+          financialDataPromise,
           fetchForecastItems(),
           fetchTransactionsForForecast(),
           fetchContributionsWithProfiles(),
@@ -198,7 +207,7 @@ export function FinancialCustomReport({
     return () => {
       isMounted = false
     }
-  }, [dataRevision, storeAccounts, toast])
+  }, [dataRevision, financialHydrated, storeAccounts, storeTransactions, toast])
 
   const pendingItems = useMemo(() => {
     const items = buildCombinedPendingFinancialItems(

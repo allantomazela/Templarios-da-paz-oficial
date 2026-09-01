@@ -14,13 +14,33 @@ export default defineConfig(({ mode }) => ({
   build: {
     minify: mode !== 'development',
     sourcemap: mode === 'development',
-    // Hash no nome dos assets: cada deploy gera URLs novas e evita JS antigo em cache
-    // (mistura HTML novo + bundle velho quebra o app; aba anônima “funciona” por não ter cache).
     rollupOptions: {
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'vendor-charts'
+          }
+          if (id.includes('date-fns')) {
+            return 'vendor-date-fns'
+          }
+          if (id.includes('@supabase')) {
+            return 'vendor-supabase'
+          }
+          if (id.includes('@tiptap')) {
+            return 'vendor-tiptap'
+          }
+          if (id.includes('jspdf') || id.includes('html2canvas')) {
+            return 'vendor-pdf'
+          }
+          if (id.includes('@radix-ui')) {
+            return 'vendor-radix'
+          }
+        },
       },
     },
   },

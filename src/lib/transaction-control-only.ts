@@ -1,9 +1,9 @@
 import type { Transaction } from '@/lib/data'
 
 export function isControlOnlyTransaction(
-  transaction: Pick<Transaction, 'type' | 'controlOnly'>,
+  transaction: Pick<Transaction, 'controlOnly'>,
 ): boolean {
-  return transaction.type === 'Despesa' && Boolean(transaction.controlOnly)
+  return Boolean(transaction.controlOnly)
 }
 
 /** Transações que entram no cálculo de caixa e saldos de conta. */

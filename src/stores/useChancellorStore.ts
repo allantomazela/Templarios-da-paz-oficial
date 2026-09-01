@@ -22,6 +22,7 @@ import {
   mapEventFromDB,
   saveLocationsToStorage,
 } from '@/lib/chancellor-data'
+import { VISITOR_ATTENDANCE_COLUMNS } from '@/lib/chancellor-query-limits'
 import {
   createGenerationBatch,
   fetchActiveGenerationBatches,
@@ -194,16 +195,21 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
     set({ chancellorDataLoading: true })
     try {
-      const [events, sessionRecords, brothers, generationBatches] =
+      const sessionRecordsPromise = fetchChancellorSessionRecords()
+      const attendancePromise = sessionRecordsPromise.then((sessionRecords) =>
+        fetchChancellorAttendance({
+          sessionRecordIds: sessionRecords.map((record) => record.id),
+        }),
+      )
+
+      const [events, sessionRecords, brothers, generationBatches, attendanceRecords] =
         await Promise.all([
           fetchChancellorEvents(),
-          fetchChancellorSessionRecords(),
+          sessionRecordsPromise,
           fetchChancellorBrothers(),
           fetchActiveGenerationBatches(),
+          attendancePromise,
         ])
-      const attendanceRecords = await fetchChancellorAttendance({
-        sessionRecordIds: sessionRecords.map((record) => record.id),
-      })
       const normalizedAttendance = attendanceRecords.map((record) => ({
         ...record,
         brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),
@@ -311,7 +317,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('visitor_attendances')
-        .select('*')
+        .select(VISITOR_ATTENDANCE_COLUMNS)
         .eq('session_record_id', sessionRecordId)
         .order('name', { ascending: true })
 

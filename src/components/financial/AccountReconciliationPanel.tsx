@@ -25,7 +25,6 @@ import {
   Upload,
   Wrench,
 } from 'lucide-react'
-import type { BankAccount, Transaction } from '@/lib/data'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   buildAccountReconciliationDetails,
@@ -34,7 +33,7 @@ import {
   type AccountReconciliationWithReal,
 } from '@/lib/account-reconciliation'
 import { fetchLinkedMensalidadeTransactionIds, fetchMensalidadeLinkContext } from '@/lib/account-reconciliation-api'
-import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
+import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
@@ -89,8 +88,7 @@ function parseRealBalanceInput(value: string): number | null {
 }
 
 export function AccountReconciliationPanel() {
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const { accounts, transactions, loading: coreLoading } = useFinancialCoreData()
   const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set())
   const [mensalidadeLinkContext, setMensalidadeLinkContext] = useState<
     Awaited<ReturnType<typeof fetchMensalidadeLinkContext>> | null
@@ -158,16 +156,12 @@ export function AccountReconciliationPanel() {
     const loadData = async () => {
       setLoading(true)
       try {
-        const [financialData, mensalidadeIds, linkContext, extratoRows] =
-          await Promise.all([
-            fetchFinancialAccountsAndTransactions(),
-            fetchLinkedMensalidadeTransactionIds(),
-            fetchMensalidadeLinkContext(),
-            fetchAccountReconciliationExtrato().catch(() => []),
-          ])
+        const [mensalidadeIds, linkContext, extratoRows] = await Promise.all([
+          fetchLinkedMensalidadeTransactionIds(),
+          fetchMensalidadeLinkContext(),
+          fetchAccountReconciliationExtrato().catch(() => []),
+        ])
         if (!isMounted) return
-        setAccounts(financialData.accounts)
-        setTransactions(financialData.transactions)
         setLinkedIds(mensalidadeIds)
         setMensalidadeLinkContext(linkContext)
 
@@ -308,7 +302,7 @@ export function AccountReconciliationPanel() {
     })
   }
 
-  if (loading) {
+  if (loading || coreLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center gap-2 py-10 text-muted-foreground">

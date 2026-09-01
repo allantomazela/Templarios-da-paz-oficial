@@ -98,6 +98,11 @@ const FINANCIAL_TABS = [
 
 type FinancialTabValue = (typeof FINANCIAL_TABS)[number]['value']
 
+const FINANCIAL_EXTENDED_TABS = new Set<FinancialTabValue>([
+  'contributions',
+  'budgets',
+])
+
 function FinancialTabPanel({
   active,
   children,
@@ -112,6 +117,7 @@ function FinancialTabPanel({
 export default function Financial() {
   const positionsReady = usePositionsReady()
   const hydrateModule = useFinancialStore((s) => s.hydrateModule)
+  const hydrateFinancialExtended = useFinancialStore((s) => s.hydrateFinancialExtended)
   const { canManageAgapeClosing, canAccessFullFinancial } =
     useAgapeClosingPermissions()
   const [activeTab, setActiveTab] = useState<FinancialTabValue>('overview')
@@ -125,6 +131,13 @@ export default function Financial() {
     },
     { refreshOnVisible: true },
   )
+
+  useEffect(() => {
+    if (!FINANCIAL_EXTENDED_TABS.has(activeTab)) return
+    void hydrateFinancialExtended().catch(() => {
+      useFinancialStore.getState().resetLoadingFlags()
+    })
+  }, [activeTab, hydrateFinancialExtended])
 
   const visibleTabs = useMemo(() => {
     if (canAccessFullFinancial) return FINANCIAL_TABS

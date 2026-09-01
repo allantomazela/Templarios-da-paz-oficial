@@ -92,6 +92,12 @@ export function mapCategoryToDB(category: Partial<Category>): Partial<CategoryDB
   }
 }
 
+export const FINANCIAL_CATEGORY_COLUMNS =
+  'id, name, type, description, color, created_at, updated_at' as const
+
+export const FINANCIAL_ACCOUNT_COLUMNS =
+  'id, name, type, initial_balance, color, created_at, updated_at' as const
+
 // ========== TRANSACTIONS ==========
 export interface TransactionDB {
   id: string
@@ -210,6 +216,9 @@ export function mapBudgetToDB(budget: Partial<Budget>): Partial<BudgetDB> {
   }
 }
 
+export const FINANCIAL_BUDGET_COLUMNS =
+  'id, category, amount, period_start, period_end, description, created_at, updated_at' as const
+
 // ========== FINANCIAL GOALS ==========
 export interface FinancialGoalDB {
   id: string
@@ -242,6 +251,9 @@ export function mapFinancialGoalToDB(goal: Partial<FinancialGoal>): Partial<Fina
     deadline: goal.deadline || null,
   }
 }
+
+export const FINANCIAL_GOAL_COLUMNS =
+  'id, title, description, target_amount, current_amount, deadline, status, created_at, updated_at' as const
 
 // ========== CONTRIBUTIONS ==========
 // Nota: Contributions podem estar em uma tabela separada (contributions)
@@ -291,3 +303,6 @@ export function mapContributionToDB(contribution: Partial<Contribution>): Partia
     notes: contribution.notes || null,
   }
 }
+
+export const CONTRIBUTION_COLUMNS =
+  'id, brother_id, month, year, amount, status, payment_date, transaction_id, account_id, notes, created_at, updated_at' as const

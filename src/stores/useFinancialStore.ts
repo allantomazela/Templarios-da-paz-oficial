@@ -38,6 +38,11 @@ import {
   mapContributionFromDB,
   mapContributionToDB,
   FINANCIAL_TRANSACTION_COLUMNS,
+  FINANCIAL_CATEGORY_COLUMNS,
+  FINANCIAL_ACCOUNT_COLUMNS,
+  CONTRIBUTION_COLUMNS,
+  FINANCIAL_BUDGET_COLUMNS,
+  FINANCIAL_GOAL_COLUMNS,
 } from '@/lib/financial-mappers'
 
 /** Evita que cada fetch individual ligue/desligue `loading` durante `fetchAll`. */
@@ -82,6 +87,8 @@ interface FinancialState {
   loading: boolean
   /** Evita refetch completo do módulo quando os dados já foram carregados nesta sessão. */
   financialHydrated: boolean
+  /** Mensalidades, orçamentos e metas — carregados sob demanda. */
+  financialExtendedHydrated: boolean
   /** Incrementado quando transações/contas mudam (ex.: mensalidade paga). */
   dataRevision: number
   refreshFinancialCoreData: (bumpRevision?: boolean) => Promise<void>
@@ -97,6 +104,7 @@ interface FinancialState {
   fetchAll: () => Promise<void>
   resetLoadingFlags: () => void
   hydrateModule: (options?: { force?: boolean }) => Promise<void>
+  hydrateFinancialExtended: (options?: { force?: boolean }) => Promise<void>
 
   // Transaction methods
   addTransaction: (t: Transaction) => Promise<void>
@@ -148,6 +156,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   reminderLogs: [],
   loading: false,
   financialHydrated: false,
+  financialExtendedHydrated: false,
   dataRevision: 0,
 
   refreshFinancialCoreData: async (bumpRevision = false) => {
@@ -183,7 +192,11 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
     try {
       await withTimeout(
-        get().fetchAll(),
+        Promise.all([
+          get().fetchAccounts(),
+          get().fetchTransactions(),
+          get().fetchCategories(),
+        ]),
         45_000,
         'Carregamento do módulo financeiro demorou demais.',
       )
@@ -191,6 +204,34 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     } catch (error) {
       if (!handleAuthError(error)) {
         logError('hydrateModule timeout or failure', error)
+      }
+      get().resetLoadingFlags()
+    }
+  },
+
+  hydrateFinancialExtended: async (options?: { force?: boolean }) => {
+    if (!options?.force && get().financialExtendedHydrated) {
+      return
+    }
+
+    if (!get().financialHydrated) {
+      await get().hydrateModule(options)
+    }
+
+    try {
+      await withTimeout(
+        Promise.all([
+          get().fetchContributions(),
+          get().fetchBudgets(),
+          get().fetchGoals(),
+        ]),
+        45_000,
+        'Carregamento dos dados complementares do financeiro demorou demais.',
+      )
+      set({ financialExtendedHydrated: true })
+    } catch (error) {
+      if (!handleAuthError(error)) {
+        logError('hydrateFinancialExtended timeout or failure', error)
       }
       get().resetLoadingFlags()
     }
@@ -227,7 +268,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('financial_categories')
-        .select('*')
+        .select(FINANCIAL_CATEGORY_COLUMNS)
         .order('name', { ascending: true })
 
       if (error) throw error
@@ -251,7 +292,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       // Verificar se a tabela contributions existe
       const { data, error } = await supabase
         .from('contributions')
-        .select('*')
+        .select(CONTRIBUTION_COLUMNS)
         .order('year', { ascending: false })
         .order('month', { ascending: false })
 
@@ -284,7 +325,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('financial_budgets')
-        .select('*')
+        .select(FINANCIAL_BUDGET_COLUMNS)
         .order('period_start', { ascending: false })
 
       if (error) throw error
@@ -307,7 +348,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('financial_goals')
-        .select('*')
+        .select(FINANCIAL_GOAL_COLUMNS)
         .order('deadline', { ascending: true })
 
       if (error) throw error
@@ -330,7 +371,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('financial_accounts')
-        .select('*')
+        .select(FINANCIAL_ACCOUNT_COLUMNS)
         .order('name', { ascending: true })
 
       if (error) throw error

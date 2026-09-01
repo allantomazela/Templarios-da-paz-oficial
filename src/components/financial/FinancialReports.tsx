@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -34,12 +34,11 @@ import {
 } from '@/components/ui/table'
 import { formatCurrencyBRL, formatDateBR, parseCalendarDate } from '@/lib/format-utils'
 import type { BankAccount, Transaction } from '@/lib/data'
-import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
 import {
   computeAccountPeriodBreakdown,
   type AccountPeriodBreakdownResult,
 } from '@/lib/cash-flow'
-import useFinancialStore from '@/stores/useFinancialStore'
+import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
 import { filterTransactionsInPeriod } from '@/lib/cash-flow'
 import {
   DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
@@ -56,44 +55,12 @@ import { MembershipReports } from '@/components/financial/MembershipReports'
 
 export function FinancialReports() {
   const { toast } = useToast()
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
+  const { accounts, transactions, loading } = useFinancialCoreData()
   const [periodConfig, setPeriodConfig] = useState<FinancialReportPeriodConfig>(
     DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
   )
   const [activeTab, setActiveTab] = useState('balancete')
   const printRef = useRef<HTMLDivElement>(null)
-  const dataRevision = useFinancialStore((state) => state.dataRevision)
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const data = await fetchFinancialAccountsAndTransactions()
-        if (!isMounted) return
-        setAccounts(data.accounts)
-        setTransactions(data.transactions)
-      } catch (error) {
-        console.error('Error loading financial reports:', error)
-        toast({
-          title: 'Erro',
-          description: 'Falha ao carregar dados dos relatórios.',
-          variant: 'destructive',
-        })
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-
-    void loadData()
-
-    return () => {
-      isMounted = false
-    }
-  }, [dataRevision, toast])
 
   const periodError = validateFinancialReportPeriodConfig(periodConfig)
   const dateRange = useMemo(

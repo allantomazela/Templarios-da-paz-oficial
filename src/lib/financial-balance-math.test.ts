@@ -61,8 +61,26 @@ describe('financial-balance-math cash summary', () => {
     expect(summary.isBalanced).toBe(true)
   })
 
-  it('ignora despesas somente controle no caixa', () => {
+  it('ignora lançamentos somente controle no caixa', () => {
     const summary = computeCashAvailability(accounts, transactions)
     expect(summary.totalExpense).not.toBe(420)
+    expect(summary.totalIncome).toBe(1300)
+  })
+
+  it('ignora receitas somente controle no caixa', () => {
+    const withControlIncome: Transaction[] = [
+      ...transactions,
+      {
+        id: '5',
+        date: '2026-01-25',
+        description: 'Receita histórica',
+        category: 'Outros',
+        type: 'Receita',
+        amount: 250,
+        controlOnly: true,
+      },
+    ]
+    const summary = computeCashAvailability(accounts, withControlIncome)
+    expect(summary.totalIncome).toBe(1300)
   })
 })

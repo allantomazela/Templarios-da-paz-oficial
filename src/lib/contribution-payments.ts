@@ -17,6 +17,13 @@ export type { ContributionTreasuryMode }
 
 export const MENSALIDADE_CATEGORY = 'Mensalidade'
 
+/** Evita reexecutar reparo pesado de observações em cada abertura de tela financeira. */
+let contributionNotesRepairDoneThisSession = false
+
+/** Cooldown para reparo de mensalidades órfãs (consulta leve, mas redundante em rajadas). */
+let lastOrphanTreasuryRepairAt = 0
+const ORPHAN_TREASURY_REPAIR_COOLDOWN_MS = 60_000
+
 /** Observações da mensalidade prontas para `attachment_notes` da receita no caixa. */
 export function formatContributionNotesForFinancialTransaction(
   notes?: string | null,
@@ -77,7 +84,13 @@ export async function fetchContributionNotesByTransactionIds(
 }
 
 /** Copia observações das mensalidades para receitas que ainda não têm `attachment_notes`. */
-export async function repairContributionNotesOnTransactions(): Promise<number> {
+export async function repairContributionNotesOnTransactions(
+  force = false,
+): Promise<number> {
+  if (contributionNotesRepairDoneThisSession && !force) {
+    return 0
+  }
+
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('contributions')
@@ -126,6 +139,7 @@ export async function repairContributionNotesOnTransactions(): Promise<number> {
     repaired++
   }
 
+  contributionNotesRepairDoneThisSession = true
   return repaired
 }
 
@@ -560,7 +574,15 @@ interface ContributionRepairRow {
 }
 
 /** Corrige mensalidades pagas com conta, mas sem receita no caixa. */
-export async function repairOrphanTreasuryContributions(): Promise<number> {
+export async function repairOrphanTreasuryContributions(force = false): Promise<number> {
+  const now = Date.now()
+  if (
+    !force &&
+    now - lastOrphanTreasuryRepairAt < ORPHAN_TREASURY_REPAIR_COOLDOWN_MS
+  ) {
+    return 0
+  }
+
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('contributions')
@@ -623,6 +645,7 @@ export async function repairOrphanTreasuryContributions(): Promise<number> {
     repaired++
   }
 
+  lastOrphanTreasuryRepairAt = Date.now()
   return repaired
 }
 

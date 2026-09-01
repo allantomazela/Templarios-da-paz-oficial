@@ -8,17 +8,23 @@ describe('transaction-control-only', () => {
   it('identifica despesa somente controle', () => {
     expect(
       isControlOnlyTransaction({
-        type: 'Despesa',
         controlOnly: true,
       }),
     ).toBe(true)
   })
 
-  it('receita nunca é somente controle', () => {
+  it('identifica receita somente controle', () => {
     expect(
       isControlOnlyTransaction({
-        type: 'Receita',
         controlOnly: true,
+      }),
+    ).toBe(true)
+  })
+
+  it('não marca lançamento normal como somente controle', () => {
+    expect(
+      isControlOnlyTransaction({
+        controlOnly: false,
       }),
     ).toBe(false)
   })
@@ -27,6 +33,12 @@ describe('transaction-control-only', () => {
     expect(
       isTreasuryTransaction({
         type: 'Despesa',
+        controlOnly: true,
+      }),
+    ).toBe(false)
+    expect(
+      isTreasuryTransaction({
+        type: 'Receita',
         controlOnly: true,
       }),
     ).toBe(false)

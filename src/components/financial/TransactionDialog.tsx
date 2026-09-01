@@ -57,7 +57,7 @@ const transactionSchema = z
     controlOnly: z.boolean().optional(),
   })
   .superRefine((values, ctx) => {
-    const controlOnly = values.type === 'Despesa' && values.controlOnly
+    const controlOnly = Boolean(values.controlOnly)
     if (!controlOnly && !values.accountId?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -202,8 +202,7 @@ export function TransactionDialog({
 
   const currentType = form.watch('type') || defaultType
   const controlOnly = Boolean(form.watch('controlOnly'))
-  const isExpenseControlOnly =
-    defaultType === 'Despesa' && currentType === 'Despesa' && controlOnly
+  const isControlOnlyMode = controlOnly
   const availableCategories = categories.filter((category) => category.type === currentType)
   const availableForecastItems = forecastItems.filter((item) => item.type === currentType)
 
@@ -308,39 +307,37 @@ export function TransactionDialog({
               />
             </div>
 
-            {defaultType === 'Despesa' ? (
-              <FormField
-                control={form.control}
-                name="controlOnly"
-                render={({ field }) => (
-                  <FormItem className="flex items-start gap-3 rounded-md border p-3">
-                    <FormControl>
-                      <Checkbox
-                        checked={Boolean(field.value)}
-                        onCheckedChange={(checked) => {
-                          const next = checked === true
-                          field.onChange(next)
-                          if (next) {
-                            form.setValue('accountId', '')
-                          } else if (!form.getValues('accountId') && accounts.length > 0) {
-                            form.setValue('accountId', accounts[0].id)
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="cursor-pointer font-medium">
-                        Somente controle (não afeta o caixa)
-                      </FormLabel>
-                      <p className="text-xs text-muted-foreground">
-                        Registra a despesa para acompanhamento, sem debitar conta
-                        bancária nem alterar a tesouraria.
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            ) : null}
+            <FormField
+              control={form.control}
+              name="controlOnly"
+              render={({ field }) => (
+                <FormItem className="flex items-start gap-3 rounded-md border p-3">
+                  <FormControl>
+                    <Checkbox
+                      checked={Boolean(field.value)}
+                      onCheckedChange={(checked) => {
+                        const next = checked === true
+                        field.onChange(next)
+                        if (next) {
+                          form.setValue('accountId', '')
+                        } else if (!form.getValues('accountId') && accounts.length > 0) {
+                          form.setValue('accountId', accounts[0].id)
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="cursor-pointer font-medium">
+                      Somente controle (não afeta o caixa)
+                    </FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Registra o lançamento para acompanhamento, sem movimentar conta
+                      bancária nem alterar a tesouraria.
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -351,7 +348,7 @@ export function TransactionDialog({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={loadingAccounts || isExpenseControlOnly}
+                    disabled={loadingAccounts || isControlOnlyMode}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -382,9 +379,9 @@ export function TransactionDialog({
                       )}
                     </SelectContent>
                   </Select>
-                  {isExpenseControlOnly ? (
+                  {isControlOnlyMode ? (
                     <p className="text-xs text-muted-foreground">
-                      Despesas somente controle não usam conta bancária.
+                      Lançamentos somente controle não usam conta bancária.
                     </p>
                   ) : null}
                   <FormMessage />

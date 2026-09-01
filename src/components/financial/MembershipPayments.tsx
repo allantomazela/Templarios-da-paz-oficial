@@ -310,6 +310,9 @@ export function MembershipPayments() {
     fetchMembershipFeeSettings()
       .then(setFeeSettings)
       .catch(() => {})
+    if (contributions.length === 0) {
+      void fetchStoreContributions()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

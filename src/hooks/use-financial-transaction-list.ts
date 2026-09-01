@@ -22,6 +22,17 @@ interface UseFinancialTransactionListResult {
   loading: boolean
 }
 
+function readAccountsAndTransactionsFromStore(): {
+  accounts: BankAccount[]
+  transactions: Transaction[]
+} {
+  const state = useFinancialStore.getState()
+  return {
+    accounts: state.accounts,
+    transactions: state.transactions,
+  }
+}
+
 export function useFinancialTransactionList(
   type: FinancialTransactionType,
   options: UseFinancialTransactionListOptions = {},
@@ -33,6 +44,7 @@ export function useFinancialTransactionList(
   const [accountNames, setAccountNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
+  const financialHydrated = useFinancialStore((state) => state.financialHydrated)
   const requestSeq = useRef(0)
 
   useEffect(() => {
@@ -42,8 +54,18 @@ export function useFinancialTransactionList(
     const loadCore = async () => {
       setLoading(true)
       try {
-        const { accounts: accountsData, transactions: allTx } =
-          await fetchFinancialAccountsAndTransactions()
+        let accountsData: BankAccount[]
+        let allTx: Transaction[]
+
+        if (financialHydrated) {
+          const cached = readAccountsAndTransactionsFromStore()
+          accountsData = cached.accounts
+          allTx = cached.transactions
+        } else {
+          const fetched = await fetchFinancialAccountsAndTransactions()
+          accountsData = fetched.accounts
+          allTx = fetched.transactions
+        }
 
         if (cancelled || requestId !== requestSeq.current) return
 
@@ -97,7 +119,7 @@ export function useFinancialTransactionList(
     return () => {
       cancelled = true
     }
-  }, [dataRevision, type, includeAttachmentCounts])
+  }, [dataRevision, type, includeAttachmentCounts, financialHydrated])
 
   return {
     transactions,

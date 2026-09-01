@@ -4,6 +4,7 @@ import {
   mapBankAccountFromDB,
   mapTransactionFromDB,
   FINANCIAL_TRANSACTION_COLUMNS,
+  FINANCIAL_ACCOUNT_COLUMNS,
 } from '@/lib/financial-mappers'
 import {
   computeAccountBalance,
@@ -47,7 +48,7 @@ export async function fetchFinancialAccountsAndTransactions(): Promise<{
   await repairContributionNotesOnTransactions()
 
   const [accountsRes, transactionsRes] = await Promise.all([
-    supabase.from('financial_accounts').select('*').order('name', { ascending: true }),
+    supabase.from('financial_accounts').select(FINANCIAL_ACCOUNT_COLUMNS).order('name', { ascending: true }),
     supabase
       .from('financial_transactions')
       .select(FINANCIAL_TRANSACTION_COLUMNS)

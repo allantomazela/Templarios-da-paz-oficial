@@ -45,6 +45,7 @@ import {
   computeCashAvailability,
   sumTransactionAmounts,
 } from '@/lib/financial-balance-math'
+import { isControlOnlyTransaction } from '@/lib/transaction-control-only'
 
 export function IncomeList() {
   const { toast } = useToast()
@@ -82,6 +83,14 @@ export function IncomeList() {
 
   const filteredTotal = useMemo(
     () => sumTransactionAmounts(filteredIncomes),
+    [filteredIncomes],
+  )
+
+  const controlOnlyTotal = useMemo(
+    () =>
+      sumTransactionAmounts(
+        filteredIncomes.filter((income) => isControlOnlyTransaction(income)),
+      ),
     [filteredIncomes],
   )
 
@@ -161,6 +170,13 @@ export function IncomeList() {
         actionClassName="bg-green-600 hover:bg-green-700"
       />
 
+      {controlOnlyTotal > 0 ? (
+        <p className="text-xs text-muted-foreground -mt-2">
+          Inclui {formatCurrencyBRL(controlOnlyTotal)} em receitas somente controle
+          (não afetam o caixa).
+        </p>
+      ) : null}
+
       <TransactionListFiltersPanel
         filters={filters}
         onChange={updateFilters}
@@ -218,6 +234,11 @@ export function IncomeList() {
                   <TableCell className="font-medium">
                     <div className="flex flex-col gap-1">
                       <span>{income.description}</span>
+                      {isControlOnlyTransaction(income) ? (
+                        <Badge variant="secondary" className="w-fit text-[10px]">
+                          Só controle
+                        </Badge>
+                      ) : null}
                       <TransactionAttachmentIndicator
                         transaction={income}
                         visible={canManageAttachments}
@@ -226,12 +247,18 @@ export function IncomeList() {
                   </TableCell>
                   <TableCell>{income.category}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="font-normal text-muted-foreground"
-                    >
-                      {getAccountName(income.accountId)}
-                    </Badge>
+                    {isControlOnlyTransaction(income) ? (
+                      <Badge variant="outline" className="font-normal text-muted-foreground">
+                        Somente controle
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="font-normal text-muted-foreground"
+                      >
+                        {getAccountName(income.accountId)}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-mono text-green-600">
                     {formatCurrencyBRL(income.amount)}
@@ -287,6 +314,11 @@ export function IncomeList() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <h4 className="font-medium">{income.description}</h4>
+                    {isControlOnlyTransaction(income) ? (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Só controle
+                      </Badge>
+                    ) : null}
                     <TransactionAttachmentIndicator
                       transaction={income}
                       visible={canManageAttachments}
@@ -330,7 +362,9 @@ export function IncomeList() {
                   </div>
                   <div className="flex items-center gap-1 col-span-2">
                     <Wallet className="h-3 w-3" />
-                    {getAccountName(income.accountId)}
+                    {isControlOnlyTransaction(income)
+                      ? 'Somente controle'
+                      : getAccountName(income.accountId)}
                   </div>
                 </div>
               </CardContent>

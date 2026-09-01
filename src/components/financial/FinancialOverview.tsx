@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Card,
   CardContent,
@@ -21,12 +21,8 @@ import {
   getCalendarDateTimestamp,
   parseCalendarDate,
 } from '@/lib/format-utils'
-import { useToast } from '@/hooks/use-toast'
-import useFinancialStore from '@/stores/useFinancialStore'
-import {
-  computeGlobalBalance,
-  fetchFinancialAccountsAndTransactions,
-} from '@/lib/financial-balances'
+import { computeGlobalBalance } from '@/lib/financial-balances'
+import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
 import { isTreasuryTransaction } from '@/lib/transaction-control-only'
 import { findLowBalanceAccountsForAlert } from '@/lib/financial-low-balance-alerts'
 import {
@@ -45,7 +41,6 @@ import {
   startOfYear,
   endOfYear,
 } from 'date-fns'
-import { Transaction, BankAccount } from '@/lib/data'
 
 const chartConfig = {
   receita: { label: 'Receitas', color: 'hsl(var(--chart-1))' },
@@ -53,53 +48,8 @@ const chartConfig = {
 }
 
 export function FinancialOverview() {
-  const storeTransactions = useFinancialStore((s) => s.transactions)
-  const storeAccounts = useFinancialStore((s) => s.accounts)
-  const storeLoading = useFinancialStore((s) => s.loading)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [loading, setLoading] = useState(true)
+  const { accounts, transactions, loading } = useFinancialCoreData()
   const [period, setPeriod] = useState('current_year')
-  const dataRevision = useFinancialStore((s) => s.dataRevision)
-  const { toast } = useToast()
-
-  useEffect(() => {
-    if (storeTransactions.length > 0 || storeAccounts.length > 0) {
-      setTransactions(storeTransactions)
-      setAccounts(storeAccounts)
-      setLoading(false)
-      return
-    }
-
-    if (storeLoading) {
-      setLoading(true)
-      return
-    }
-
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const { accounts: accountsData, transactions: transactionsData } =
-          await fetchFinancialAccountsAndTransactions()
-
-        setTransactions(transactionsData)
-        setAccounts(accountsData)
-      } catch (error) {
-        console.error('Error loading financial data:', error)
-        toast({
-          title: 'Erro',
-          description: 'Falha ao carregar dados financeiros.',
-          variant: 'destructive',
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadData()
-  }, [dataRevision, storeTransactions, storeAccounts, storeLoading, toast])
-
-  // Date Filtering
   const getDateRange = () => {
     const now = new Date()
     switch (period) {

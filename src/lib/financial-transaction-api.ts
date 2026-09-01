@@ -128,7 +128,15 @@ export async function saveFinancialTransaction(params: {
       .update(payload)
       .eq('id', existingId)
 
-    if (error) throw error
+    if (error) {
+      const pgErr = error as { code?: string }
+      if (pgErr.code === '23514') {
+        throw new Error(
+          'Lançamentos somente controle não podem ter conta bancária vinculada.',
+        )
+      }
+      throw error
+    }
     return existingId
   }
 
@@ -155,9 +163,14 @@ export async function saveFinancialTransaction(params: {
       .single()
 
     if (error) {
-      const pgErr = error as { code?: string }
+      const pgErr = error as { code?: string; message?: string }
       if (pgErr.code === '23505' && idempotencyKey) {
         return null
+      }
+      if (pgErr.code === '23514') {
+        throw new Error(
+          'Lançamentos somente controle não podem ter conta bancária vinculada.',
+        )
       }
       throw error
     }

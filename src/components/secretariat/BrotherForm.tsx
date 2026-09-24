@@ -53,6 +53,10 @@ import {
   normalizeBrotherObedience,
 } from '@/lib/brother-masonic-fields'
 import {
+  coerceMasonicDegree,
+  MASONIC_DEGREE_OPTIONS,
+} from '@/lib/masonic-degree'
+import {
   normalizeBrotherPhoneForForm,
   resolveBrotherPhotoFromProfile,
 } from '@/lib/brother-registration-utils'
@@ -78,6 +82,16 @@ function optionalSelectChange(
   const next = value === OPTIONAL_SELECT_NONE ? '' : value
   onChange(next)
   return next
+}
+
+function pickNonEmptySelectValue(
+  ...candidates: Array<string | null | undefined>
+): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim()
+    if (trimmed && trimmed !== OPTIONAL_SELECT_NONE) return trimmed
+  }
+  return ''
 }
 
 interface BrotherFormProps {
@@ -205,7 +219,7 @@ export function BrotherForm({
         initiationDate: toDateInputValue(brotherToEdit.initiationDate),
         elevationDate: toDateInputValue(brotherToEdit.elevationDate),
         exaltationDate: toDateInputValue(brotherToEdit.exaltationDate),
-        degree: brotherToEdit.degree,
+        degree: coerceMasonicDegree(brotherToEdit.degree),
         cim: brotherToEdit.cim || '',
         masonicRegistrationNumber: brotherToEdit.masonicRegistrationNumber || '',
         obedience: normalizeBrotherObedience(brotherToEdit.obedience),
@@ -247,6 +261,21 @@ export function BrotherForm({
     return () => revokePhotoBlob()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formResetKey, active, isSelfMode])
+
+  useEffect(() => {
+    if (!active) return
+    const currentDegree = form.getValues('degree')
+    const coercedDegree = coerceMasonicDegree(currentDegree)
+    if (currentDegree !== coercedDegree) {
+      form.setValue('degree', coercedDegree, { shouldValidate: true })
+    }
+
+    const currentObedience = form.getValues('obedience')
+    const normalizedObedience = normalizeBrotherObedience(currentObedience)
+    if ((currentObedience || '') !== normalizedObedience) {
+      form.setValue('obedience', normalizedObedience, { shouldValidate: true })
+    }
+  }, [active, form, formResetKey])
 
   useEffect(() => {
     if (!active || !isSelfMode) return
@@ -352,22 +381,33 @@ export function BrotherForm({
 
     setIsSubmittingLocal(true)
     try {
-      const degree = form.getValues('degree') ?? data.degree
-      const obedience = form.getValues('obedience') ?? data.obedience
-      const addressState = form.getValues('addressState') ?? data.addressState
+      const latest = form.getValues()
+      const degree = coerceMasonicDegree(
+        pickNonEmptySelectValue(latest.degree, data.degree),
+      )
+      const obedience = normalizeBrotherObedience(
+        pickNonEmptySelectValue(latest.obedience, data.obedience),
+      )
+      const addressState = pickNonEmptySelectValue(
+        latest.addressState,
+        data.addressState,
+      )
 
-      const unformattedData = {
+      const unformattedData: BrotherFormValues = {
         ...data,
+        ...latest,
         degree,
         obedience,
         addressState,
         photoUrl: isSelfMode
           ? (syncedProfilePhoto ?? undefined)
-          : data.photoUrl,
-        cpf: data.cpf ? unformatCPF(data.cpf) : undefined,
-        phone: unformatPhone(data.phone),
-        addressZipcode: data.addressZipcode
-          ? unformatCEP(data.addressZipcode)
+          : (latest.photoUrl ?? data.photoUrl),
+        cpf: (latest.cpf ?? data.cpf)
+          ? unformatCPF(latest.cpf || data.cpf || '')
+          : undefined,
+        phone: unformatPhone(latest.phone || data.phone),
+        addressZipcode: (latest.addressZipcode ?? data.addressZipcode)
+          ? unformatCEP(latest.addressZipcode || data.addressZipcode || '')
           : undefined,
       }
       await onSave(unformattedData)
@@ -383,6 +423,7 @@ export function BrotherForm({
   return (
     <Form {...form}>
       <form
+        noValidate
         onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
         className="space-y-6"
       >
@@ -627,12 +668,13 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Grau *</FormLabel>
                       <Select
-                        value={field.value || 'Aprendiz'}
+                        value={coerceMasonicDegree(field.value)}
                         onValueChange={(value) => {
-                          const next = value as BrotherFormValues['degree']
+                          const next = coerceMasonicDegree(value)
                           field.onChange(next)
                           form.setValue('degree', next, {
                             shouldDirty: true,
+                            shouldTouch: true,
                             shouldValidate: true,
                           })
                         }}
@@ -643,9 +685,11 @@ export function BrotherForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Aprendiz">Aprendiz</SelectItem>
-                          <SelectItem value="Companheiro">Companheiro</SelectItem>
-                          <SelectItem value="Mestre">Mestre</SelectItem>
+                          {MASONIC_DEGREE_OPTIONS.map((degree) => (
+                            <SelectItem key={degree} value={degree}>
+                              {degree}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -722,6 +766,7 @@ export function BrotherForm({
                           const next = optionalSelectChange(value, field.onChange)
                           form.setValue('obedience', next, {
                             shouldDirty: true,
+                            shouldTouch: true,
                             shouldValidate: true,
                           })
                         }}

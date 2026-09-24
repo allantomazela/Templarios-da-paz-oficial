@@ -1,16 +1,47 @@
 export type MasonicDegree = 'Aprendiz' | 'Companheiro' | 'Mestre'
 
-const MASONIC_DEGREES: MasonicDegree[] = ['Aprendiz', 'Companheiro', 'Mestre']
+export const MASONIC_DEGREE_OPTIONS: MasonicDegree[] = [
+  'Aprendiz',
+  'Companheiro',
+  'Mestre',
+]
+
+const MASONIC_DEGREES = MASONIC_DEGREE_OPTIONS
+
+const DEGREE_ALIASES: Record<string, MasonicDegree> = {
+  aprendiz: 'Aprendiz',
+  'grau i': 'Aprendiz',
+  'grau 1': 'Aprendiz',
+  '1': 'Aprendiz',
+  companheiro: 'Companheiro',
+  'grau ii': 'Companheiro',
+  'grau 2': 'Companheiro',
+  '2': 'Companheiro',
+  mestre: 'Mestre',
+  'grau iii': 'Mestre',
+  'grau 3': 'Mestre',
+  '3': 'Mestre',
+  'mestre instalado': 'Mestre',
+  'past master': 'Mestre',
+}
 
 export function normalizeMasonicDegree(
   value: string | null | undefined,
 ): MasonicDegree | undefined {
   if (!value) return undefined
   const trimmed = value.trim()
+  if (!trimmed) return undefined
   if (MASONIC_DEGREES.includes(trimmed as MasonicDegree)) {
     return trimmed as MasonicDegree
   }
-  return undefined
+  return DEGREE_ALIASES[trimmed.toLowerCase()]
+}
+
+/** Sempre retorna um grau válido para formulários e persistência. */
+export function coerceMasonicDegree(
+  value: string | null | undefined,
+): MasonicDegree {
+  return normalizeMasonicDegree(value) ?? 'Aprendiz'
 }
 
 /**

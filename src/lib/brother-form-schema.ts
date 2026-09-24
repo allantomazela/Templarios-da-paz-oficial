@@ -1,6 +1,8 @@
 import * as z from 'zod'
 import { validateCPF, validatePhone, validateCEP } from '@/lib/format-utils'
 import { BROTHER_PROFILE_AUTO } from '@/lib/brother-profile-link'
+import { coerceMasonicDegree } from '@/lib/masonic-degree'
+import { normalizeBrotherObedience } from '@/lib/brother-masonic-fields'
 
 const childSchema = z.object({
   name: z.string().min(1, 'Nome do filho é obrigatório'),
@@ -38,7 +40,11 @@ export const brotherFormSchema = z.object({
   initiationDate: z.string().min(1, 'Data de iniciação é obrigatória'),
   elevationDate: z.string().optional(),
   exaltationDate: z.string().optional(),
-  degree: z.enum(['Aprendiz', 'Companheiro', 'Mestre']),
+  degree: z.enum(['Aprendiz', 'Companheiro', 'Mestre'], {
+    error: () => ({
+      message: 'Selecione o grau (Aprendiz, Companheiro ou Mestre)',
+    }),
+  }),
   cim: z.string().optional(),
   masonicRegistrationNumber: z.string().optional(),
   obedience: z.string().optional(),
@@ -82,10 +88,10 @@ export function toBrotherSaveInput(values: BrotherFormValues) {
     initiationDate: values.initiationDate,
     elevationDate: values.elevationDate?.trim() || undefined,
     exaltationDate: values.exaltationDate?.trim() || undefined,
-    degree: values.degree,
+    degree: coerceMasonicDegree(values.degree),
     cim: values.cim?.trim() || undefined,
     masonicRegistrationNumber: values.masonicRegistrationNumber?.trim() || undefined,
-    obedience: values.obedience?.trim() || undefined,
+    obedience: normalizeBrotherObedience(values.obedience) || undefined,
     originLodge: values.originLodge?.trim() || undefined,
     originLodgeNumber: values.originLodgeNumber?.trim() || undefined,
     currentLodgeNumber: values.currentLodgeNumber?.trim() || undefined,

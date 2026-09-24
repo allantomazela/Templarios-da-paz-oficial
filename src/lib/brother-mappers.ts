@@ -3,6 +3,7 @@ import {
   normalizeBrotherObedience,
   toNullableBrotherText,
 } from '@/lib/brother-masonic-fields'
+import { coerceMasonicDegree } from '@/lib/masonic-degree'
 
 export function mapBrotherToDB(brother: Partial<Brother>) {
   return {
@@ -12,7 +13,7 @@ export function mapBrotherToDB(brother: Partial<Brother>) {
     cpf: brother.cpf || null,
     dob: brother.dob || null,
     photo_url: brother.photoUrl || null,
-    degree: brother.degree || 'Aprendiz',
+    degree: coerceMasonicDegree(brother.degree),
     role: brother.role || 'Irmão',
     status: brother.status || 'Ativo',
     initiation_date: brother.initiationDate,
@@ -63,7 +64,9 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
     dob: row.dob ? String(row.dob) : undefined,
     photoUrl: row.photo_url ? String(row.photo_url) : undefined,
     profileId: row.profile_id ? String(row.profile_id) : undefined,
-    degree: (row.degree as Brother['degree']) || 'Aprendiz',
+    degree: coerceMasonicDegree(
+      row.degree != null ? String(row.degree) : undefined,
+    ),
     role: (row.role as Brother['role']) || 'Irmão',
     status: (row.status as Brother['status']) || 'Ativo',
     initiationDate: String(row.initiation_date ?? ''),

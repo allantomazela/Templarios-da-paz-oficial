@@ -24,7 +24,7 @@ export function normalizeBrotherObedience(
   value: string | null | undefined,
 ): string {
   const trimmed = value?.trim()
-  if (!trimmed) return ''
+  if (!trimmed || trimmed === '__none__') return ''
 
   const exact = BROTHER_OBEDIENCE_OPTIONS.find((option) => option.value === trimmed)
   if (exact) return exact.value

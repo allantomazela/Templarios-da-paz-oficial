@@ -2,15 +2,9 @@ import type { Brother } from '@/lib/data'
 import type { Profile } from '@/stores/useAuthStore'
 import { formatPhone, todayLocalISODate } from '@/lib/format-utils'
 import { resolveProfileAvatarUrl } from '@/lib/profile-avatar'
+import { coerceMasonicDegree } from '@/lib/masonic-degree'
 
 const PLACEHOLDER_PHONE = 'não informado'
-
-function normalizeDegree(
-  degree?: string | null,
-): Brother['degree'] {
-  if (degree === 'Companheiro' || degree === 'Mestre') return degree
-  return 'Aprendiz'
-}
 
 export function normalizeBrotherPhoneForForm(phone?: string | null): string {
   if (!phone) return ''
@@ -41,7 +35,7 @@ export function buildBrotherDraftFromProfile(profile: Profile): Brother {
     email: profile.email?.trim() || '',
     phone: '',
     profileId: profile.id,
-    degree: normalizeDegree(profile.masonic_degree),
+    degree: coerceMasonicDegree(profile.masonic_degree),
     role: 'Irmão',
     status: 'Ativo',
     initiationDate: today,

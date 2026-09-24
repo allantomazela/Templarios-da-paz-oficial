@@ -12,6 +12,14 @@ describe('masonic-degree', () => {
     ).toBe('Mestre')
   })
 
+  it('normaliza aliases de grau', async () => {
+    const { coerceMasonicDegree, normalizeMasonicDegree } = await import(
+      './masonic-degree'
+    )
+    expect(normalizeMasonicDegree('Grau II')).toBe('Companheiro')
+    expect(coerceMasonicDegree('past master')).toBe('Mestre')
+  })
+
   it('usa perfil quando não há brothers', () => {
     expect(resolveEffectiveMasonicDegree(null, 'Companheiro')).toBe(
       'Companheiro',

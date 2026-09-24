@@ -1,19 +1,33 @@
 export async function withTimeout<T>(
-  promise: Promise<T>,
+  promise: PromiseLike<T>,
   ms: number,
   message: string,
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | null = null
   try {
+    // Promise.resolve garante que thenables (ex.: query builder do supabase-js)
+    // disparem a requisição imediatamente no Promise.race.
     const timeoutPromise = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         reject(new Error(message))
       }, ms)
     })
-    return await Promise.race([promise, timeoutPromise])
+    return await Promise.race([Promise.resolve(promise), timeoutPromise])
   } finally {
     if (timer) clearTimeout(timer)
   }
+}
+
+/** Executa operação Supabase `{ data, error }` com timeout e erro tipado. */
+export async function withTimeoutQuery<T>(
+  operation: () => PromiseLike<{ data: T; error: unknown }>,
+  ms: number,
+  timeoutMessage: string,
+  errorFallback: string,
+): Promise<T> {
+  const { data, error } = await withTimeout(operation(), ms, timeoutMessage)
+  if (error) throw toError(error, errorFallback)
+  return data
 }
 
 export function isDuplicateKeyError(error: unknown): boolean {

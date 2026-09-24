@@ -1,12 +1,15 @@
 import { supabase } from '@/lib/supabase/client'
-import { withTimeout, toError } from '@/lib/async-utils'
+import { withTimeout, withTimeoutQuery, toError } from '@/lib/async-utils'
 import { mapBrotherFromDB, mapBrotherToDB } from '@/lib/brother-mappers'
 import { resolveBrotherProfileIdForSave } from '@/lib/brother-profile-link'
 import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
 import { resolveBrotherPhotoFromProfile } from '@/lib/brother-registration-utils'
 import { deleteBrotherAsAdmin } from '@/lib/admin-user-api'
 import { coerceMasonicDegree } from '@/lib/masonic-degree'
-import { normalizeBrotherObedience } from '@/lib/brother-masonic-fields'
+import {
+  normalizeBrotherObedience,
+  toNullableBrotherText,
+} from '@/lib/brother-masonic-fields'
 import type { Brother } from '@/lib/data'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 
@@ -26,6 +29,42 @@ function scheduleProfileDegreeSync(
   degree: string | undefined,
 ): void {
   void syncProfileMasonicDegreeFromBrother(email, degree)
+}
+
+function buildBrotherUpdatePayload(
+  data: BrotherSaveInput,
+  existing?: Pick<Brother, 'role' | 'status' | 'attendanceRate'>,
+  profileId?: string | null,
+) {
+  const expectedDegree = coerceMasonicDegree(data.degree)
+  const expectedObedience = normalizeBrotherObedience(data.obedience)
+  const expectedState = toNullableBrotherText(data.addressState)
+  const expectedRegularStatus = toNullableBrotherText(data.regularStatus)
+
+  return {
+    expectedDegree,
+    expectedObedience,
+    expectedState,
+    expectedRegularStatus,
+    dbData: {
+      ...mapBrotherToDB({
+        ...data,
+        role: existing?.role,
+        status: existing?.status,
+        attendanceRate: existing?.attendanceRate,
+        degree: expectedDegree,
+        obedience: expectedObedience || undefined,
+        addressState: expectedState || undefined,
+        regularStatus: expectedRegularStatus || undefined,
+      }),
+      degree: expectedDegree,
+      obedience: expectedObedience || null,
+      address_state: expectedState,
+      regular_status: expectedRegularStatus,
+      ...(profileId ? { profile_id: profileId } : {}),
+      updated_at: new Date().toISOString(),
+    },
+  }
 }
 
 export async function fetchBrotherForProfile(
@@ -92,72 +131,71 @@ export async function saveMyBrotherRegistration(
   }
 
   if (existing?.id) {
-    const mapped = mapBrotherToDB({
-      ...payload,
-      role: existing.role,
-      status: existing.status,
-      attendanceRate: existing.attendanceRate,
-    })
-
-    // Garante explicitamente grau/potência no UPDATE (evita perda silenciosa).
-    const expectedDegree = coerceMasonicDegree(payload.degree)
-    const expectedObedience = normalizeBrotherObedience(payload.obedience)
-    const dbData = {
-      ...mapped,
-      degree: expectedDegree,
-      obedience: expectedObedience || null,
-      profile_id: profileId,
-      updated_at: new Date().toISOString(),
-    }
+    const {
+      expectedDegree,
+      expectedObedience,
+      expectedState,
+      expectedRegularStatus,
+      dbData,
+    } = buildBrotherUpdatePayload(payload, existing, profileId)
 
     const supabaseAny = supabase as any
-    const { data: updatedRow, error } = await withTimeout(
-      supabaseAny
-        .from('brothers')
-        .update(dbData)
-        .eq('id', existing.id)
-        .select('*')
-        .single(),
-      BROTHER_OP_TIMEOUT_MS,
-      'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
-    )
-
-    if (error) {
-      throw toError(error, 'Falha ao salvar seu cadastro.')
-    }
-
-    const updatedBrother = mapBrotherFromDB(updatedRow)
-
-    const savedObedience = normalizeBrotherObedience(updatedBrother.obedience)
-    if (
-      updatedBrother.degree !== expectedDegree ||
-      savedObedience !== expectedObedience
-    ) {
-      const { data: patchedRow, error: patchError } = await withTimeout(
+    const updatedRow = await withTimeoutQuery(
+      () =>
         supabaseAny
           .from('brothers')
-          .update({
-            degree: expectedDegree,
-            obedience: expectedObedience || null,
-            updated_at: new Date().toISOString(),
-          })
+          .update(dbData)
           .eq('id', existing.id)
           .select('*')
-          .single(),
+          .maybeSingle(),
+      BROTHER_OP_TIMEOUT_MS,
+      'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+      'Falha ao salvar seu cadastro.',
+    )
+
+    if (!updatedRow) {
+      throw toError(
+        null,
+        'Não foi possível salvar. Verifique sua conexão/permissões e tente novamente.',
+      )
+    }
+
+    let updatedBrother = mapBrotherFromDB(updatedRow)
+
+    const needsPatch =
+      updatedBrother.degree !== expectedDegree ||
+      normalizeBrotherObedience(updatedBrother.obedience) !== expectedObedience ||
+      (updatedBrother.addressState || '') !== (expectedState || '') ||
+      (updatedBrother.regularStatus || '') !== (expectedRegularStatus || '')
+
+    if (needsPatch) {
+      const patchedRow = await withTimeoutQuery(
+        () =>
+          supabaseAny
+            .from('brothers')
+            .update({
+              degree: expectedDegree,
+              obedience: expectedObedience || null,
+              address_state: expectedState,
+              regular_status: expectedRegularStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id)
+            .select('*')
+            .maybeSingle(),
         BROTHER_OP_TIMEOUT_MS,
         'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+        'Não foi possível gravar grau, potência, estado ou regularidade.',
       )
 
-      if (patchError) {
+      if (!patchedRow) {
         throw toError(
-          patchError,
-          'Não foi possível gravar grau e potência. Tente novamente.',
+          null,
+          'Não foi possível gravar grau, potência, estado ou regularidade.',
         )
       }
 
-      const patchedBrother = mapBrotherFromDB(patchedRow)
-      scheduleProfileDegreeSync(email, expectedDegree)
-      return patchedBrother
+      updatedBrother = mapBrotherFromDB(patchedRow)
     }
 
     scheduleProfileDegreeSync(email, expectedDegree)
@@ -197,15 +235,12 @@ export async function createBrother(data: BrotherSaveInput): Promise<Brother> {
   }
 
   const supabaseAny = supabase as any
-  const { data: createdRow, error } = await withTimeout(
-    supabaseAny.from('brothers').insert(dbData).select('*').single(),
+  const createdRow = await withTimeoutQuery(
+    () => supabaseAny.from('brothers').insert(dbData).select('*').single(),
     BROTHER_OP_TIMEOUT_MS,
     'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+    'Falha ao criar o irmão.',
   )
-
-  if (error) {
-    throw toError(error, 'Falha ao criar o irmão.')
-  }
 
   const newBrother = mapBrotherFromDB(createdRow)
   scheduleProfileDegreeSync(data.email, data.degree)
@@ -223,27 +258,25 @@ export async function updateBrother(
     'Tempo esgotado ao vincular conta do usuário. Tente novamente.',
   )
 
-  const dbData = {
-    ...mapBrotherToDB({
-      ...data,
-      role: existing?.role,
-      status: existing?.status,
-      attendanceRate: existing?.attendanceRate,
-    }),
-    profile_id: profileId,
-    updated_at: new Date().toISOString(),
-  }
-
-  const supabaseAny = supabase as any
-  const { data: updatedRow, error } = await withTimeout(
-    supabaseAny.from('brothers').update(dbData).eq('id', id).select('*').maybeSingle(),
-    BROTHER_OP_TIMEOUT_MS,
-    'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+  const { expectedDegree, dbData } = buildBrotherUpdatePayload(
+    data,
+    existing,
+    profileId,
   )
 
-  if (error) {
-    throw toError(error, 'Falha ao atualizar o irmão.')
-  }
+  const supabaseAny = supabase as any
+  const updatedRow = await withTimeoutQuery(
+    () =>
+      supabaseAny
+        .from('brothers')
+        .update(dbData)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle(),
+    BROTHER_OP_TIMEOUT_MS,
+    'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+    'Falha ao atualizar o irmão.',
+  )
 
   if (!updatedRow) {
     throw toError(
@@ -253,7 +286,7 @@ export async function updateBrother(
   }
 
   const updatedBrother = mapBrotherFromDB(updatedRow)
-  scheduleProfileDegreeSync(data.email, data.degree)
+  scheduleProfileDegreeSync(data.email, expectedDegree)
   return updatedBrother
 }
 

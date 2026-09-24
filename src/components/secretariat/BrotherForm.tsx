@@ -73,19 +73,6 @@ export type BrotherFormMode = 'secretariat' | 'self'
 
 const OPTIONAL_SELECT_NONE = '__none__'
 
-function optionalSelectValue(value: string | undefined): string {
-  return value && value.length > 0 ? value : OPTIONAL_SELECT_NONE
-}
-
-function optionalSelectChange(
-  value: string,
-  onChange: (value: string) => void,
-): string {
-  const next = value === OPTIONAL_SELECT_NONE ? '' : value
-  onChange(next)
-  return next
-}
-
 function pickNonEmptySelectValue(
   ...candidates: Array<string | null | undefined>
 ): string {
@@ -103,10 +90,19 @@ const nativeSelectClassName = cn(
   'disabled:cursor-not-allowed disabled:opacity-50',
 )
 
-interface MasonicSelectSnapshot {
+interface FormSelectSnapshot {
   degree: MasonicDegree
   obedience: string
+  addressState: string
+  regularStatus: string
 }
+
+const BROTHER_REGULAR_STATUS_OPTIONS = [
+  'Regular',
+  'Irregular',
+  'Suspenso',
+  'Afastado',
+] as const
 
 interface BrotherFormProps {
   brotherToEdit: Brother | null
@@ -147,9 +143,11 @@ export function BrotherForm({
   const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [isSubmittingLocal, setIsSubmittingLocal] = useState(false)
   const photoBlobRef = useRef<string | null>(null)
-  const masonicSelectRef = useRef<MasonicSelectSnapshot>({
+  const formSelectRef = useRef<FormSelectSnapshot>({
     degree: 'Aprendiz',
     obedience: '',
+    addressState: '',
+    regularStatus: '',
   })
   const { toast } = useToast()
 
@@ -226,9 +224,13 @@ export function BrotherForm({
       const children: Child[] = brotherToEdit.children || []
       const nextDegree = coerceMasonicDegree(brotherToEdit.degree)
       const nextObedience = normalizeBrotherObedience(brotherToEdit.obedience)
-      masonicSelectRef.current = {
+      const nextState = brotherToEdit.addressState || ''
+      const nextRegularStatus = brotherToEdit.regularStatus || ''
+      formSelectRef.current = {
         degree: nextDegree,
         obedience: nextObedience,
+        addressState: nextState,
+        regularStatus: nextRegularStatus,
       }
 
       form.reset({
@@ -251,7 +253,7 @@ export function BrotherForm({
         originLodgeNumber: brotherToEdit.originLodgeNumber || '',
         currentLodgeNumber: brotherToEdit.currentLodgeNumber || '',
         affiliationDate: toDateInputValue(brotherToEdit.affiliationDate),
-        regularStatus: brotherToEdit.regularStatus || '',
+        regularStatus: nextRegularStatus,
         notes: brotherToEdit.notes || '',
         spouseName: brotherToEdit.spouseName || '',
         spouseDob: toDateInputValue(brotherToEdit.spouseDob),
@@ -261,7 +263,7 @@ export function BrotherForm({
         addressComplement: brotherToEdit.addressComplement || '',
         addressNeighborhood: brotherToEdit.addressNeighborhood || '',
         addressCity: brotherToEdit.addressCity || '',
-        addressState: brotherToEdit.addressState || '',
+        addressState: nextState,
         addressZipcode: brotherToEdit.addressZipcode || '',
         address: brotherToEdit.address || '',
         profileId: brotherToEdit.profileId || BROTHER_PROFILE_AUTO,
@@ -278,9 +280,11 @@ export function BrotherForm({
         imageUpload.reset()
       }
     } else {
-      masonicSelectRef.current = {
+      formSelectRef.current = {
         degree: 'Aprendiz',
         obedience: '',
+        addressState: '',
+        regularStatus: '',
       }
       form.reset(brotherFormDefaultValues)
       setPhotoPreview(null)
@@ -295,36 +299,44 @@ export function BrotherForm({
     const currentDegree = form.getValues('degree')
     const coercedDegree = coerceMasonicDegree(currentDegree)
     if (currentDegree !== coercedDegree) {
-      masonicSelectRef.current.degree = coercedDegree
+      formSelectRef.current.degree = coercedDegree
       form.setValue('degree', coercedDegree, { shouldValidate: true })
     }
 
     const currentObedience = form.getValues('obedience')
     const normalizedObedience = normalizeBrotherObedience(currentObedience)
     if ((currentObedience || '') !== normalizedObedience) {
-      masonicSelectRef.current.obedience = normalizedObedience
+      formSelectRef.current.obedience = normalizedObedience
       form.setValue('obedience', normalizedObedience, { shouldValidate: true })
     }
   }, [active, form, formResetKey])
 
-  const syncMasonicDegree = (value: string) => {
-    const next = coerceMasonicDegree(value)
-    masonicSelectRef.current.degree = next
-    form.setValue('degree', next, {
+  const syncSelectField = <K extends keyof FormSelectSnapshot>(
+    key: K,
+    value: FormSelectSnapshot[K],
+  ) => {
+    formSelectRef.current[key] = value
+    form.setValue(key, value, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
     })
   }
 
+  const syncMasonicDegree = (value: string) => {
+    syncSelectField('degree', coerceMasonicDegree(value))
+  }
+
   const syncMasonicObedience = (value: string) => {
-    const next = normalizeBrotherObedience(value)
-    masonicSelectRef.current.obedience = next
-    form.setValue('obedience', next, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
+    syncSelectField('obedience', normalizeBrotherObedience(value))
+  }
+
+  const syncAddressState = (value: string) => {
+    syncSelectField('addressState', value.trim())
+  }
+
+  const syncRegularStatus = (value: string) => {
+    syncSelectField('regularStatus', value.trim())
   }
 
   useEffect(() => {
@@ -373,6 +385,7 @@ export function BrotherForm({
           shouldDirty: true,
           shouldValidate: true,
         })
+        formSelectRef.current.addressState = cepData.uf
         if (cepData.complemento) {
           form.setValue('addressComplement', cepData.complemento)
         }
@@ -434,24 +447,35 @@ export function BrotherForm({
       const latest = form.getValues()
       const degree = coerceMasonicDegree(
         pickNonEmptySelectValue(
-          masonicSelectRef.current.degree,
+          formSelectRef.current.degree,
           latest.degree,
           data.degree,
         ),
       )
       const obedience = normalizeBrotherObedience(
         pickNonEmptySelectValue(
-          masonicSelectRef.current.obedience,
+          formSelectRef.current.obedience,
           latest.obedience,
           data.obedience,
         ),
       )
       const addressState = pickNonEmptySelectValue(
+        formSelectRef.current.addressState,
         latest.addressState,
         data.addressState,
       )
+      const regularStatus = pickNonEmptySelectValue(
+        formSelectRef.current.regularStatus,
+        latest.regularStatus,
+        data.regularStatus,
+      )
 
-      masonicSelectRef.current = { degree, obedience }
+      formSelectRef.current = {
+        degree,
+        obedience,
+        addressState,
+        regularStatus,
+      }
 
       const unformattedData: BrotherFormValues = {
         ...data,
@@ -459,6 +483,7 @@ export function BrotherForm({
         degree,
         obedience,
         addressState,
+        regularStatus,
         photoUrl: isSelfMode
           ? (syncedProfilePhoto ?? undefined)
           : (latest.photoUrl ?? data.photoUrl),
@@ -900,31 +925,27 @@ export function BrotherForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status de Regularidade</FormLabel>
-                      <Select
-                        value={optionalSelectValue(field.value)}
-                        onValueChange={(value) => {
-                          const next = optionalSelectChange(value, field.onChange)
-                          form.setValue('regularStatus', next, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          })
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={OPTIONAL_SELECT_NONE}>
-                            Não informado
-                          </SelectItem>
-                          <SelectItem value="Regular">Regular</SelectItem>
-                          <SelectItem value="Irregular">Irregular</SelectItem>
-                          <SelectItem value="Suspenso">Suspenso</SelectItem>
-                          <SelectItem value="Afastado">Afastado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <select
+                          className={nativeSelectClassName}
+                          name={field.name}
+                          ref={field.ref}
+                          value={field.value || ''}
+                          onBlur={field.onBlur}
+                          onChange={(event) => {
+                            const next = event.target.value
+                            field.onChange(next)
+                            syncRegularStatus(next)
+                          }}
+                        >
+                          <option value="">Não informado</option>
+                          {BROTHER_REGULAR_STATUS_OPTIONS.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1162,32 +1183,27 @@ export function BrotherForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Estado</FormLabel>
-                      <Select
-                        value={optionalSelectValue(field.value)}
-                        onValueChange={(value) => {
-                          const next = optionalSelectChange(value, field.onChange)
-                          form.setValue('addressState', next, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          })
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={OPTIONAL_SELECT_NONE}>
-                            Não informado
-                          </SelectItem>
+                      <FormControl>
+                        <select
+                          className={nativeSelectClassName}
+                          name={field.name}
+                          ref={field.ref}
+                          value={field.value || ''}
+                          onBlur={field.onBlur}
+                          onChange={(event) => {
+                            const next = event.target.value
+                            field.onChange(next)
+                            syncAddressState(next)
+                          }}
+                        >
+                          <option value="">Não informado</option>
                           {BRAZILIAN_STATES.map((state) => (
-                            <SelectItem key={state} value={state}>
+                            <option key={state} value={state}>
                               {state}
-                            </SelectItem>
+                            </option>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

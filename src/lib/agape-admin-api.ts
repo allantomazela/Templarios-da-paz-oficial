@@ -23,13 +23,23 @@ async function resetAgapeOperationalDataInternal(): Promise<AgapeResetResult> {
   const supabaseAny = supabase as {
     rpc: (
       fn: string,
-    ) => Promise<{ data: unknown; error: { message?: string } | null }>
+      args?: Record<string, never>,
+    ) => Promise<{
+      data: unknown
+      error: { message?: string; details?: string; hint?: string; code?: string } | null
+    }>
   }
 
-  const { data, error } = await supabaseAny.rpc('reset_agape_operational_data')
+  const { data, error } = await supabaseAny.rpc('reset_agape_operational_data', {})
 
   if (error) {
-    throw toError(error, 'Não foi possível resetar os dados do Ágape.')
+    const detail = [error.message, error.details, error.hint]
+      .filter(Boolean)
+      .join(' — ')
+    throw toError(
+      { ...error, message: detail || error.message },
+      'Não foi possível resetar os dados do Ágape.',
+    )
   }
 
   const row = Array.isArray(data) ? data[0] : data

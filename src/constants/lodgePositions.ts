@@ -37,7 +37,7 @@ export const POSITION_PERMISSIONS: Record<LodgePositionType, string[]> = {
   chanceler: ['chancellor', 'agenda', 'agape'],
   tesoureiro: ['financial', 'agape'],
   orador: ['reports', 'agape'],
-  mestre_banquete: ['chancellor', 'agenda', 'events', 'agape'],
+  mestre_banquete: ['agape'],
   primeiro_vigilante: [],
   segundo_vigilante: [],
   mestre_cerimonias: [],

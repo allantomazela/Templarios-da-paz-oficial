@@ -46,7 +46,7 @@ import {
   resolveProfileAvatarUrl,
 } from '@/lib/profile-avatar'
 import { CheckinPresenceModal } from '@/components/checkin/CheckinPresenceModal'
-import { useAgapePermissions } from '@/hooks/use-agape-permissions'
+import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
 
 export interface AppSidebarProps {
   /** No Sheet do header mobile: ocupa a largura, sempre com rótulos (evita colapso + conflito com .text-muted-foreground global). */
@@ -61,7 +61,8 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
   const { user, signOut } = useAuthStore()
   const { logoUrl } = useSiteSettingsStore()
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
-  const { isAgapeController } = useAgapePermissions()
+  const { canAccessFullFinancial, canManageAgapeClosing } =
+    useAgapeClosingPermissions()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -119,10 +120,15 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
     ...(canAccessModule('secretariat') || isMasterAdmin
       ? [{ name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' }]
       : []),
-    ...(canAccessModule('financial') || isMasterAdmin || isAgapeController
+    ...(canAccessModule('financial') ||
+    isMasterAdmin ||
+    canManageAgapeClosing
       ? [
           {
-            name: 'Financeiro',
+            name:
+              canManageAgapeClosing && !canAccessFullFinancial
+                ? 'Fechamento Ágape'
+                : 'Financeiro',
             icon: Banknote,
             path: '/dashboard/financial',
           },

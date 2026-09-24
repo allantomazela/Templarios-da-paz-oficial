@@ -5,7 +5,6 @@ import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 
 const SESSION_MANAGER_POSITIONS = new Set([
   'chanceler',
-  'mestre_banquete',
   'veneravel_mestre',
 ])
 

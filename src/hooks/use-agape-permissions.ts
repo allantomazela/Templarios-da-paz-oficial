@@ -6,9 +6,11 @@ import { isDirectoratePosition } from '@/constants/lodgePositions'
 
 /**
  * Permissões do módulo Ágape:
- * - isAgapeController: Mestre de Banquete, VM, admin (sessões, cardápio, relatórios)
+ * - isAgapeController: Mestre de Banquete (designado), VM e admin — acesso total ao módulo Ágape
  * - canRecordConsumption: controlador + diretoria + editor (lançar consumo dos irmãos)
  * - canRegisterOwnConsumption: irmão comum registra apenas o próprio consumo
+ *
+ * O cargo Mestre de Banquete não concede outros módulos (secretaria, chancelaria, etc.).
  */
 export function useAgapePermissions() {
   const { user } = useAuthStore()

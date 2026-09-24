@@ -16,14 +16,13 @@ import { Loader2, AlertTriangle, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { resetAgapeOperationalData } from '@/lib/agape-admin-api'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
-import useAuthStore from '@/stores/useAuthStore'
-import { isMasterAdminEmail } from '@/config/master-admin'
 import useAgapeStore from '@/stores/useAgapeStore'
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
+import { useAgapePermissions } from '@/hooks/use-agape-permissions'
 
 export function AgapeMaintenancePanel() {
-  const { user } = useAuthStore()
   const { toast } = useToast()
+  const { isAgapeController } = useAgapePermissions()
   const clearOperationalCache = useAgapeStore((s) => s.clearOperationalCache)
   const fetchSessions = useAgapeStore((s) => s.fetchSessions)
   const fetchMenuItems = useAgapeStore((s) => s.fetchMenuItems)
@@ -32,10 +31,8 @@ export function AgapeMaintenancePanel() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
 
-  const canResetAll =
-    isMasterAdminEmail(user?.email) ||
-    user?.role === 'admin' ||
-    user?.role === 'editor'
+  /** Controle total do módulo Ágape (Mestre de Banquete, VM, admin). */
+  const canResetAll = isAgapeController
 
   const handleReset = async () => {
     setResetting(true)
@@ -66,8 +63,9 @@ export function AgapeMaintenancePanel() {
       <Alert>
         <AlertTitle>Manutenção restrita</AlertTitle>
         <AlertDescription>
-          Apenas a administração pode zerar todo o módulo. Para ajustes do dia a dia,
-          use editar/excluir em sessões, consumos, cardápio e no Fechamento Ágape.
+          Apenas o Mestre de Banquete e a administração podem zerar todo o módulo.
+          Para ajustes do dia a dia, use editar/excluir em sessões, consumos, cardápio
+          e no Fechamento Ágape.
         </AlertDescription>
       </Alert>
     )

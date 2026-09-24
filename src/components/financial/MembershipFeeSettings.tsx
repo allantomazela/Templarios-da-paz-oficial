@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -24,11 +24,17 @@ import { useToast } from '@/hooks/use-toast'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { Loader2, Save, Wallet } from 'lucide-react'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { formatCurrencyBRL } from '@/lib/member-payments'
+import { composeActiveMembershipAmount } from '@/lib/brother-membership-situation'
 
 const schema = z.object({
-  defaultAmount: z.coerce
+  baseAmount: z.coerce
     .number()
     .min(0.01, 'Informe um valor maior que zero')
+    .max(999999, 'Valor muito alto'),
+  sessionPackageAmount: z.coerce
+    .number()
+    .min(0, 'Informe zero ou mais')
     .max(999999, 'Valor muito alto'),
 })
 
@@ -42,28 +48,47 @@ export function MembershipFeeSettings() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      defaultAmount: membershipFee.defaultAmount,
+      baseAmount: membershipFee.baseAmount,
+      sessionPackageAmount: membershipFee.sessionPackageAmount,
     },
   })
 
+  const baseAmount = useWatch({ control: form.control, name: 'baseAmount' })
+  const sessionPackageAmount = useWatch({
+    control: form.control,
+    name: 'sessionPackageAmount',
+  })
+  const composedTotal = composeActiveMembershipAmount(
+    Number(baseAmount) || 0,
+    Number(sessionPackageAmount) || 0,
+  )
+
   useEffect(() => {
-    const key = `${membershipFee.defaultAmount}`
+    const key = `${membershipFee.baseAmount}|${membershipFee.sessionPackageAmount}`
     if (prevRef.current !== key) {
       prevRef.current = key
       form.reset({
-        defaultAmount: membershipFee.defaultAmount,
+        baseAmount: membershipFee.baseAmount,
+        sessionPackageAmount: membershipFee.sessionPackageAmount,
       })
     }
-  }, [membershipFee.defaultAmount, form])
+  }, [membershipFee.baseAmount, membershipFee.sessionPackageAmount, form])
 
   const { execute: handleSave, loading } = useAsyncOperation(
     async (data: FormValues) => {
+      const defaultAmount = composeActiveMembershipAmount(
+        data.baseAmount,
+        data.sessionPackageAmount,
+      )
       await updateMembershipFeeSettings({
-        defaultAmount: data.defaultAmount,
+        baseAmount: data.baseAmount,
+        sessionPackageAmount: data.sessionPackageAmount,
+        defaultAmount,
       })
       toast({
         title: 'Configurações salvas',
-        description: 'Valor padrão das mensalidades foi atualizado.',
+        description:
+          'Valores de mensalidade (base + pacote de sessão) atualizados.',
       })
     },
     {
@@ -85,9 +110,8 @@ export function MembershipFeeSettings() {
           Mensalidades da Loja
         </CardTitle>
         <CardDescription>
-          Valor padrão usado em novos lançamentos e na geração em lote. A
-          mensalidade pode ser paga em qualquer dia do mês de referência; só
-          passa a constar em atraso após o fechamento do mês.
+          Regular paga base + pacote de sessão ({formatCurrencyBRL(composedTotal)}).
+          Afastado (saúde) paga só a base. Desligado não gera cobrança.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -99,21 +123,43 @@ export function MembershipFeeSettings() {
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="defaultAmount"
+                name="baseAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor padrão (R$)</FormLabel>
+                    <FormLabel>Mensalidade base (R$)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" min="0.01" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Aplicado ao registrar ou gerar mensalidades do mês.
+                      Valor cobrado também de irmãos afastados por saúde.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="sessionPackageAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pacote de sessão (R$)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" min="0" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Jantares + tronco embutidos (ex.: 80 + 10 = 90).
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+            <p className="text-sm text-muted-foreground">
+              Total do irmão regular:{' '}
+              <strong className="text-foreground">
+                {formatCurrencyBRL(composedTotal)}
+              </strong>
+            </p>
             <div className="flex justify-end">
               <Button type="submit" disabled={loading}>
                 {loading ? (

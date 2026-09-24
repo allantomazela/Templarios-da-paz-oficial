@@ -260,7 +260,12 @@ export function MembershipPayments() {
   const [viewTab, setViewTab] = useState('by-member')
   const [mainSection, setMainSection] = useState<'membership' | 'ceremony'>('membership')
   const [openCeremonyPlan, setOpenCeremonyPlan] = useState(false)
-  const [feeSettings, setFeeSettings] = useState({ defaultAmount: 150, dueDay: 10 })
+  const [feeSettings, setFeeSettings] = useState({
+    defaultAmount: 290,
+    dueDay: 10,
+    baseAmount: 200,
+    sessionPackageAmount: 90,
+  })
   const [generateOpen, setGenerateOpen] = useState(false)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [scheduleDialogBrotherId, setScheduleDialogBrotherId] = useState('')
@@ -444,12 +449,15 @@ export function MembershipPayments() {
       const result = await generatePendingContributionsForMonth(
         month,
         generateYear,
-        feeSettings.defaultAmount,
       )
       await refreshContributions()
       notifyFinancialDataChanged()
       setGenerateOpen(false)
-      return `${result.created} mensalidade(s) criada(s). ${result.skipped} irmão(s) já tinham lançamento para ${generateMonth}/${generateYear}.`
+      const afastadoNote =
+        result.createdAfastado > 0
+          ? ` Destas, ${result.createdAfastado} com valor de afastamento (base).`
+          : ''
+      return `${result.created} mensalidade(s) criada(s). ${result.skipped} irmão(s) já tinham lançamento para ${generateMonth}/${generateYear}.${afastadoNote}`
     },
     {
       successMessage: 'Geração concluída',
@@ -505,6 +513,8 @@ export function MembershipPayments() {
   const handleUpdateFeeSettings = async (next: {
     defaultAmount: number
     dueDay: number
+    baseAmount: number
+    sessionPackageAmount: number
   }) => {
     await updateMembershipFeeSettings(next)
     setFeeSettings(next)
@@ -896,7 +906,9 @@ export function MembershipPayments() {
             <DialogDescription>
               Cria um lançamento <strong>Pendente</strong> para cada irmão com
               conta aprovada que ainda não possui registro no mês escolhido.
-              Valor padrão: {formatCurrencyBRL(feeSettings.defaultAmount)}.
+              Valor regular: {formatCurrencyBRL(feeSettings.defaultAmount)} ·
+              afastado: {formatCurrencyBRL(feeSettings.baseAmount)}.
+              Desligados não entram na geração.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">

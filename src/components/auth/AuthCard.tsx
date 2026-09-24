@@ -103,7 +103,7 @@ export function AuthCard() {
       return 'Sua conta ainda aguarda aprovação da diretoria ou da administração da loja.'
     }
     if (error?.code === 'blocked') {
-      return 'Sua conta está bloqueada. Entre em contato com a administração.'
+      return 'Sua conta está bloqueada (desligamento ou restrição administrativa). Entre em contato com a Secretaria da loja.'
     }
     if (
       msg.includes('invalid login credentials') ||

@@ -12,6 +12,14 @@ import {
   stripControlOnlyNote,
   type ContributionTreasuryMode,
 } from '@/lib/membership-control-only'
+import {
+  composeActiveMembershipAmount,
+  DEFAULT_MEMBERSHIP_BASE_AMOUNT,
+  DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT,
+  inferMembershipSituation,
+  resolveContributionAmountForSituation,
+  type MembershipSituation,
+} from '@/lib/brother-membership-situation'
 
 export type { ContributionTreasuryMode }
 
@@ -161,23 +169,42 @@ export const CONTRIBUTION_MONTHS = [
 export interface MembershipFeeSettings {
   defaultAmount: number
   dueDay: number
+  baseAmount: number
+  sessionPackageAmount: number
 }
 
-export const DEFAULT_MEMBERSHIP_AMOUNT = 150
+export const DEFAULT_MEMBERSHIP_AMOUNT = 290
 export const DEFAULT_MEMBERSHIP_DUE_DAY = 10
+export {
+  DEFAULT_MEMBERSHIP_BASE_AMOUNT,
+  DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT,
+} from '@/lib/brother-membership-situation'
 
 export async function fetchMembershipFeeSettings(): Promise<MembershipFeeSettings> {
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('site_settings')
-    .select('membership_fee_amount, membership_fee_due_day')
+    .select(
+      'membership_fee_amount, membership_fee_due_day, membership_fee_base_amount, membership_fee_session_package_amount',
+    )
     .eq('id', 1)
     .maybeSingle()
 
   if (error && error.code !== 'PGRST116') throw error
 
+  const baseAmount =
+    Number(data?.membership_fee_base_amount) ||
+    DEFAULT_MEMBERSHIP_BASE_AMOUNT
+  const sessionPackageAmount =
+    Number(data?.membership_fee_session_package_amount) ||
+    DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT
+  const composed = composeActiveMembershipAmount(baseAmount, sessionPackageAmount)
+
   return {
-    defaultAmount: Number(data?.membership_fee_amount) || DEFAULT_MEMBERSHIP_AMOUNT,
+    baseAmount,
+    sessionPackageAmount,
+    defaultAmount:
+      Number(data?.membership_fee_amount) || composed || DEFAULT_MEMBERSHIP_AMOUNT,
     dueDay: Number(data?.membership_fee_due_day) || DEFAULT_MEMBERSHIP_DUE_DAY,
   }
 }
@@ -224,9 +251,61 @@ export interface GenerateContributionsResult {
   created: number
   skipped: number
   totalBrothers: number
+  skippedDesligado: number
+  createdAfastado: number
 }
 
-/** Cria mensalidades pendentes para todos os irmãos aprovados (ignora duplicatas). */
+interface BillableBrotherOption {
+  id: string
+  full_name: string | null
+  situation: MembershipSituation
+}
+
+/** Irmãos aprovados com situação de cobrança (exclui desligados). */
+export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> {
+  const supabaseAny = supabase as any
+  const { data: profiles, error } = await supabaseAny
+    .from('profiles')
+    .select('id, full_name')
+    .eq('status', 'approved')
+
+  if (error) throw error
+  const approved = (profiles || []) as { id: string; full_name: string | null }[]
+  if (approved.length === 0) return []
+
+  const ids = approved.map((p) => p.id)
+  const { data: brothers, error: brothersError } = await supabaseAny
+    .from('brothers')
+    .select('profile_id, status, regular_status, membership_situation')
+    .in('profile_id', ids)
+
+  if (brothersError) throw brothersError
+
+  const byProfile = new Map(
+    ((brothers || []) as Array<Record<string, unknown>>).map((row) => [
+      String(row.profile_id),
+      inferMembershipSituation({
+        status: (row.status as 'Ativo' | 'Inativo') || 'Ativo',
+        regularStatus: row.regular_status
+          ? String(row.regular_status)
+          : undefined,
+        membershipSituation: row.membership_situation
+          ? String(row.membership_situation)
+          : undefined,
+      }),
+    ]),
+  )
+
+  return approved
+    .map((profile) => ({
+      id: profile.id,
+      full_name: profile.full_name,
+      situation: byProfile.get(profile.id) ?? ('regular' as MembershipSituation),
+    }))
+    .filter((brother) => brother.situation !== 'desligado')
+}
+
+/** Cria mensalidades pendentes respeitando afastado/desligado. */
 export async function generatePendingContributionsForMonth(
   month: number,
   year: number,
@@ -240,11 +319,15 @@ export async function generatePendingContributionsForMonth(
 
   const supabaseAny = supabase as any
   const settings = await fetchMembershipFeeSettings()
-  const feeAmount = amount ?? settings.defaultAmount
-
-  const brothers = await fetchApprovedBrothers()
+  const brothers = await fetchBillableBrothers()
   if (brothers.length === 0) {
-    return { created: 0, skipped: 0, totalBrothers: 0 }
+    return {
+      created: 0,
+      skipped: 0,
+      totalBrothers: 0,
+      skippedDesligado: 0,
+      createdAfastado: 0,
+    }
   }
 
   const { data: existing, error: existingError } = await supabaseAny
@@ -259,15 +342,27 @@ export async function generatePendingContributionsForMonth(
     (existing || []).map((r: { brother_id: string }) => r.brother_id),
   )
 
+  let createdAfastado = 0
   const toInsert = brothers
     .filter((b) => !existingIds.has(b.id))
-    .map((b) => ({
-      brother_id: b.id,
-      month,
-      year,
-      amount: feeAmount,
-      status: 'Pendente' as const,
-    }))
+    .map((b) => {
+      const feeAmount =
+        amount ??
+        resolveContributionAmountForSituation(b.situation, settings) ??
+        settings.defaultAmount
+      if (b.situation === 'afastado') createdAfastado += 1
+      return {
+        brother_id: b.id,
+        month,
+        year,
+        amount: feeAmount,
+        status: 'Pendente' as const,
+        notes:
+          b.situation === 'afastado'
+            ? 'Cobrança de afastamento (somente mensalidade base).'
+            : null,
+      }
+    })
 
   if (toInsert.length > 0) {
     const { error } = await supabaseAny.from('contributions').insert(toInsert)
@@ -278,6 +373,8 @@ export async function generatePendingContributionsForMonth(
     created: toInsert.length,
     skipped: existingIds.size,
     totalBrothers: brothers.length,
+    skippedDesligado: 0,
+    createdAfastado,
   }
 }
 

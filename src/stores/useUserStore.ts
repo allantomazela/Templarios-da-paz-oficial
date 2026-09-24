@@ -5,6 +5,7 @@ import { logError } from '@/lib/logger'
 import { createRequestSequence } from '@/lib/request-sequence'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+import { syncBrotherSituationFromProfileStatus } from '@/lib/brothers-api'
 
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -87,6 +88,11 @@ export const useUserStore = create<UserStoreState>((set) => ({
         set((state) => ({
           users: state.users.map((u) => (u.id === id ? { ...u, status } : u)),
         }))
+        try {
+          await syncBrotherSituationFromProfileStatus(id, status)
+        } catch (syncError) {
+          logError('Error syncing brother situation from profile status', syncError)
+        }
       }
     } catch (error) {
       if (handleAuthError(error)) return
@@ -160,6 +166,11 @@ export const useUserStore = create<UserStoreState>((set) => ({
             u.id === id ? { ...u, ...(data as Profile) } : u,
           ),
         }))
+        try {
+          await syncBrotherSituationFromProfileStatus(id, updates.status)
+        } catch (syncError) {
+          logError('Error syncing brother situation from profile update', syncError)
+        }
       }
     } catch (error) {
       if (handleAuthError(error)) return

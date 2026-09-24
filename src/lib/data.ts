@@ -37,6 +37,8 @@ export interface Brother {
   currentLodgeNumber?: string
   affiliationDate?: string
   regularStatus?: string
+  /** Situação operacional para cobrança e acesso */
+  membershipSituation?: 'regular' | 'afastado' | 'desligado'
   notes?: string
   
   // Spouse information

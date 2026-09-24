@@ -105,6 +105,8 @@ export interface SiteSettingsState {
   membershipFee: {
     defaultAmount: number
     dueDay: number
+    baseAmount: number
+    sessionPackageAmount: number
   }
   /** Configuração do templo para check-in por QR (geolocalização e janela de horário). */
   templeCheckin: {
@@ -254,7 +256,14 @@ const mapSettingsFromDB = (data: any) => {
       paymentType: (data.agape_payment_type as 'monthly' | 'per_session') || 'monthly',
     },
     membershipFee: {
-      defaultAmount: Number(data.membership_fee_amount) || 150,
+      baseAmount: Number(data.membership_fee_base_amount) || 200,
+      sessionPackageAmount:
+        Number(data.membership_fee_session_package_amount) || 90,
+      defaultAmount:
+        Number(data.membership_fee_amount) ||
+        (Number(data.membership_fee_base_amount) || 200) +
+          (Number(data.membership_fee_session_package_amount) || 90) ||
+        290,
       dueDay: Number(data.membership_fee_due_day) || 10,
     },
     templeCheckin: {
@@ -329,7 +338,9 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     paymentType: 'monthly' as 'monthly' | 'per_session',
   },
   membershipFee: {
-    defaultAmount: 150,
+    baseAmount: 200,
+    sessionPackageAmount: 90,
+    defaultAmount: 290,
     dueDay: 10,
   },
   templeCheckin: {
@@ -648,12 +659,19 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
 
   updateMembershipFeeSettings: async (data) => {
     try {
-      const updates: Record<string, number> = {}
-      if (data.defaultAmount !== undefined) {
-        updates.membership_fee_amount = data.defaultAmount
-      }
-      if (data.dueDay !== undefined) {
-        updates.membership_fee_due_day = data.dueDay
+      const current = get().membershipFee
+      const baseAmount = data.baseAmount ?? current.baseAmount
+      const sessionPackageAmount =
+        data.sessionPackageAmount ?? current.sessionPackageAmount
+      const composed = Math.max(0.01, baseAmount + sessionPackageAmount)
+      const defaultAmount = data.defaultAmount ?? composed
+      const dueDay = data.dueDay ?? current.dueDay
+
+      const updates: Record<string, number> = {
+        membership_fee_base_amount: baseAmount,
+        membership_fee_session_package_amount: sessionPackageAmount,
+        membership_fee_amount: defaultAmount,
+        membership_fee_due_day: dueDay,
       }
 
       const { error } = await supabase
@@ -662,9 +680,14 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
         .eq('id', 1)
 
       if (error) throw error
-      set((state) => ({
-        membershipFee: { ...state.membershipFee, ...data },
-      }))
+      set({
+        membershipFee: {
+          baseAmount,
+          sessionPackageAmount,
+          defaultAmount,
+          dueDay,
+        },
+      })
     } catch (error) {
       if (handleAuthError(error)) return
       logError('Error updating membership fee settings', error)

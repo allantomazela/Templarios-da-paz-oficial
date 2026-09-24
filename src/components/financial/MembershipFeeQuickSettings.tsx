@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -15,12 +15,17 @@ import {
 import { Loader2, Settings2 } from 'lucide-react'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { formatCurrencyBRL } from '@/lib/member-payments'
+import { composeActiveMembershipAmount } from '@/lib/brother-membership-situation'
 import type { MembershipFeeSettings } from '@/lib/contribution-payments'
 
 const schema = z.object({
-  defaultAmount: z.coerce
+  baseAmount: z.coerce
     .number()
     .min(0.01, 'Valor inválido')
+    .max(999999, 'Valor muito alto'),
+  sessionPackageAmount: z.coerce
+    .number()
+    .min(0, 'Valor inválido')
     .max(999999, 'Valor muito alto'),
 })
 
@@ -42,25 +47,50 @@ export function MembershipFeeQuickSettings({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { defaultAmount: settings.defaultAmount },
+    defaultValues: {
+      baseAmount: settings.baseAmount,
+      sessionPackageAmount: settings.sessionPackageAmount,
+    },
   })
 
+  const watchedBase = useWatch({ control: form.control, name: 'baseAmount' })
+  const watchedPackage = useWatch({
+    control: form.control,
+    name: 'sessionPackageAmount',
+  })
+  const composedTotal = composeActiveMembershipAmount(
+    Number(watchedBase) || 0,
+    Number(watchedPackage) || 0,
+  )
+
   useEffect(() => {
-    const key = String(settings.defaultAmount)
+    const key = `${settings.baseAmount}|${settings.sessionPackageAmount}`
     if (prevRef.current !== key) {
       prevRef.current = key
-      form.reset({ defaultAmount: settings.defaultAmount })
+      form.reset({
+        baseAmount: settings.baseAmount,
+        sessionPackageAmount: settings.sessionPackageAmount,
+      })
     }
-  }, [settings.defaultAmount, form])
+  }, [settings.baseAmount, settings.sessionPackageAmount, form])
 
   const saveOperation = useAsyncOperation(
     async (data: FormValues) => {
-      await onSave({ ...settings, defaultAmount: data.defaultAmount })
+      const defaultAmount = composeActiveMembershipAmount(
+        data.baseAmount,
+        data.sessionPackageAmount,
+      )
+      await onSave({
+        ...settings,
+        baseAmount: data.baseAmount,
+        sessionPackageAmount: data.sessionPackageAmount,
+        defaultAmount,
+      })
       setExpanded(false)
     },
     {
-      successMessage: 'Valor padrão atualizado.',
-      errorMessage: 'Não foi possível salvar o valor padrão.',
+      successMessage: 'Valores de mensalidade atualizados.',
+      errorMessage: 'Não foi possível salvar os valores.',
     },
   )
 
@@ -70,9 +100,14 @@ export function MembershipFeeQuickSettings({
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-muted-foreground">
-            Valor padrão:{' '}
+            Regular:{' '}
             <strong className="text-foreground">
               {formatCurrencyBRL(settings.defaultAmount)}
+            </strong>
+            {' · '}
+            Afastado:{' '}
+            <strong className="text-foreground">
+              {formatCurrencyBRL(settings.baseAmount)}
             </strong>
           </span>
           <Button
@@ -88,16 +123,29 @@ export function MembershipFeeQuickSettings({
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit((data) => saveOperation.execute(data))}
-              className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+              className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
             >
               <FormField
                 control={form.control}
-                name="defaultAmount"
+                name="baseAmount"
                 render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormLabel className="text-xs">Novo valor padrão (R$)</FormLabel>
+                  <FormItem>
+                    <FormLabel className="text-xs">Base (R$)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" min="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="sessionPackageAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Pacote sessão (R$)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" min="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -107,7 +155,7 @@ export function MembershipFeeQuickSettings({
                 {saveOperation.loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Salvar'
+                  `Salvar (${formatCurrencyBRL(composedTotal)})`
                 )}
               </Button>
             </form>

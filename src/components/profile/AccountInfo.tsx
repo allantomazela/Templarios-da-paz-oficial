@@ -136,7 +136,8 @@ export function AccountInfo({
                   Conta Bloqueada
                 </h4>
                 <p className="text-sm text-red-800 mt-1">
-                  Sua conta foi bloqueada. Entre em contato com um administrador
+                  Sua conta foi bloqueada (desligamento ou restrição). Entre em
+                  contato com a Secretaria
                   para mais informações.
                 </p>
               </div>

@@ -4,8 +4,16 @@ import {
   toNullableBrotherText,
 } from '@/lib/brother-masonic-fields'
 import { coerceMasonicDegree } from '@/lib/masonic-degree'
+import {
+  inferMembershipSituation,
+  normalizeMembershipSituation,
+} from '@/lib/brother-membership-situation'
 
 export function mapBrotherToDB(brother: Partial<Brother>) {
+  const situation = brother.membershipSituation
+    ? normalizeMembershipSituation(brother.membershipSituation)
+    : undefined
+
   return {
     name: brother.name,
     email: brother.email,
@@ -32,6 +40,7 @@ export function mapBrotherToDB(brother: Partial<Brother>) {
     current_lodge_number: brother.currentLodgeNumber || null,
     affiliation_date: brother.affiliationDate || null,
     regular_status: brother.regularStatus || null,
+    ...(situation ? { membership_situation: situation } : {}),
     notes: brother.notes || null,
     spouse_name: brother.spouseName || null,
     spouse_dob: brother.spouseDob || null,
@@ -55,7 +64,7 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
       : JSON.parse(String(childrenRaw || '[]'))
     : []
 
-  return {
+  const mapped: Brother = {
     id: String(row.id),
     name: String(row.name ?? ''),
     email: String(row.email ?? ''),
@@ -112,4 +121,14 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
     addressZipcode: row.address_zipcode ? String(row.address_zipcode) : undefined,
     address: row.address ? String(row.address) : undefined,
   }
+
+  mapped.membershipSituation = inferMembershipSituation({
+    status: mapped.status,
+    regularStatus: mapped.regularStatus,
+    membershipSituation: row.membership_situation
+      ? String(row.membership_situation)
+      : undefined,
+  })
+
+  return mapped
 }

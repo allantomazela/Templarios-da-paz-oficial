@@ -10,6 +10,14 @@ import {
   normalizeBrotherObedience,
   toNullableBrotherText,
 } from '@/lib/brother-masonic-fields'
+import {
+  brotherStatusForSituation,
+  inferMembershipSituation,
+  normalizeMembershipSituation,
+  profileStatusForSituation,
+  regularStatusForSituation,
+  type MembershipSituation,
+} from '@/lib/brother-membership-situation'
 import type { Brother } from '@/lib/data'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 
@@ -290,29 +298,89 @@ export async function updateBrother(
   return updatedBrother
 }
 
-export async function toggleBrotherStatus(brother: Brother): Promise<Brother> {
-  const newStatus = brother.status === 'Ativo' ? 'Inativo' : 'Ativo'
+export async function setBrotherMembershipSituation(
+  brother: Brother,
+  situationInput: MembershipSituation,
+): Promise<Brother> {
+  const situation = normalizeMembershipSituation(situationInput)
   const supabaseAny = supabase as any
 
-  const { data: updatedRow, error } = await withTimeout(
+  const updatedRow = await withTimeoutQuery(
+    () =>
+      supabaseAny
+        .from('brothers')
+        .update({
+          membership_situation: situation,
+          status: brotherStatusForSituation(situation),
+          regular_status: regularStatusForSituation(situation),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', brother.id)
+        .select('*')
+        .maybeSingle(),
+    BROTHER_OP_TIMEOUT_MS,
+    'Alteração de situação demorou demais. Tente novamente.',
+    'Falha ao atualizar a situação do irmão.',
+  )
+
+  if (!updatedRow) {
+    throw toError(null, 'Não foi possível atualizar a situação do irmão.')
+  }
+
+  const updatedBrother = mapBrotherFromDB(updatedRow)
+  const profileId = updatedBrother.profileId
+  if (profileId) {
+    const profileStatus = profileStatusForSituation(situation)
+    const { error: profileError } = await withTimeout(
+      supabaseAny
+        .from('profiles')
+        .update({ status: profileStatus })
+        .eq('id', profileId),
+      BROTHER_OP_TIMEOUT_MS,
+      'Sincronização do acesso demorou demais. Tente novamente.',
+    )
+    if (profileError) {
+      throw toError(
+        profileError,
+        'Situação do irmão atualizada, mas falhou ao sincronizar o acesso da conta.',
+      )
+    }
+  }
+
+  return updatedBrother
+}
+
+/** Ativar/desativar legado: mapeia para regular ↔ desligado. */
+export async function toggleBrotherStatus(brother: Brother): Promise<Brother> {
+  const current = inferMembershipSituation(brother)
+  const next: MembershipSituation =
+    current === 'desligado' ? 'regular' : 'desligado'
+  return setBrotherMembershipSituation(brother, next)
+}
+
+export async function syncBrotherSituationFromProfileStatus(
+  profileId: string,
+  profileStatus: string,
+): Promise<void> {
+  if (profileStatus !== 'blocked' && profileStatus !== 'approved') return
+
+  const supabaseAny = supabase as any
+  const situation: MembershipSituation =
+    profileStatus === 'blocked' ? 'desligado' : 'regular'
+
+  await withTimeout(
     supabaseAny
       .from('brothers')
       .update({
-        status: newStatus,
+        membership_situation: situation,
+        status: brotherStatusForSituation(situation),
+        regular_status: regularStatusForSituation(situation),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', brother.id)
-      .select('*')
-      .single(),
+      .eq('profile_id', profileId),
     BROTHER_OP_TIMEOUT_MS,
-    'Alteração de status demorou demais. Tente novamente.',
+    'Sincronização da situação do irmão demorou demais.',
   )
-
-  if (error) {
-    throw toError(error, 'Falha ao alterar o status.')
-  }
-
-  return mapBrotherFromDB(updatedRow)
 }
 
 export async function deleteBrother(

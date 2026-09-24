@@ -349,7 +349,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         const message =
           status === 'pending'
             ? 'Sua conta ainda aguarda aprovação da diretoria ou da administração.'
-            : 'Sua conta está bloqueada. Entre em contato com a administração da loja.'
+            : 'Sua conta está bloqueada (desligamento ou restrição administrativa). Entre em contato com a Secretaria da loja.'
         return {
           error: { message, code: status === 'pending' ? 'pending_approval' : 'blocked' },
         }

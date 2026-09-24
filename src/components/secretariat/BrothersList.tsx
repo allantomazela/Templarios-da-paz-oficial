@@ -28,7 +28,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Brother } from '@/lib/data'
-import { MoreHorizontal, Search, Plus, Eye, Pencil, Power, Trash2, Loader2 } from 'lucide-react'
+import {
+  HeartPulse,
+  MoreHorizontal,
+  Search,
+  Plus,
+  Eye,
+  Pencil,
+  UserCheck,
+  UserX,
+  Trash2,
+  Loader2,
+} from 'lucide-react'
 import { BrotherDialog } from './BrotherDialog'
 import { BrotherDetails } from './BrotherDetails'
 import { useDialog } from '@/hooks/use-dialog'
@@ -49,10 +60,15 @@ import {
   createBrother,
   deleteBrother,
   fetchBrothers,
-  toggleBrotherStatus,
+  setBrotherMembershipSituation,
   updateBrother,
   type BrotherSaveInput,
 } from '@/lib/brothers-api'
+import {
+  inferMembershipSituation,
+  MEMBERSHIP_SITUATION_LABELS,
+  type MembershipSituation,
+} from '@/lib/brother-membership-situation'
 import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import useAuthStore from '@/stores/useAuthStore'
@@ -63,6 +79,7 @@ export function BrothersList() {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [situationFilter, setSituationFilter] = useState('all')
   const [degreeFilter, setDegreeFilter] = useState('all')
   const [brothers, setBrothers] = useState<Brother[]>([])
   const dialog = useDialog()
@@ -100,14 +117,17 @@ export function BrothersList() {
   )
 
   const filteredBrothers = brothers.filter((brother) => {
+    const situation = inferMembershipSituation(brother)
     const matchesSearch =
       brother.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       brother.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus =
       statusFilter === 'all' || brother.status === statusFilter
+    const matchesSituation =
+      situationFilter === 'all' || situation === situationFilter
     const matchesDegree =
       degreeFilter === 'all' || brother.degree === degreeFilter
-    return matchesSearch && matchesStatus && matchesDegree
+    return matchesSearch && matchesStatus && matchesSituation && matchesDegree
   })
 
   const saveOperation = useAsyncOperation(
@@ -151,17 +171,20 @@ export function BrothersList() {
     },
   )
 
-  const toggleStatusOperation = useAsyncOperation(
-    async (brother: Brother) => {
-      const updatedBrother = await toggleBrotherStatus(brother)
+  const situationOperation = useAsyncOperation(
+    async (brother: Brother, situation: MembershipSituation) => {
+      const updatedBrother = await setBrotherMembershipSituation(
+        brother,
+        situation,
+      )
       setBrothers((prev) =>
         prev.map((b) => (b.id === brother.id ? updatedBrother : b)),
       )
-      return `Status de ${brother.name} alterado para ${updatedBrother.status}.`
+      return `${brother.name}: ${MEMBERSHIP_SITUATION_LABELS[situation]}.`
     },
     {
-      successMessage: 'Status alterado com sucesso!',
-      errorMessage: 'Falha ao alterar o status.',
+      successMessage: 'Situação atualizada com sucesso!',
+      errorMessage: 'Falha ao alterar a situação do irmão.',
     },
   )
 
@@ -187,11 +210,19 @@ export function BrothersList() {
     [dialog, loadBrothersExecute, saveOperation, selectedBrother],
   )
 
-  const toggleStatus = (brother: Brother) => {
-    toggleStatusOperation.execute(brother)
+  const setSituation = (brother: Brother, situation: MembershipSituation) => {
+    situationOperation.execute(brother, situation)
   }
 
   const canDeleteBrother = (brother: Brother) => !isMasterAdminEmail(brother.email)
+
+  const situationBadgeClass = (situation: MembershipSituation) => {
+    if (situation === 'desligado') return ''
+    if (situation === 'afastado') {
+      return 'bg-amber-600 hover:bg-amber-700 text-white'
+    }
+    return 'bg-green-600 hover:bg-green-700'
+  }
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
@@ -282,6 +313,17 @@ export function BrothersList() {
                 <SelectItem value="Inativo">Inativo</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={situationFilter} onValueChange={setSituationFilter}>
+              <SelectTrigger className="w-full sm:w-[170px]">
+                <SelectValue placeholder="Situação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas situações</SelectItem>
+                <SelectItem value="regular">Regular</SelectItem>
+                <SelectItem value="afastado">Afastado (saúde)</SelectItem>
+                <SelectItem value="desligado">Desligado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <Button onClick={openNew}>
@@ -303,7 +345,7 @@ export function BrothersList() {
               <TableHead>Nome</TableHead>
               <TableHead>Grau</TableHead>
               <TableHead>Cargo</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Situação</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -321,7 +363,9 @@ export function BrothersList() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBrothers.map((brother) => (
+              filteredBrothers.map((brother) => {
+                const situation = inferMembershipSituation(brother)
+                return (
                 <TableRow key={brother.id}>
                   <TableCell className="font-medium">{brother.name}</TableCell>
                   <TableCell>{brother.degree}</TableCell>
@@ -329,15 +373,11 @@ export function BrothersList() {
                   <TableCell>
                     <Badge
                       variant={
-                        brother.status === 'Ativo' ? 'default' : 'destructive'
+                        situation === 'desligado' ? 'destructive' : 'default'
                       }
-                      className={
-                        brother.status === 'Ativo'
-                          ? 'bg-green-600 hover:bg-green-700'
-                          : ''
-                      }
+                      className={situationBadgeClass(situation)}
                     >
-                      {brother.status}
+                      {MEMBERSHIP_SITUATION_LABELS[situation]}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -355,17 +395,32 @@ export function BrothersList() {
                         <DropdownMenuItem onClick={() => openEdit(brother)}>
                           <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => toggleStatus(brother)}
-                          className={
-                            brother.status === 'Ativo'
-                              ? 'text-destructive'
-                              : 'text-green-600'
-                          }
-                        >
-                          <Power className="mr-2 h-4 w-4" />
-                          {brother.status === 'Ativo' ? 'Desativar' : 'Ativar'}
-                        </DropdownMenuItem>
+                        {situation !== 'afastado' && (
+                          <DropdownMenuItem
+                            onClick={() => setSituation(brother, 'afastado')}
+                          >
+                            <HeartPulse className="mr-2 h-4 w-4" />
+                            Afastamento (saúde)
+                          </DropdownMenuItem>
+                        )}
+                        {situation !== 'desligado' && (
+                          <DropdownMenuItem
+                            onClick={() => setSituation(brother, 'desligado')}
+                            className="text-destructive"
+                          >
+                            <UserX className="mr-2 h-4 w-4" />
+                            Registrar desligamento
+                          </DropdownMenuItem>
+                        )}
+                        {situation !== 'regular' && (
+                          <DropdownMenuItem
+                            onClick={() => setSituation(brother, 'regular')}
+                            className="text-green-600"
+                          >
+                            <UserCheck className="mr-2 h-4 w-4" />
+                            Reativar (regular)
+                          </DropdownMenuItem>
+                        )}
                         {canDeleteBrother(brother) && (
                           <DropdownMenuItem
                             className="text-destructive"
@@ -379,7 +434,8 @@ export function BrothersList() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -396,7 +452,9 @@ export function BrothersList() {
             Nenhum irmão encontrado.
           </div>
         ) : (
-          filteredBrothers.map((brother) => (
+          filteredBrothers.map((brother) => {
+            const situation = inferMembershipSituation(brother)
+            return (
             <Card key={brother.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-2">
@@ -408,15 +466,11 @@ export function BrothersList() {
                   </div>
                   <Badge
                     variant={
-                      brother.status === 'Ativo' ? 'default' : 'destructive'
+                      situation === 'desligado' ? 'destructive' : 'default'
                     }
-                    className={
-                      brother.status === 'Ativo'
-                        ? 'bg-green-600 hover:bg-green-700 text-[10px]'
-                        : 'text-[10px]'
-                    }
+                    className={`${situationBadgeClass(situation)} text-[10px]`}
                   >
-                    {brother.status}
+                    {MEMBERSHIP_SITUATION_LABELS[situation]}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between mt-4">
@@ -438,6 +492,28 @@ export function BrothersList() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    {situation !== 'desligado' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setSituation(brother, 'desligado')}
+                        aria-label={`Desligar ${brother.name}`}
+                      >
+                        <UserX className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {situation !== 'regular' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700"
+                        onClick={() => setSituation(brother, 'regular')}
+                        aria-label={`Reativar ${brother.name}`}
+                      >
+                        <UserCheck className="h-4 w-4" />
+                      </Button>
+                    )}
                     {canDeleteBrother(brother) && (
                       <Button
                         variant="outline"
@@ -453,7 +529,8 @@ export function BrothersList() {
                 </div>
               </CardContent>
             </Card>
-          ))
+            )
+          })
         )}
       </div>
 

@@ -99,6 +99,23 @@ export function BrotherRegistrationPanel({
         profile.avatar_url,
       )
 
+      if (
+        data.degree &&
+        saved.degree !== data.degree
+      ) {
+        throw new Error(
+          'O grau selecionado não foi gravado. Atualize a página e tente novamente.',
+        )
+      }
+
+      const expectedObedience = (data.obedience || '').trim()
+      const savedObedience = (saved.obedience || '').trim()
+      if (expectedObedience !== savedObedience) {
+        throw new Error(
+          'A potência selecionada não foi gravada. Atualize a página e tente novamente.',
+        )
+      }
+
       setBrother(saved)
       setFormRevision((revision) => revision + 1)
       onRegistrationChange?.(isBrotherRegistrationComplete(saved))

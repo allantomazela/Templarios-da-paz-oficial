@@ -55,6 +55,7 @@ import {
 import {
   coerceMasonicDegree,
   MASONIC_DEGREE_OPTIONS,
+  type MasonicDegree,
 } from '@/lib/masonic-degree'
 import {
   normalizeBrotherPhoneForForm,
@@ -64,6 +65,7 @@ import {
   getProfileInitials,
   resolveProfileAvatarUrl,
 } from '@/lib/profile-avatar'
+import { cn } from '@/lib/utils'
 
 export type { BrotherFormValues }
 
@@ -92,6 +94,18 @@ function pickNonEmptySelectValue(
     if (trimmed && trimmed !== OPTIONAL_SELECT_NONE) return trimmed
   }
   return ''
+}
+
+const nativeSelectClassName = cn(
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+  'ring-offset-background focus-visible:outline-none focus-visible:ring-2',
+  'focus-visible:ring-ring focus-visible:ring-offset-2',
+  'disabled:cursor-not-allowed disabled:opacity-50',
+)
+
+interface MasonicSelectSnapshot {
+  degree: MasonicDegree
+  obedience: string
 }
 
 interface BrotherFormProps {
@@ -133,6 +147,10 @@ export function BrotherForm({
   const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [isSubmittingLocal, setIsSubmittingLocal] = useState(false)
   const photoBlobRef = useRef<string | null>(null)
+  const masonicSelectRef = useRef<MasonicSelectSnapshot>({
+    degree: 'Aprendiz',
+    obedience: '',
+  })
   const { toast } = useToast()
 
   const revokePhotoBlob = () => {
@@ -206,6 +224,12 @@ export function BrotherForm({
 
     if (brotherToEdit) {
       const children: Child[] = brotherToEdit.children || []
+      const nextDegree = coerceMasonicDegree(brotherToEdit.degree)
+      const nextObedience = normalizeBrotherObedience(brotherToEdit.obedience)
+      masonicSelectRef.current = {
+        degree: nextDegree,
+        obedience: nextObedience,
+      }
 
       form.reset({
         name: brotherToEdit.name,
@@ -219,10 +243,10 @@ export function BrotherForm({
         initiationDate: toDateInputValue(brotherToEdit.initiationDate),
         elevationDate: toDateInputValue(brotherToEdit.elevationDate),
         exaltationDate: toDateInputValue(brotherToEdit.exaltationDate),
-        degree: coerceMasonicDegree(brotherToEdit.degree),
+        degree: nextDegree,
         cim: brotherToEdit.cim || '',
         masonicRegistrationNumber: brotherToEdit.masonicRegistrationNumber || '',
-        obedience: normalizeBrotherObedience(brotherToEdit.obedience),
+        obedience: nextObedience,
         originLodge: brotherToEdit.originLodge || '',
         originLodgeNumber: brotherToEdit.originLodgeNumber || '',
         currentLodgeNumber: brotherToEdit.currentLodgeNumber || '',
@@ -254,6 +278,10 @@ export function BrotherForm({
         imageUpload.reset()
       }
     } else {
+      masonicSelectRef.current = {
+        degree: 'Aprendiz',
+        obedience: '',
+      }
       form.reset(brotherFormDefaultValues)
       setPhotoPreview(null)
       imageUpload.reset()
@@ -267,15 +295,37 @@ export function BrotherForm({
     const currentDegree = form.getValues('degree')
     const coercedDegree = coerceMasonicDegree(currentDegree)
     if (currentDegree !== coercedDegree) {
+      masonicSelectRef.current.degree = coercedDegree
       form.setValue('degree', coercedDegree, { shouldValidate: true })
     }
 
     const currentObedience = form.getValues('obedience')
     const normalizedObedience = normalizeBrotherObedience(currentObedience)
     if ((currentObedience || '') !== normalizedObedience) {
+      masonicSelectRef.current.obedience = normalizedObedience
       form.setValue('obedience', normalizedObedience, { shouldValidate: true })
     }
   }, [active, form, formResetKey])
+
+  const syncMasonicDegree = (value: string) => {
+    const next = coerceMasonicDegree(value)
+    masonicSelectRef.current.degree = next
+    form.setValue('degree', next, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+  }
+
+  const syncMasonicObedience = (value: string) => {
+    const next = normalizeBrotherObedience(value)
+    masonicSelectRef.current.obedience = next
+    form.setValue('obedience', next, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+  }
 
   useEffect(() => {
     if (!active || !isSelfMode) return
@@ -383,15 +433,25 @@ export function BrotherForm({
     try {
       const latest = form.getValues()
       const degree = coerceMasonicDegree(
-        pickNonEmptySelectValue(latest.degree, data.degree),
+        pickNonEmptySelectValue(
+          masonicSelectRef.current.degree,
+          latest.degree,
+          data.degree,
+        ),
       )
       const obedience = normalizeBrotherObedience(
-        pickNonEmptySelectValue(latest.obedience, data.obedience),
+        pickNonEmptySelectValue(
+          masonicSelectRef.current.obedience,
+          latest.obedience,
+          data.obedience,
+        ),
       )
       const addressState = pickNonEmptySelectValue(
         latest.addressState,
         data.addressState,
       )
+
+      masonicSelectRef.current = { degree, obedience }
 
       const unformattedData: BrotherFormValues = {
         ...data,
@@ -667,31 +727,26 @@ export function BrotherForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grau *</FormLabel>
-                      <Select
-                        value={coerceMasonicDegree(field.value)}
-                        onValueChange={(value) => {
-                          const next = coerceMasonicDegree(value)
-                          field.onChange(next)
-                          form.setValue('degree', next, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          })
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o grau" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
+                      <FormControl>
+                        <select
+                          className={nativeSelectClassName}
+                          name={field.name}
+                          ref={field.ref}
+                          value={coerceMasonicDegree(field.value)}
+                          onBlur={field.onBlur}
+                          onChange={(event) => {
+                            const next = coerceMasonicDegree(event.target.value)
+                            field.onChange(next)
+                            syncMasonicDegree(next)
+                          }}
+                        >
                           {MASONIC_DEGREE_OPTIONS.map((degree) => (
-                            <SelectItem key={degree} value={degree}>
+                            <option key={degree} value={degree}>
                               {degree}
-                            </SelectItem>
+                            </option>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -760,33 +815,29 @@ export function BrotherForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Potência (Obediência)</FormLabel>
-                      <Select
-                        value={optionalSelectValue(field.value)}
-                        onValueChange={(value) => {
-                          const next = optionalSelectChange(value, field.onChange)
-                          form.setValue('obedience', next, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          })
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a potência" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={OPTIONAL_SELECT_NONE}>
-                            Não informado
-                          </SelectItem>
+                      <FormControl>
+                        <select
+                          className={nativeSelectClassName}
+                          name={field.name}
+                          ref={field.ref}
+                          value={field.value || ''}
+                          onBlur={field.onBlur}
+                          onChange={(event) => {
+                            const next = normalizeBrotherObedience(
+                              event.target.value,
+                            )
+                            field.onChange(next)
+                            syncMasonicObedience(next)
+                          }}
+                        >
+                          <option value="">Não informado</option>
                           {BROTHER_OBEDIENCE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
+                            <option key={option.value} value={option.value}>
                               {option.label}
-                            </SelectItem>
+                            </option>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

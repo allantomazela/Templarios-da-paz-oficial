@@ -5,6 +5,8 @@ import { resolveBrotherProfileIdForSave } from '@/lib/brother-profile-link'
 import { syncProfileMasonicDegreeFromBrother } from '@/lib/sync-brother-profile-degree'
 import { resolveBrotherPhotoFromProfile } from '@/lib/brother-registration-utils'
 import { deleteBrotherAsAdmin } from '@/lib/admin-user-api'
+import { coerceMasonicDegree } from '@/lib/masonic-degree'
+import { normalizeBrotherObedience } from '@/lib/brother-masonic-fields'
 import type { Brother } from '@/lib/data'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 
@@ -90,13 +92,20 @@ export async function saveMyBrotherRegistration(
   }
 
   if (existing?.id) {
+    const mapped = mapBrotherToDB({
+      ...payload,
+      role: existing.role,
+      status: existing.status,
+      attendanceRate: existing.attendanceRate,
+    })
+
+    // Garante explicitamente grau/potência no UPDATE (evita perda silenciosa).
+    const expectedDegree = coerceMasonicDegree(payload.degree)
+    const expectedObedience = normalizeBrotherObedience(payload.obedience)
     const dbData = {
-      ...mapBrotherToDB({
-        ...payload,
-        role: existing.role,
-        status: existing.status,
-        attendanceRate: existing.attendanceRate,
-      }),
+      ...mapped,
+      degree: expectedDegree,
+      obedience: expectedObedience || null,
       profile_id: profileId,
       updated_at: new Date().toISOString(),
     }
@@ -118,7 +127,40 @@ export async function saveMyBrotherRegistration(
     }
 
     const updatedBrother = mapBrotherFromDB(updatedRow)
-    scheduleProfileDegreeSync(email, data.degree)
+
+    const savedObedience = normalizeBrotherObedience(updatedBrother.obedience)
+    if (
+      updatedBrother.degree !== expectedDegree ||
+      savedObedience !== expectedObedience
+    ) {
+      const { data: patchedRow, error: patchError } = await withTimeout(
+        supabaseAny
+          .from('brothers')
+          .update({
+            degree: expectedDegree,
+            obedience: expectedObedience || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+          .select('*')
+          .single(),
+        BROTHER_OP_TIMEOUT_MS,
+        'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
+      )
+
+      if (patchError) {
+        throw toError(
+          patchError,
+          'Não foi possível gravar grau e potência. Tente novamente.',
+        )
+      }
+
+      const patchedBrother = mapBrotherFromDB(patchedRow)
+      scheduleProfileDegreeSync(email, expectedDegree)
+      return patchedBrother
+    }
+
+    scheduleProfileDegreeSync(email, expectedDegree)
     return updatedBrother
   }
 

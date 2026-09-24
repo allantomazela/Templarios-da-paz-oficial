@@ -233,11 +233,11 @@ export function NewsSection() {
               </DialogHeader>
 
               {selectedItem.imageUrl && (
-                <div className="overflow-hidden rounded-lg border">
+                <div className="overflow-hidden rounded-lg border bg-muted/30">
                   <img
                     src={selectedItem.imageUrl}
                     alt={selectedItem.title}
-                    className="w-full max-h-[360px] object-cover"
+                    className="mx-auto h-auto w-full max-h-[min(70vh,560px)] object-contain"
                   />
                 </div>
               )}

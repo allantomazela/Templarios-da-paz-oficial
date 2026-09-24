@@ -25,6 +25,7 @@ import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import {
   fetchMembershipFeeSettings,
 } from '@/lib/contribution-payments'
+import { inferMembershipSituation } from '@/lib/brother-membership-situation'
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
 import {
   buildMembershipScheduleForBrother,
@@ -48,18 +49,36 @@ export default function MyPayments() {
       }
 
       const supabaseAny = supabase as any
-      const [{ data: profile }, bundle, settings] = await Promise.all([
-        supabaseAny
-          .from('profiles')
-          .select('created_at')
-          .eq('id', user.id)
-          .maybeSingle(),
-        fetchMemberPaymentsBundle(user.id),
-        fetchMembershipFeeSettings(),
-      ])
+      const [{ data: profile }, { data: brotherRow }, bundle, settings] =
+        await Promise.all([
+          supabaseAny
+            .from('profiles')
+            .select('created_at')
+            .eq('id', user.id)
+            .maybeSingle(),
+          supabaseAny
+            .from('brothers')
+            .select('status, regular_status, membership_situation')
+            .eq('profile_id', user.id)
+            .maybeSingle(),
+          fetchMemberPaymentsBundle(user.id),
+          fetchMembershipFeeSettings(),
+        ])
 
       setMemberSince(profile?.created_at ?? null)
       setPayments(bundle.payments)
+
+      const situation = brotherRow
+        ? inferMembershipSituation({
+            status: (brotherRow.status as 'Ativo' | 'Inativo') || 'Ativo',
+            regularStatus: brotherRow.regular_status
+              ? String(brotherRow.regular_status)
+              : undefined,
+            membershipSituation: brotherRow.membership_situation
+              ? String(brotherRow.membership_situation)
+              : undefined,
+          })
+        : 'regular'
 
       return buildMembershipScheduleForBrother(
         user.id,
@@ -67,6 +86,7 @@ export default function MyPayments() {
         bundle.contributions,
         settings,
         profile?.created_at,
+        situation,
       )
     },
     {

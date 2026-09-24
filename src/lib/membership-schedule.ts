@@ -1,5 +1,9 @@
 import type { Contribution } from '@/lib/data'
 import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
+import {
+  resolveContributionAmountForSituation,
+  type MembershipSituation,
+} from '@/lib/brother-membership-situation'
 
 export type MembershipMonthStatus =
   | 'paid'
@@ -100,9 +104,26 @@ export const MEMBERSHIP_OVERDUE_ESCALATION_MONTHS = 3
 export interface MembershipFeeScheduleSettings {
   defaultAmount: number
   dueDay: number
+  /** Mensalidade pura (afastados). Se omitido, usa defaultAmount. */
+  baseAmount?: number
+  /** Pacote de sessão (jantares + tronco). */
+  sessionPackageAmount?: number
 }
 
-export const DEFAULT_MEMBERSHIP_DUE_DAY = 10
+export function resolveScheduleExpectedAmount(
+  settings: MembershipFeeScheduleSettings,
+  situation?: MembershipSituation | null,
+): number {
+  if (!situation || situation === 'regular') {
+    return settings.defaultAmount
+  }
+  const resolved = resolveContributionAmountForSituation(situation, {
+    baseAmount: settings.baseAmount ?? settings.defaultAmount,
+    sessionPackageAmount: settings.sessionPackageAmount ?? 0,
+    defaultAmount: settings.defaultAmount,
+  })
+  return resolved ?? settings.defaultAmount
+}
 
 const CONTRIBUTION_MONTHS = [
   'Janeiro',
@@ -392,6 +413,7 @@ export function buildMembershipBackfillPeriods(
   brotherId: string,
   trackingStartYear = MEMBERSHIP_TRACKING_START_YEAR,
   trackingStartMonth = MEMBERSHIP_TRACKING_START_MONTH,
+  situation?: MembershipSituation | null,
 ): MembershipBackfillPeriod[] {
   const memberSinceDate = memberSince ? new Date(memberSince) : null
   const start = resolveScheduleStart(memberSinceDate, contributions.filter((c) => c.brotherId === brotherId))
@@ -403,7 +425,7 @@ export function buildMembershipBackfillPeriods(
   const byPeriod = groupContributionsByPeriod(
     contributions.filter((c) => c.brotherId === brotherId),
   )
-  const expectedAmount = settings.defaultAmount
+  const expectedAmount = resolveScheduleExpectedAmount(settings, situation)
   const periods: MembershipBackfillPeriod[] = []
 
   for (const { year, month } of iterMonths(
@@ -440,6 +462,7 @@ export function buildMembershipScheduleForBrother(
   contributions: Contribution[],
   settings: MembershipFeeScheduleSettings,
   memberSince?: string | null,
+  situation?: MembershipSituation | null,
 ): BrotherMembershipSchedule {
   const brotherContributions = contributions.filter((c) => c.brotherId === brotherId)
   const byPeriod = groupContributionsByPeriod(brotherContributions)
@@ -450,7 +473,7 @@ export function buildMembershipScheduleForBrother(
   const endYear = now.getFullYear()
   const endMonth = now.getMonth() + 1
   const today = startOfDay(now)
-  const expectedAmount = settings.defaultAmount
+  const expectedAmount = resolveScheduleExpectedAmount(settings, situation)
 
   const entries: MembershipScheduleEntry[] = []
 
@@ -535,7 +558,12 @@ export function buildMembershipScheduleForBrother(
 
 export function buildAllMembershipSchedules(
   contributions: Contribution[],
-  brothers: { id: string; full_name: string | null; created_at?: string | null }[],
+  brothers: {
+    id: string
+    full_name: string | null
+    created_at?: string | null
+    membershipSituation?: MembershipSituation | null
+  }[],
   brotherNames: Record<string, string>,
   settings: MembershipFeeScheduleSettings,
 ): BrotherMembershipSchedule[] {
@@ -556,6 +584,7 @@ export function buildAllMembershipSchedules(
         contributions,
         settings,
         brother?.created_at,
+        brother?.membershipSituation,
       )
     })
     .sort((a, b) => a.brotherName.localeCompare(b.brotherName, 'pt-BR'))

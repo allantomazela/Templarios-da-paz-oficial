@@ -59,6 +59,35 @@ describe('buildMembershipScheduleForBrother', () => {
     expect(jan?.remainingAmount).toBe(0)
   })
 
+  it('afastado: pagamento da base zera pendência (não cobra pacote de sessão)', () => {
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Renato',
+      [
+        contribution({
+          month: 'Agosto',
+          year: 2026,
+          amount: 200,
+          status: 'Pago',
+        }),
+      ],
+      {
+        defaultAmount: 290,
+        dueDay: 10,
+        baseAmount: 200,
+        sessionPackageAmount: 90,
+      },
+      '2026-08-01T00:00:00Z',
+      'afastado',
+    )
+
+    const ago = schedule.entries.find((e) => e.month === 8 && e.year === 2026)
+    expect(ago?.expectedAmount).toBe(200)
+    expect(ago?.paidAmount).toBe(200)
+    expect(ago?.remainingAmount).toBe(0)
+    expect(ago?.status).toBe('paid')
+  })
+
   it('identifica mês em atraso sem pagamento suficiente', () => {
     const schedule = buildMembershipScheduleForBrother(
       'brother-1',

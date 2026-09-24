@@ -778,6 +778,7 @@ export type ApprovedBrotherOption = {
   id: string
   full_name: string | null
   created_at?: string | null
+  membershipSituation?: MembershipSituation | null
 }
 
 /** Ordem alfabética pt-BR para listas de irmãos (mensalidades, ágape, etc.). */
@@ -801,7 +802,40 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
     .eq('status', 'approved')
 
   if (error) throw error
-  return sortBrothersAlphabetically(data || [])
+  const approved = (data || []) as ApprovedBrotherOption[]
+  if (approved.length === 0) return []
+
+  const { data: brothers, error: brothersError } = await supabaseAny
+    .from('brothers')
+    .select('profile_id, status, regular_status, membership_situation')
+    .in(
+      'profile_id',
+      approved.map((row) => row.id),
+    )
+
+  if (brothersError) throw brothersError
+
+  const situationByProfile = new Map(
+    ((brothers || []) as Array<Record<string, unknown>>).map((row) => [
+      String(row.profile_id),
+      inferMembershipSituation({
+        status: (row.status as 'Ativo' | 'Inativo') || 'Ativo',
+        regularStatus: row.regular_status
+          ? String(row.regular_status)
+          : undefined,
+        membershipSituation: row.membership_situation
+          ? String(row.membership_situation)
+          : undefined,
+      }),
+    ]),
+  )
+
+  return sortBrothersAlphabetically(
+    approved.map((row) => ({
+      ...row,
+      membershipSituation: situationByProfile.get(row.id) ?? 'regular',
+    })),
+  )
 }
 
 export async function fetchBankAccounts(): Promise<

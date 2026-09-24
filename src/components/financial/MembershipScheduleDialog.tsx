@@ -176,6 +176,7 @@ export function MembershipScheduleDialog({
       contributions,
       feeSettings,
       brother.created_at,
+      brother.membershipSituation,
     )
   }, [brotherId, brother, contributions, feeSettings])
 
@@ -186,8 +187,11 @@ export function MembershipScheduleDialog({
       feeSettings,
       contributions,
       brotherId,
+      undefined,
+      undefined,
+      brother?.membershipSituation,
     )
-  }, [brotherId, brother?.created_at, feeSettings, contributions])
+  }, [brotherId, brother?.created_at, brother?.membershipSituation, feeSettings, contributions])
 
   const historicalKeys = useMemo(
     () => new Set(historicalPeriods.map((p) => periodKey(p.year, p.month))),

@@ -365,6 +365,7 @@ export function MembershipPayments() {
       contributions,
       feeSettings,
       brother?.created_at,
+      brother?.membershipSituation,
     )
   }, [
     selectedBrotherId,

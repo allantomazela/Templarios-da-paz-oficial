@@ -162,6 +162,7 @@ export function MembershipReports() {
       contributions,
       feeSettings,
       brother?.created_at,
+      brother?.membershipSituation,
     )
 
     return buildMembershipBrotherStatementData(

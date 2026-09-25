@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,10 +27,12 @@ import {
 import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
 import { TempleSaleDialog } from '@/components/financial/TempleSaleDialog'
 import { TempleSaleMarkPaidDialog } from '@/components/financial/TempleSaleMarkPaidDialog'
+import { TempleSalesReportDocument } from '@/components/financial/TempleSalesReportDocument'
 import { useToast } from '@/hooks/use-toast'
 import { fetchApprovedBrothers } from '@/lib/contribution-payments'
 import { downloadCsvFile } from '@/lib/export-utils'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
+import { MEMBERSHIP_PRINT_STYLE } from '@/lib/membership-print-style'
 import {
   TEMPLE_SALE_PAYMENT_MODE_LABELS,
   templeSaleStatusLabel,
@@ -52,6 +55,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  Printer,
   Trash2,
   XCircle,
 } from 'lucide-react'
@@ -71,6 +75,7 @@ function statusBadge(status: TempleSaleStatus) {
 
 export function TempleSalesPanel() {
   const { toast } = useToast()
+  const printRef = useRef<HTMLDivElement>(null)
   const [sales, setSales] = useState<TempleSale[]>([])
   const [brothers, setBrothers] = useState<
     { id: string; full_name: string | null }[]
@@ -126,6 +131,36 @@ export function TempleSalesPanel() {
       paidAmount: paid.reduce((sum, s) => sum + s.amount, 0),
     }
   }, [sales])
+
+  const reportData = useMemo(() => {
+    const brotherLabel = brotherFilter
+      ? brothers.find((b) => b.id === brotherFilter)?.full_name ||
+        'Irmão selecionado'
+      : 'Todos os irmãos'
+    const statusLabel =
+      statusFilter === 'all'
+        ? 'Todos os status'
+        : templeSaleStatusLabel(statusFilter)
+
+    return {
+      sales,
+      summary: {
+        ...summary,
+        brotherFilterLabel: brotherLabel,
+        statusFilterLabel: statusLabel,
+        generatedAt: new Date().toISOString(),
+      },
+    }
+  }, [sales, summary, brotherFilter, brothers, statusFilter])
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: 'Vendas do Templo',
+    pageStyle: MEMBERSHIP_PRINT_STYLE,
+    onAfterPrint: () => {
+      toast({ title: 'Relatório enviado à impressão' })
+    },
+  })
 
   async function handleSave(data: TempleSaleFormData) {
     setSaving(true)
@@ -309,6 +344,16 @@ export function TempleSalesPanel() {
               </Button>
               <Button
                 type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => handlePrint()}
+                disabled={sales.length === 0}
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir / PDF
+              </Button>
+              <Button
+                type="button"
                 className="gap-2"
                 onClick={() => {
                   setSaleToEdit(null)
@@ -426,6 +471,22 @@ export function TempleSalesPanel() {
               </Table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="no-print">
+          <CardTitle className="text-base">Pré-visualização</CardTitle>
+          <CardDescription>
+            Documento usado na impressão / PDF das vendas do templo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6">
+          <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
+            <div id="temple-sales-report-container" ref={printRef}>
+              <TempleSalesReportDocument data={reportData} />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

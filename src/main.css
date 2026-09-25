@@ -275,6 +275,8 @@ body {
   #membership-paid-by-brother-report-container *,
   #membership-status-report-container,
   #membership-status-report-container *,
+  #temple-sales-report-container,
+  #temple-sales-report-container *,
   #visitor-certificate-container,
   #visitor-certificate-container *,
   #visitor-certificate-dialog-container,
@@ -293,7 +295,8 @@ body {
   #membership-statement-report-container,
   #membership-open-report-container,
   #membership-paid-by-brother-report-container,
-  #membership-status-report-container {
+  #membership-status-report-container,
+  #temple-sales-report-container {
     position: absolute;
     left: 0;
     top: 0;
@@ -989,7 +992,8 @@ h6 {
   #membership-statement-report-container,
   #membership-open-report-container,
   #membership-paid-by-brother-report-container,
-  #membership-status-report-container {
+  #membership-status-report-container,
+  #temple-sales-report-container {
     font-size: 8.5pt;
     line-height: 1.35;
   }
@@ -998,7 +1002,8 @@ h6 {
   #membership-statement-report-container .balancete-document,
   #membership-open-report-container .balancete-document,
   #membership-paid-by-brother-report-container .balancete-document,
-  #membership-status-report-container .balancete-document {
+  #membership-status-report-container .balancete-document,
+  #temple-sales-report-container .balancete-document {
     font-size: 8.5pt;
     width: 100%;
     max-width: 100%;
@@ -1008,7 +1013,8 @@ h6 {
   #membership-statement-report-container .balancete-table-wrap,
   #membership-open-report-container .balancete-table-wrap,
   #membership-paid-by-brother-report-container .balancete-table-wrap,
-  #membership-status-report-container .balancete-table-wrap {
+  #membership-status-report-container .balancete-table-wrap,
+  #temple-sales-report-container .balancete-table-wrap {
     overflow: visible;
   }
 
@@ -1051,7 +1057,15 @@ h6 {
   #membership-status-report-container .balancete-document h3,
   #membership-status-report-container .balancete-document td,
   #membership-status-report-container .balancete-document th,
-  #membership-status-report-container .balancete-document span {
+  #membership-status-report-container .balancete-document span,
+  #temple-sales-report-container .balancete-document,
+  #temple-sales-report-container .balancete-document p,
+  #temple-sales-report-container .balancete-document h1,
+  #temple-sales-report-container .balancete-document h2,
+  #temple-sales-report-container .balancete-document h3,
+  #temple-sales-report-container .balancete-document td,
+  #temple-sales-report-container .balancete-document th,
+  #temple-sales-report-container .balancete-document span {
     color: #000000 !important;
   }
 }

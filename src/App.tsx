@@ -7,7 +7,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import DashboardLayout from '@/components/DashboardLayout'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import useAuthStore from '@/stores/useAuthStore'
-import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { hexToHSL } from '@/lib/utils'
 import { RoleGuard } from '@/components/RoleGuard'
 import { applySiteFont } from '@/lib/system-fonts'
@@ -58,13 +57,11 @@ function ThemeApplicator() {
     fetchSettings,
   } = useSiteSettingsStore()
   const { initialize } = useAuthStore()
-  const { fetchPositions } = useLodgePositionsStore()
 
   useEffect(() => {
     void initialize()
     void fetchSettings()
-    void fetchPositions()
-  }, [initialize, fetchSettings, fetchPositions])
+  }, [initialize, fetchSettings])
 
   useEffect(() => {
     if (primaryColor) {

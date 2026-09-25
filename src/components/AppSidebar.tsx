@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -46,8 +46,13 @@ import {
   getProfileInitials,
   resolveProfileAvatarUrl,
 } from '@/lib/profile-avatar'
-import { CheckinPresenceModal } from '@/components/checkin/CheckinPresenceModal'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+
+const CheckinPresenceModal = lazy(() =>
+  import('@/components/checkin/CheckinPresenceModal').then((m) => ({
+    default: m.CheckinPresenceModal,
+  })),
+)
 
 export interface AppSidebarProps {
   /** No Sheet do header mobile: ocupa a largura, sempre com rótulos (evita colapso + conflito com .text-muted-foreground global). */
@@ -341,10 +346,14 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
         </DropdownMenu>
       </div>
 
-      <CheckinPresenceModal
-        open={checkinModalOpen}
-        onOpenChange={setCheckinModalOpen}
-      />
+      {checkinModalOpen ? (
+        <Suspense fallback={null}>
+          <CheckinPresenceModal
+            open={checkinModalOpen}
+            onOpenChange={setCheckinModalOpen}
+          />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

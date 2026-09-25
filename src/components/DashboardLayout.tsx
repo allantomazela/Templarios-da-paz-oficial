@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
 import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import useAuthStore from '@/stores/useAuthStore'
+import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,12 +13,19 @@ import { resetStuckModuleLoading } from '@/lib/module-loading-reset'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, initialized, signOut } = useAuthStore()
+  const fetchPositions = useLodgePositionsStore((s) => s.fetchPositions)
   const location = useLocation()
   const [showTimeout, setShowTimeout] = useState(false)
 
   useEffect(() => {
     resetStuckModuleLoading()
   }, [location.pathname])
+
+  // Cargos só após sessão autenticada no dashboard (não compete com boot público)
+  useEffect(() => {
+    if (!initialized || !isAuthenticated) return
+    void fetchPositions()
+  }, [initialized, isAuthenticated, fetchPositions])
 
   // Resilient Timeout Logic: 3 seconds (somente na inicialização da sessão)
   useEffect(() => {

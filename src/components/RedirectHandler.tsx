@@ -3,22 +3,53 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import useRedirectsStore from '@/stores/useRedirectsStore'
 import { logDebug } from '@/lib/logger'
 
+/**
+ * Aplica redirecionamentos 301/302 configurados no Admin.
+ * O fetch é adiado para idle/após paint para não competir com auth/settings no boot.
+ */
 export function RedirectHandler() {
   const location = useLocation()
   const navigate = useNavigate()
   const { redirects, fetchRedirects } = useRedirectsStore()
 
-  // Initial fetch of redirects
   useEffect(() => {
-    fetchRedirects()
+    let cancelled = false
+    let idleId: number | undefined
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+    const run = () => {
+      if (!cancelled) void fetchRedirects()
+    }
+
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout: number },
+        ) => number
+        cancelIdleCallback?: (id: number) => void
+      }
+    ).requestIdleCallback
+
+    if (typeof ric === 'function') {
+      idleId = ric(run, { timeout: 2000 })
+    } else {
+      timeoutId = setTimeout(run, 150)
+    }
+
+    return () => {
+      cancelled = true
+      if (idleId != null) {
+        window.cancelIdleCallback?.(idleId)
+      }
+      if (timeoutId != null) clearTimeout(timeoutId)
+    }
   }, [fetchRedirects])
 
-  // Check for redirects on location change
   useEffect(() => {
     if (redirects.length === 0) return
 
     const currentPath = location.pathname
-    // Check exact match
     const match = redirects.find(
       (r) =>
         r.source_path === currentPath ||

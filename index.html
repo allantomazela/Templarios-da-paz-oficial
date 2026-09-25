@@ -60,11 +60,23 @@
             '</div>'
         }, 8000)
 
-        new MutationObserver(function () {
+        function hideBootFallback() {
           var root = document.getElementById('root')
           var boot = document.getElementById('boot-fallback')
-          if (root && root.innerHTML.trim() && boot) boot.style.display = 'none'
-        }).observe(document.getElementById('root'), { childList: true, subtree: true })
+          if (!boot) return
+          if (root && root.innerHTML.trim()) {
+            boot.style.display = 'none'
+            boot.setAttribute('aria-hidden', 'true')
+            boot.style.pointerEvents = 'none'
+            if (boot.parentNode) boot.parentNode.removeChild(boot)
+          }
+        }
+
+        new MutationObserver(hideBootFallback).observe(
+          document.getElementById('root'),
+          { childList: true, subtree: true },
+        )
+        hideBootFallback()
       })()
     </script>
     <script type="module" src="/src/main.tsx"></script>

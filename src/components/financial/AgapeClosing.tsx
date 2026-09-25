@@ -54,9 +54,7 @@ import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
-import useFinancialStore, {
-  notifyFinancialDataChanged,
-} from '@/stores/useFinancialStore'
+import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 import useAgapeStore from '@/stores/useAgapeStore'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { AgapeChargeDialog } from './AgapeChargeDialog'

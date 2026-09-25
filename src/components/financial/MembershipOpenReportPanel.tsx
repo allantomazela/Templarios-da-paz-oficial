@@ -20,13 +20,7 @@ import {
 } from '@/lib/membership-report-export'
 import type { BrotherMembershipSchedule } from '@/lib/membership-schedule'
 import { MembershipOpenReportDocument } from '@/components/financial/MembershipOpenReportDocument'
-
-const PRINT_STYLE = `
-  @page { size: A4; margin: 12mm; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
-`
+import { MEMBERSHIP_PRINT_STYLE } from '@/lib/membership-print-style'
 
 interface MembershipOpenReportPanelProps {
   schedules: BrotherMembershipSchedule[]
@@ -45,7 +39,7 @@ export function MembershipOpenReportPanel({
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: 'Mensalidades em Aberto',
-    pageStyle: PRINT_STYLE,
+    pageStyle: MEMBERSHIP_PRINT_STYLE,
     onAfterPrint: () => {
       toast({ title: 'Relatório enviado à impressão' })
     },
@@ -170,7 +164,7 @@ export function MembershipOpenReportPanel({
         </CardHeader>
         <CardContent className="p-0 sm:p-6">
           <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
-            <div ref={printRef}>
+            <div id="membership-open-report-container" ref={printRef}>
               <MembershipOpenReportDocument data={report} />
             </div>
           </div>

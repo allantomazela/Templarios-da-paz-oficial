@@ -34,16 +34,7 @@ import { MembershipOverdueReportDocument } from '@/components/financial/Membersh
 import { MembershipBrotherStatementDocument } from '@/components/financial/MembershipBrotherStatementDocument'
 import { MembershipOpenReportPanel } from '@/components/financial/MembershipOpenReportPanel'
 import { MembershipPaidByBrotherReportPanel } from '@/components/financial/MembershipPaidByBrotherReportPanel'
-
-const MEMBERSHIP_PRINT_STYLE = `
-  @page { size: A4; margin: 12mm; }
-  @media print {
-    body {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  }
-`
+import { MEMBERSHIP_PRINT_STYLE } from '@/lib/membership-print-style'
 
 export function MembershipReports() {
   const { toast } = useToast()

@@ -34,16 +34,7 @@ import {
 import { exportMembershipStatusReportCsv } from '@/lib/membership-report-export'
 import type { BrotherMembershipSchedule } from '@/lib/membership-schedule'
 import { MembershipStatusReportDocument } from '@/components/financial/MembershipStatusReportDocument'
-
-const MEMBERSHIP_PRINT_STYLE = `
-  @page { size: A4 landscape; margin: 10mm; }
-  @media print {
-    body {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  }
-`
+import { MEMBERSHIP_PRINT_STYLE_LANDSCAPE } from '@/lib/membership-print-style'
 
 interface MembershipStatusReportPanelProps {
   schedules: BrotherMembershipSchedule[]
@@ -78,7 +69,7 @@ export function MembershipStatusReportPanel({
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: 'Relatório de Situação das Mensalidades',
-    pageStyle: MEMBERSHIP_PRINT_STYLE,
+    pageStyle: MEMBERSHIP_PRINT_STYLE_LANDSCAPE,
   })
 
   const generatedLabel = format(new Date(report.summary.generatedAt), "dd/MM/yyyy 'às' HH:mm", {
@@ -320,7 +311,7 @@ export function MembershipStatusReportPanel({
       </Card>
 
       <div className="sr-only">
-        <div ref={printRef}>
+        <div id="membership-status-report-container" ref={printRef}>
           <MembershipStatusReportDocument data={report} />
         </div>
       </div>

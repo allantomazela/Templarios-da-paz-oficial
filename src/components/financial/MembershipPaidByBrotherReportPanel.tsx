@@ -21,13 +21,7 @@ import {
 } from '@/lib/membership-report-export'
 import type { BrotherMembershipSchedule } from '@/lib/membership-schedule'
 import { MembershipPaidByBrotherReportDocument } from '@/components/financial/MembershipPaidByBrotherReportDocument'
-
-const PRINT_STYLE = `
-  @page { size: A4; margin: 12mm; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
-`
+import { MEMBERSHIP_PRINT_STYLE } from '@/lib/membership-print-style'
 
 interface MembershipPaidByBrotherReportPanelProps {
   schedules: BrotherMembershipSchedule[]
@@ -54,7 +48,7 @@ export function MembershipPaidByBrotherReportPanel({
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: 'Mensalidades Pagas por Irmão',
-    pageStyle: PRINT_STYLE,
+    pageStyle: MEMBERSHIP_PRINT_STYLE,
     onAfterPrint: () => {
       toast({ title: 'Relatório enviado à impressão' })
     },
@@ -198,7 +192,7 @@ export function MembershipPaidByBrotherReportPanel({
         </CardHeader>
         <CardContent className="p-0 sm:p-6">
           <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
-            <div ref={printRef}>
+            <div id="membership-paid-by-brother-report-container" ref={printRef}>
               <MembershipPaidByBrotherReportDocument data={report} />
             </div>
           </div>

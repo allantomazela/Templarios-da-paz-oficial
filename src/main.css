@@ -265,6 +265,16 @@ body {
   #financial-balancete-container *,
   #financial-summary-report-container,
   #financial-summary-report-container *,
+  #membership-overdue-report-container,
+  #membership-overdue-report-container *,
+  #membership-statement-report-container,
+  #membership-statement-report-container *,
+  #membership-open-report-container,
+  #membership-open-report-container *,
+  #membership-paid-by-brother-report-container,
+  #membership-paid-by-brother-report-container *,
+  #membership-status-report-container,
+  #membership-status-report-container *,
   #visitor-certificate-container,
   #visitor-certificate-container *,
   #visitor-certificate-dialog-container,
@@ -278,7 +288,12 @@ body {
   #agenda-report-container,
   #custom-report-container,
   #chancellor-report-container,
-  #financial-summary-report-container {
+  #financial-summary-report-container,
+  #membership-overdue-report-container,
+  #membership-statement-report-container,
+  #membership-open-report-container,
+  #membership-paid-by-brother-report-container,
+  #membership-status-report-container {
     position: absolute;
     left: 0;
     top: 0;
@@ -971,20 +986,29 @@ h6 {
   }
 
   #membership-overdue-report-container,
-  #membership-statement-report-container {
+  #membership-statement-report-container,
+  #membership-open-report-container,
+  #membership-paid-by-brother-report-container,
+  #membership-status-report-container {
     font-size: 8.5pt;
     line-height: 1.35;
   }
 
   #membership-overdue-report-container .balancete-document,
-  #membership-statement-report-container .balancete-document {
+  #membership-statement-report-container .balancete-document,
+  #membership-open-report-container .balancete-document,
+  #membership-paid-by-brother-report-container .balancete-document,
+  #membership-status-report-container .balancete-document {
     font-size: 8.5pt;
     width: 100%;
     max-width: 100%;
   }
 
   #membership-overdue-report-container .balancete-table-wrap,
-  #membership-statement-report-container .balancete-table-wrap {
+  #membership-statement-report-container .balancete-table-wrap,
+  #membership-open-report-container .balancete-table-wrap,
+  #membership-paid-by-brother-report-container .balancete-table-wrap,
+  #membership-status-report-container .balancete-table-wrap {
     overflow: visible;
   }
 
@@ -1003,7 +1027,31 @@ h6 {
   #membership-statement-report-container .balancete-document h3,
   #membership-statement-report-container .balancete-document td,
   #membership-statement-report-container .balancete-document th,
-  #membership-statement-report-container .balancete-document span {
+  #membership-statement-report-container .balancete-document span,
+  #membership-open-report-container .balancete-document,
+  #membership-open-report-container .balancete-document p,
+  #membership-open-report-container .balancete-document h1,
+  #membership-open-report-container .balancete-document h2,
+  #membership-open-report-container .balancete-document h3,
+  #membership-open-report-container .balancete-document td,
+  #membership-open-report-container .balancete-document th,
+  #membership-open-report-container .balancete-document span,
+  #membership-paid-by-brother-report-container .balancete-document,
+  #membership-paid-by-brother-report-container .balancete-document p,
+  #membership-paid-by-brother-report-container .balancete-document h1,
+  #membership-paid-by-brother-report-container .balancete-document h2,
+  #membership-paid-by-brother-report-container .balancete-document h3,
+  #membership-paid-by-brother-report-container .balancete-document td,
+  #membership-paid-by-brother-report-container .balancete-document th,
+  #membership-paid-by-brother-report-container .balancete-document span,
+  #membership-status-report-container .balancete-document,
+  #membership-status-report-container .balancete-document p,
+  #membership-status-report-container .balancete-document h1,
+  #membership-status-report-container .balancete-document h2,
+  #membership-status-report-container .balancete-document h3,
+  #membership-status-report-container .balancete-document td,
+  #membership-status-report-container .balancete-document th,
+  #membership-status-report-container .balancete-document span {
     color: #000000 !important;
   }
 }

@@ -6,10 +6,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Shield, History, ArrowRightLeft, Gauge, Crown } from 'lucide-react'
+import { Users, Shield, History, ArrowRightLeft, Gauge, Crown, Link2 } from 'lucide-react'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import { RedirectsManager } from '@/components/admin/RedirectsManager'
+import { EssentialLinksManager } from '@/components/admin/EssentialLinksManager'
 import { ImageOptimizer } from '@/components/admin/ImageOptimizer'
 import { LodgePositionsManager } from '@/components/admin/LodgePositionsManager'
 
@@ -21,8 +22,8 @@ export default function Admin() {
           Gestão de Usuários e Sistema
         </h2>
         <p className="text-muted-foreground">
-          Controle centralizado de perfis, permissões, redirecionamentos e
-          performance.
+          Controle centralizado de perfis, permissões, links essenciais,
+          redirecionamentos e performance.
         </p>
       </div>
 
@@ -33,6 +34,9 @@ export default function Admin() {
           </TabsTrigger>
           <TabsTrigger value="positions">
             <Crown className="mr-2 h-4 w-4" /> Cargos Maçônicos
+          </TabsTrigger>
+          <TabsTrigger value="essential-links">
+            <Link2 className="mr-2 h-4 w-4" /> Links Essenciais
           </TabsTrigger>
           <TabsTrigger value="redirects">
             <ArrowRightLeft className="mr-2 h-4 w-4" /> Redirecionamentos
@@ -78,6 +82,14 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <LodgePositionsManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="essential-links" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6">
+              <EssentialLinksManager />
             </CardContent>
           </Card>
         </TabsContent>

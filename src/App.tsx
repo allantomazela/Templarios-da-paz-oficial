@@ -47,6 +47,7 @@ const UserSettings = lazy(() => import('@/pages/UserSettings'))
 const MyMessages = lazy(() => import('@/pages/MyMessages'))
 const MyPayments = lazy(() => import('@/pages/MyPayments'))
 const Notices = lazy(() => import('@/pages/Notices'))
+const EssentialLinks = lazy(() => import('@/pages/EssentialLinks'))
 
 function ThemeApplicator() {
   const {
@@ -200,6 +201,14 @@ const App = () => (
                 element={
                   <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
                     <Library />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="links"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
+                    <EssentialLinks />
                   </RoleGuard>
                 }
               />

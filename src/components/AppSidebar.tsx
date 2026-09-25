@@ -21,6 +21,7 @@ import {
   Megaphone,
   UtensilsCrossed,
   QrCode,
+  Link2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -146,6 +147,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
     ...(canSeeLibrary
       ? [{ name: 'Biblioteca', icon: Library, path: '/dashboard/library' }]
       : []),
+    { name: 'Links Essenciais', icon: Link2, path: '/dashboard/links' },
     ...(canSeeAgape
       ? [{ name: 'Ágape', icon: UtensilsCrossed, path: '/dashboard/agape' }]
       : []),

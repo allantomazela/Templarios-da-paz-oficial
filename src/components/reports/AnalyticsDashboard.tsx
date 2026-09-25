@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Card,
   CardContent,
@@ -44,8 +44,13 @@ const chartConfig = {
 }
 
 export function AnalyticsDashboard() {
-  const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
+  const { sessionRecords, attendanceRecords, brothers, ensureAttendanceLoaded } =
+    useChancellorStore()
   const [timeRange, setTimeRange] = useState('90d')
+
+  useEffect(() => {
+    void ensureAttendanceLoaded()
+  }, [ensureAttendanceLoaded])
 
   // Calculate Metrics
   const activeBrothersCount = brothers.filter(

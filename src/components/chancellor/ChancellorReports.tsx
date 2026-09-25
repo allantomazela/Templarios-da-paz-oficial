@@ -35,7 +35,8 @@ import { computeBrotherAttendancePercentage } from '@/lib/chancellor-attendance'
 import { downloadCsvFile } from '@/lib/export-utils'
 
 export const ChancellorReports = memo(function ChancellorReports() {
-  const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
+  const { sessionRecords, attendanceRecords, brothers, ensureAttendanceLoaded } =
+    useChancellorStore()
   const { toast } = useToast()
   const reportRef = useRef<HTMLDivElement>(null)
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
@@ -43,6 +44,10 @@ export const ChancellorReports = memo(function ChancellorReports() {
   useEffect(() => {
     if (!initialized) void fetchPositions()
   }, [initialized, fetchPositions])
+
+  useEffect(() => {
+    void ensureAttendanceLoaded()
+  }, [ensureAttendanceLoaded])
 
   // Obter nomes do Venerável Mestre e Chanceler
   const venerableMaster = positions.find(

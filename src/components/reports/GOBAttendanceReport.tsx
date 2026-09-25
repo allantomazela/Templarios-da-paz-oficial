@@ -42,8 +42,14 @@ import {
 } from '@/lib/chancellor-attendance'
 
 export function GOBAttendanceReport() {
-  const { events, sessionRecords, attendanceRecords, brothers, locations } =
-    useChancellorStore()
+  const {
+    events,
+    sessionRecords,
+    attendanceRecords,
+    brothers,
+    locations,
+    ensureAttendanceLoaded,
+  } = useChancellorStore()
   const { addHistory } = useReportStore()
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
   const [selectedEventId, setSelectedEventId] = useState<string>('')
@@ -54,6 +60,10 @@ export function GOBAttendanceReport() {
   useEffect(() => {
     if (!initialized) void fetchPositions()
   }, [initialized, fetchPositions])
+
+  useEffect(() => {
+    void ensureAttendanceLoaded()
+  }, [ensureAttendanceLoaded])
 
   // Obter nomes do Venerável Mestre e Chanceler
   const venerableMaster = positions.find(

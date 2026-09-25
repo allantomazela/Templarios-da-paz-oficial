@@ -77,6 +77,7 @@ function handleAuthError(error: unknown): boolean {
 
 const CHANCELLOR_CACHE_TTL_MS = 90_000
 let chancellorFetchPromise: Promise<void> | null = null
+let chancellorAttendancePromise: Promise<void> | null = null
 let chancellorFetchedAt = 0
 
 interface ChancellorState {
@@ -90,6 +91,9 @@ interface ChancellorState {
   locations: Location[]
   notifications: Notification[]
   reviewedAlerts: string[] // List of brotherIds whose alerts have been reviewed
+  /** Presenças já carregadas para as sessões em memória. */
+  attendanceHydrated: boolean
+  attendanceLoading: boolean
 
   addSessionRecord: (record: SessionRecord) => void
   updateSessionRecord: (record: SessionRecord) => void
@@ -136,8 +140,17 @@ interface ChancellorState {
   // Alerts
   markAlertAsReviewed: (brotherId: string) => void
 
-  /** Carrega dados reais do Supabase (sem mocks). */
-  fetchChancellorData: (options?: { force?: boolean }) => Promise<void>
+  /**
+   * Carrega core (eventos, sessões, irmãos) primeiro.
+   * Presenças entram em segundo plano, salvo `skipAttendance`.
+   */
+  fetchChancellorData: (options?: {
+    force?: boolean
+    /** Agenda e telas que só precisam de eventos/sessões. */
+    skipAttendance?: boolean
+  }) => Promise<void>
+  /** Garante attendance em memória (idempotente; deduplica concorrência). */
+  ensureAttendanceLoaded: (options?: { force?: boolean }) => Promise<void>
   chancellorDataLoading: boolean
   resetLoadingFlags: () => void
 
@@ -180,16 +193,60 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
   locations: loadLocationsFromStorage(),
   notifications: [],
   reviewedAlerts: [],
+  attendanceHydrated: false,
+  attendanceLoading: false,
   chancellorDataLoading: false,
 
   resetLoadingFlags: () => {
-    set({ chancellorDataLoading: false })
+    set({ chancellorDataLoading: false, attendanceLoading: false })
   },
 
-  fetchChancellorData: async (options?: { force?: boolean }) => {
+  ensureAttendanceLoaded: async (options?: { force?: boolean }) => {
+    if (chancellorAttendancePromise) {
+      await chancellorAttendancePromise
+    }
+    if (!options?.force && get().attendanceHydrated) {
+      return
+    }
+
+    chancellorAttendancePromise = (async () => {
+      set({ attendanceLoading: true })
+      try {
+        const { sessionRecords, brothers } = get()
+        const attendanceRecords = await fetchChancellorAttendance({
+          sessionRecordIds: sessionRecords.map((record) => record.id),
+        })
+        const normalizedAttendance = attendanceRecords.map((record) => ({
+          ...record,
+          brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),
+        }))
+        set({
+          attendanceRecords: normalizedAttendance,
+          attendanceHydrated: true,
+        })
+      } catch (error) {
+        if (handleAuthError(error)) return
+        logError('ensureAttendanceLoaded', error)
+      } finally {
+        set({ attendanceLoading: false })
+        chancellorAttendancePromise = null
+      }
+    })()
+
+    return chancellorAttendancePromise
+  },
+
+  fetchChancellorData: async (options?: {
+    force?: boolean
+    skipAttendance?: boolean
+  }) => {
     const state = get()
     if (!options?.force && chancellorFetchPromise) {
-      return chancellorFetchPromise
+      await chancellorFetchPromise
+      if (!options?.skipAttendance) {
+        await get().ensureAttendanceLoaded()
+      }
+      return
     }
     if (
       !options?.force &&
@@ -197,6 +254,9 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       state.brothers.length > 0 &&
       Date.now() - chancellorFetchedAt < CHANCELLOR_CACHE_TTL_MS
     ) {
+      if (!options?.skipAttendance) {
+        await get().ensureAttendanceLoaded()
+      }
       return
     }
 
@@ -209,39 +269,29 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
         set({ chancellorDataLoading: true })
       }
       try {
-        const sessionRecordsPromise = fetchChancellorSessionRecords()
-        const attendancePromise = sessionRecordsPromise.then((sessionRecords) =>
-          fetchChancellorAttendance({
-            sessionRecordIds: sessionRecords.map((record) => record.id),
-          }),
-        )
-
-        const [
-          events,
-          sessionRecords,
-          brothers,
-          generationBatches,
-          attendanceRecords,
-        ] = await Promise.all([
-          fetchChancellorEvents(),
-          sessionRecordsPromise,
-          fetchChancellorBrothers(),
-          fetchActiveGenerationBatches(),
-          attendancePromise,
-        ])
-        const normalizedAttendance = attendanceRecords.map((record) => ({
-          ...record,
-          brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),
-        }))
+        const [events, sessionRecords, brothers, generationBatches] =
+          await Promise.all([
+            fetchChancellorEvents(),
+            fetchChancellorSessionRecords(),
+            fetchChancellorBrothers(),
+            fetchActiveGenerationBatches(),
+          ])
         chancellorFetchedAt = Date.now()
         set({
           events,
           generationBatches,
           sessionRecords,
-          attendanceRecords: normalizedAttendance,
           brothers,
           locations: loadLocationsFromStorage(),
+          attendanceHydrated: false,
+          ...(options?.force ? { attendanceRecords: [] } : {}),
+          chancellorDataLoading: false,
         })
+
+        if (!options?.skipAttendance) {
+          // Em segundo plano: UI já pode usar eventos/sessões
+          void get().ensureAttendanceLoaded({ force: true })
+        }
       } catch (error) {
         if (handleAuthError(error)) return
         logError('fetchChancellorData', error)
@@ -257,6 +307,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
             sessionRecords: [],
             attendanceRecords: [],
             brothers: [],
+            attendanceHydrated: false,
           })
         }
       } finally {
@@ -319,6 +370,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
       )
       return {
         attendanceRecords: [...filtered, ...records],
+        attendanceHydrated: true,
       }
     }),
 

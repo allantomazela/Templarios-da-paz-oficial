@@ -55,7 +55,9 @@ import { MembershipReports } from '@/components/financial/MembershipReports'
 
 export function FinancialReports() {
   const { toast } = useToast()
-  const { accounts, transactions, loading } = useFinancialCoreData()
+  const { accounts, transactions, loading } = useFinancialCoreData({
+    fullHistory: true,
+  })
   const [periodConfig, setPeriodConfig] = useState<FinancialReportPeriodConfig>(
     DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
   )

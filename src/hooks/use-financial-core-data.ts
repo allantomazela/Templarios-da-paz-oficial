@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { BankAccount, Transaction } from '@/lib/data'
 import useFinancialStore from '@/stores/useFinancialStore'
 
+interface UseFinancialCoreDataOptions {
+  /** Listas/relatórios que precisam do histórico além da janela recente. */
+  fullHistory?: boolean
+}
+
 interface UseFinancialCoreDataResult {
   accounts: BankAccount[]
   transactions: Transaction[]
@@ -14,7 +19,10 @@ interface UseFinancialCoreDataResult {
  * Recarrega do banco quando dataRevision muda (ex.: ajustes na auditoria).
  * Evita refetch paralelo com hydrateModule na abertura do módulo.
  */
-export function useFinancialCoreData(): UseFinancialCoreDataResult {
+export function useFinancialCoreData(
+  options?: UseFinancialCoreDataOptions,
+): UseFinancialCoreDataResult {
+  const fullHistory = Boolean(options?.fullHistory)
   const accounts = useFinancialStore((state) => state.accounts)
   const transactions = useFinancialStore((state) => state.transactions)
   const storeLoading = useFinancialStore((state) => state.loading)
@@ -34,8 +42,18 @@ export function useFinancialCoreData(): UseFinancialCoreDataResult {
       const store = useFinancialStore.getState()
       const revisionChanged = lastLoadedRevision.current !== dataRevision
 
-      // Já hidratado e mesma revisão: usa snapshot em memória (sem nova ida ao banco)
       if (!revisionChanged && store.financialHydrated) {
+        if (fullHistory && store.transactionsScope !== 'all') {
+          setLoading(true)
+          try {
+            await store.ensureFullTransactions()
+          } finally {
+            if (!cancelled && requestId === requestSeq.current) {
+              setLoading(false)
+            }
+          }
+          return
+        }
         if (!cancelled && requestId === requestSeq.current) {
           setLoading(false)
         }
@@ -46,8 +64,14 @@ export function useFinancialCoreData(): UseFinancialCoreDataResult {
       try {
         if (revisionChanged && store.financialHydrated) {
           await store.refreshFinancialCoreData(false)
+          if (fullHistory) {
+            await store.ensureFullTransactions()
+          }
         } else {
           await store.hydrateModule()
+          if (fullHistory) {
+            await store.ensureFullTransactions()
+          }
         }
         if (!cancelled && requestId === requestSeq.current) {
           lastLoadedRevision.current = dataRevision
@@ -64,7 +88,7 @@ export function useFinancialCoreData(): UseFinancialCoreDataResult {
     return () => {
       cancelled = true
     }
-  }, [dataRevision])
+  }, [dataRevision, fullHistory])
 
   const isLoading =
     loading ||

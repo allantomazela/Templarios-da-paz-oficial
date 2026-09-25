@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   Check,
 } from 'lucide-react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { TempleQrCard } from '@/components/chancellor/TempleQrCard'
 
@@ -41,7 +42,12 @@ export function ChancellorOverview() {
     brothers,
     reviewedAlerts,
     markAlertAsReviewed,
+    ensureAttendanceLoaded,
   } = useChancellorStore()
+
+  useEffect(() => {
+    void ensureAttendanceLoaded()
+  }, [ensureAttendanceLoaded])
 
   // Metrics
   const totalCharity = sessionRecords.reduce(

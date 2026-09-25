@@ -232,7 +232,9 @@ export function CharityCollection() {
 
   useEffect(() => {
     loadData.execute()
-    useChancellorStore.getState().fetchChancellorData()
+    void useChancellorStore
+      .getState()
+      .fetchChancellorData({ skipAttendance: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

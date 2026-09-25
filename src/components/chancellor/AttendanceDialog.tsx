@@ -71,6 +71,7 @@ export function AttendanceDialog({
     ensureSessionRecordInSupabase,
     fetchAttendanceFromSupabase,
     saveAttendanceToSupabase,
+    ensureAttendanceLoaded,
   } = useChancellorStore()
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
   const { toast } = useToast()
@@ -105,6 +106,12 @@ export function AttendanceDialog({
   const qrImageUrl =
     checkinToken &&
     `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(checkinToken)}`
+
+  useEffect(() => {
+    if (open) {
+      void ensureAttendanceLoaded()
+    }
+  }, [open, ensureAttendanceLoaded])
 
   useEffect(() => {
     if (!open || !existingSessionRecord?.id) {

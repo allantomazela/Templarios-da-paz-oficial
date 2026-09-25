@@ -58,6 +58,8 @@ export function useFinancialTransactionList(
         let allTx: Transaction[]
 
         if (financialHydrated) {
+          await useFinancialStore.getState().ensureFullTransactions()
+          if (cancelled || requestId !== requestSeq.current) return
           const cached = readAccountsAndTransactionsFromStore()
           accountsData = cached.accounts
           allTx = cached.transactions

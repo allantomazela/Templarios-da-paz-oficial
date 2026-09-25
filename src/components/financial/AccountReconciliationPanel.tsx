@@ -88,7 +88,9 @@ function parseRealBalanceInput(value: string): number | null {
 }
 
 export function AccountReconciliationPanel() {
-  const { accounts, transactions, loading: coreLoading } = useFinancialCoreData()
+  const { accounts, transactions, loading: coreLoading } = useFinancialCoreData({
+    fullHistory: true,
+  })
   const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set())
   const [mensalidadeLinkContext, setMensalidadeLinkContext] = useState<
     Awaited<ReturnType<typeof fetchMensalidadeLinkContext>> | null

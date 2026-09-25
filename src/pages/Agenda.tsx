@@ -79,7 +79,10 @@ export default function Agenda() {
   useEffect(() => {
     // silent + sem force: não refaz request se settings já hidratou
     void fetchSettings(false, true)
-    void useChancellorStore.getState().fetchChancellorData()
+    // Agenda só precisa de eventos/sessões/irmãos — presença sob demanda
+    void useChancellorStore
+      .getState()
+      .fetchChancellorData({ skipAttendance: true })
   }, [fetchSettings])
   const userRole = user?.role || 'member'
   const canEdit = ['admin', 'editor'].includes(userRole)

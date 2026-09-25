@@ -77,7 +77,9 @@ function resolveCashFlowReportPeriod(
 }
 
 export function CashFlowReport() {
-  const { accounts, transactions, loading } = useFinancialCoreData()
+  const { accounts, transactions, loading } = useFinancialCoreData({
+    fullHistory: true,
+  })
   const { toast } = useToast()
   const [periodConfig, setPeriodConfig] = useState<FinancialReportPeriodConfig>(
     DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,

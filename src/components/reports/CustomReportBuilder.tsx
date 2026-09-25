@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Table,
   TableBody,
@@ -38,10 +38,19 @@ import { ReportHeader } from './ReportHeader'
 import { computeBrotherAttendancePercentage } from '@/lib/chancellor-attendance'
 
 export function CustomReportBuilder() {
-  const { sessionRecords, attendanceRecords, brothers } = useChancellorStore()
+  const {
+    sessionRecords,
+    attendanceRecords,
+    brothers,
+    ensureAttendanceLoaded,
+  } = useChancellorStore()
   const { templates, addTemplate, addHistory } = useReportStore()
   const { toast } = useToast()
   const reportRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    void ensureAttendanceLoaded()
+  }, [ensureAttendanceLoaded])
 
   const [showColumns, setShowColumns] = useState({
     name: true,

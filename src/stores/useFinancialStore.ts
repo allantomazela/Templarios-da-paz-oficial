@@ -50,6 +50,20 @@ let financialBulkFetchDepth = 0
 /** Deduplica hydrateModule concorrente (página + overview/relatórios). */
 let financialHydratePromise: Promise<void> | null = null
 let financialExtendedHydratePromise: Promise<void> | null = null
+let financialFullTransactionsPromise: Promise<void> | null = null
+
+/** Janela inicial: ano corrente + ano anterior (overview/dashboard). */
+export function getFinancialRecentSinceIso(
+  referenceDate: Date = new Date(),
+): string {
+  const since = new Date(referenceDate.getFullYear() - 1, 0, 1)
+  const y = since.getFullYear()
+  const m = String(since.getMonth() + 1).padStart(2, '0')
+  const d = String(since.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+export type FinancialTransactionsScope = 'none' | 'recent' | 'all'
 
 const financialLoadingGate = createAsyncLoadingGate()
 
@@ -94,11 +108,17 @@ interface FinancialState {
   financialExtendedHydrated: boolean
   /** Incrementado quando transações/contas mudam (ex.: mensalidade paga). */
   dataRevision: number
+  /** Escopo das transações em memória (recent = janela inicial). */
+  transactionsScope: FinancialTransactionsScope
   refreshFinancialCoreData: (bumpRevision?: boolean) => Promise<void>
   notifyFinancialDataChanged: () => void
 
   // Fetch methods
-  fetchTransactions: () => Promise<void>
+  fetchTransactions: (options?: {
+    scope?: 'recent' | 'all'
+  }) => Promise<void>
+  /** Garante histórico completo (listas/relatórios). Idempotente. */
+  ensureFullTransactions: () => Promise<void>
   fetchCategories: () => Promise<void>
   fetchContributions: () => Promise<void>
   fetchBudgets: () => Promise<void>
@@ -161,6 +181,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   financialHydrated: false,
   financialExtendedHydrated: false,
   dataRevision: 0,
+  transactionsScope: 'none',
 
   refreshFinancialCoreData: async (bumpRevision = false) => {
     try {
@@ -171,7 +192,12 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         )
         await repairOrphanTreasuryContributions()
       }
-      await Promise.all([get().fetchAccounts(), get().fetchTransactions()])
+      const scope =
+        get().transactionsScope === 'all' ? 'all' : ('recent' as const)
+      await Promise.all([
+        get().fetchAccounts(),
+        get().fetchTransactions({ scope }),
+      ])
       if (bumpRevision) {
         set((state) => ({ dataRevision: state.dataRevision + 1 }))
       }
@@ -204,7 +230,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
         await withTimeout(
           Promise.all([
             get().fetchAccounts(),
-            get().fetchTransactions(),
+            get().fetchTransactions({ scope: 'recent' }),
             get().fetchCategories(),
           ]),
           45_000,
@@ -262,20 +288,39 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   },
 
   // ========== FETCH METHODS ==========
-  fetchTransactions: async () => {
+  fetchTransactions: async (options) => {
+    const requestedScope = options?.scope ?? 'all'
+    // Já temos o conjunto completo — não rebaixa para janela parcial
+    if (
+      requestedScope === 'recent' &&
+      get().transactionsScope === 'all' &&
+      get().transactions.length > 0
+    ) {
+      return
+    }
+
     const manageLoading = financialBulkFetchDepth === 0
     const id = financialSeq.transactions.next()
     if (manageLoading) beginFinancialLoading(set)
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('financial_transactions')
         .select(FINANCIAL_TRANSACTION_COLUMNS)
         .order('date', { ascending: false })
 
+      if (requestedScope === 'recent') {
+        query = query.gte('date', getFinancialRecentSinceIso())
+      }
+
+      const { data, error } = await query
+
       if (error) throw error
 
       if (data && financialSeq.transactions.isCurrent(id)) {
-        set({ transactions: data.map(mapTransactionFromDB) })
+        set({
+          transactions: data.map(mapTransactionFromDB),
+          transactionsScope: requestedScope,
+        })
       }
     } catch (error) {
       if (handleAuthError(error)) return
@@ -283,6 +328,21 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     } finally {
       if (manageLoading) endFinancialLoading(set)
     }
+  },
+
+  ensureFullTransactions: async () => {
+    if (get().transactionsScope === 'all') return
+    if (financialFullTransactionsPromise) return financialFullTransactionsPromise
+
+    financialFullTransactionsPromise = (async () => {
+      try {
+        await get().fetchTransactions({ scope: 'all' })
+      } finally {
+        financialFullTransactionsPromise = null
+      }
+    })()
+
+    return financialFullTransactionsPromise
   },
 
   fetchCategories: async () => {

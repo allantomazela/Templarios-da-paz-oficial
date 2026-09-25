@@ -29,7 +29,10 @@ export default function Reports() {
   useModuleActivation(
     '/dashboard/reports',
     () => {
-      void fetchChancellorData()
+      void (async () => {
+        await fetchChancellorData({ skipAttendance: true })
+        await useChancellorStore.getState().ensureAttendanceLoaded()
+      })()
     },
     { refreshOnVisible: true },
   )

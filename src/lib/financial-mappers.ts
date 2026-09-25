@@ -120,6 +120,29 @@ export interface TransactionDB {
 export const FINANCIAL_TRANSACTION_COLUMNS =
   'id, date, description, category, type, amount, account_id, forecast_item_id, attachment_notes, is_control_only, created_at, updated_at' as const
 
+/** Só o necessário para saldo global — payload leve (sem description/notes). */
+export const FINANCIAL_BALANCE_LEDGER_COLUMNS =
+  'account_id, type, amount, is_control_only' as const
+
+export function mapBalanceLedgerFromDB(row: {
+  account_id?: string | null
+  type: 'Receita' | 'Despesa'
+  amount: number
+  is_control_only?: boolean | null
+}): {
+  accountId?: string
+  type: 'Receita' | 'Despesa'
+  amount: number
+  controlOnly?: boolean
+} {
+  return {
+    accountId: row.account_id || undefined,
+    type: row.type,
+    amount: Number(row.amount),
+    controlOnly: Boolean(row.is_control_only),
+  }
+}
+
 export function mapTransactionFromDB(row: TransactionDB): Transaction {
   return {
     id: row.id,

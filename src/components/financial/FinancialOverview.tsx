@@ -23,6 +23,7 @@ import {
 } from '@/lib/format-utils'
 import { computeGlobalBalance } from '@/lib/financial-balances'
 import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
+import useFinancialStore from '@/stores/useFinancialStore'
 import { isTreasuryTransaction } from '@/lib/transaction-control-only'
 import { findLowBalanceAccountsForAlert } from '@/lib/financial-low-balance-alerts'
 import {
@@ -49,6 +50,7 @@ const chartConfig = {
 
 export function FinancialOverview() {
   const { accounts, transactions, loading } = useFinancialCoreData()
+  const balanceLedger = useFinancialStore((state) => state.balanceLedger)
   const [period, setPeriod] = useState('current_year')
   const getDateRange = () => {
     const now = new Date()
@@ -84,7 +86,9 @@ export function FinancialOverview() {
     .filter((t) => t.type === 'Despesa' && isTreasuryTransaction(t))
     .reduce((acc, curr) => acc + curr.amount, 0)
 
-  const globalBalance = computeGlobalBalance(accounts, transactions)
+  const balanceSource =
+    balanceLedger.length > 0 ? balanceLedger : transactions
+  const globalBalance = computeGlobalBalance(accounts, balanceSource)
 
   const periodResult = totalIncome - totalExpense
 
@@ -129,7 +133,10 @@ export function FinancialOverview() {
       fill: `hsl(var(--chart-${(index % 5) + 1}))`,
     }))
 
-  const lowBalanceAccounts = findLowBalanceAccountsForAlert(accounts, transactions)
+  const lowBalanceAccounts = findLowBalanceAccountsForAlert(
+    accounts,
+    balanceSource,
+  )
 
   if (loading) {
     return (

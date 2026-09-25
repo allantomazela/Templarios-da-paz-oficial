@@ -3,10 +3,12 @@ import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollableTabsList } from '@/components/ui/scrollable-tabs-list'
 import { useModuleActivation } from '@/hooks/use-module-activation'
 import useFinancialStore from '@/stores/useFinancialStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
 import { usePositionsReady } from '@/hooks/use-positions-ready'
 import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import { Navigate } from 'react-router-dom'
+import { isMasterAdminEmail } from '@/config/master-admin'
 
 const FinancialOverview = lazy(() =>
   import('@/components/financial/FinancialOverview').then((m) => ({
@@ -115,12 +117,19 @@ function FinancialTabPanel({
 }
 
 export default function Financial() {
+  const user = useAuthStore((s) => s.user)
   const positionsReady = usePositionsReady()
   const hydrateModule = useFinancialStore((s) => s.hydrateModule)
   const hydrateFinancialExtended = useFinancialStore((s) => s.hydrateFinancialExtended)
   const { canManageAgapeClosing, canAccessFullFinancial } =
     useAgapeClosingPermissions()
   const [activeTab, setActiveTab] = useState<FinancialTabValue>('overview')
+
+  const isAdministration =
+    Boolean(user) &&
+    (isMasterAdminEmail(user?.email) ||
+      user?.role === 'admin' ||
+      user?.role === 'editor')
 
   useModuleActivation(
     '/dashboard/financial',
@@ -140,12 +149,12 @@ export default function Financial() {
   }, [activeTab, hydrateFinancialExtended])
 
   const visibleTabs = useMemo(() => {
-    if (canAccessFullFinancial) return FINANCIAL_TABS
+    if (canAccessFullFinancial || isAdministration) return FINANCIAL_TABS
     if (canManageAgapeClosing) {
       return FINANCIAL_TABS.filter((tab) => tab.value === 'agape')
     }
     return []
-  }, [canAccessFullFinancial, canManageAgapeClosing])
+  }, [canAccessFullFinancial, canManageAgapeClosing, isAdministration])
 
   useEffect(() => {
     if (visibleTabs.length === 0) return
@@ -155,15 +164,16 @@ export default function Financial() {
     }
   }, [visibleTabs, activeTab])
 
-  if (!positionsReady) {
+  // Admin/editor não dependem de cargos para entrar — evita tela presa no fetch de positions
+  if (!positionsReady && !isAdministration) {
     return <DashboardModuleLoader />
   }
 
-  if (!canManageAgapeClosing) {
+  if (!canManageAgapeClosing && !isAdministration) {
     return <Navigate to="/access-denied" replace />
   }
 
-  const agapeOnly = !canAccessFullFinancial
+  const agapeOnly = !canAccessFullFinancial && !isAdministration
 
   return (
     <div className="space-y-6">

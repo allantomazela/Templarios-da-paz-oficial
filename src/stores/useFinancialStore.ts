@@ -38,12 +38,15 @@ import {
   mapContributionFromDB,
   mapContributionToDB,
   FINANCIAL_TRANSACTION_COLUMNS,
+  FINANCIAL_BALANCE_LEDGER_COLUMNS,
   FINANCIAL_CATEGORY_COLUMNS,
   FINANCIAL_ACCOUNT_COLUMNS,
   CONTRIBUTION_COLUMNS,
   FINANCIAL_BUDGET_COLUMNS,
   FINANCIAL_GOAL_COLUMNS,
+  mapBalanceLedgerFromDB,
 } from '@/lib/financial-mappers'
+import type { BalanceTransaction } from '@/lib/financial-balance-math'
 
 /** Evita que cada fetch individual ligue/desligue `loading` durante `fetchAll`. */
 let financialBulkFetchDepth = 0
@@ -52,11 +55,15 @@ let financialHydratePromise: Promise<void> | null = null
 let financialExtendedHydratePromise: Promise<void> | null = null
 let financialFullTransactionsPromise: Promise<void> | null = null
 
-/** Janela inicial: ano corrente + ano anterior (overview/dashboard). */
+/** Janela inicial do dashboard: ~14 meses (cobre ano corrente e “mês passado” em janeiro). */
 export function getFinancialRecentSinceIso(
   referenceDate: Date = new Date(),
 ): string {
-  const since = new Date(referenceDate.getFullYear() - 1, 0, 1)
+  const since = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth() - 13,
+    1,
+  )
   const y = since.getFullYear()
   const m = String(since.getMonth() + 1).padStart(2, '0')
   const d = String(since.getDate()).padStart(2, '0')
@@ -110,6 +117,12 @@ interface FinancialState {
   dataRevision: number
   /** Escopo das transações em memória (recent = janela inicial). */
   transactionsScope: FinancialTransactionsScope
+  /**
+   * Movimentos enxutos (todas as datas) para saldo global/alertas.
+   * Evita baixar description/notes no boot do dashboard.
+   */
+  balanceLedger: BalanceTransaction[]
+  balanceLedgerHydrated: boolean
   refreshFinancialCoreData: (bumpRevision?: boolean) => Promise<void>
   notifyFinancialDataChanged: () => void
 
@@ -119,6 +132,7 @@ interface FinancialState {
   }) => Promise<void>
   /** Garante histórico completo (listas/relatórios). Idempotente. */
   ensureFullTransactions: () => Promise<void>
+  fetchBalanceLedger: () => Promise<void>
   fetchCategories: () => Promise<void>
   fetchContributions: () => Promise<void>
   fetchBudgets: () => Promise<void>
@@ -182,6 +196,8 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
   financialExtendedHydrated: false,
   dataRevision: 0,
   transactionsScope: 'none',
+  balanceLedger: [],
+  balanceLedgerHydrated: false,
 
   refreshFinancialCoreData: async (bumpRevision = false) => {
     try {
@@ -197,6 +213,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       await Promise.all([
         get().fetchAccounts(),
         get().fetchTransactions({ scope }),
+        get().fetchBalanceLedger(),
       ])
       if (bumpRevision) {
         set((state) => ({ dataRevision: state.dataRevision + 1 }))
@@ -226,23 +243,28 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     }
 
     financialHydratePromise = (async () => {
+      financialBulkFetchDepth += 1
       try {
+        // Caminho crítico: contas + janela recente (dashboard)
         await withTimeout(
           Promise.all([
             get().fetchAccounts(),
             get().fetchTransactions({ scope: 'recent' }),
-            get().fetchCategories(),
           ]),
           45_000,
           'Carregamento do módulo financeiro demorou demais.',
         )
         set({ financialHydrated: true })
+        // Saldo global e categorias em segundo plano
+        void get().fetchBalanceLedger()
+        void get().fetchCategories()
       } catch (error) {
         if (!handleAuthError(error)) {
           logError('hydrateModule timeout or failure', error)
         }
         get().resetLoadingFlags()
       } finally {
+        financialBulkFetchDepth = Math.max(0, financialBulkFetchDepth - 1)
         financialHydratePromise = null
       }
     })()
@@ -343,6 +365,28 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     })()
 
     return financialFullTransactionsPromise
+  },
+
+  fetchBalanceLedger: async () => {
+    const manageLoading = financialBulkFetchDepth === 0
+    if (manageLoading) beginFinancialLoading(set)
+    try {
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select(FINANCIAL_BALANCE_LEDGER_COLUMNS)
+
+      if (error) throw error
+
+      set({
+        balanceLedger: (data ?? []).map(mapBalanceLedgerFromDB),
+        balanceLedgerHydrated: true,
+      })
+    } catch (error) {
+      if (handleAuthError(error)) return
+      logError('Error fetching balance ledger:', error)
+    } finally {
+      if (manageLoading) endFinancialLoading(set)
+    }
   },
 
   fetchCategories: async () => {

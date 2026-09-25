@@ -35,6 +35,30 @@
     <script>
       (function () {
         var key = 'templarios-asset-reload'
+        var bootObserver = null
+
+        function removeBootFallback() {
+          var boot = document.getElementById('boot-fallback')
+          if (!boot) {
+            if (bootObserver) {
+              bootObserver.disconnect()
+              bootObserver = null
+            }
+            return true
+          }
+          var root = document.getElementById('root')
+          if (!root || !root.innerHTML.trim()) return false
+          boot.style.display = 'none'
+          boot.setAttribute('aria-hidden', 'true')
+          boot.style.pointerEvents = 'none'
+          if (boot.parentNode) boot.parentNode.removeChild(boot)
+          if (bootObserver) {
+            bootObserver.disconnect()
+            bootObserver = null
+          }
+          return true
+        }
+
         window.addEventListener('error', function (e) {
           var t = e.target
           if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK') && (t.src || t.href)) {
@@ -48,8 +72,9 @@
         window.setTimeout(function () {
           var root = document.getElementById('root')
           var boot = document.getElementById('boot-fallback')
-          if (!boot || !root || root.innerHTML.trim()) {
-            if (boot) boot.style.display = 'none'
+          if (!boot) return
+          if (root && root.innerHTML.trim()) {
+            removeBootFallback()
             return
           }
           boot.innerHTML =
@@ -60,23 +85,15 @@
             '</div>'
         }, 8000)
 
-        function hideBootFallback() {
-          var root = document.getElementById('root')
-          var boot = document.getElementById('boot-fallback')
-          if (!boot) return
-          if (root && root.innerHTML.trim()) {
-            boot.style.display = 'none'
-            boot.setAttribute('aria-hidden', 'true')
-            boot.style.pointerEvents = 'none'
-            if (boot.parentNode) boot.parentNode.removeChild(boot)
-          }
+        var rootEl = document.getElementById('root')
+        if (rootEl && typeof MutationObserver !== 'undefined') {
+          bootObserver = new MutationObserver(function () {
+            removeBootFallback()
+          })
+          // Apenas filhos diretos do root — evita custo em cada nó da árvore React
+          bootObserver.observe(rootEl, { childList: true, subtree: false })
         }
-
-        new MutationObserver(hideBootFallback).observe(
-          document.getElementById('root'),
-          { childList: true, subtree: true },
-        )
-        hideBootFallback()
+        removeBootFallback()
       })()
     </script>
     <script type="module" src="/src/main.tsx"></script>

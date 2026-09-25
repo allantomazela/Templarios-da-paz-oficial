@@ -1,3 +1,4 @@
+import { lazy, Suspense, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -6,15 +7,31 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Shield, History, ArrowRightLeft, Gauge, Crown, Link2 } from 'lucide-react'
+import {
+  Users,
+  Shield,
+  History,
+  ArrowRightLeft,
+  Gauge,
+  Crown,
+  Link2,
+  Loader2,
+} from 'lucide-react'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer'
 import { RedirectsManager } from '@/components/admin/RedirectsManager'
-import { EssentialLinksManager } from '@/components/admin/EssentialLinksManager'
 import { ImageOptimizer } from '@/components/admin/ImageOptimizer'
 import { LodgePositionsManager } from '@/components/admin/LodgePositionsManager'
 
+const EssentialLinksManager = lazy(() =>
+  import('@/components/admin/EssentialLinksManager').then((m) => ({
+    default: m.EssentialLinksManager,
+  })),
+)
+
 export default function Admin() {
+  const [activeTab, setActiveTab] = useState('users')
+
   return (
     <div className="space-y-6">
       <div>
@@ -27,8 +44,12 @@ export default function Admin() {
         </p>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
+        <TabsList className="flex h-auto flex-wrap">
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" /> Gestão de Perfis
           </TabsTrigger>
@@ -89,7 +110,17 @@ export default function Admin() {
         <TabsContent value="essential-links" className="space-y-4">
           <Card>
             <CardContent className="pt-6">
-              <EssentialLinksManager />
+              {activeTab === 'essential-links' ? (
+                <Suspense
+                  fallback={
+                    <div className="flex justify-center p-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  }
+                >
+                  <EssentialLinksManager />
+                </Suspense>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

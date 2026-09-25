@@ -47,6 +47,7 @@ import {
   resolveProfileAvatarUrl,
 } from '@/lib/profile-avatar'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+import { useTempleSalesPermissions } from '@/hooks/use-temple-sales-permissions'
 
 const CheckinPresenceModal = lazy(() =>
   import('@/components/checkin/CheckinPresenceModal').then((m) => ({
@@ -69,6 +70,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
   const { canAccessFullFinancial, canManageAgapeClosing } =
     useAgapeClosingPermissions()
+  const { canManageTempleSales } = useTempleSalesPermissions()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -128,13 +130,20 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
       : []),
     ...(canAccessModule('financial') ||
     isMasterAdmin ||
-    canManageAgapeClosing
+    canManageAgapeClosing ||
+    canManageTempleSales
       ? [
           {
             name:
-              canManageAgapeClosing && !canAccessFullFinancial
-                ? 'Fechamento Ágape'
-                : 'Financeiro',
+              !canAccessFullFinancial &&
+              canManageTempleSales &&
+              !canManageAgapeClosing
+                ? 'Vendas do Templo'
+                : canManageAgapeClosing &&
+                    !canAccessFullFinancial &&
+                    !canManageTempleSales
+                  ? 'Fechamento Ágape'
+                  : 'Financeiro',
             icon: Banknote,
             path: '/dashboard/financial',
           },

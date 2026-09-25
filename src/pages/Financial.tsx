@@ -5,6 +5,7 @@ import { useModuleActivation } from '@/hooks/use-module-activation'
 import useFinancialStore from '@/stores/useFinancialStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+import { useTempleSalesPermissions } from '@/hooks/use-temple-sales-permissions'
 import { usePositionsReady } from '@/hooks/use-positions-ready'
 import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
 import { Navigate } from 'react-router-dom'
@@ -50,6 +51,11 @@ const AgapeClosing = lazy(() =>
     default: m.AgapeClosing,
   })),
 )
+const TempleSalesPanel = lazy(() =>
+  import('@/components/financial/TempleSalesPanel').then((m) => ({
+    default: m.TempleSalesPanel,
+  })),
+)
 const MembershipPayments = lazy(() =>
   import('@/components/financial/MembershipPayments').then((m) => ({
     default: m.MembershipPayments,
@@ -90,6 +96,7 @@ const FINANCIAL_TABS = [
   { value: 'expenses', label: 'Despesas' },
   { value: 'charity', label: 'Tronco de Beneficência' },
   { value: 'agape', label: 'Fechamento Ágape' },
+  { value: 'temple-sales', label: 'Vendas do Templo' },
   { value: 'contributions', label: 'Mensalidades' },
   { value: 'budgets', label: 'Metas e Orçamentos' },
   { value: 'planning', label: 'Planejamento' },
@@ -123,6 +130,7 @@ export default function Financial() {
   const hydrateFinancialExtended = useFinancialStore((s) => s.hydrateFinancialExtended)
   const { canManageAgapeClosing, canAccessFullFinancial } =
     useAgapeClosingPermissions()
+  const { canManageTempleSales } = useTempleSalesPermissions()
   const [activeTab, setActiveTab] = useState<FinancialTabValue>('overview')
 
   const isAdministration =
@@ -150,11 +158,16 @@ export default function Financial() {
 
   const visibleTabs = useMemo(() => {
     if (canAccessFullFinancial || isAdministration) return FINANCIAL_TABS
-    if (canManageAgapeClosing) {
-      return FINANCIAL_TABS.filter((tab) => tab.value === 'agape')
-    }
-    return []
-  }, [canAccessFullFinancial, canManageAgapeClosing, isAdministration])
+    const limited: FinancialTabValue[] = []
+    if (canManageAgapeClosing) limited.push('agape')
+    if (canManageTempleSales) limited.push('temple-sales')
+    return FINANCIAL_TABS.filter((tab) => limited.includes(tab.value))
+  }, [
+    canAccessFullFinancial,
+    canManageAgapeClosing,
+    canManageTempleSales,
+    isAdministration,
+  ])
 
   useEffect(() => {
     if (visibleTabs.length === 0) return
@@ -169,23 +182,36 @@ export default function Financial() {
     return <DashboardModuleLoader />
   }
 
-  if (!canManageAgapeClosing && !isAdministration) {
+  if (
+    !canManageAgapeClosing &&
+    !canManageTempleSales &&
+    !isAdministration
+  ) {
     return <Navigate to="/access-denied" replace />
   }
 
-  const agapeOnly = !canAccessFullFinancial && !isAdministration
+  const limitedOnly =
+    !canAccessFullFinancial && !isAdministration
+  const pageTitle = limitedOnly
+    ? visibleTabs.length === 1 && visibleTabs[0].value === 'agape'
+      ? 'Fechamento do Ágape'
+      : visibleTabs.length === 1 && visibleTabs[0].value === 'temple-sales'
+        ? 'Vendas do Templo'
+        : 'Financeiro (módulos)'
+    : 'Financeiro'
+  const pageDescription = limitedOnly
+    ? visibleTabs.length === 1 && visibleTabs[0].value === 'agape'
+      ? 'Controle mensal dos consumos e pagamentos do ágape.'
+      : visibleTabs.length === 1 && visibleTabs[0].value === 'temple-sales'
+        ? 'Controle de vendas por irmão, à vista ou a prazo, com vínculo ao caixa.'
+        : 'Acesso aos módulos liberados pelo seu cargo.'
+    : 'Controle de receitas, despesas, fluxo de caixa e gestão bancária.'
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">
-          {agapeOnly ? 'Fechamento do Ágape' : 'Financeiro'}
-        </h2>
-        <p className="text-muted-foreground">
-          {agapeOnly
-            ? 'Controle mensal dos consumos e pagamentos do ágape. Use Correções e ajustes para editar, excluir ou limpar o mês sem acessar o banco de dados.'
-            : 'Controle de receitas, despesas, fluxo de caixa e gestão bancária.'}
-        </p>
+        <h2 className="text-3xl font-bold tracking-tight">{pageTitle}</h2>
+        <p className="text-muted-foreground">{pageDescription}</p>
       </div>
 
       <Tabs
@@ -248,6 +274,12 @@ export default function Financial() {
         <TabsContent value="agape">
           <FinancialTabPanel active={activeTab === 'agape'}>
             <AgapeClosing />
+          </FinancialTabPanel>
+        </TabsContent>
+
+        <TabsContent value="temple-sales">
+          <FinancialTabPanel active={activeTab === 'temple-sales'}>
+            <TempleSalesPanel />
           </FinancialTabPanel>
         </TabsContent>
 

@@ -22,13 +22,19 @@ import {
 } from '@/lib/membership-schedule'
 import { MEMBERSHIP_LABELS } from '@/lib/membership-labels'
 
-export type MemberPaymentType = 'monthly' | 'charity' | 'ceremony' | 'agape'
+export type MemberPaymentType =
+  | 'monthly'
+  | 'charity'
+  | 'ceremony'
+  | 'agape'
+  | 'temple_sale'
 
 export const MEMBER_PAYMENT_TYPE_LABELS: Record<MemberPaymentType, string> = {
   monthly: 'Mensalidade',
   charity: 'Tronco',
   ceremony: 'Taxa de grau',
   agape: 'Ágape',
+  temple_sale: 'Venda do Templo',
 }
 
 export interface MemberPayment {
@@ -152,7 +158,7 @@ export async function fetchMemberPaymentsBundle(
   const mappedPayments: MemberPayment[] = []
   let contributions: Contribution[] = []
 
-  const [contributionsResult, charityResult, ceremonyResult, agapeResult] =
+  const [contributionsResult, charityResult, ceremonyResult, agapeResult, templeSalesResult] =
     await Promise.all([
       supabaseAny
         .from('contributions')
@@ -177,6 +183,12 @@ export async function fetchMemberPaymentsBundle(
         .eq('brother_id', userId)
         .order('year', { ascending: false })
         .order('month', { ascending: false }),
+      supabaseAny
+        .from('temple_sales')
+        .select('*')
+        .eq('brother_id', userId)
+        .neq('status', 'Cancelado')
+        .order('sale_date', { ascending: false }),
     ])
 
   const { data: contributionRows, error: contributionsError } =
@@ -288,6 +300,37 @@ export async function fetchMemberPaymentsBundle(
           : undefined,
         month: charge.month,
         year: charge.year,
+      })
+    }
+  }
+
+  const { data: templeSales, error: templeSalesError } = templeSalesResult
+  if (templeSalesError) {
+    if (!isMissingTableError(templeSalesError)) {
+      console.warn('Falha ao carregar vendas do templo do irmão.', templeSalesError)
+    }
+  } else if (templeSales) {
+    for (const row of templeSales as Array<{
+      id: string
+      description: string
+      amount: number
+      sale_date: string
+      due_date: string | null
+      status: string
+      payment_date: string | null
+    }>) {
+      const dueDate = row.due_date || row.sale_date
+      mappedPayments.push({
+        id: row.id,
+        type: 'temple_sale',
+        categoryLabel: 'Venda do Templo',
+        description: row.description,
+        amount: Number(row.amount) || 0,
+        status: mapDbStatusToMemberStatus(row.status, dueDate),
+        dueDate,
+        paymentDate: row.payment_date
+          ? toDateInputValue(row.payment_date)
+          : undefined,
       })
     }
   }

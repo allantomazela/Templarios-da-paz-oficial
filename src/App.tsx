@@ -163,7 +163,7 @@ const App = () => (
                   <RoleGuard
                     allowedRoles={['admin', 'editor']}
                     requiredModule="financial"
-                    alternativeModules={['agape']}
+                    alternativeModules={['agape', 'temple_sales']}
                   >
                     <Financial />
                   </RoleGuard>

@@ -1048,6 +1048,7 @@ export type Database = {
       | "chanceler"
       | "tesoureiro"
       | "mestre_banquete"
+      | "hospitaleiro"
       | "primeiro_vigilante"
       | "segundo_vigilante"
       | "mestre_cerimonias"
@@ -1188,6 +1189,7 @@ export const Constants = {
         "chanceler",
         "tesoureiro",
         "mestre_banquete",
+        "hospitaleiro",
         "primeiro_vigilante",
         "segundo_vigilante",
         "mestre_cerimonias",

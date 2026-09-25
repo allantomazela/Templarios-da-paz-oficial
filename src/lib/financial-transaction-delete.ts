@@ -3,7 +3,7 @@ import { toErrorMessage } from '@/lib/async-utils'
 import { resolvePayableStatus } from '@/lib/financial-payables-status'
 
 export interface TransactionDeleteDependency {
-  source: 'mensalidade' | 'cerimonia' | 'agape' | 'payable'
+  source: 'mensalidade' | 'cerimonia' | 'agape' | 'temple_sale' | 'payable'
   label: string
   recordId: string
 }
@@ -13,6 +13,7 @@ export interface TransactionDeleteResult {
   unlinkedContributions: number
   unlinkedAgapeCharges: number
   unlinkedCeremonyInstallments: number
+  unlinkedTempleSales: number
   unlinkedPayables: number
 }
 
@@ -36,7 +37,8 @@ export async function fetchTransactionDeleteDependencies(
   const supabaseAny = supabase as any
   const dependencies: TransactionDeleteDependency[] = []
 
-  const [contributionsRes, ceremonyRes, agapeRes, payablesRes] = await Promise.all([
+  const [contributionsRes, ceremonyRes, agapeRes, templeSalesRes, payablesRes] =
+    await Promise.all([
     supabaseAny
       .from('contributions')
       .select('id, month, year, status, profiles!contributions_brother_id_fkey(full_name)')
@@ -48,6 +50,10 @@ export async function fetchTransactionDeleteDependencies(
     supabaseAny
       .from('agape_brother_charges')
       .select('id, month, year')
+      .eq('transaction_id', transactionId),
+    supabaseAny
+      .from('temple_sales')
+      .select('id, description, status')
       .eq('transaction_id', transactionId),
     supabaseAny
       .from('financial_payables')
@@ -80,6 +86,14 @@ export async function fetchTransactionDeleteDependencies(
     })
   }
 
+  for (const row of templeSalesRes.data ?? []) {
+    dependencies.push({
+      source: 'temple_sale',
+      recordId: row.id,
+      label: `Venda do templo: ${row.description} (${row.status})`,
+    })
+  }
+
   for (const row of payablesRes.data ?? []) {
     dependencies.push({
       source: 'payable',
@@ -104,6 +118,7 @@ export async function unlinkFinancialTransactionDependencies(
   let unlinkedContributions = 0
   let unlinkedAgapeCharges = 0
   let unlinkedCeremonyInstallments = 0
+  let unlinkedTempleSales = 0
   let unlinkedPayables = 0
 
   const contributionIds = dependencies
@@ -191,6 +206,27 @@ export async function unlinkFinancialTransactionDependencies(
     unlinkedCeremonyInstallments = ceremonyIds.length
   }
 
+  const templeSaleIds = dependencies
+    .filter((item) => item.source === 'temple_sale')
+    .map((item) => item.recordId)
+
+  if (templeSaleIds.length > 0) {
+    const { error } = await supabaseAny
+      .from('temple_sales')
+      .update({
+        transaction_id: null,
+        account_id: null,
+        payment_date: null,
+        status: 'Pendente',
+      })
+      .in('id', templeSaleIds)
+
+    if (error) {
+      throw new Error(toErrorMessage(error, 'Falha ao desvincular venda do templo.'))
+    }
+    unlinkedTempleSales = templeSaleIds.length
+  }
+
   const payableIds = dependencies
     .filter((item) => item.source === 'payable')
     .map((item) => item.recordId)
@@ -228,6 +264,7 @@ export async function unlinkFinancialTransactionDependencies(
     unlinkedContributions,
     unlinkedAgapeCharges,
     unlinkedCeremonyInstallments,
+    unlinkedTempleSales,
     unlinkedPayables,
   }
 }
@@ -258,6 +295,7 @@ export async function deleteFinancialTransactionsWithDependencies(
     unlinkedContributions: 0,
     unlinkedAgapeCharges: 0,
     unlinkedCeremonyInstallments: 0,
+    unlinkedTempleSales: 0,
     unlinkedPayables: 0,
   }
 
@@ -267,6 +305,7 @@ export async function deleteFinancialTransactionsWithDependencies(
     aggregate.unlinkedContributions += result.unlinkedContributions
     aggregate.unlinkedAgapeCharges += result.unlinkedAgapeCharges
     aggregate.unlinkedCeremonyInstallments += result.unlinkedCeremonyInstallments
+    aggregate.unlinkedTempleSales += result.unlinkedTempleSales
     aggregate.unlinkedPayables += result.unlinkedPayables
   }
 
@@ -289,6 +328,11 @@ export function buildTransactionDeleteSuccessMessage(
   if (result.unlinkedCeremonyInstallments > 0) {
     parts.push(
       `${result.unlinkedCeremonyInstallments} parcela(s) de cerimônia desvinculada(s).`,
+    )
+  }
+  if (result.unlinkedTempleSales > 0) {
+    parts.push(
+      `${result.unlinkedTempleSales} venda(s) do templo voltaram para pendência.`,
     )
   }
   if (result.unlinkedPayables > 0) {

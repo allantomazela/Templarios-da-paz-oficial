@@ -17,6 +17,7 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import {
   countSessionPresentAttendances,
   countUnjustifiedAbsencesForSessions,
+  isBrotherEligibleForFrequencyAlert,
 } from '@/lib/chancellor-attendance'
 import {
   formatCalendarDate,
@@ -72,11 +73,12 @@ export function ChancellorOverview() {
   }
 
   // --- Presence Notifications Logic ---
-  // Identify brothers with unjustified absences in the last 3 sessions
+  // Alerta só com ausência explícita injustificada em todas as últimas 3 sessões
   const last3Sessions = last5Sessions.slice(0, 3)
   const last3SessionIds = last3Sessions.map((session) => session.id)
   const alertBrothers = brothers
     .filter((brother) => {
+      if (!isBrotherEligibleForFrequencyAlert(brother)) return false
       if (reviewedAlerts.includes(brother.id)) return false
       if (last3Sessions.length === 0) return false
 

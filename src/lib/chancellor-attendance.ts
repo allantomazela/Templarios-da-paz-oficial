@@ -37,17 +37,28 @@ export function isAttendancePresent(status: string): boolean {
   return status === 'Presente'
 }
 
-/** Ausência que deve gerar alerta na Visão Geral da Chancelaria. */
+/** Ausência que deve gerar alerta na Visão Geral da Chancelaria.
+ * Sem lançamento de presença não conta — evita falso positivo quando o irmão
+ * não entrou na chamada da sessão.
+ */
 export function isUnjustifiedAbsenceForAlert(
   record: Pick<Attendance, 'status' | 'justification'> | undefined,
 ): boolean {
-  if (!record) return true
+  if (!record) return false
   if (record.status === 'Presente' || record.status === 'Justificado') {
     return false
   }
   if (record.status === 'Ausente' && record.justification?.trim()) {
     return false
   }
+  return record.status === 'Ausente'
+}
+
+/** Irmão elegível ao alerta de frequência (quadro ativo). */
+export function isBrotherEligibleForFrequencyAlert(brother: Brother): boolean {
+  if (brother.status !== 'Ativo') return false
+  const situation = brother.membershipSituation
+  if (situation === 'afastado' || situation === 'desligado') return false
   return true
 }
 

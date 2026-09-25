@@ -19,8 +19,8 @@ const brother: Brother = {
 }
 
 describe('isUnjustifiedAbsenceForAlert', () => {
-  it('considera ausência sem registro como injustificada', () => {
-    expect(isUnjustifiedAbsenceForAlert(undefined)).toBe(true)
+  it('não alerta quando não há lançamento de presença na sessão', () => {
+    expect(isUnjustifiedAbsenceForAlert(undefined)).toBe(false)
   })
 
   it('não alerta presença ou falta justificada', () => {
@@ -80,13 +80,19 @@ describe('countUnjustifiedAbsencesForSessions', () => {
     ).toBe(0)
   })
 
-  it('conta apenas ausências injustificadas', () => {
+  it('conta apenas ausências injustificadas explícitas', () => {
     expect(
       countUnjustifiedAbsencesForSessions(
         brother,
         ['s1', 's2', 's3'],
         records,
       ),
+    ).toBe(1)
+  })
+
+  it('não conta sessão sem lançamento como ausência injustificada', () => {
+    expect(
+      countUnjustifiedAbsencesForSessions(brother, ['s2', 's4', 's5'], records),
     ).toBe(1)
   })
 })

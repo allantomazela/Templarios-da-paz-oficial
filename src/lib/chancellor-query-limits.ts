@@ -19,7 +19,7 @@ export const CHANCELLOR_EVENT_COLUMNS =
   'id, title, date, time, type, location, location_id, description, is_auto_generated, generated_batch_id'
 
 export const CHANCELLOR_BROTHER_COLUMNS =
-  'id, name, profile_id, degree, role, status, email, initiation_date, elevation_date, exaltation_date, attendance_rate'
+  'id, name, profile_id, degree, role, status, email, initiation_date, elevation_date, exaltation_date, attendance_rate, membership_situation'
 
 export const VISITOR_ATTENDANCE_COLUMNS =
   'id, session_record_id, name, degree, lodge, lodge_number, obedience, masonic_number'

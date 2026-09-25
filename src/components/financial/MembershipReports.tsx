@@ -32,6 +32,8 @@ import { fetchMemberPayments } from '@/lib/member-payments'
 import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
 import { MembershipOverdueReportDocument } from '@/components/financial/MembershipOverdueReportDocument'
 import { MembershipBrotherStatementDocument } from '@/components/financial/MembershipBrotherStatementDocument'
+import { MembershipOpenReportPanel } from '@/components/financial/MembershipOpenReportPanel'
+import { MembershipPaidByBrotherReportPanel } from '@/components/financial/MembershipPaidByBrotherReportPanel'
 
 const MEMBERSHIP_PRINT_STYLE = `
   @page { size: A4; margin: 12mm; }
@@ -46,7 +48,7 @@ const MEMBERSHIP_PRINT_STYLE = `
 export function MembershipReports() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [activeSection, setActiveSection] = useState('atrasos')
+  const [activeSection, setActiveSection] = useState('em-aberto')
   const [selectedBrotherId, setSelectedBrotherId] = useState('')
   const [brothers, setBrothers] = useState<
     { id: string; full_name: string | null; created_at?: string | null }[]
@@ -289,16 +291,29 @@ export function MembershipReports() {
       <div>
         <h3 className="text-lg font-medium">Relatórios de Mensalidades</h3>
         <p className="text-sm text-muted-foreground">
-          Verificação de atrasos para a tesouraria e extrato completo do irmão
-          (mensalidades, taxas de grau, ágape e tronco) para conferência.
+          Mensalidades em aberto, pagamentos por irmão, atrasos e extrato completo
+          para conferência da tesouraria.
         </p>
       </div>
 
       <Tabs value={activeSection} onValueChange={setActiveSection} className="space-y-4">
-        <TabsList>
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+          <TabsTrigger value="em-aberto">Em aberto</TabsTrigger>
+          <TabsTrigger value="pagas">Pagas por irmão</TabsTrigger>
           <TabsTrigger value="atrasos">Irmãos em atraso</TabsTrigger>
           <TabsTrigger value="extrato">Extrato por irmão</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="em-aberto" className="space-y-4">
+          <MembershipOpenReportPanel schedules={schedules} />
+        </TabsContent>
+
+        <TabsContent value="pagas" className="space-y-4">
+          <MembershipPaidByBrotherReportPanel
+            schedules={schedules}
+            brothers={brothers}
+          />
+        </TabsContent>
 
         <TabsContent value="atrasos" className="space-y-4">
           <div className="no-print grid gap-3 sm:grid-cols-3">

@@ -11,6 +11,10 @@ import {
   type MembershipOverdueReportData,
   type MembershipStatusReportData,
 } from '@/lib/membership-report'
+import type {
+  MembershipOpenReportData,
+  MembershipPaidByBrotherReportData,
+} from '@/lib/membership-open-paid-report'
 
 export function exportMembershipOverdueReportCsv(
   data: MembershipOverdueReportData,
@@ -205,5 +209,106 @@ export function exportMembershipStatusReportCsv(
     ],
     rows,
     'relatorio-situacao-mensalidades',
+  )
+}
+
+export function exportMembershipOpenReportCsv(
+  data: MembershipOpenReportData,
+): void {
+  const summaryRows = data.rows.map((row) => [
+    row.brotherName,
+    String(row.openMonthCount),
+    String(row.overdueMonthCount),
+    row.periodsLabel,
+    row.totalOpenAmount.toFixed(2),
+  ])
+
+  downloadCsvFile(
+    [
+      'Irmão',
+      'Meses em aberto',
+      'Meses em atraso',
+      'Períodos',
+      'Valor em aberto (R$)',
+    ],
+    summaryRows,
+    'relatorio-mensalidades-em-aberto',
+  )
+}
+
+export function exportMembershipOpenDetailCsv(
+  data: MembershipOpenReportData,
+): void {
+  const rows = data.rows.flatMap((row) =>
+    row.entries.map((entry) => [
+      row.brotherName,
+      entry.periodLabel,
+      entry.dueDate,
+      entry.expectedAmount.toFixed(2),
+      entry.paidAmount.toFixed(2),
+      entry.remainingAmount.toFixed(2),
+      membershipStatusLabel(entry.status),
+    ]),
+  )
+
+  downloadCsvFile(
+    [
+      'Irmão',
+      'Referência',
+      'Vencimento',
+      'Previsto (R$)',
+      'Pago (R$)',
+      'Em aberto (R$)',
+      'Status',
+    ],
+    rows,
+    'relatorio-mensalidades-em-aberto-detalhado',
+  )
+}
+
+export function exportMembershipPaidByBrotherCsv(
+  data: MembershipPaidByBrotherReportData,
+): void {
+  const summaryRows = data.rows.map((row) => [
+    row.brotherName,
+    String(row.paidMonthCount),
+    row.periodsLabel,
+    row.totalPaidAmount.toFixed(2),
+  ])
+
+  downloadCsvFile(
+    ['Irmão', 'Meses pagos', 'Períodos', 'Total pago (R$)'],
+    summaryRows,
+    'relatorio-mensalidades-pagas-por-irmao',
+  )
+}
+
+export function exportMembershipPaidByBrotherDetailCsv(
+  data: MembershipPaidByBrotherReportData,
+): void {
+  const rows = data.rows.flatMap((row) =>
+    row.entries.map((entry) => [
+      row.brotherName,
+      entry.periodLabel,
+      entry.dueDate,
+      entry.expectedAmount.toFixed(2),
+      entry.paidAmount.toFixed(2),
+      entry.remainingAmount.toFixed(2),
+      membershipStatusLabel(entry.status),
+    ]),
+  )
+
+  downloadCsvFile(
+    [
+      'Irmão',
+      'Referência',
+      'Vencimento',
+      'Previsto (R$)',
+      'Pago (R$)',
+      'Em aberto (R$)',
+      'Status',
+    ],
+    rows,
+    'relatorio-mensalidades-pagas-detalhado',
   )
 }

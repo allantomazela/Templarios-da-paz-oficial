@@ -177,8 +177,8 @@ export function FinancialReports() {
       <div>
         <h3 className="text-lg font-medium">Relatórios Financeiros</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Balancete, resumo por categoria, relatório personalizado, mensalidades em atraso e
-          extrato por irmão.
+          Balancete, resumo por categoria, relatório personalizado, mensalidades
+          em aberto e pagas por irmão.
         </p>
       </div>
 

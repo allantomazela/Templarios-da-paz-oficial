@@ -260,10 +260,16 @@ export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSa
     existingTransactionId,
   })
 
-  const rows = await fetchTempleSales()
-  const saved = rows.find((row) => row.id === saleId)
-  if (!saved) throw new Error('Venda salva, mas não foi possível recarregar o registro.')
-  return saved
+  const { data: savedRow, error: reloadError } = await supabaseAny
+    .from('temple_sales')
+    .select(
+      'id, brother_id, description, amount, sale_date, due_date, payment_mode, status, payment_date, transaction_id, account_id, notes, recorded_by, created_at, profiles!temple_sales_brother_id_fkey(id, full_name)',
+    )
+    .eq('id', saleId)
+    .single()
+
+  if (reloadError) throw formatError(reloadError)
+  return mapRow(savedRow as TempleSaleRow)
 }
 
 export async function markTempleSalePaid(

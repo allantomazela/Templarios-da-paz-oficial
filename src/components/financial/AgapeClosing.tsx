@@ -177,8 +177,6 @@ export function AgapeClosing() {
 
   useEffect(() => {
     useAgapeStore.getState().clearOperationalCache()
-    notifyFinancialDataChanged()
-    void useFinancialStore.getState().fetchTransactions()
     loadData.execute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear])

@@ -798,43 +798,51 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
   const supabaseAny = supabase as any
   const { data, error } = await supabaseAny
     .from('profiles')
-    .select('id, full_name, created_at')
+    .select(
+      'id, full_name, created_at, brothers!brothers_profile_id_fkey(status, regular_status, membership_situation)',
+    )
     .eq('status', 'approved')
 
   if (error) throw error
-  const approved = (data || []) as ApprovedBrotherOption[]
-  if (approved.length === 0) return []
 
-  const { data: brothers, error: brothersError } = await supabaseAny
-    .from('brothers')
-    .select('profile_id, status, regular_status, membership_situation')
-    .in(
-      'profile_id',
-      approved.map((row) => row.id),
-    )
-
-  if (brothersError) throw brothersError
-
-  const situationByProfile = new Map(
-    ((brothers || []) as Array<Record<string, unknown>>).map((row) => [
-      String(row.profile_id),
-      inferMembershipSituation({
-        status: (row.status as 'Ativo' | 'Inativo') || 'Ativo',
-        regularStatus: row.regular_status
-          ? String(row.regular_status)
-          : undefined,
-        membershipSituation: row.membership_situation
-          ? String(row.membership_situation)
-          : undefined,
-      }),
-    ]),
-  )
+  const approved = (data || []) as Array<{
+    id: string
+    full_name: string | null
+    created_at: string
+    brothers?:
+      | {
+          status?: string | null
+          regular_status?: string | null
+          membership_situation?: string | null
+        }
+      | Array<{
+          status?: string | null
+          regular_status?: string | null
+          membership_situation?: string | null
+        }>
+      | null
+  }>
 
   return sortBrothersAlphabetically(
-    approved.map((row) => ({
-      ...row,
-      membershipSituation: situationByProfile.get(row.id) ?? 'regular',
-    })),
+    approved.map((row) => {
+      const brotherRow = Array.isArray(row.brothers)
+        ? row.brothers[0]
+        : row.brothers
+      return {
+        id: row.id,
+        full_name: row.full_name,
+        created_at: row.created_at,
+        membershipSituation: inferMembershipSituation({
+          status: (brotherRow?.status as 'Ativo' | 'Inativo') || 'Ativo',
+          regularStatus: brotherRow?.regular_status
+            ? String(brotherRow.regular_status)
+            : undefined,
+          membershipSituation: brotherRow?.membership_situation
+            ? String(brotherRow.membership_situation)
+            : undefined,
+        }),
+      }
+    }),
   )
 }
 

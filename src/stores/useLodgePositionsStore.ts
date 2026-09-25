@@ -59,9 +59,13 @@ async function loadLodgePositionsFromDb(): Promise<LodgePosition[]> {
   if (error) throw error
   if (!data?.length) return []
 
-  const userIds = data
-    .map((p) => p.user_id)
-    .filter((id): id is string => id !== null)
+  const userIds = [
+    ...new Set(
+      data
+        .map((p) => p.user_id)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
 
   if (userIds.length === 0) return data
 
@@ -75,13 +79,16 @@ async function loadLodgePositionsFromDb(): Promise<LodgePosition[]> {
     return data
   }
 
-  return data.map((position) => {
-    const user = profiles?.find((p) => p.id === position.user_id)
-    return {
-      ...position,
-      user: user || undefined,
-    }
-  })
+  const profileById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile]),
+  )
+
+  return data.map((position) => ({
+    ...position,
+    user: position.user_id
+      ? profileById.get(position.user_id) || undefined
+      : undefined,
+  }))
 }
 
 interface LodgePositionsState {

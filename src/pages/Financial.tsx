@@ -142,12 +142,21 @@ export default function Financial() {
   useModuleActivation(
     '/dashboard/financial',
     () => {
+      if (!canAccessFullFinancial && !isAdministration) return
       void hydrateModule().catch(() => {
         useFinancialStore.getState().resetLoadingFlags()
       })
     },
     { refreshOnVisible: true, visibilityRefreshTtlMs: 3 * 60 * 1000 },
   )
+
+  // Quando cargos carregam e liberam financeiro completo, hidrata se ainda não rodou.
+  useEffect(() => {
+    if (!canAccessFullFinancial && !isAdministration) return
+    void hydrateModule().catch(() => {
+      useFinancialStore.getState().resetLoadingFlags()
+    })
+  }, [canAccessFullFinancial, isAdministration, hydrateModule])
 
   useEffect(() => {
     if (!FINANCIAL_EXTENDED_TABS.has(activeTab)) return

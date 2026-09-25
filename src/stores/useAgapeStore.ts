@@ -166,11 +166,8 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
   },
 
   hydrateModule: async () => {
-    await Promise.all([
-      get().fetchSessions(),
-      get().fetchMenuItems(),
-      get().fetchConsumptions(),
-    ])
+    // Consumos são carregados sob demanda por sessão (evita payload completo no boot).
+    await Promise.all([get().fetchSessions(), get().fetchMenuItems()])
   },
 
   fetchSessions: async () => {

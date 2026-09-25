@@ -189,11 +189,21 @@ export function MembershipPaidByBrotherReportPanel({
         </CardContent>
       </Card>
 
-      <div className="hidden">
-        <div ref={printRef}>
-          <MembershipPaidByBrotherReportDocument data={report} />
-        </div>
-      </div>
+      <Card className="overflow-hidden">
+        <CardHeader className="no-print">
+          <CardTitle className="text-base">Pré-visualização</CardTitle>
+          <CardDescription>
+            Documento usado na impressão / PDF das mensalidades pagas por irmão.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6">
+          <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
+            <div ref={printRef}>
+              <MembershipPaidByBrotherReportDocument data={report} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

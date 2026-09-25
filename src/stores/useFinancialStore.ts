@@ -47,6 +47,9 @@ import {
 
 /** Evita que cada fetch individual ligue/desligue `loading` durante `fetchAll`. */
 let financialBulkFetchDepth = 0
+/** Deduplica hydrateModule concorrente (página + overview/relatórios). */
+let financialHydratePromise: Promise<void> | null = null
+let financialExtendedHydratePromise: Promise<void> | null = null
 
 const financialLoadingGate = createAsyncLoadingGate()
 
@@ -161,10 +164,13 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
 
   refreshFinancialCoreData: async (bumpRevision = false) => {
     try {
-      const { repairOrphanTreasuryContributions } = await import(
-        '@/lib/contribution-payments'
-      )
-      await repairOrphanTreasuryContributions()
+      // Repair só quando houve mudança real (bump) — evita custo em toda abertura de aba
+      if (bumpRevision) {
+        const { repairOrphanTreasuryContributions } = await import(
+          '@/lib/contribution-payments'
+        )
+        await repairOrphanTreasuryContributions()
+      }
       await Promise.all([get().fetchAccounts(), get().fetchTransactions()])
       if (bumpRevision) {
         set((state) => ({ dataRevision: state.dataRevision + 1 }))
@@ -189,52 +195,70 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
     if (!options?.force && get().financialHydrated) {
       return
     }
-
-    try {
-      await withTimeout(
-        Promise.all([
-          get().fetchAccounts(),
-          get().fetchTransactions(),
-          get().fetchCategories(),
-        ]),
-        45_000,
-        'Carregamento do módulo financeiro demorou demais.',
-      )
-      set({ financialHydrated: true })
-    } catch (error) {
-      if (!handleAuthError(error)) {
-        logError('hydrateModule timeout or failure', error)
-      }
-      get().resetLoadingFlags()
+    if (!options?.force && financialHydratePromise) {
+      return financialHydratePromise
     }
+
+    financialHydratePromise = (async () => {
+      try {
+        await withTimeout(
+          Promise.all([
+            get().fetchAccounts(),
+            get().fetchTransactions(),
+            get().fetchCategories(),
+          ]),
+          45_000,
+          'Carregamento do módulo financeiro demorou demais.',
+        )
+        set({ financialHydrated: true })
+      } catch (error) {
+        if (!handleAuthError(error)) {
+          logError('hydrateModule timeout or failure', error)
+        }
+        get().resetLoadingFlags()
+      } finally {
+        financialHydratePromise = null
+      }
+    })()
+
+    return financialHydratePromise
   },
 
   hydrateFinancialExtended: async (options?: { force?: boolean }) => {
     if (!options?.force && get().financialExtendedHydrated) {
       return
     }
-
-    if (!get().financialHydrated) {
-      await get().hydrateModule(options)
+    if (!options?.force && financialExtendedHydratePromise) {
+      return financialExtendedHydratePromise
     }
 
-    try {
-      await withTimeout(
-        Promise.all([
-          get().fetchContributions(),
-          get().fetchBudgets(),
-          get().fetchGoals(),
-        ]),
-        45_000,
-        'Carregamento dos dados complementares do financeiro demorou demais.',
-      )
-      set({ financialExtendedHydrated: true })
-    } catch (error) {
-      if (!handleAuthError(error)) {
-        logError('hydrateFinancialExtended timeout or failure', error)
+    financialExtendedHydratePromise = (async () => {
+      try {
+        if (!get().financialHydrated) {
+          await get().hydrateModule(options)
+        }
+
+        await withTimeout(
+          Promise.all([
+            get().fetchContributions(),
+            get().fetchBudgets(),
+            get().fetchGoals(),
+          ]),
+          45_000,
+          'Carregamento dos dados complementares do financeiro demorou demais.',
+        )
+        set({ financialExtendedHydrated: true })
+      } catch (error) {
+        if (!handleAuthError(error)) {
+          logError('hydrateFinancialExtended timeout or failure', error)
+        }
+        get().resetLoadingFlags()
+      } finally {
+        financialExtendedHydratePromise = null
       }
-      get().resetLoadingFlags()
-    }
+    })()
+
+    return financialExtendedHydratePromise
   },
 
   // ========== FETCH METHODS ==========

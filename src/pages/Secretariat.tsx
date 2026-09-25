@@ -1,12 +1,5 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BrothersList } from '@/components/secretariat/BrothersList'
-import { NoticesList } from '@/components/secretariat/NoticesList'
-import { MessagesList } from '@/components/secretariat/MessagesList'
-import { ContactMessagesList } from '@/components/secretariat/ContactMessagesList'
-import { DocumentsList } from '@/components/secretariat/DocumentsList'
-import { CandidatesList } from '@/components/secretariat/CandidatesList'
-import { MinutesList } from '@/components/minutes/MinutesList'
 import {
   Card,
   CardContent,
@@ -14,6 +7,43 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { DashboardModuleLoader } from '@/components/DashboardModuleLoader'
+
+const BrothersList = lazy(() =>
+  import('@/components/secretariat/BrothersList').then((m) => ({
+    default: m.BrothersList,
+  })),
+)
+const NoticesList = lazy(() =>
+  import('@/components/secretariat/NoticesList').then((m) => ({
+    default: m.NoticesList,
+  })),
+)
+const MessagesList = lazy(() =>
+  import('@/components/secretariat/MessagesList').then((m) => ({
+    default: m.MessagesList,
+  })),
+)
+const ContactMessagesList = lazy(() =>
+  import('@/components/secretariat/ContactMessagesList').then((m) => ({
+    default: m.ContactMessagesList,
+  })),
+)
+const DocumentsList = lazy(() =>
+  import('@/components/secretariat/DocumentsList').then((m) => ({
+    default: m.DocumentsList,
+  })),
+)
+const CandidatesList = lazy(() =>
+  import('@/components/secretariat/CandidatesList').then((m) => ({
+    default: m.CandidatesList,
+  })),
+)
+const MinutesList = lazy(() =>
+  import('@/components/minutes/MinutesList').then((m) => ({
+    default: m.MinutesList,
+  })),
+)
 
 type SecretariatTab =
   | 'brothers'
@@ -23,6 +53,17 @@ type SecretariatTab =
   | 'minutes'
 
 type CommunicationsTab = 'notices' | 'messages' | 'contact'
+
+function SecretariatTabPanel({
+  active,
+  children,
+}: {
+  active: boolean
+  children: ReactNode
+}) {
+  if (!active) return null
+  return <Suspense fallback={<DashboardModuleLoader />}>{children}</Suspense>
+}
 
 export default function Secretariat() {
   const [activeTab, setActiveTab] = useState<SecretariatTab>('brothers')
@@ -52,11 +93,13 @@ export default function Secretariat() {
         </TabsList>
 
         <TabsContent value="brothers">
-          {activeTab === 'brothers' ? <BrothersList /> : null}
+          <SecretariatTabPanel active={activeTab === 'brothers'}>
+            <BrothersList />
+          </SecretariatTabPanel>
         </TabsContent>
 
         <TabsContent value="indications">
-          {activeTab === 'indications' ? (
+          <SecretariatTabPanel active={activeTab === 'indications'}>
             <Card>
               <CardHeader>
                 <CardTitle>Candidatos à iniciação</CardTitle>
@@ -69,7 +112,7 @@ export default function Secretariat() {
                 <CandidatesList />
               </CardContent>
             </Card>
-          ) : null}
+          </SecretariatTabPanel>
         </TabsContent>
 
         <TabsContent value="communications" className="space-y-4">
@@ -80,7 +123,7 @@ export default function Secretariat() {
                 setCommunicationsTab(value as CommunicationsTab)
               }
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <TabsList>
                   <TabsTrigger value="notices">Mural de Avisos</TabsTrigger>
                   <TabsTrigger value="messages">Mensagens Internas</TabsTrigger>
@@ -89,7 +132,7 @@ export default function Secretariat() {
               </div>
 
               <TabsContent value="notices">
-                {communicationsTab === 'notices' ? (
+                <SecretariatTabPanel active={communicationsTab === 'notices'}>
                   <Card>
                     <CardHeader>
                       <CardTitle>Mural de Avisos</CardTitle>
@@ -101,11 +144,11 @@ export default function Secretariat() {
                       <NoticesList />
                     </CardContent>
                   </Card>
-                ) : null}
+                </SecretariatTabPanel>
               </TabsContent>
 
               <TabsContent value="messages">
-                {communicationsTab === 'messages' ? (
+                <SecretariatTabPanel active={communicationsTab === 'messages'}>
                   <Card>
                     <CardHeader>
                       <CardTitle>Mensagens Internas</CardTitle>
@@ -117,11 +160,11 @@ export default function Secretariat() {
                       <MessagesList />
                     </CardContent>
                   </Card>
-                ) : null}
+                </SecretariatTabPanel>
               </TabsContent>
 
               <TabsContent value="contact">
-                {communicationsTab === 'contact' ? (
+                <SecretariatTabPanel active={communicationsTab === 'contact'}>
                   <Card>
                     <CardHeader>
                       <CardTitle>Mensagens do Site</CardTitle>
@@ -134,14 +177,14 @@ export default function Secretariat() {
                       <ContactMessagesList />
                     </CardContent>
                   </Card>
-                ) : null}
+                </SecretariatTabPanel>
               </TabsContent>
             </Tabs>
           ) : null}
         </TabsContent>
 
         <TabsContent value="docs">
-          {activeTab === 'docs' ? (
+          <SecretariatTabPanel active={activeTab === 'docs'}>
             <Card>
               <CardHeader>
                 <CardTitle>Documentos da Loja</CardTitle>
@@ -153,11 +196,13 @@ export default function Secretariat() {
                 <DocumentsList />
               </CardContent>
             </Card>
-          ) : null}
+          </SecretariatTabPanel>
         </TabsContent>
 
         <TabsContent value="minutes">
-          {activeTab === 'minutes' ? <MinutesList /> : null}
+          <SecretariatTabPanel active={activeTab === 'minutes'}>
+            <MinutesList />
+          </SecretariatTabPanel>
         </TabsContent>
       </Tabs>
     </div>

@@ -75,6 +75,10 @@ function handleAuthError(error: unknown): boolean {
   return false
 }
 
+const CHANCELLOR_CACHE_TTL_MS = 90_000
+let chancellorFetchPromise: Promise<void> | null = null
+let chancellorFetchedAt = 0
+
 interface ChancellorState {
   sessionRecords: SessionRecord[]
   attendanceRecords: Attendance[]
@@ -184,64 +188,84 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
   fetchChancellorData: async (options?: { force?: boolean }) => {
     const state = get()
-    if (state.chancellorDataLoading && !options?.force) return
+    if (!options?.force && chancellorFetchPromise) {
+      return chancellorFetchPromise
+    }
     if (
       !options?.force &&
       state.events.length > 0 &&
-      state.brothers.length > 0
+      state.brothers.length > 0 &&
+      Date.now() - chancellorFetchedAt < CHANCELLOR_CACHE_TTL_MS
     ) {
       return
     }
 
-    set({ chancellorDataLoading: true })
-    try {
-      const sessionRecordsPromise = fetchChancellorSessionRecords()
-      const attendancePromise = sessionRecordsPromise.then((sessionRecords) =>
-        fetchChancellorAttendance({
-          sessionRecordIds: sessionRecords.map((record) => record.id),
-        }),
-      )
+    const hasCachedSnapshot =
+      state.events.length > 0 || state.brothers.length > 0
 
-      const [events, sessionRecords, brothers, generationBatches, attendanceRecords] =
-        await Promise.all([
+    chancellorFetchPromise = (async () => {
+      // Com cache, não bloqueia a UI — atualiza em segundo plano
+      if (!hasCachedSnapshot) {
+        set({ chancellorDataLoading: true })
+      }
+      try {
+        const sessionRecordsPromise = fetchChancellorSessionRecords()
+        const attendancePromise = sessionRecordsPromise.then((sessionRecords) =>
+          fetchChancellorAttendance({
+            sessionRecordIds: sessionRecords.map((record) => record.id),
+          }),
+        )
+
+        const [
+          events,
+          sessionRecords,
+          brothers,
+          generationBatches,
+          attendanceRecords,
+        ] = await Promise.all([
           fetchChancellorEvents(),
           sessionRecordsPromise,
           fetchChancellorBrothers(),
           fetchActiveGenerationBatches(),
           attendancePromise,
         ])
-      const normalizedAttendance = attendanceRecords.map((record) => ({
-        ...record,
-        brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),
-      }))
-      set({
-        events,
-        generationBatches,
-        sessionRecords,
-        attendanceRecords: normalizedAttendance,
-        brothers,
-        locations: loadLocationsFromStorage(),
-      })
-    } catch (error) {
-      if (handleAuthError(error)) return
-      logError('fetchChancellorData', error)
-      // Mantém snapshot anterior em falha transitória (evita tela vazia / "precisa F5").
-      // Só limpa se ainda não houver dados carregados nesta sessão.
-      const current = get()
-      const hasCachedData =
-        current.events.length > 0 || current.brothers.length > 0
-      if (!hasCachedData) {
+        const normalizedAttendance = attendanceRecords.map((record) => ({
+          ...record,
+          brotherId: brotherRowIdFromAttendanceRef(brothers, record.brotherId),
+        }))
+        chancellorFetchedAt = Date.now()
         set({
-          events: [],
-          generationBatches: [],
-          sessionRecords: [],
-          attendanceRecords: [],
-          brothers: [],
+          events,
+          generationBatches,
+          sessionRecords,
+          attendanceRecords: normalizedAttendance,
+          brothers,
+          locations: loadLocationsFromStorage(),
         })
+      } catch (error) {
+        if (handleAuthError(error)) return
+        logError('fetchChancellorData', error)
+        // Mantém snapshot anterior em falha transitória (evita tela vazia / "precisa F5").
+        // Só limpa se ainda não houver dados carregados nesta sessão.
+        const current = get()
+        const hasCachedData =
+          current.events.length > 0 || current.brothers.length > 0
+        if (!hasCachedData) {
+          set({
+            events: [],
+            generationBatches: [],
+            sessionRecords: [],
+            attendanceRecords: [],
+            brothers: [],
+          })
+        }
+      } finally {
+        set({ chancellorDataLoading: false })
+        chancellorFetchPromise = null
       }
-    } finally {
-      set({ chancellorDataLoading: false })
-    }
+    })()
+
+    return chancellorFetchPromise
   },
 
   addSessionRecord: (record) =>

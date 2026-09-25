@@ -129,7 +129,7 @@ export default function Financial() {
         useFinancialStore.getState().resetLoadingFlags()
       })
     },
-    { refreshOnVisible: true },
+    { refreshOnVisible: true, visibilityRefreshTtlMs: 3 * 60 * 1000 },
   )
 
   useEffect(() => {

@@ -12,25 +12,46 @@ interface UseFinancialCoreDataResult {
 /**
  * Contas e transações compartilhadas entre Fluxo de Caixa, conferência e relatórios.
  * Recarrega do banco quando dataRevision muda (ex.: ajustes na auditoria).
+ * Evita refetch paralelo com hydrateModule na abertura do módulo.
  */
 export function useFinancialCoreData(): UseFinancialCoreDataResult {
   const accounts = useFinancialStore((state) => state.accounts)
   const transactions = useFinancialStore((state) => state.transactions)
   const storeLoading = useFinancialStore((state) => state.loading)
+  const financialHydrated = useFinancialStore((state) => state.financialHydrated)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
   const [loading, setLoading] = useState(
-    accounts.length === 0 && transactions.length === 0,
+    accounts.length === 0 && transactions.length === 0 && !financialHydrated,
   )
   const requestSeq = useRef(0)
+  const lastLoadedRevision = useRef<number | null>(null)
 
   useEffect(() => {
     const requestId = ++requestSeq.current
     let cancelled = false
 
     const load = async () => {
+      const store = useFinancialStore.getState()
+      const revisionChanged = lastLoadedRevision.current !== dataRevision
+
+      // Já hidratado e mesma revisão: usa snapshot em memória (sem nova ida ao banco)
+      if (!revisionChanged && store.financialHydrated) {
+        if (!cancelled && requestId === requestSeq.current) {
+          setLoading(false)
+        }
+        return
+      }
+
       setLoading(true)
       try {
-        await useFinancialStore.getState().refreshFinancialCoreData(false)
+        if (revisionChanged && store.financialHydrated) {
+          await store.refreshFinancialCoreData(false)
+        } else {
+          await store.hydrateModule()
+        }
+        if (!cancelled && requestId === requestSeq.current) {
+          lastLoadedRevision.current = dataRevision
+        }
       } finally {
         if (!cancelled && requestId === requestSeq.current) {
           setLoading(false)
@@ -46,7 +67,11 @@ export function useFinancialCoreData(): UseFinancialCoreDataResult {
   }, [dataRevision])
 
   const isLoading =
-    loading || (storeLoading && accounts.length === 0 && transactions.length === 0)
+    loading ||
+    (storeLoading &&
+      accounts.length === 0 &&
+      transactions.length === 0 &&
+      !financialHydrated)
 
   return {
     accounts,

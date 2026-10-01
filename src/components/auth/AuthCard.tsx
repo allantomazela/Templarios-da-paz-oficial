@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
+import { getPasswordRecoveryErrorMessage } from '@/lib/auth-utils'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
@@ -63,7 +64,7 @@ const registerSchema = z
   })
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: 'Email inválido' }),
+  email: z.string().trim().toLowerCase().email({ message: 'Email inválido' }),
 })
 
 export function AuthCard() {
@@ -208,7 +209,7 @@ export function AuthCard() {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: error.message,
+        description: getPasswordRecoveryErrorMessage(error),
       })
     } else {
       toast({
@@ -237,6 +238,7 @@ export function AuthCard() {
             <form
               onSubmit={forgotForm.handleSubmit(onForgotPassword)}
               className="space-y-4"
+              noValidate
             >
               <FormField
                 control={forgotForm.control}
@@ -245,7 +247,15 @@ export function AuthCard() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="seu@email.com" {...field} />
+                      <Input
+                        type="email"
+                        autoComplete="email"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        placeholder="seu@email.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

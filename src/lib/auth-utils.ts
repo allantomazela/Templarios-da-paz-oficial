@@ -56,6 +56,26 @@ export function getSaveErrorMessage(error: unknown): string {
   return 'Não foi possível salvar. Tente novamente.'
 }
 
+/**
+ * Mensagem amigável para falhas ao solicitar o e-mail de recuperação de senha.
+ * O Supabase devolve textos em inglês (ex.: rate limit, falha do hook de e-mail).
+ */
+export function getPasswordRecoveryErrorMessage(error: unknown): string {
+  const err = (error ?? {}) as { message?: string; status?: number }
+  const message = (err.message ?? '').toLowerCase()
+
+  if (err.status === 429 || message.includes('rate limit') || message.includes('security purposes')) {
+    return 'Muitas solicitações em pouco tempo. Aguarde alguns minutos e tente novamente.'
+  }
+  if (message.includes('invalid') && message.includes('email')) {
+    return 'E-mail inválido. Confira o endereço digitado.'
+  }
+  if (message.includes('failed to fetch') || message.includes('network')) {
+    return 'Falha de conexão. Verifique sua internet e tente novamente.'
+  }
+  return 'Não foi possível enviar o e-mail de recuperação agora. Tente novamente em alguns minutos ou fale com a Secretaria da loja.'
+}
+
 const SUPABASE_AUTH_KEY_PREFIX = 'sb-'
 const SUPABASE_AUTH_KEY_SUFFIX = '-auth-token'
 

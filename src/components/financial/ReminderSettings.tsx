@@ -18,126 +18,67 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
-import { ReminderLog, ReminderSettings as ReminderSettingsModel } from '@/lib/data'
-import { formatDateBR } from '@/lib/format-utils'
-import { Bell, History, CheckCircle, Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
-import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { ReminderSettings as ReminderSettingsModel } from '@/lib/data'
+import { Bell, Loader2, Lock, Send } from 'lucide-react'
+import useAuthStore from '@/stores/useAuthStore'
+import { isMasterAdminEmail } from '@/config/master-admin'
 import {
   fetchMembershipReminderSettings,
-  runMembershipRemindersManual,
   saveMembershipReminderSettings,
 } from '@/lib/membership-reminder-settings'
 import { MembershipReminderRunsPanel } from '@/components/financial/MembershipReminderRunsPanel'
-
-interface ReminderLogFromDB {
-  id: string
-  brother_id: string
-  contribution_id: string | null
-  sent_date: string
-  method: 'Email' | 'WhatsApp'
-  created_at: string
-  profiles?: {
-    id: string
-    full_name: string | null
-  }
-}
+import { MembershipReminderLogsCard } from '@/components/financial/MembershipReminderLogsCard'
+import { MembershipReminderSendDialog } from '@/components/financial/MembershipReminderSendDialog'
 
 export function ReminderSettings() {
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = user?.role === 'admin' || isMasterAdminEmail(user?.email)
+
   const [reminderSettings, setReminderSettings] =
-    useState<ReminderSettingsModel>({
-      enabled: false,
-      frequency: 'after',
-      days: 0,
-    })
-  const [reminderLogs, setReminderLogs] = useState<ReminderLog[]>([])
-  const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
+    useState<ReminderSettingsModel>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [runsRefreshKey, setRunsRefreshKey] = useState(0)
+  const [confirmEnableOpen, setConfirmEnableOpen] = useState(false)
+  const [sendDialogOpen, setSendDialogOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const { toast } = useToast()
-  const supabaseAny = supabase as any
 
-  const loadData = useAsyncOperation(
-    async () => {
-      setLoading(true)
-      try {
-        const [settings, logsResult] = await Promise.all([
-          fetchMembershipReminderSettings(),
-          supabaseAny
-            .from('reminder_logs')
-            .select(
-              `
-            *,
-            profiles!reminder_logs_brother_id_fkey (
-              id,
-              full_name
-            )
-          `,
-            )
-            .order('sent_date', { ascending: false }),
-        ])
-
-        if (logsResult.error) throw logsResult.error
-
-        const logsData = logsResult.data as ReminderLogFromDB[] | null
-        const mappedLogs: ReminderLog[] = (logsData || []).map(
-          (l: ReminderLogFromDB) => ({
-            id: l.id,
-            brotherId: l.brother_id,
-            contributionId: l.contribution_id,
-            sentDate: l.sent_date,
-            method: l.method,
-          }),
-        )
-
-        const namesMap: Record<string, string> = {}
-        ;(logsData || []).forEach((l: ReminderLogFromDB) => {
-          if (l.profiles?.full_name) {
-            namesMap[l.brother_id] = l.profiles.full_name
-          }
-        })
-
-        setReminderSettings(settings)
-        setReminderLogs(mappedLogs)
-        setBrotherNames(namesMap)
-      } catch (error) {
-        console.error('Error loading reminder data:', error)
-        toast({
-          title: 'Erro',
-          description: 'Falha ao carregar dados.',
-          variant: 'destructive',
-        })
-      } finally {
-        setLoading(false)
-      }
-      return null
-    },
-    {
-      showSuccessToast: false,
-      errorMessage: 'Falha ao carregar dados.',
-    },
-  )
+  const loadSettings = useCallback(async () => {
+    try {
+      setReminderSettings(await fetchMembershipReminderSettings())
+    } catch (error) {
+      console.error('Error loading reminder settings:', error)
+      toast({
+        title: 'Erro',
+        description: 'Falha ao carregar as configurações de lembretes.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => {
-    loadData.execute()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    void loadSettings()
+  }, [loadSettings])
 
   const persistSettings = useCallback(
-    async (next: ReminderSettingsModel) => {
+    async (next: ReminderSettingsModel): Promise<boolean> => {
       setSaving(true)
       try {
         await saveMembershipReminderSettings(next)
+        setReminderSettings(next)
+        return true
       } catch (error) {
         console.error('Error saving reminder settings:', error)
         toast({
@@ -145,69 +86,40 @@ export function ReminderSettings() {
           description: 'Não foi possível salvar as configurações de lembretes.',
           variant: 'destructive',
         })
-        await loadData.execute()
+        await loadSettings()
+        return false
       } finally {
         setSaving(false)
       }
     },
-    [loadData, toast],
+    [loadSettings, toast],
   )
 
-  const handleToggle = (checked: boolean) => {
-    const next = { ...reminderSettings, enabled: checked }
-    setReminderSettings(next)
-    void persistSettings(next)
+  const setAutomaticSending = async (enabled: boolean) => {
+    const saved = await persistSettings({ ...reminderSettings, enabled })
+    if (!saved) return
     toast({
-      title: checked ? 'Lembretes Ativados' : 'Lembretes Desativados',
-      description: checked
-        ? 'Verificação automática diária às 9h (Brasília) e envio manual habilitados.'
-        : 'O envio automático foi pausado.',
+      title: enabled ? 'Envio automático ativado' : 'Envio automático desativado',
+      description: enabled
+        ? 'A partir da próxima verificação diária às 9h (Brasília).'
+        : 'Nenhum lembrete será enviado automaticamente.',
     })
   }
 
+  const handleToggle = (checked: boolean) => {
+    if (checked) setConfirmEnableOpen(true)
+    else void setAutomaticSending(false)
+  }
+
   const handleFrequencyChange = (val: string) => {
-    const next = {
+    void persistSettings({
       ...reminderSettings,
       frequency: val as ReminderSettingsModel['frequency'],
-    }
-    setReminderSettings(next)
-    void persistSettings(next)
+    })
   }
 
   const handleDaysChange = (val: string) => {
-    const next = {
-      ...reminderSettings,
-      days: parseInt(val, 10) || 0,
-    }
-    setReminderSettings(next)
-  }
-
-  const handleDaysBlur = () => {
-    void persistSettings(reminderSettings)
-  }
-
-  const runReminders = useAsyncOperation(
-    async () => {
-      const result = await runMembershipRemindersManual()
-      if (!result.ok) {
-        throw new Error(result.error || 'Falha ao enviar lembretes.')
-      }
-      setRunsRefreshKey((k) => k + 1)
-      await loadData.execute()
-      return result.message || 'Verificação concluída.'
-    },
-    {
-      successMessage: 'Verificação concluída!',
-      errorMessage: 'Falha ao enviar lembretes.',
-    },
-  )
-
-  const handleRunNow = () => {
-    runReminders.execute()
-  }
-
-  const getBrotherName = (id: string) => {
-    return brotherNames[id] || 'Desconhecido'
+    setReminderSettings({ ...reminderSettings, days: parseInt(val, 10) || 0 })
   }
 
   if (loading) {
@@ -221,48 +133,58 @@ export function ReminderSettings() {
     )
   }
 
+  const controlsDisabled = !isAdmin || saving
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" /> Configuração de Lembretes Automáticos
+            <Bell className="h-5 w-5" /> Lembretes de Mensalidade
           </CardTitle>
           <CardDescription>
-            Com o envio automático ativo, o sistema verifica diariamente às{' '}
-            <strong>9h (horário de Brasília)</strong>. Cada irmão com pelo menos
-            uma mensalidade em atraso recebe no máximo <strong>um e-mail por
-            mês</strong> (vencimento fixo dia 10, sem juros). Use o botão abaixo
-            para executar a mesma verificação manualmente.
+            A mensalidade pode ser paga até o último dia do mês de referência,
+            sem juros. Cada irmão recebe no máximo <strong>um e-mail por
+            mês</strong>. O envio automático vem <strong>desligado</strong> e só
+            é ligado por um administrador.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between space-x-2 border p-4 rounded-md">
+          {!isAdmin ? (
+            <p className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <Lock className="h-4 w-4 shrink-0" />
+              Somente administradores podem ativar, desativar ou enviar lembretes.
+            </p>
+          ) : null}
+
+          <div className="flex items-center justify-between space-x-2 rounded-md border p-4">
             <div className="flex flex-col space-y-1">
               <Label htmlFor="reminder-mode" className="font-medium">
-                Ativar Envio Automático
+                Envio automático diário
               </Label>
               <span className="text-xs text-muted-foreground">
                 {saving
                   ? 'Salvando configurações...'
-                  : 'Persistido no servidor — vale para o job diário e para o envio manual.'}
+                  : reminderSettings.enabled
+                    ? 'Ligado: verificação todos os dias às 9h (Brasília).'
+                    : 'Desligado: nenhum e-mail é enviado automaticamente.'}
               </span>
             </div>
             <Switch
               id="reminder-mode"
               checked={reminderSettings.enabled}
               onCheckedChange={handleToggle}
-              disabled={saving}
+              disabled={controlsDisabled}
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Momento do Envio</Label>
+              <Label>Momento do envio automático</Label>
               <Select
                 value={reminderSettings.frequency}
                 onValueChange={handleFrequencyChange}
-                disabled={!reminderSettings.enabled || saving}
+                disabled={controlsDisabled}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -281,8 +203,8 @@ export function ReminderSettings() {
                   type="number"
                   value={reminderSettings.days}
                   onChange={(e) => handleDaysChange(e.target.value)}
-                  onBlur={handleDaysBlur}
-                  disabled={!reminderSettings.enabled || saving}
+                  onBlur={() => void persistSettings(reminderSettings)}
+                  disabled={controlsDisabled}
                   className="w-24"
                   min={0}
                   max={28}
@@ -296,80 +218,59 @@ export function ReminderSettings() {
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="flex flex-col gap-2 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">Envio manual</p>
+              <p className="text-xs text-muted-foreground">
+                Envia agora para todos os irmãos com mensalidade em atraso,
+                mesmo com o automático desligado. Você confere a lista antes.
+              </p>
+            </div>
             <Button
-              onClick={handleRunNow}
-              disabled={
-                !reminderSettings.enabled ||
-                runReminders.loading ||
-                saving
-              }
+              onClick={() => setSendDialogOpen(true)}
+              disabled={controlsDisabled}
               variant="secondary"
             >
-              {runReminders.loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verificando...
-                </>
-              ) : (
-                'Executar Verificação Agora'
-              )}
+              <Send className="mr-2 h-4 w-4" />
+              Enviar lembretes agora
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <MembershipReminderRunsPanel refreshKey={runsRefreshKey} />
+      <MembershipReminderRunsPanel refreshKey={refreshKey} />
+      <MembershipReminderLogsCard refreshKey={refreshKey} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" /> Histórico de Envios
-          </CardTitle>
-          <CardDescription>
-            Registro de todos os lembretes enviados pelo sistema.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data de Envio</TableHead>
-                  <TableHead>Irmão</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reminderLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
-                      Nenhum lembrete enviado ainda.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  reminderLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>{formatDateBR(log.sentDate)}</TableCell>
-                      <TableCell>{getBrotherName(log.brotherId)}</TableCell>
-                      <TableCell>{log.method}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700 border-green-200"
-                        >
-                          <CheckCircle className="mr-1 h-3 w-3" /> Enviado
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <MembershipReminderSendDialog
+        open={sendDialogOpen}
+        onOpenChange={setSendDialogOpen}
+        onSent={() => setRefreshKey((k) => k + 1)}
+      />
+
+      <AlertDialog open={confirmEnableOpen} onOpenChange={setConfirmEnableOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ativar envio automático?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O sistema passará a verificar todos os dias às 9h (Brasília) e
+              enviará e-mails conforme o momento e os dias configurados, até
+              que um administrador desligue esta opção.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void setAutomaticSending(true)}>
+              Ativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
+}
+
+const DEFAULT_SETTINGS: ReminderSettingsModel = {
+  enabled: false,
+  frequency: 'after',
+  days: 0,
 }

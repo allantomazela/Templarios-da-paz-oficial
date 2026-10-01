@@ -1,91 +1,31 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { corsHeaders } from '../_shared/cors.ts'
-import { requireAdminOrEditor } from '../_shared/auth.ts'
-import { sendViaResend } from '../_shared/resend-mail.ts'
-import { membershipOverdueReminderEmail } from '../_shared/user-email-templates.ts'
+import { requireAdmin } from '../_shared/auth.ts'
 import {
-  buildAllMembershipSchedules,
-  buildReminderAlerts,
-  type Contribution,
-  type MembershipFeeScheduleSettings,
-} from '../_shared/membership-schedule.ts'
+  loadReminderContext,
+  loadReminderSettings,
+  type AdminClient,
+} from './reminder-context.ts'
 import {
-  DEFAULT_MEMBERSHIP_BASE_AMOUNT,
-  DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT,
-  inferMembershipSituation,
-  type BrotherSituationFields,
-} from '../_shared/membership-situation.ts'
-
-const CONTRIBUTION_MONTHS = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
-] as const
+  buildReminderRecipients,
+  selectReminderAlerts,
+  type ReminderMode,
+} from './reminder-selection.ts'
+import { deliverReminders, summarizeDelivery } from './reminder-delivery.ts'
 
 interface RunBody {
-  source?: 'cron' | 'manual'
+  /** Somente lista quem receberia, sem enviar nem registrar execução. */
+  dryRun?: boolean
 }
 
-interface ContributionRow {
-  id: string
-  brother_id: string
-  month: number
-  year: number
-  amount: number
-  status: 'Pago' | 'Pendente' | 'Atrasado'
-}
-
-interface ReminderSettingsRow {
-  membership_reminder_enabled: boolean
-  membership_reminder_frequency: 'before' | 'on_due' | 'after'
-  membership_reminder_days: number
-  membership_fee_amount: number | null
-  membership_fee_due_day: number | null
-  membership_fee_base_amount: number | null
-  membership_fee_session_package_amount: number | null
-}
-
-interface ApprovedProfileRow {
-  id: string
-  full_name: string | null
-  email: string | null
-  created_at: string
-  brothers?: BrotherSituationFields | BrotherSituationFields[] | null
-}
-
-/** Mesma composição de fetchMembershipFeeSettings (src/lib/contribution-payments.ts). */
-function buildFeeSettings(
-  settings: ReminderSettingsRow | null,
-): MembershipFeeScheduleSettings {
-  const baseAmount =
-    Number(settings?.membership_fee_base_amount) || DEFAULT_MEMBERSHIP_BASE_AMOUNT
-  const sessionPackageAmount =
-    Number(settings?.membership_fee_session_package_amount) ||
-    DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT
-
-  return {
-    baseAmount,
-    sessionPackageAmount,
-    defaultAmount:
-      Number(settings?.membership_fee_amount) || baseAmount + sessionPackageAmount,
-    dueDay: Number(settings?.membership_fee_due_day) || 10,
-  }
-}
-
-function brotherRowOf(profile: ApprovedProfileRow): BrotherSituationFields | null {
-  return Array.isArray(profile.brothers)
-    ? profile.brothers[0] ?? null
-    : profile.brothers ?? null
+interface RunCounts {
+  alerts_count?: number
+  sent_count: number
+  skipped_count: number
+  failed_count: number
+  message: string
+  error?: string | null
 }
 
 function isServiceRoleBearer(bearer: string, serviceRoleKey: string): boolean {
@@ -104,70 +44,73 @@ function isServiceRoleBearer(bearer: string, serviceRoleKey: string): boolean {
   }
 }
 
-function monthNumberToName(month: number): string {
-  return CONTRIBUTION_MONTHS[month - 1] ?? String(month)
-}
+async function startRun(admin: AdminClient, mode: ReminderMode): Promise<string | null> {
+  const { data, error } = await admin
+    .from('membership_reminder_runs')
+    .insert({ source: mode, started_at: new Date().toISOString() })
+    .select('id')
+    .single()
 
-function mapContributionRow(row: ContributionRow): Contribution {
-  return {
-    id: row.id,
-    brotherId: row.brother_id,
-    month: monthNumberToName(row.month),
-    year: row.year,
-    amount: Number(row.amount),
-    status: row.status,
+  if (error) {
+    console.error('membership_reminder_runs insert error:', error.message)
+    return null
   }
+  return (data as { id: string } | null)?.id ?? null
 }
 
-function todayBrazilISODate(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
-
-function brazilYearMonth(): string {
-  return todayBrazilISODate().slice(0, 7)
-}
-
-function monthStartIso(yearMonth: string): string {
-  return `${yearMonth}-01`
+async function finishRun(admin: AdminClient, runId: string | null, counts: RunCounts) {
+  if (!runId) return
+  await admin
+    .from('membership_reminder_runs')
+    .update({
+      finished_at: new Date().toISOString(),
+      alerts_count: counts.alerts_count ?? 0,
+      sent_count: counts.sent_count,
+      skipped_count: counts.skipped_count,
+      failed_count: counts.failed_count,
+      message: counts.message,
+      error: counts.error ?? null,
+    })
+    .eq('id', runId)
 }
 
 serve(async (req) => {
-  const origin = req.headers.get('Origin')
-  const headers = corsHeaders(origin, 'POST, OPTIONS')
+  const headers = corsHeaders(req.headers.get('Origin'), 'POST, OPTIONS')
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+    })
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers })
   }
-
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método não permitido' }), {
-      status: 405,
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'Método não permitido' }, 405)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const authHeader = req.headers.get('Authorization')
-  const bearer = authHeader?.startsWith('Bearer ')
-    ? authHeader.slice(7).trim()
-    : ''
-  const isServiceRole = isServiceRoleBearer(bearer, serviceRoleKey)
-
   if (!serviceRoleKey) {
-    return new Response(
-      JSON.stringify({ error: 'Configuração do servidor incompleta.' }),
-      {
-        status: 500,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      },
+    return json({ error: 'Configuração do servidor incompleta.' }, 500)
+  }
+
+  const authHeader = req.headers.get('Authorization')
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+  // Só o job agendado (pg_cron) usa a service role; qualquer outra chamada é manual.
+  const mode: ReminderMode = isServiceRoleBearer(bearer, serviceRoleKey)
+    ? 'cron'
+    : 'manual'
+
+  if (mode === 'manual') {
+    const auth = await requireAdmin(
+      supabaseUrl,
+      supabaseAnonKey,
+      authHeader,
+      serviceRoleKey,
     )
+    if (!auth.ok) return json({ error: auth.message }, auth.status)
   }
 
   let body: RunBody = {}
@@ -176,263 +119,73 @@ serve(async (req) => {
   } catch {
     body = {}
   }
-
-  const source = body.source === 'cron' ? 'cron' : 'manual'
-
-  if (!isServiceRole) {
-    const auth = await requireAdminOrEditor(
-      supabaseUrl,
-      supabaseAnonKey,
-      authHeader,
-      serviceRoleKey,
-    )
-    if (!auth.ok) {
-      return new Response(JSON.stringify({ error: auth.message }), {
-        status: auth.status,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      })
-    }
-  }
+  const dryRun = body.dryRun === true
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  const startedAt = new Date().toISOString()
   let runId: string | null = null
 
-  const { data: runRow, error: runInsertError } = await admin
-    .from('membership_reminder_runs')
-    .insert({ source, started_at: startedAt })
-    .select('id')
-    .single()
-
-  if (runInsertError) {
-    console.error('membership_reminder_runs insert error:', runInsertError.message)
-  } else {
-    runId = runRow?.id ?? null
-  }
-
-  async function finalizeRun(payload: {
-    alerts_count?: number
-    sent_count: number
-    skipped_count: number
-    failed_count: number
-    message: string
-    error?: string | null
-  }) {
-    if (!runId) return
-    await admin
-      .from('membership_reminder_runs')
-      .update({
-        finished_at: new Date().toISOString(),
-        alerts_count: payload.alerts_count ?? 0,
-        sent_count: payload.sent_count,
-        skipped_count: payload.skipped_count,
-        failed_count: payload.failed_count,
-        message: payload.message,
-        error: payload.error ?? null,
-      })
-      .eq('id', runId)
-  }
-
   try {
-    const { data: settingsRow, error: settingsError } = await admin
-      .from('site_settings')
-      .select(
-        'membership_reminder_enabled, membership_reminder_frequency, membership_reminder_days, membership_fee_amount, membership_fee_due_day, membership_fee_base_amount, membership_fee_session_package_amount',
-      )
-      .eq('id', 1)
-      .maybeSingle()
+    const settings = await loadReminderSettings(admin)
 
-    if (settingsError) throw settingsError
-
-    const settings = settingsRow as ReminderSettingsRow | null
-    const enabled = Boolean(settings?.membership_reminder_enabled)
-
-    if (!enabled) {
-      const message = 'Lembretes automáticos estão desativados.'
-      await finalizeRun({
-        sent_count: 0,
-        skipped_count: 0,
-        failed_count: 0,
-        message,
+    if (mode === 'cron' && !settings?.membership_reminder_enabled) {
+      return json({
+        ok: true,
+        skipped: true,
+        source: mode,
+        message: 'Envio automático desativado.',
       })
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          skipped: true,
-          message,
-          source,
-        }),
-        {
-          status: 200,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-        },
-      )
     }
 
-    const feeSettings = buildFeeSettings(settings)
-
-    const frequency = settings?.membership_reminder_frequency ?? 'after'
-    const days = Number(settings?.membership_reminder_days) || 0
-
-    const [{ data: brothersData, error: brothersError }, { data: contributionsData, error: contributionsError }, { data: logsThisMonth, error: logsError }] =
-      await Promise.all([
-        admin
-          .from('profiles')
-          .select(
-            'id, full_name, email, created_at, brothers!brothers_profile_id_fkey(status, regular_status, membership_situation)',
-          )
-          .eq('status', 'approved'),
-        admin.from('contributions').select('id, brother_id, month, year, amount, status'),
-        admin
-          .from('reminder_logs')
-          .select('brother_id, sent_date')
-          .gte('sent_date', monthStartIso(brazilYearMonth())),
-      ])
-
-    if (brothersError) throw brothersError
-    if (contributionsError) throw contributionsError
-    if (logsError) throw logsError
-
-    const brothers = (brothersData || []) as ApprovedProfileRow[]
-    const contributions = (contributionsData || []).map((row) =>
-      mapContributionRow(row as ContributionRow)
+    const context = await loadReminderContext(admin, settings)
+    const alerts = selectReminderAlerts(
+      context.schedules,
+      new Set(context.profileById.keys()),
+      mode,
+      settings?.membership_reminder_frequency ?? 'after',
+      Number(settings?.membership_reminder_days) || 0,
+    )
+    const recipients = buildReminderRecipients(
+      alerts,
+      context.profileById,
+      context.remindedThisMonth,
     )
 
-    const brotherNames: Record<string, string> = {}
-    for (const brother of brothers) {
-      brotherNames[brother.id] = brother.full_name?.trim() || 'Sem nome'
+    if (dryRun) {
+      return json({ ok: true, dryRun: true, source: mode, recipients })
     }
 
-    const schedules = buildAllMembershipSchedules(
-      contributions,
-      brothers.map((b) => ({
-        id: b.id,
-        full_name: b.full_name,
-        created_at: b.created_at,
-        membershipSituation: inferMembershipSituation(brotherRowOf(b)),
-      })),
-      brotherNames,
-      feeSettings,
-    )
+    runId = await startRun(admin, mode)
+    const summary = await deliverReminders(admin, recipients)
+    const message = summarizeDelivery(alerts.length, summary)
 
-    const approvedIds = new Set(brothers.map((b) => b.id))
-    const alerts = buildReminderAlerts(schedules, frequency, days).filter(
-      (alert) => approvedIds.has(alert.brotherId),
-    )
-    const currentMonth = brazilYearMonth()
-    const remindedThisMonth = new Set(
-      (logsThisMonth || [])
-        .filter((l) => String(l.sent_date).startsWith(currentMonth))
-        .map((l) => l.brother_id),
-    )
-
-    const profileById = new Map(brothers.map((b) => [b.id, b]))
-
-    let sent = 0
-    let skippedCount = 0
-    let failed = 0
-
-    for (const alert of alerts) {
-      if (remindedThisMonth.has(alert.brotherId)) {
-        skippedCount++
-        continue
-      }
-
-      const profile = profileById.get(alert.brotherId)
-      const email = profile?.email?.trim().toLowerCase()
-      if (!email) {
-        failed++
-        continue
-      }
-
-      const mail = membershipOverdueReminderEmail(
-        profile?.full_name?.trim() || alert.brotherName,
-        alert.overdueLabels,
-        alert.overdueAmount,
-        alert.overdueCount,
-      )
-
-      const result = await sendViaResend({
-        to: email,
-        subject: mail.subject,
-        html: mail.html,
-        text: mail.text,
-      })
-
-      if (!result.ok) {
-        failed++
-        continue
-      }
-
-      const { error: logError } = await admin.from('reminder_logs').insert({
-        brother_id: alert.brotherId,
-        contribution_id: null,
-        sent_date: todayBrazilISODate(),
-        method: 'Email',
-      })
-
-      if (logError) {
-        failed++
-        continue
-      }
-
-      remindedThisMonth.add(alert.brotherId)
-      sent++
-    }
-
-    const parts: string[] = []
-    if (alerts.length === 0) {
-      parts.push('Nenhum irmão elegível para lembrete hoje.')
-    } else {
-      parts.push(`${sent} lembrete(s) enviado(s) por e-mail.`)
-      if (skippedCount > 0) {
-        parts.push(`${skippedCount} ignorado(s) (já enviado neste mês).`)
-      }
-      if (failed > 0) {
-        parts.push(`${failed} falha(s).`)
-      }
-    }
-
-    const message = parts.join(' ')
-    await finalizeRun({
+    await finishRun(admin, runId, {
       alerts_count: alerts.length,
-      sent_count: sent,
-      skipped_count: skippedCount,
-      failed_count: failed,
+      sent_count: summary.sent,
+      skipped_count: summary.skippedCount,
+      failed_count: summary.failed,
       message,
     })
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        source,
-        sent,
-        skippedCount,
-        failed,
-        alertsCount: alerts.length,
-        message,
-      }),
-      {
-        status: 200,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      },
-    )
+    return json({
+      ok: true,
+      source: mode,
+      ...summary,
+      alertsCount: alerts.length,
+      message,
+    })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro inesperado'
     console.error('run-membership-reminders error:', message)
-    await finalizeRun({
+    await finishRun(admin, runId, {
       sent_count: 0,
       skipped_count: 0,
       failed_count: 0,
       message: 'Execução interrompida por erro.',
       error: message,
     })
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    })
+    return json({ error: message }, 500)
   }
 })

@@ -1,6 +1,8 @@
 const SITE_NAME = 'Templários da Paz'
 const LOGIN_URL = 'https://templariosdapazoficial.com.br/login'
 const PAYMENTS_URL = 'https://templariosdapazoficial.com.br/dashboard/payments'
+const MEMBERSHIP_DUE_NOTE =
+  'A mensalidade pode ser paga até o último dia do mês de referência, sem juros.'
 
 function layout(title: string, body: string): string {
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>${title}</title></head>
@@ -83,7 +85,7 @@ Identificamos mensalidades em atraso no ${SITE_NAME}:
 Meses: ${months}
 Valor total em aberto: ${amount}
 
-Vencimento fixo no dia 10 de cada mês, sem juros.${escalationNote}
+${MEMBERSHIP_DUE_NOTE}${escalationNote}
 
 Acesse sua área de pagamentos para regularizar:
 
@@ -107,7 +109,7 @@ ${SITE_NAME}`
 <li><strong>Meses:</strong> ${months}</li>
 <li><strong>Valor total em aberto:</strong> ${amount}</li>
 </ul>
-<p style="font-size:13px;color:#666">Vencimento fixo no dia 10 de cada mês, sem juros.</p>
+<p style="font-size:13px;color:#666">${MEMBERSHIP_DUE_NOTE}</p>
 ${escalationHtml}
 <p><a href="${PAYMENTS_URL}" style="display:inline-block;padding:12px 20px;background:#8B4513;color:#fff;text-decoration:none;border-radius:4px">Ver meus pagamentos</a></p>
 <p style="font-size:13px;color:#666">Ou acesse: ${PAYMENTS_URL}</p>

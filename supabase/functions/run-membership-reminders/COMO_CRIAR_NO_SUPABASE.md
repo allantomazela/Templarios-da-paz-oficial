@@ -4,9 +4,19 @@ Envia e-mails de lembrete de **mensalidades em atraso** para os irmãos, conform
 
 Também é disparada automaticamente pelo **pg_cron** (migration `20260618120000_membership_reminder_automation.sql`), diariamente às **12:00 UTC (9h BRT)**.
 
+## Modos de execução
+
+| Chamada | Quem | Regra |
+| --- | --- | --- |
+| Automática (pg_cron, service role) | Banco | Só envia se `membership_reminder_enabled = true` (padrão: desligado); respeita momento/dias configurados |
+| Manual (`{}`) | Somente administrador | Envia para todos com mensalidade em atraso, mesmo com o automático desligado |
+| Prévia (`{ "dryRun": true }`) | Somente administrador | Retorna a lista de destinatários, sem enviar nem registrar execução |
+
+Em todos os modos, cada irmão recebe no máximo um lembrete por mês. Apenas administradores podem alterar `membership_reminder_*` (trigger `guard_membership_reminder_settings`).
+
 ## Sintoma se não estiver publicada
 
-No navegador (Console), ao clicar em **Executar agora** nos lembretes de mensalidade:
+No navegador (Console), ao clicar em **Enviar lembretes agora** nos lembretes de mensalidade:
 
 ```
 Access to fetch at '.../functions/v1/run-membership-reminders' has been blocked by CORS policy:
@@ -17,11 +27,13 @@ Isso ocorre quando a função **não existe** no projeto Supabase (404 no OPTION
 
 ## Deploy (obrigatório em produção)
 
+Preferencialmente pelo GitHub: **Actions → Publicar Edge Function (manual) → Run workflow** (requer o segredo `SUPABASE_ACCESS_TOKEN`). Ou pela CLI:
+
 ```bash
-npx supabase functions deploy run-membership-reminders --project-ref hxncevpbwcearzxrstzj
+npx supabase functions deploy run-membership-reminders --project-ref hxncevpbwcearzxrstzj --no-verify-jwt
 ```
 
-A autenticação é feita **dentro** da função (`requireAdminOrEditor`). Não use `--no-verify-jwt` para chamadas manuais do painel.
+A autenticação é feita **dentro** da função (`requireAdmin` para chamadas do painel), por isso `verify_jwt` fica desligado em produção.
 
 Para o **cron via pg_net**, o banco envia `Authorization: Bearer <service_role_key>` — também suportado.
 

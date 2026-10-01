@@ -1,0 +1,70 @@
+name: Publicar Edge Function (manual)
+
+# Acionado somente pelo botão "Run workflow" no GitHub (Actions → Publicar Edge Function).
+# Requer o segredo SUPABASE_ACCESS_TOKEN em Settings → Secrets and variables → Actions.
+on:
+  workflow_dispatch:
+    inputs:
+      function:
+        description: 'Edge function a publicar'
+        required: true
+        type: choice
+        options:
+          - run-membership-reminders
+          - run-payables-reminders
+          - auth-send-email
+          - send-user-email
+          - admin-delete-user
+          - optimize-image
+
+concurrency:
+  group: edge-function-${{ inputs.function }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: hxncevpbwcearzxrstzj
+      FUNCTION_NAME: ${{ inputs.function }}
+
+    steps:
+    - name: 1. Baixando código
+      uses: actions/checkout@v6
+
+    - name: 2. Verificando segredo
+      run: |
+        if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+          echo "::error::Segredo SUPABASE_ACCESS_TOKEN não configurado em GitHub → Settings → Secrets → Actions."
+          exit 1
+        fi
+
+    - name: 3. Configurando Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+        cache: 'npm'
+
+    - name: 4. Instalando dependências
+      run: npm install --legacy-peer-deps
+
+    - name: 5. Testes das edge functions
+      run: npx vitest run supabase/functions
+
+    - name: 6. Instalando Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
+
+    - name: 7. Publicando ${{ inputs.function }}
+      run: |
+        # Funções que validam o acesso no próprio código (verify_jwt desligado em produção).
+        NO_VERIFY_JWT="run-membership-reminders auth-send-email send-user-email admin-delete-user"
+        FLAGS=""
+        for fn in $NO_VERIFY_JWT; do
+          if [ "$fn" = "$FUNCTION_NAME" ]; then FLAGS="--no-verify-jwt"; fi
+        done
+        echo "Publicando $FUNCTION_NAME $FLAGS"
+        supabase functions deploy "$FUNCTION_NAME" --project-ref "$SUPABASE_PROJECT_REF" $FLAGS

@@ -114,11 +114,36 @@ export async function fetchMembershipReminderRuns(
   )
 }
 
-export async function runMembershipRemindersManual(): Promise<MembershipReminderRunResult> {
+/** Irmão que receberia o lembrete no envio manual (prévia). */
+export interface MembershipReminderRecipient {
+  brotherId: string
+  brotherName: string
+  email: string | null
+  overdueLabels: string[]
+  overdueAmount: number
+  overdueCount: number
+  alreadyRemindedThisMonth: boolean
+}
+
+export interface MembershipReminderPreviewResult {
+  ok: boolean
+  recipients: MembershipReminderRecipient[]
+  error?: string
+}
+
+interface InvokeResult<T> {
+  ok: boolean
+  payload?: T
+  error?: string
+}
+
+async function invokeMembershipReminders<T>(
+  body: Record<string, unknown>,
+): Promise<InvokeResult<T>> {
   try {
     const { data, error } = await supabase.functions.invoke(
       'run-membership-reminders',
-      { body: { source: 'manual' } },
+      { body },
     )
 
     if (error) {
@@ -126,24 +151,37 @@ export async function runMembershipRemindersManual(): Promise<MembershipReminder
       return { ok: false, error: formatEdgeFunctionInvokeError(error) }
     }
 
-    const payload = data as MembershipReminderRunResult & { error?: string }
-    if (payload?.error) {
-      return { ok: false, error: payload.error }
-    }
-
-    return {
-      ok: true,
-      skipped: payload.skipped,
-      message: payload.message,
-      sent: payload.sent,
-      skippedCount: payload.skippedCount,
-      failed: payload.failed,
-    }
+    const payload = data as T & { error?: string }
+    if (payload?.error) return { ok: false, error: payload.error }
+    return { ok: true, payload }
   } catch (e) {
-    logError('runMembershipRemindersManual failed', e)
-    return {
-      ok: false,
-      error: formatEdgeFunctionInvokeError(e),
-    }
+    logError('run-membership-reminders invoke failed', e)
+    return { ok: false, error: formatEdgeFunctionInvokeError(e) }
+  }
+}
+
+/** Lista quem receberia o lembrete manual, sem enviar nada. */
+export async function previewMembershipReminders(): Promise<MembershipReminderPreviewResult> {
+  const result = await invokeMembershipReminders<{
+    recipients?: MembershipReminderRecipient[]
+  }>({ dryRun: true })
+
+  if (!result.ok) return { ok: false, recipients: [], error: result.error }
+  return { ok: true, recipients: result.payload?.recipients ?? [] }
+}
+
+/** Envia agora para todos com mensalidade em atraso (máx. 1 por irmão/mês). */
+export async function sendMembershipRemindersNow(): Promise<MembershipReminderRunResult> {
+  const result = await invokeMembershipReminders<MembershipReminderRunResult>({})
+  if (!result.ok) return { ok: false, error: result.error }
+
+  const payload = result.payload ?? { ok: true }
+  return {
+    ok: true,
+    skipped: payload.skipped,
+    message: payload.message,
+    sent: payload.sent,
+    skippedCount: payload.skippedCount,
+    failed: payload.failed,
   }
 }

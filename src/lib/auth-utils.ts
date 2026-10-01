@@ -76,6 +76,37 @@ export function getPasswordRecoveryErrorMessage(error: unknown): string {
   return 'Não foi possível enviar o e-mail de recuperação agora. Tente novamente em alguns minutos ou fale com a Secretaria da loja.'
 }
 
+/**
+ * Mensagem amigável para falhas ao salvar a nova senha (updateUser).
+ */
+export function getPasswordUpdateErrorMessage(error: unknown): string {
+  const err = (error ?? {}) as { message?: string; status?: number; code?: string }
+  const message = (err.message ?? '').toLowerCase()
+
+  if (err.code === 'same_password' || message.includes('different from the old password')) {
+    return 'A nova senha deve ser diferente da senha atual.'
+  }
+  if (message.includes('known to be weak') || message.includes('easy to guess')) {
+    return 'Essa senha é muito comum e fácil de adivinhar. Escolha uma senha mais forte.'
+  }
+  if (message.includes('at least one character of each')) {
+    return 'A senha precisa ter letras maiúsculas, minúsculas, números e símbolos.'
+  }
+  if (err.code === 'weak_password' || message.includes('password should be at least')) {
+    return 'A senha é muito curta ou fraca. Use pelo menos 8 caracteres.'
+  }
+  if (message.includes('session missing') || message.includes('session_not_found') || err.status === 401) {
+    return 'Sua sessão de recuperação expirou. Solicite uma nova recuperação de senha na tela de login.'
+  }
+  if (err.status === 429 || message.includes('rate limit')) {
+    return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.'
+  }
+  if (message.includes('failed to fetch') || message.includes('network')) {
+    return 'Falha de conexão. Verifique sua internet e tente novamente.'
+  }
+  return 'Não foi possível redefinir a senha. Tente novamente ou fale com a Secretaria da loja.'
+}
+
 const SUPABASE_AUTH_KEY_PREFIX = 'sb-'
 const SUPABASE_AUTH_KEY_SUFFIX = '-auth-token'
 

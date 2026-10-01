@@ -23,6 +23,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
 import { supabase } from '@/lib/supabase/client'
+import { getPasswordUpdateErrorMessage } from '@/lib/auth-utils'
 import {
   exchangeRecoveryCode,
   readRecoveryLinkParams,
@@ -134,7 +135,7 @@ export default function ResetPassword() {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: error.message || 'Falha ao redefinir a senha.',
+        description: getPasswordUpdateErrorMessage(error),
       })
     } else {
       await supabase.auth.signOut()

@@ -51,6 +51,12 @@ interface AuthState {
 
 const PROFILE_TIMEOUT_MS = 3000
 
+/**
+ * Incrementado a cada evento de auth: a busca de perfil adiada só aplica o
+ * resultado se nenhum evento mais novo (ex.: SIGNED_OUT) chegou nesse meio-tempo.
+ */
+let authEventSequence = 0
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
@@ -173,7 +179,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         })
       }
 
-      supabase.auth.onAuthStateChange(async (event, session) => {
+      // Callback síncrono: o Supabase segura o lock de auth enquanto notifica os
+      // ouvintes (updateUser, refresh de token). Chamar o Supabase com await aqui
+      // causa deadlock; por isso a busca do perfil é adiada com setTimeout.
+      supabase.auth.onAuthStateChange((event, session) => {
+        authEventSequence += 1
+        const eventSequence = authEventSequence
+
         // Handle token refresh errors
         if (event === 'TOKEN_REFRESHED' && !session) {
           // Token refresh failed, clear session e storage para evitar loop
@@ -201,53 +213,63 @@ export const useAuthStore = create<AuthState>((set) => ({
           return
         }
 
-        if (session) {
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
-
-            if (profileError) {
-              logError('Error fetching profile on auth change', profileError)
-            }
-
-            const userProfile = profile
-              ? sanitizeAuthProfile(profile as Profile)
-              : null
-            const isMasterAdmin = isMasterAdminEmail(session.user.email)
-
-            let role = userProfile?.role || 'member'
-            let status = userProfile?.status || 'pending'
-
-            if (isMasterAdmin) {
-              role = 'admin'
-              status = 'approved'
-            }
-
-            set({
-              session,
-              user: {
-                ...session.user,
-                role,
-                profile: userProfile || {
-                  id: session.user.id,
-                  full_name: session.user.user_metadata?.name || 'Usuário',
-                  role: role as any,
-                  status: status as any,
-                },
-              },
-              isAuthenticated: true,
-              loading: false,
-              initialized: true,
-            })
-          } catch (error) {
-            logError('Error updating auth state', error)
-            set({ loading: false, initialized: true })
-          }
-        }
+        setTimeout(() => {
+          void syncProfileForSession(session, eventSequence)
+        }, 0)
       })
+
+      async function syncProfileForSession(
+        session: Session,
+        eventSequence: number,
+      ) {
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle()
+
+          if (eventSequence !== authEventSequence) return
+
+          if (profileError) {
+            logError('Error fetching profile on auth change', profileError)
+          }
+
+          const userProfile = profile
+            ? sanitizeAuthProfile(profile as Profile)
+            : null
+          const isMasterAdmin = isMasterAdminEmail(session.user.email)
+
+          let role = userProfile?.role || 'member'
+          let status = userProfile?.status || 'pending'
+
+          if (isMasterAdmin) {
+            role = 'admin'
+            status = 'approved'
+          }
+
+          set({
+            session,
+            user: {
+              ...session.user,
+              role,
+              profile: userProfile || {
+                id: session.user.id,
+                full_name: session.user.user_metadata?.name || 'Usuário',
+                role: role as any,
+                status: status as any,
+              },
+            },
+            isAuthenticated: true,
+            loading: false,
+            initialized: true,
+          })
+        } catch (error) {
+          if (eventSequence !== authEventSequence) return
+          logError('Error updating auth state', error)
+          set({ loading: false, initialized: true })
+        }
+      }
     } catch (error) {
       if (isAuthErrorUtil(error)) {
         logWarning('Erro de autenticação na inicialização, limpando sessão', error)

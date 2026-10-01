@@ -23,6 +23,11 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
 import { supabase } from '@/lib/supabase/client'
+import {
+  exchangeRecoveryCode,
+  readRecoveryLinkParams,
+  verifyRecoveryTokenHash,
+} from '@/lib/password-recovery'
 import { ShieldCheck, Loader2, Lock } from 'lucide-react'
 
 const resetSchema = z
@@ -40,6 +45,7 @@ const resetSchema = z
 export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
+  const [tokenHash, setTokenHash] = useState<string | null>(null)
   const { updatePassword, isAuthenticated, initialize } = useAuthStore()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -55,11 +61,14 @@ export default function ResetPassword() {
     async function prepareRecoverySession() {
       await initialize()
 
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (error) {
+      const { tokenHash: linkTokenHash, code } = readRecoveryLinkParams(
+        window.location.search,
+      )
+      if (linkTokenHash) {
+        if (!cancelled) setTokenHash(linkTokenHash)
+      } else if (code) {
+        const { ok } = await exchangeRecoveryCode(code)
+        if (!ok) {
           toast({
             variant: 'destructive',
             title: 'Link inválido ou expirado',
@@ -89,18 +98,35 @@ export default function ResetPassword() {
   }, [initialize, toast])
 
   const onSubmit = async (data: z.infer<typeof resetSchema>) => {
-    const { data: sessionData } = await supabase.auth.getSession()
-    if (!sessionData.session && !isAuthenticated) {
-      toast({
-        variant: 'destructive',
-        title: 'Sessão inválida',
-        description:
-          'Abra o link do e-mail novamente ou solicite uma nova recuperação de senha.',
-      })
-      return
+    setIsLoading(true)
+
+    if (tokenHash) {
+      const { ok } = await verifyRecoveryTokenHash(tokenHash)
+      if (!ok) {
+        setIsLoading(false)
+        toast({
+          variant: 'destructive',
+          title: 'Link inválido ou expirado',
+          description:
+            'Este link já foi usado ou expirou. Solicite uma nova recuperação de senha na tela de login.',
+        })
+        return
+      }
+      setTokenHash(null)
+    } else {
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session && !isAuthenticated) {
+        setIsLoading(false)
+        toast({
+          variant: 'destructive',
+          title: 'Sessão inválida',
+          description:
+            'Abra o link do e-mail novamente ou solicite uma nova recuperação de senha.',
+        })
+        return
+      }
     }
 
-    setIsLoading(true)
     const { error } = await updatePassword(data.password)
     setIsLoading(false)
 

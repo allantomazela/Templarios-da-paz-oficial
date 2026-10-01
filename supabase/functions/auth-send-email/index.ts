@@ -128,6 +128,23 @@ function authorizeHook(
   return { ok: false, status: 401, message: 'Não autorizado' }
 }
 
+/**
+ * Link direto para o app com token_hash: o app valida via verifyOtp, sem depender
+ * do code_verifier PKCE salvo no navegador que pediu a recuperação (o irmão
+ * costuma abrir o e-mail em outro navegador/aparelho).
+ */
+function buildResetLink(redirectTo: string | undefined, tokenHash: string): string {
+  let url: URL
+  try {
+    url = new URL(redirectTo || `${SITE_URL}/reset-password`)
+  } catch {
+    url = new URL(`${SITE_URL}/reset-password`)
+  }
+  url.searchParams.set('token_hash', tokenHash)
+  url.searchParams.set('type', 'recovery')
+  return url.toString()
+}
+
 serve(async (req) => {
   try {
   if (req.method !== 'POST') {
@@ -157,10 +174,10 @@ serve(async (req) => {
     return jsonResponse({}, 200)
   }
 
-  const redirectTo =
-    body.email_data.redirect_to || `${SITE_URL}/reset-password`
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  const resetLink = `${supabaseUrl}/auth/v1/verify?token=${body.email_data.token_hash}&type=recovery&redirect_to=${encodeURIComponent(redirectTo)}`
+  const resetLink = buildResetLink(
+    body.email_data.redirect_to,
+    body.email_data.token_hash,
+  )
 
   const mail = passwordRecoveryEmail(name, resetLink)
   const result = await sendViaResend({

@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import {
   Form,
   FormControl,
@@ -184,15 +184,12 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel>Nova Senha</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="password"
-                          className="pl-9"
-                          placeholder="******"
-                          {...field}
-                        />
-                      </div>
+                      <PasswordInput
+                        leftIcon={<Lock />}
+                        autoComplete="new-password"
+                        placeholder="******"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -205,15 +202,12 @@ export default function ResetPassword() {
                   <FormItem>
                     <FormLabel>Confirmar Nova Senha</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="password"
-                          className="pl-9"
-                          placeholder="******"
-                          {...field}
-                        />
-                      </div>
+                      <PasswordInput
+                        leftIcon={<Lock />}
+                        autoComplete="new-password"
+                        placeholder="******"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

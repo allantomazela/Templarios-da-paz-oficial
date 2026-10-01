@@ -126,6 +126,48 @@ describe('buildMembershipScheduleForBrother', () => {
     expect(alerts.some((a) => a.brotherId === 'a')).toBe(true)
     expect(alerts.every((a) => a.overdueCount > 0)).toBe(true)
   })
+
+  it('desligado: não gera meses após o último lançamento', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 1))
+
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Allan',
+      [
+        contribution({ month: 'Junho', year: 2026 }),
+        contribution({ id: '2', month: 'Agosto', year: 2026 }),
+      ],
+      settings,
+      '2026-06-15T12:00:00Z',
+      'desligado',
+    )
+
+    vi.useRealTimers()
+    expect(schedule.entries.map((e) => e.month)).toEqual([8, 7, 6])
+    expect(schedule.overdueMonthCount).toBe(1)
+    expect(schedule.overdueEntries[0]?.month).toBe(7)
+  })
+
+  it('irmão fora da lista de cobráveis aparece só com o histórico', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 1))
+
+    const schedules = buildAllMembershipSchedules(
+      [
+        contribution({ brotherId: 'blocked', month: 'Junho', year: 2026 }),
+        contribution({ id: '2', brotherId: 'blocked', month: 'Julho', year: 2026 }),
+      ],
+      [],
+      {},
+      settings,
+    )
+
+    vi.useRealTimers()
+    const blocked = schedules.find((s) => s.brotherId === 'blocked')
+    expect(blocked?.entries.map((e) => e.month)).toEqual([7, 6])
+    expect(buildOverdueBrotherAlerts(schedules)).toHaveLength(0)
+  })
 })
 
 describe('buildReminderAlerts', () => {

@@ -356,6 +356,29 @@ function resolveScheduleStart(
   return { year: startYear, month: startMonth }
 }
 
+/**
+ * Desligados não acumulam meses novos: o cronograma vai só até o último
+ * período com lançamento registrado (ou fica vazio sem lançamentos).
+ */
+function resolveScheduleEnd(
+  now: Date,
+  contributions: Contribution[],
+  situation?: MembershipSituation | null,
+): { year: number; month: number } | null {
+  if (situation !== 'desligado') {
+    return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  }
+
+  let end: { year: number; month: number } | null = null
+  for (const c of contributions) {
+    const m = monthNameToNumber(c.month)
+    if (!end || c.year > end.year || (c.year === end.year && m > end.month)) {
+      end = { year: c.year, month: m }
+    }
+  }
+  return end
+}
+
 function groupContributionsByPeriod(
   contributions: Contribution[],
 ): Map<string, Contribution[]> {
@@ -470,19 +493,16 @@ export function buildMembershipScheduleForBrother(
   const start = resolveScheduleStart(memberSinceDate, brotherContributions)
 
   const now = new Date()
-  const endYear = now.getFullYear()
-  const endMonth = now.getMonth() + 1
+  const end = resolveScheduleEnd(now, brotherContributions, situation)
   const today = startOfDay(now)
   const expectedAmount = resolveScheduleExpectedAmount(settings, situation)
 
   const entries: MembershipScheduleEntry[] = []
+  const months = end
+    ? iterMonths(start.year, start.month, end.year, end.month)
+    : []
 
-  for (const { year, month } of iterMonths(
-    start.year,
-    start.month,
-    endYear,
-    endMonth,
-  )) {
+  for (const { year, month } of months) {
     const key = monthKey(year, month)
     const periodContributions = byPeriod.get(key) ?? []
 
@@ -577,6 +597,8 @@ export function buildAllMembershipSchedules(
       const brother = brothers.find((b) => b.id === brotherId)
       const name =
         brotherNames[brotherId] || brother?.full_name || 'Sem nome'
+      // Fora da lista de cobráveis (bloqueado/desligado): só o histórico lançado.
+      const situation = brother ? brother.membershipSituation : 'desligado'
 
       return buildMembershipScheduleForBrother(
         brotherId,
@@ -584,7 +606,7 @@ export function buildAllMembershipSchedules(
         contributions,
         settings,
         brother?.created_at,
-        brother?.membershipSituation,
+        situation,
       )
     })
     .sort((a, b) => a.brotherName.localeCompare(b.brotherName, 'pt-BR'))

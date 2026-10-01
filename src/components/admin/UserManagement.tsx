@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -57,6 +57,8 @@ import {
 import { Profile } from '@/stores/useAuthStore'
 import { useCanApproveUsers } from '@/hooks/use-can-approve-users'
 import { sendUserEmail } from '@/lib/user-email-api'
+import { findSimilarNameMatches } from '@/lib/person-name-similarity'
+import { DuplicateApprovalDialog } from '@/components/admin/DuplicateApprovalDialog'
 
 function roleLabel(role: Profile['role']) {
   switch (role) {
@@ -90,6 +92,20 @@ export function UserManagement() {
   const [editUser, setEditUser] = useState<Profile | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [approvalCandidate, setApprovalCandidate] = useState<{
+    user: Profile
+    matches: Profile[]
+  } | null>(null)
+
+  const similarByPendingUserId = useMemo(() => {
+    const map = new Map<string, Profile[]>()
+    for (const user of users) {
+      if (user.status !== 'pending') continue
+      const matches = findSimilarNameMatches(user, users)
+      if (matches.length > 0) map.set(user.id, matches)
+    }
+    return map
+  }, [users])
 
   const isSystemAdmin =
     currentUser?.role === 'admin' || isMasterAdminEmail(currentUser?.email)
@@ -158,6 +174,22 @@ export function UserManagement() {
           : errorMessage,
       })
     }
+  }
+
+  const requestApproval = (user: Profile) => {
+    const matches = similarByPendingUserId.get(user.id) ?? []
+    if (matches.length > 0) {
+      setApprovalCandidate({ user, matches })
+      return
+    }
+    void handleStatusChange(user, 'approved')
+  }
+
+  const confirmApproval = () => {
+    if (!approvalCandidate) return
+    const { user } = approvalCandidate
+    setApprovalCandidate(null)
+    void handleStatusChange(user, 'approved')
   }
 
   const handleSaveProfile = async (
@@ -327,6 +359,14 @@ export function UserManagement() {
                         <Mail className="h-3 w-3" />
                         {user.email || 'Email não disponível'}
                       </div>
+                      {similarByPendingUserId.has(user.id) && (
+                        <Badge
+                          variant="outline"
+                          className="mt-1 w-fit border-amber-300 bg-amber-50 text-amber-800"
+                        >
+                          Nome parecido com cadastro existente
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -394,7 +434,7 @@ export function UserManagement() {
                           <DropdownMenuSeparator />
                           {user.status === 'pending' && (
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(user, 'approved')}
+                              onClick={() => requestApproval(user)}
                               className="text-green-600 focus:text-green-600 focus:bg-green-50"
                             >
                               <CheckCircle className="mr-2 h-4 w-4" /> Aprovar
@@ -458,6 +498,13 @@ export function UserManagement() {
           </TableBody>
         </Table>
       </div>
+
+      <DuplicateApprovalDialog
+        user={approvalCandidate?.user ?? null}
+        matches={approvalCandidate?.matches ?? []}
+        onCancel={() => setApprovalCandidate(null)}
+        onConfirm={confirmApproval}
+      />
 
       <UserEditDialog
         open={!!editUser}

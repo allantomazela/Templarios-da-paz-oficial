@@ -15,7 +15,6 @@ on:
           - auth-send-email
           - send-user-email
           - admin-delete-user
-          - optimize-image
 
 concurrency:
   group: edge-function-${{ inputs.function }}

@@ -1,4 +1,8 @@
 import { MEMBERSHIP_LABELS } from './membership-labels.ts'
+import {
+  resolveScheduleExpectedAmount,
+  type MembershipSituation,
+} from './membership-situation.ts'
 
 export interface Contribution {
   id: string
@@ -41,6 +45,9 @@ export const MEMBERSHIP_OVERDUE_ESCALATION_MONTHS = 3
 export interface MembershipFeeScheduleSettings {
   defaultAmount: number
   dueDay: number
+  /** Mensalidade pura (afastados). Se omitido, usa defaultAmount. */
+  baseAmount?: number
+  sessionPackageAmount?: number
 }
 
 export const DEFAULT_MEMBERSHIP_DUE_DAY = 10
@@ -272,6 +279,29 @@ function resolveScheduleStart(
   return { year: startYear, month: startMonth }
 }
 
+/**
+ * Desligados não acumulam meses novos: o cronograma vai só até o último
+ * período com lançamento registrado (ou fica vazio sem lançamentos).
+ */
+function resolveScheduleEnd(
+  now: Date,
+  contributions: Contribution[],
+  situation?: MembershipSituation | null,
+): { year: number; month: number } | null {
+  if (situation !== 'desligado') {
+    return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  }
+
+  let end: { year: number; month: number } | null = null
+  for (const c of contributions) {
+    const m = monthNameToNumber(c.month)
+    if (!end || c.year > end.year || (c.year === end.year && m > end.month)) {
+      end = { year: c.year, month: m }
+    }
+  }
+  return end
+}
+
 function groupContributionsByPeriod(
   contributions: Contribution[],
 ): Map<string, Contribution[]> {
@@ -378,6 +408,7 @@ export function buildMembershipScheduleForBrother(
   contributions: Contribution[],
   settings: MembershipFeeScheduleSettings,
   memberSince?: string | null,
+  situation?: MembershipSituation | null,
 ): BrotherMembershipSchedule {
   const brotherContributions = contributions.filter((c) => c.brotherId === brotherId)
   const byPeriod = groupContributionsByPeriod(brotherContributions)
@@ -385,19 +416,16 @@ export function buildMembershipScheduleForBrother(
   const start = resolveScheduleStart(memberSinceDate, brotherContributions)
 
   const now = new Date()
-  const endYear = now.getFullYear()
-  const endMonth = now.getMonth() + 1
+  const end = resolveScheduleEnd(now, brotherContributions, situation)
   const today = startOfDay(now)
-  const expectedAmount = settings.defaultAmount
+  const expectedAmount = resolveScheduleExpectedAmount(settings, situation)
 
   const entries: MembershipScheduleEntry[] = []
+  const months = end
+    ? iterMonths(start.year, start.month, end.year, end.month)
+    : []
 
-  for (const { year, month } of iterMonths(
-    start.year,
-    start.month,
-    endYear,
-    endMonth,
-  )) {
+  for (const { year, month } of months) {
     const key = monthKey(year, month)
     const periodContributions = byPeriod.get(key) ?? []
 
@@ -414,7 +442,8 @@ export function buildMembershipScheduleForBrother(
     )
 
     const dueDate = membershipMonthEndDueDateIso(year, month)
-    const remainingAmount = Math.max(0, expectedAmount - paidAmount)
+    const theoreticalRemaining = Math.max(0, expectedAmount - paidAmount)
+    const remainingAmount = Math.max(theoreticalRemaining, pendingAmount)
 
     const status = resolveMonthStatus(
       paidAmount,
@@ -475,7 +504,12 @@ export function buildMembershipScheduleForBrother(
 
 export function buildAllMembershipSchedules(
   contributions: Contribution[],
-  brothers: { id: string; full_name: string | null; created_at?: string | null }[],
+  brothers: {
+    id: string
+    full_name: string | null
+    created_at?: string | null
+    membershipSituation?: MembershipSituation | null
+  }[],
   brotherNames: Record<string, string>,
   settings: MembershipFeeScheduleSettings,
 ): BrotherMembershipSchedule[] {
@@ -489,6 +523,8 @@ export function buildAllMembershipSchedules(
       const brother = brothers.find((b) => b.id === brotherId)
       const name =
         brotherNames[brotherId] || brother?.full_name || 'Sem nome'
+      // Fora da lista de cobráveis (bloqueado/desligado): só o histórico lançado.
+      const situation = brother ? brother.membershipSituation : 'desligado'
 
       return buildMembershipScheduleForBrother(
         brotherId,
@@ -496,6 +532,7 @@ export function buildAllMembershipSchedules(
         contributions,
         settings,
         brother?.created_at,
+        situation,
       )
     })
     .sort((a, b) => a.brotherName.localeCompare(b.brotherName, 'pt-BR'))

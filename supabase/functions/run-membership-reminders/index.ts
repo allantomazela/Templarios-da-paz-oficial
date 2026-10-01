@@ -10,6 +10,12 @@ import {
   type Contribution,
   type MembershipFeeScheduleSettings,
 } from '../_shared/membership-schedule.ts'
+import {
+  DEFAULT_MEMBERSHIP_BASE_AMOUNT,
+  DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT,
+  inferMembershipSituation,
+  type BrotherSituationFields,
+} from '../_shared/membership-situation.ts'
 
 const CONTRIBUTION_MONTHS = [
   'Janeiro',
@@ -45,6 +51,41 @@ interface ReminderSettingsRow {
   membership_reminder_days: number
   membership_fee_amount: number | null
   membership_fee_due_day: number | null
+  membership_fee_base_amount: number | null
+  membership_fee_session_package_amount: number | null
+}
+
+interface ApprovedProfileRow {
+  id: string
+  full_name: string | null
+  email: string | null
+  created_at: string
+  brothers?: BrotherSituationFields | BrotherSituationFields[] | null
+}
+
+/** Mesma composição de fetchMembershipFeeSettings (src/lib/contribution-payments.ts). */
+function buildFeeSettings(
+  settings: ReminderSettingsRow | null,
+): MembershipFeeScheduleSettings {
+  const baseAmount =
+    Number(settings?.membership_fee_base_amount) || DEFAULT_MEMBERSHIP_BASE_AMOUNT
+  const sessionPackageAmount =
+    Number(settings?.membership_fee_session_package_amount) ||
+    DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT
+
+  return {
+    baseAmount,
+    sessionPackageAmount,
+    defaultAmount:
+      Number(settings?.membership_fee_amount) || baseAmount + sessionPackageAmount,
+    dueDay: Number(settings?.membership_fee_due_day) || 10,
+  }
+}
+
+function brotherRowOf(profile: ApprovedProfileRow): BrotherSituationFields | null {
+  return Array.isArray(profile.brothers)
+    ? profile.brothers[0] ?? null
+    : profile.brothers ?? null
 }
 
 function isServiceRoleBearer(bearer: string, serviceRoleKey: string): boolean {
@@ -199,7 +240,7 @@ serve(async (req) => {
     const { data: settingsRow, error: settingsError } = await admin
       .from('site_settings')
       .select(
-        'membership_reminder_enabled, membership_reminder_frequency, membership_reminder_days, membership_fee_amount, membership_fee_due_day',
+        'membership_reminder_enabled, membership_reminder_frequency, membership_reminder_days, membership_fee_amount, membership_fee_due_day, membership_fee_base_amount, membership_fee_session_package_amount',
       )
       .eq('id', 1)
       .maybeSingle()
@@ -231,19 +272,18 @@ serve(async (req) => {
       )
     }
 
-    const feeSettings: MembershipFeeScheduleSettings = {
-      defaultAmount: Number(settings?.membership_fee_amount) || 150,
-      dueDay: Number(settings?.membership_fee_due_day) || 10,
-    }
+    const feeSettings = buildFeeSettings(settings)
 
     const frequency = settings?.membership_reminder_frequency ?? 'after'
     const days = Number(settings?.membership_reminder_days) || 0
 
-    const [{ data: brothers, error: brothersError }, { data: contributionsData, error: contributionsError }, { data: logsThisMonth, error: logsError }] =
+    const [{ data: brothersData, error: brothersError }, { data: contributionsData, error: contributionsError }, { data: logsThisMonth, error: logsError }] =
       await Promise.all([
         admin
           .from('profiles')
-          .select('id, full_name, email, created_at')
+          .select(
+            'id, full_name, email, created_at, brothers!brothers_profile_id_fkey(status, regular_status, membership_situation)',
+          )
           .eq('status', 'approved'),
         admin.from('contributions').select('id, brother_id, month, year, amount, status'),
         admin
@@ -256,27 +296,32 @@ serve(async (req) => {
     if (contributionsError) throw contributionsError
     if (logsError) throw logsError
 
+    const brothers = (brothersData || []) as ApprovedProfileRow[]
     const contributions = (contributionsData || []).map((row) =>
       mapContributionRow(row as ContributionRow)
     )
 
     const brotherNames: Record<string, string> = {}
-    for (const brother of brothers || []) {
+    for (const brother of brothers) {
       brotherNames[brother.id] = brother.full_name?.trim() || 'Sem nome'
     }
 
     const schedules = buildAllMembershipSchedules(
       contributions,
-      (brothers || []).map((b) => ({
+      brothers.map((b) => ({
         id: b.id,
         full_name: b.full_name,
         created_at: b.created_at,
+        membershipSituation: inferMembershipSituation(brotherRowOf(b)),
       })),
       brotherNames,
       feeSettings,
     )
 
-    const alerts = buildReminderAlerts(schedules, frequency, days)
+    const approvedIds = new Set(brothers.map((b) => b.id))
+    const alerts = buildReminderAlerts(schedules, frequency, days).filter(
+      (alert) => approvedIds.has(alert.brotherId),
+    )
     const currentMonth = brazilYearMonth()
     const remindedThisMonth = new Set(
       (logsThisMonth || [])
@@ -284,9 +329,7 @@ serve(async (req) => {
         .map((l) => l.brother_id),
     )
 
-    const profileById = new Map(
-      (brothers || []).map((b) => [b.id, b]),
-    )
+    const profileById = new Map(brothers.map((b) => [b.id, b]))
 
     let sent = 0
     let skippedCount = 0

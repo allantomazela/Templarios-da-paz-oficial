@@ -52,7 +52,11 @@ import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getMembershipLaunchGuidance } from '@/lib/membership-payment-guidance'
-import { isMembershipHistoricalPeriod } from '@/lib/membership-schedule'
+import {
+  isMembershipHistoricalPeriod,
+  resolveScheduleExpectedAmount,
+} from '@/lib/membership-schedule'
+import { ContributionAmountWarning } from '@/components/financial/ContributionAmountWarning'
 import {
   detectTreasuryModeFromContribution,
   stripControlOnlyNote,
@@ -147,9 +151,7 @@ export function ContributionDialog({
   launchFromSchedule = false,
   defaultTreasuryMode = 'standard',
 }: ContributionDialogProps) {
-  const [brothers, setBrothers] = useState<
-    { id: string; full_name: string | null }[]
-  >([])
+  const [brothers, setBrothers] = useState<BrotherOption[]>([])
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([])
   const [linkableTransactions, setLinkableTransactions] = useState<
     LinkableMensalidadeTransaction[]
@@ -179,7 +181,14 @@ export function ContributionDialog({
   const watchMonth = form.watch('month')
   const watchYear = form.watch('year')
   const watchTreasuryMode = form.watch('treasuryMode')
+  const watchAmount = form.watch('amount')
   const selectedPaymentMethod = getPaymentMethodFromNotes(watchNotes)
+
+  const expectedAmount = useMemo(() => {
+    if (!feeSettings) return null
+    const brother = brothers.find((b) => b.id === watchBrotherId)
+    return resolveScheduleExpectedAmount(feeSettings, brother?.membershipSituation)
+  }, [feeSettings, brothers, watchBrotherId])
 
   const isProductionPeriod = useMemo(() => {
     if (!watchMonth) return false
@@ -550,6 +559,11 @@ export function ContributionDialog({
                 )}
               />
             </div>
+
+            <ContributionAmountWarning
+              amount={watchAmount}
+              expectedAmount={expectedAmount}
+            />
 
             {watchStatus === 'Pago' && (
               <>

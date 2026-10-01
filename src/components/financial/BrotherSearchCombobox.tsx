@@ -16,10 +16,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import type { MembershipSituation } from '@/lib/brother-membership-situation'
 
 export interface BrotherOption {
   id: string
   full_name: string | null
+  membershipSituation?: MembershipSituation | null
 }
 
 interface BrotherSearchComboboxProps {

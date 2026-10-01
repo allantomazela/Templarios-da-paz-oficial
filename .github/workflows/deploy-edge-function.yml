@@ -67,4 +67,4 @@ jobs:
           if [ "$fn" = "$FUNCTION_NAME" ]; then FLAGS="--no-verify-jwt"; fi
         done
         echo "Publicando $FUNCTION_NAME $FLAGS"
-        supabase functions deploy "$FUNCTION_NAME" --project-ref "$SUPABASE_PROJECT_REF" $FLAGS
+        supabase functions deploy "$FUNCTION_NAME" --project-ref "$SUPABASE_PROJECT_REF" --use-api $FLAGS

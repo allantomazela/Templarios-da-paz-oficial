@@ -313,7 +313,12 @@ export function mapContributionFromDB(row: ContributionDB): Contribution {
   }
 }
 
-export function mapContributionToDB(contribution: Partial<Contribution>): Partial<ContributionDB> {
+/** Formato gravado no banco: o mês sempre vai como número (INTEGER 1–12). */
+export type ContributionWriteDB = Omit<ContributionDB, 'month'> & { month: number }
+
+export function mapContributionToDB(
+  contribution: Partial<Contribution>,
+): Partial<ContributionWriteDB> {
   return {
     brother_id: contribution.brotherId,
     month: contributionMonthNameToNumber(contribution.month),

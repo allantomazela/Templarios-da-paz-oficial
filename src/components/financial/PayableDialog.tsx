@@ -36,7 +36,7 @@ const payableSchema = z.object({
   description: z.string().min(3, 'Descrição é obrigatória'),
   supplierName: z.string().optional(),
   categoryId: z.string().min(1, 'Categoria é obrigatória'),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  amount: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
   dueDate: z.string().min(1, 'Vencimento é obrigatório'),
   documentReference: z.string().optional(),
   notes: z.string().optional(),

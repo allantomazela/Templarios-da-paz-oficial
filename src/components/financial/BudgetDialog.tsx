@@ -40,7 +40,7 @@ const budgetSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
   type: z.enum(['Receita', 'Despesa']),
   category: z.string().optional(),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  amount: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
   period: z.enum(['Mensal', 'Anual', 'Personalizado']),
 })
 

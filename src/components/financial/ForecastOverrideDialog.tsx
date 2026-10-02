@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import type { ForecastComparisonRow } from '@/lib/forecast-types'
 
 const overrideSchema = z.object({
-  expectedAmountOverride: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  expectedAmountOverride: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
   notes: z.string().optional(),
 })
 

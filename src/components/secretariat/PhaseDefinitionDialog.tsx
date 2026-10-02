@@ -25,7 +25,7 @@ import { FormHeader } from '@/components/ui/form-header'
 const phaseSchema = z.object({
   name: z.string().min(2, 'Nome da fase é obrigatório'),
   description: z.string().optional(),
-  order: z.coerce.number().int().min(1, 'Ordem deve ser pelo menos 1'),
+  order: z.coerce.number<number>().int().min(1, 'Ordem deve ser pelo menos 1'),
 })
 
 type PhaseFormValues = z.infer<typeof phaseSchema>

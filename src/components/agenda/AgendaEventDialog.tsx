@@ -63,7 +63,7 @@ const eventSchema = z
     locationId: z.string().min(1, 'Selecione um local'),
     customLocation: z.string().optional(),
     description: z.string().min(3, 'Descrição é obrigatória'),
-    attendees: z.coerce.number().min(0, 'Número de participantes inválido'),
+    attendees: z.coerce.number<number>().min(0, 'Número de participantes inválido'),
     timeline: z
     .array(
       z.object({
@@ -76,7 +76,7 @@ const eventSchema = z
     .array(
       z.object({
         type: z.enum(['notification', 'email']),
-        minutesBefore: z.coerce.number().min(1),
+        minutesBefore: z.coerce.number<number>().min(1),
       }),
     )
     .optional(),

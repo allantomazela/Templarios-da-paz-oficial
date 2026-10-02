@@ -38,7 +38,7 @@ interface CategoryFromDB {
 
 const goalSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
-  targetAmount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  targetAmount: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
   linkedCategory: z.string().optional(),
   deadline: z.string().min(1, 'Prazo é obrigatório'),
 })

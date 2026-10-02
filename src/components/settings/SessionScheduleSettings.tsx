@@ -43,14 +43,14 @@ import {
 } from '@/lib/event-locations'
 
 const sessionScheduleSchema = z.object({
-  weekday: z.coerce.number().min(0).max(6),
+  weekday: z.coerce.number<number>().min(0).max(6),
   weeksOfMonth: z
     .array(z.number())
     .min(1, 'Selecione ao menos uma semana do mês'),
   defaultTime: z.string().regex(/^\d{2}:\d{2}$/, 'Use o formato HH:mm'),
   defaultTitle: z.string().min(3, 'Título é obrigatório'),
   defaultLocationId: z.string().min(1, 'Selecione um local'),
-  monthsAhead: z.coerce.number().min(1).max(24),
+  monthsAhead: z.coerce.number<number>().min(1).max(24),
 })
 
 type SessionScheduleFormValues = z.infer<typeof sessionScheduleSchema>

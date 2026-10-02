@@ -44,9 +44,9 @@ const chargeSchema = z
   .object({
     brotherId: z.string().min(1, 'Irmão é obrigatório'),
     month: z.string().min(1, 'Mês é obrigatório'),
-    year: z.coerce.number().min(2000, 'Ano inválido'),
-    consumedAmount: z.coerce.number().min(0, 'Valor inválido'),
-    amount: z.coerce.number().min(0.01, 'Valor inválido'),
+    year: z.coerce.number<number>().min(2000, 'Ano inválido'),
+    consumedAmount: z.coerce.number<number>().min(0, 'Valor inválido'),
+    amount: z.coerce.number<number>().min(0.01, 'Valor inválido'),
     status: z.enum(['Pago', 'Pendente', 'Atrasado']),
     paymentDate: z.string().optional(),
     accountId: z.string().optional(),

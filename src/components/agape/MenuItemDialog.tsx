@@ -40,7 +40,7 @@ import { Loader2, Upload, UtensilsCrossed } from 'lucide-react'
 const menuItemSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, 'Preço deve ser maior ou igual a zero'),
+  price: z.coerce.number<number>().min(0, 'Preço deve ser maior ou igual a zero'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   image_url: z.string().optional(),
   is_active: z.boolean().default(true),

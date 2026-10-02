@@ -98,7 +98,7 @@ const charitySchema = z
   .object({
     eventId: z.string().optional(),
     sessionTitle: z.string().optional(),
-    amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+    amount: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
     accountId: z.string().min(1, 'Selecione uma conta'),
     date: z.string().min(1, 'Data é obrigatória'),
     description: z.string().optional(),

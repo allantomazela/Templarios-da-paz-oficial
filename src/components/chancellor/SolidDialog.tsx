@@ -33,7 +33,7 @@ import { HeartHandshake } from 'lucide-react'
 
 const solidSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  amount: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
   category: z.enum(['Hospitalaria', 'Manutenção', 'Eventos', 'Outros']),
   description: z.string().min(3, 'Descrição é obrigatória'),
   brotherId: z.string().optional(),

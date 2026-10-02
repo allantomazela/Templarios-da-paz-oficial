@@ -47,7 +47,7 @@ import { isControlOnlyTransaction } from '@/lib/transaction-control-only'
 const transactionSchema = z
   .object({
     description: z.string().min(3, 'Descrição é obrigatória'),
-    amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+    amount: z.coerce.number<number>().min(0.01, 'Valor deve ser maior que zero'),
     date: z.string().min(1, 'Data é obrigatória'),
     category: z.string().min(1, 'Categoria é obrigatória'),
     type: z.enum(['Receita', 'Despesa']),

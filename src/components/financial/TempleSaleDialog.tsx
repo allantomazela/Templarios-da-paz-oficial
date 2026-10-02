@@ -41,7 +41,7 @@ const saleSchema = z
   .object({
     brotherId: z.string().min(1, 'Irmão é obrigatório'),
     description: z.string().min(1, 'Descrição é obrigatória'),
-    amount: z.coerce.number().min(0.01, 'Valor inválido'),
+    amount: z.coerce.number<number>().min(0.01, 'Valor inválido'),
     saleDate: z.string().min(1, 'Data da venda é obrigatória'),
     dueDate: z.string().optional(),
     paymentMode: z.enum(['avista', 'prazo']),

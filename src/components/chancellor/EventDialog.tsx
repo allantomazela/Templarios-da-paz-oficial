@@ -37,7 +37,7 @@ const eventSchema = z.object({
   type: z.enum(['Sessão', 'Reunião', 'Evento Social', 'Outro']),
   location: z.string().min(3, 'Local é obrigatório'),
   description: z.string().min(3, 'Descrição é obrigatória'),
-  attendees: z.coerce.number().min(0, 'Número de participantes inválido'),
+  attendees: z.coerce.number<number>().min(0, 'Número de participantes inválido'),
 })
 
 type EventFormValues = z.infer<typeof eventSchema>

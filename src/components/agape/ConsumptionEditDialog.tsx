@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
 
 const schema = z.object({
-  quantity: z.coerce.number().int().min(1, 'Informe pelo menos 1 unidade'),
+  quantity: z.coerce.number<number>().int().min(1, 'Informe pelo menos 1 unidade'),
 })
 
 type FormValues = z.infer<typeof schema>

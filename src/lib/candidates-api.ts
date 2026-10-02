@@ -88,9 +88,8 @@ function isMissingTableError(error: { code?: string }): boolean {
 }
 
 export async function fetchCandidates(): Promise<InitiationCandidate[]> {
-  const supabaseAny = supabase as any
   const { data: rows, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('initiation_candidates')
       .select('*')
       .order('indication_date', { ascending: false }),
@@ -107,9 +106,8 @@ export async function fetchCandidates(): Promise<InitiationCandidate[]> {
 }
 
 export async function fetchPhaseDefinitions(): Promise<SindicanciaPhaseDefinition[]> {
-  const supabaseAny = supabase as any
   const { data: rows, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('sindicancia_phase_definitions')
       .select('*')
       .order('order', { ascending: true }),
@@ -128,9 +126,8 @@ export async function fetchPhaseDefinitions(): Promise<SindicanciaPhaseDefinitio
 export async function fetchPhaseProgress(
   candidateId: string,
 ): Promise<CandidatePhaseProgress[]> {
-  const supabaseAny = supabase as any
   const { data: rows, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('candidate_phase_progress')
       .select('*')
       .eq('candidate_id', candidateId),
@@ -151,9 +148,8 @@ export async function ensurePhaseProgressForCandidate(
 ): Promise<void> {
   if (phaseDefinitions.length === 0) return
 
-  const supabaseAny = supabase as any
   const { data: existing, error: fetchError } = await withTimeout(
-    supabaseAny
+    supabase
       .from('candidate_phase_progress')
       .select('phase_definition_id')
       .eq('candidate_id', candidateId),
@@ -179,7 +175,7 @@ export async function ensurePhaseProgressForCandidate(
   if (toInsert.length === 0) return
 
   const { error } = await withTimeout(
-    supabaseAny.from('candidate_phase_progress').insert(toInsert),
+    supabase.from('candidate_phase_progress').insert(toInsert),
     SECRETARIAT_OP_TIMEOUT_MS,
     TIMEOUT_MSG,
   )
@@ -193,9 +189,8 @@ export async function createCandidate(
   data: CandidateSaveInput,
   phaseDefinitions: SindicanciaPhaseDefinition[],
 ): Promise<InitiationCandidate> {
-  const supabaseAny = supabase as any
   const { data: created, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('initiation_candidates')
       .insert({
         name: data.name,
@@ -220,7 +215,7 @@ export async function createCandidate(
 
   if (phaseDefinitions.length > 0) {
     const { error: phasesError } = await withTimeout(
-      supabaseAny.from('candidate_phase_progress').insert(
+      supabase.from('candidate_phase_progress').insert(
         phaseDefinitions.map((phase) => ({
           candidate_id: newCandidate.id,
           phase_definition_id: phase.id,
@@ -243,9 +238,8 @@ export async function updateCandidate(
   id: string,
   data: CandidateSaveInput,
 ): Promise<InitiationCandidate> {
-  const supabaseAny = supabase as any
   const { data: updated, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('initiation_candidates')
       .update({
         name: data.name,
@@ -275,9 +269,8 @@ export async function updateCandidateStatus(
   candidateId: string,
   status: InitiationCandidateStatus,
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('initiation_candidates')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', candidateId),
@@ -291,9 +284,8 @@ export async function updateCandidateStatus(
 }
 
 export async function deleteCandidate(candidateId: string): Promise<void> {
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny.from('initiation_candidates').delete().eq('id', candidateId),
+    supabase.from('initiation_candidates').delete().eq('id', candidateId),
     SECRETARIAT_OP_TIMEOUT_MS,
     TIMEOUT_MSG,
   )
@@ -335,9 +327,8 @@ export async function updatePhaseProgress(
     }
   }
 
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny.from('candidate_phase_progress').update(payload).eq('id', progressId),
+    supabase.from('candidate_phase_progress').update(payload).eq('id', progressId),
     SECRETARIAT_OP_TIMEOUT_MS,
     TIMEOUT_MSG,
   )

@@ -1,5 +1,5 @@
 // Types
-export interface Child {
+export type Child = {
   name: string
   dob: string
 }

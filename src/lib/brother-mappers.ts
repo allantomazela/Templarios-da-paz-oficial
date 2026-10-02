@@ -126,7 +126,7 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
     status: mapped.status,
     regularStatus: mapped.regularStatus,
     membershipSituation: row.membership_situation
-      ? String(row.membership_situation)
+      ? (String(row.membership_situation) as Brother['membershipSituation'])
       : undefined,
   })
 

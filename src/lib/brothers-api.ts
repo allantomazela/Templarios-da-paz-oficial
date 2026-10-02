@@ -79,10 +79,9 @@ export async function fetchBrotherForProfile(
   profileId: string,
   email?: string | null,
 ): Promise<Brother | null> {
-  const supabaseAny = supabase as any
 
   const { data: byProfile, error: profileError } = await withTimeout(
-    supabaseAny
+    supabase
       .from('brothers')
       .select('*')
       .eq('profile_id', profileId)
@@ -103,7 +102,7 @@ export async function fetchBrotherForProfile(
   if (!normalizedEmail) return null
 
   const { data: byEmail, error: emailError } = await withTimeout(
-    supabaseAny
+    supabase
       .from('brothers')
       .select('*')
       .ilike('email', normalizedEmail)
@@ -147,10 +146,9 @@ export async function saveMyBrotherRegistration(
       dbData,
     } = buildBrotherUpdatePayload(payload, existing, profileId)
 
-    const supabaseAny = supabase as any
     const updatedRow = await withTimeoutQuery(
       () =>
-        supabaseAny
+        supabase
           .from('brothers')
           .update(dbData)
           .eq('id', existing.id)
@@ -179,7 +177,7 @@ export async function saveMyBrotherRegistration(
     if (needsPatch) {
       const patchedRow = await withTimeoutQuery(
         () =>
-          supabaseAny
+          supabase
             .from('brothers')
             .update({
               degree: expectedDegree,
@@ -216,9 +214,8 @@ export async function saveMyBrotherRegistration(
 }
 
 export async function fetchBrothers(): Promise<Brother[]> {
-  const supabaseAny = supabase as any
   const { data: rows, error } = await withTimeout(
-    supabaseAny.from('brothers').select('*').order('name', { ascending: true }),
+    supabase.from('brothers').select('*').order('name', { ascending: true }),
     BROTHER_OP_TIMEOUT_MS,
     'Carregamento demorou demais. Verifique sua conexão e tente novamente.',
   )
@@ -242,9 +239,8 @@ export async function createBrother(data: BrotherSaveInput): Promise<Brother> {
     profile_id: profileId,
   }
 
-  const supabaseAny = supabase as any
   const createdRow = await withTimeoutQuery(
-    () => supabaseAny.from('brothers').insert(dbData).select('*').single(),
+    () => supabase.from('brothers').insert(dbData).select('*').single(),
     BROTHER_OP_TIMEOUT_MS,
     'Salvamento demorou demais. Verifique sua conexão e tente novamente.',
     'Falha ao criar o irmão.',
@@ -272,10 +268,9 @@ export async function updateBrother(
     profileId,
   )
 
-  const supabaseAny = supabase as any
   const updatedRow = await withTimeoutQuery(
     () =>
-      supabaseAny
+      supabase
         .from('brothers')
         .update(dbData)
         .eq('id', id)
@@ -303,11 +298,10 @@ export async function setBrotherMembershipSituation(
   situationInput: MembershipSituation,
 ): Promise<Brother> {
   const situation = normalizeMembershipSituation(situationInput)
-  const supabaseAny = supabase as any
 
   const updatedRow = await withTimeoutQuery(
     () =>
-      supabaseAny
+      supabase
         .from('brothers')
         .update({
           membership_situation: situation,
@@ -332,7 +326,7 @@ export async function setBrotherMembershipSituation(
   if (profileId) {
     const profileStatus = profileStatusForSituation(situation)
     const { error: profileError } = await withTimeout(
-      supabaseAny
+      supabase
         .from('profiles')
         .update({ status: profileStatus })
         .eq('id', profileId),
@@ -364,12 +358,11 @@ export async function syncBrotherSituationFromProfileStatus(
 ): Promise<void> {
   if (profileStatus !== 'blocked' && profileStatus !== 'approved') return
 
-  const supabaseAny = supabase as any
   const situation: MembershipSituation =
     profileStatus === 'blocked' ? 'desligado' : 'regular'
 
   await withTimeout(
-    supabaseAny
+    supabase
       .from('brothers')
       .update({
         membership_situation: situation,

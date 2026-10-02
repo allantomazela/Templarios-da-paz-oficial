@@ -3,6 +3,9 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+const SHARED_VENDOR_PATTERN =
+  /node_modules[\\/](clsx|tslib|@babel[\\/]runtime|react-is|prop-types)[\\/]/
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: '/',
@@ -20,6 +23,15 @@ export default defineConfig(({ mode }) => ({
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
         manualChunks(id) {
+          // Auxiliares usados pelo código inicial: se caírem num chunk pesado
+          // (PDF/gráficos), o navegador baixa esse chunk inteiro na abertura.
+          if (
+            id.includes('vite/preload-helper') ||
+            id.includes('commonjsHelpers') ||
+            SHARED_VENDOR_PATTERN.test(id)
+          ) {
+            return 'vendor-shared'
+          }
           if (!id.includes('node_modules')) return
 
           if (id.includes('recharts') || id.includes('d3-')) {

@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { format } from 'date-fns'
-import { useReactToPrint } from 'react-to-print'
-import { Download, FileSpreadsheet, Loader2, User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useMemo, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { formatCurrencyBRL } from '@/lib/format-utils'
 import {
   fetchApprovedBrothers,
   fetchContributionsWithProfiles,
@@ -21,20 +16,11 @@ import {
   buildMembershipBrotherStatementData,
   buildMembershipOverdueReportData,
 } from '@/lib/membership-report'
-import {
-  exportMembershipBrotherStatementPaymentsCsv,
-  exportMembershipBrotherStatementScheduleCsv,
-  exportMembershipOverdueDetailCsv,
-  exportMembershipOverdueReportCsv,
-  exportUnifiedBrotherStatementCsv,
-} from '@/lib/membership-report-export'
 import { fetchMemberPayments } from '@/lib/member-payments'
-import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
-import { MembershipOverdueReportDocument } from '@/components/financial/MembershipOverdueReportDocument'
-import { MembershipBrotherStatementDocument } from '@/components/financial/MembershipBrotherStatementDocument'
 import { MembershipOpenReportPanel } from '@/components/financial/MembershipOpenReportPanel'
 import { MembershipPaidByBrotherReportPanel } from '@/components/financial/MembershipPaidByBrotherReportPanel'
-import { MEMBERSHIP_PRINT_STYLE } from '@/lib/membership-print-style'
+import { MembershipOverdueReportSection } from './MembershipOverdueReportSection'
+import { MembershipBrotherStatementSection } from './MembershipBrotherStatementSection'
 
 export function MembershipReports() {
   const { toast } = useToast()
@@ -54,9 +40,6 @@ export function MembershipReports() {
     Awaited<ReturnType<typeof fetchMemberPayments>>
   >([])
   const [loadingBrotherPayments, setLoadingBrotherPayments] = useState(false)
-
-  const overduePrintRef = useRef<HTMLDivElement>(null)
-  const statementPrintRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -174,98 +157,6 @@ export function MembershipReports() {
     brotherMemberPayments,
   ])
 
-  const handlePrintOverdue = useReactToPrint({
-    contentRef: overduePrintRef,
-    documentTitle: `Mensalidades_Atraso_${format(new Date(), 'yyyy-MM-dd')}`,
-    pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão.',
-      })
-    },
-  })
-
-  const handlePrintStatement = useReactToPrint({
-    contentRef: statementPrintRef,
-    documentTitle: `Extrato_Mensalidade_${selectedBrotherId}`,
-    pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Extrato enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão.',
-      })
-    },
-  })
-
-  const handleExportOverdueCsv = () => {
-    try {
-      exportMembershipOverdueReportCsv(overdueReport)
-      toast({ title: 'CSV exportado', description: 'Resumo por irmão baixado.' })
-    } catch (error) {
-      toast({
-        title: 'Erro ao exportar',
-        description: error instanceof Error ? error.message : 'Falha na exportação.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleExportOverdueDetailCsv = () => {
-    try {
-      exportMembershipOverdueDetailCsv(overdueReport)
-      toast({ title: 'CSV exportado', description: 'Detalhamento por mês baixado.' })
-    } catch (error) {
-      toast({
-        title: 'Erro ao exportar',
-        description: error instanceof Error ? error.message : 'Falha na exportação.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleExportStatementSchedule = () => {
-    if (!brotherStatement) return
-    try {
-      exportMembershipBrotherStatementScheduleCsv(brotherStatement)
-      toast({ title: 'CSV exportado', description: 'Cronograma do irmão baixado.' })
-    } catch (error) {
-      toast({
-        title: 'Erro ao exportar',
-        description: error instanceof Error ? error.message : 'Falha na exportação.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleExportUnifiedStatement = () => {
-    if (!brotherStatement) return
-    try {
-      exportUnifiedBrotherStatementCsv(brotherStatement)
-      toast({ title: 'CSV exportado', description: 'Extrato completo baixado.' })
-    } catch (error) {
-      toast({
-        title: 'Erro ao exportar',
-        description: error instanceof Error ? error.message : 'Falha na exportação.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleExportStatementPayments = () => {
-    if (!brotherStatement) return
-    try {
-      exportMembershipBrotherStatementPaymentsCsv(brotherStatement)
-      toast({ title: 'CSV exportado', description: 'Lançamentos do irmão baixados.' })
-    } catch (error) {
-      toast({
-        title: 'Erro ao exportar',
-        description: error instanceof Error ? error.message : 'Falha na exportação.',
-        variant: 'destructive',
-      })
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -307,168 +198,17 @@ export function MembershipReports() {
         </TabsContent>
 
         <TabsContent value="atrasos" className="space-y-4">
-          <div className="no-print grid gap-3 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Irmãos em atraso</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{overdueReport.summary.brotherCount}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Valor em aberto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-destructive">
-                  {formatCurrencyBRL(overdueReport.summary.totalOverdueAmount)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Prioridade (3+ meses)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{overdueReport.summary.escalationCount}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="no-print flex flex-wrap justify-end gap-2">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleExportOverdueCsv}
-              disabled={overdueReport.summary.brotherCount === 0}
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              CSV resumo
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleExportOverdueDetailCsv}
-              disabled={overdueReport.summary.brotherCount === 0}
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              CSV detalhado
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => handlePrintOverdue()}
-              disabled={overdueReport.summary.brotherCount === 0}
-            >
-              <Download className="h-4 w-4" />
-              Imprimir / PDF
-            </Button>
-          </div>
-
-          <Card className="overflow-hidden">
-            <CardHeader className="no-print">
-              <CardTitle className="text-base">Pré-visualização</CardTitle>
-              <CardDescription>Relatório de verificação de atrasos</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6">
-              <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
-                <div id="membership-overdue-report-container" ref={overduePrintRef}>
-                  <MembershipOverdueReportDocument data={overdueReport} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <MembershipOverdueReportSection overdueReport={overdueReport} />
         </TabsContent>
 
         <TabsContent value="extrato" className="space-y-4">
-          <div className="no-print rounded-lg border bg-card p-4 space-y-3">
-            <div className="space-y-1">
-              <p className="text-sm font-medium flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Selecione o irmão
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Gere o extrato completo (mensalidades, taxas de grau, ágape e tronco)
-                para entregar ao irmão.
-              </p>
-            </div>
-            <BrotherSearchCombobox
-              brothers={brothers}
-              value={selectedBrotherId}
-              onChange={setSelectedBrotherId}
-              placeholder="Buscar irmão..."
-            />
-          </div>
-
-          {brotherStatement ? (
-            <>
-              <div className="no-print flex flex-wrap justify-end gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={handleExportUnifiedStatement}
-                  disabled={brotherStatement.paidPayments.length === 0}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  CSV extrato completo
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={handleExportStatementSchedule}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  CSV cronograma
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={handleExportStatementPayments}
-                  disabled={brotherStatement.contributions.length === 0}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  CSV mensalidades
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => handlePrintStatement()}
-                  disabled={loadingBrotherPayments}
-                >
-                  <Download className="h-4 w-4" />
-                  Imprimir / PDF
-                </Button>
-              </div>
-
-              {loadingBrotherPayments ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Carregando taxas de grau, ágape e tronco...
-                </div>
-              ) : null}
-
-              <Card className="overflow-hidden">
-                <CardHeader className="no-print">
-                  <CardTitle className="text-base">Pré-visualização</CardTitle>
-                  <CardDescription>{brotherStatement.brotherName}</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 sm:p-6">
-                  <div className="max-h-[70vh] overflow-auto border-t bg-white p-3 sm:rounded-md sm:border sm:p-4">
-                    <div id="membership-statement-report-container" ref={statementPrintRef}>
-                      <MembershipBrotherStatementDocument statement={brotherStatement} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Selecione um irmão para gerar o extrato financeiro completo.
-              </CardContent>
-            </Card>
-          )}
+          <MembershipBrotherStatementSection
+            brothers={brothers}
+            selectedBrotherId={selectedBrotherId}
+            onBrotherChange={setSelectedBrotherId}
+            brotherStatement={brotherStatement}
+            loadingBrotherPayments={loadingBrotherPayments}
+          />
         </TabsContent>
       </Tabs>
     </div>

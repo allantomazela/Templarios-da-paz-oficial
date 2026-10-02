@@ -65,7 +65,7 @@ export function AttendanceManager() {
   const dialog = useDialog()
   const scannerDialog = useDialog()
 
-  devLog(`AttendanceManager: Total de eventos no store: ${events.length}`)
+  devLog('log', `AttendanceManager: Total de eventos no store: ${events.length}`)
 
   const eventsWithStatus = useMemo(() => {
     const merged = events.map((event) => {

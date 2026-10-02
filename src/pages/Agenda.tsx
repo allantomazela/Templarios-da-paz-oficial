@@ -216,7 +216,7 @@ export default function Agenda() {
           })
           return
         }
-        devLog('Agenda: Evento atualizado:', { ...eventToEdit, ...eventPayload })
+        devLog('log', 'Agenda: Evento atualizado:', { ...eventToEdit, ...eventPayload })
         toast({
           title: 'Evento Atualizado',
           description: 'As alterações foram salvas com sucesso.',
@@ -236,7 +236,7 @@ export default function Agenda() {
           })
           return
         }
-        devLog('Agenda: Novo evento criado:', newEvent)
+        devLog('log', 'Agenda: Novo evento criado:', newEvent)
         const eventDate = new Date(`${data.date}T12:00:00`)
         if (!isNaN(eventDate.getTime())) {
           setSelectedDate(eventDate)

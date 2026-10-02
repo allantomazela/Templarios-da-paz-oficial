@@ -459,6 +459,7 @@ export const useChancellorStore = create<ChancellorState>((set, get) => ({
 
   addEvent: async (event) => {
     devLog(
+      'log',
       `useChancellorStore: Adicionando evento - ${event.title}, Data: ${event.date}`,
     )
     set((state) => ({ events: [...state.events, event] }))

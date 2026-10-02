@@ -137,12 +137,12 @@ export const useLodgePositionsStore = create<LodgePositionsState>(
 
           if (!fetchPositionsSeq.isCurrent(id)) return
           set({ positions })
-          devLog(`LodgePositions: Carregados ${positions.length} cargos`)
+          devLog('log', `LodgePositions: Carregados ${positions.length} cargos`)
         } catch (error) {
           if (handleAuthError(error)) return
           const cached = get().positions
           if (cached.length > 0) {
-            devLog('LodgePositions: mantendo cache após falha no recarregamento', error)
+            devLog('warn', 'LodgePositions: mantendo cache após falha no recarregamento', error)
           } else {
             logError('Error fetching positions', error)
           }

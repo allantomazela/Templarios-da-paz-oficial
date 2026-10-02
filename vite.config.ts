@@ -6,6 +6,9 @@ import path from 'path'
 const SHARED_VENDOR_PATTERN =
   /node_modules[\\/](clsx|tslib|@babel[\\/]runtime|react-is|prop-types)[\\/]/
 
+const REACT_VENDOR_PATTERN =
+  /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: '/',
@@ -34,6 +37,10 @@ export default defineConfig(({ mode }) => ({
           }
           if (!id.includes('node_modules')) return
 
+          // Muda raramente: em chunk próprio, continua em cache entre deploys.
+          if (REACT_VENDOR_PATTERN.test(id)) {
+            return 'vendor-react'
+          }
           if (id.includes('recharts') || id.includes('d3-')) {
             return 'vendor-charts'
           }

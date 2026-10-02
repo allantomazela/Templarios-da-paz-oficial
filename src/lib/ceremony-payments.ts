@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import type { Database } from '@/lib/supabase/types'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import {
@@ -93,11 +95,11 @@ function addMonthsToIsoDate(isoDate: string, monthsToAdd: number): string {
 }
 
 async function resolveCategoryId(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   paymentType: CeremonyPaymentType,
 ): Promise<string> {
   const categoryName = CEREMONY_FINANCIAL_CATEGORIES[paymentType]
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_categories')
     .select('id')
     .eq('name', categoryName)
@@ -107,7 +109,7 @@ async function resolveCategoryId(
   if (error) throw error
   if (data?.id) return data.id as string
 
-  const { data: created, error: insertError } = await supabaseAny
+  const { data: created, error: insertError } = await supabase
     .from('financial_categories')
     .insert({
       name: categoryName,
@@ -140,7 +142,7 @@ function buildInstallmentDescription(params: {
 }
 
 async function syncInstallmentTransaction(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   params: {
     installmentId: string
     brotherName: string
@@ -159,13 +161,13 @@ async function syncInstallmentTransaction(
 
   if (!isPaid) {
     if (params.existingTransactionId) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', params.existingTransactionId)
       if (error) throw error
     }
-    await supabaseAny
+    await supabase
       .from('brother_ceremony_payment_installments')
       .update({ transaction_id: null })
       .eq('id', params.installmentId)
@@ -177,7 +179,7 @@ async function syncInstallmentTransaction(
   }
 
   const paymentDate = params.paymentDate || todayLocalISODate()
-  const categoryId = await resolveCategoryId(supabaseAny, params.paymentType)
+  const categoryId = await resolveCategoryId(supabase, params.paymentType)
   const categoryName = CEREMONY_FINANCIAL_CATEGORIES[params.paymentType]
   const description = buildInstallmentDescription({
     brotherName: params.brotherName,
@@ -199,7 +201,7 @@ async function syncInstallmentTransaction(
   }
 
   if (params.existingTransactionId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_transactions')
       .update(payload)
       .eq('id', params.existingTransactionId)
@@ -211,7 +213,7 @@ async function syncInstallmentTransaction(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_transactions')
     .insert({
       ...payload,
@@ -226,7 +228,7 @@ async function syncInstallmentTransaction(
 
   if (error) throw error
 
-  await supabaseAny
+  await supabase
     .from('brother_ceremony_payment_installments')
     .update({ transaction_id: created.id })
     .eq('id', params.installmentId)
@@ -235,10 +237,10 @@ async function syncInstallmentTransaction(
 }
 
 async function refreshPlanStatus(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   planId: string,
 ): Promise<void> {
-  const { error } = await supabaseAny.rpc('refresh_ceremony_plan_status', {
+  const { error } = await supabase.rpc('refresh_ceremony_plan_status', {
     p_plan_id: planId,
   })
   if (error) throw error
@@ -253,8 +255,7 @@ const PLAN_SELECT = `
 export async function fetchCeremonyPaymentPlans(
   brotherId?: string | null,
 ): Promise<CeremonyPaymentPlan[]> {
-  const supabaseAny = supabase as any
-  let query = supabaseAny
+  let query = supabase
     .from('brother_ceremony_payment_plans')
     .select(PLAN_SELECT)
     .neq('status', 'cancelled')
@@ -273,7 +274,6 @@ export async function fetchCeremonyPaymentPlans(
 export async function createCeremonyPaymentPlan(
   data: CeremonyPlanFormData,
 ): Promise<CeremonyPaymentPlan> {
-  const supabaseAny = supabase as any
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -281,7 +281,7 @@ export async function createCeremonyPaymentPlan(
   const amounts = splitInstallmentAmounts(data.totalAmount, data.installmentsCount)
   const firstDue = data.firstDueDate || todayLocalISODate()
 
-  const { data: plan, error: planError } = await supabaseAny
+  const { data: plan, error: planError } = await supabase
     .from('brother_ceremony_payment_plans')
     .insert({
       brother_id: data.brotherId,
@@ -306,12 +306,12 @@ export async function createCeremonyPaymentPlan(
     recorded_by: user?.id ?? null,
   }))
 
-  const { error: installmentsError } = await supabaseAny
+  const { error: installmentsError } = await supabase
     .from('brother_ceremony_payment_installments')
     .insert(installmentsPayload)
 
   if (installmentsError) {
-    await supabaseAny
+    await supabase
       .from('brother_ceremony_payment_plans')
       .delete()
       .eq('id', plan.id)
@@ -356,7 +356,6 @@ export async function saveCeremonyInstallment(
   data: CeremonyInstallmentFormData,
   options?: { existingTransactionId?: string | null; planId: string },
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -369,14 +368,14 @@ export async function saveCeremonyInstallment(
     recorded_by: user?.id ?? null,
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('brother_ceremony_payment_installments')
     .update(payload)
     .eq('id', data.installmentId)
 
   if (error) throw formatError(error)
 
-  await syncInstallmentTransaction(supabaseAny, {
+  await syncInstallmentTransaction(supabase, {
     installmentId: data.installmentId,
     brotherName: data.brotherName?.trim() || 'Irmão',
     paymentType: data.paymentType,
@@ -391,14 +390,13 @@ export async function saveCeremonyInstallment(
   })
 
   if (options?.planId) {
-    await refreshPlanStatus(supabaseAny, options.planId)
+    await refreshPlanStatus(supabase, options.planId)
   }
 }
 
 export async function deleteCeremonyPaymentPlan(planId: string): Promise<void> {
-  const supabaseAny = supabase as any
 
-  const { data: installments, error: fetchError } = await supabaseAny
+  const { data: installments, error: fetchError } = await supabase
     .from('brother_ceremony_payment_installments')
     .select('id, transaction_id')
     .eq('plan_id', planId)
@@ -407,7 +405,7 @@ export async function deleteCeremonyPaymentPlan(planId: string): Promise<void> {
 
   for (const row of installments ?? []) {
     if (row.transaction_id) {
-      const { error: txError } = await supabaseAny
+      const { error: txError } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', row.transaction_id)
@@ -415,7 +413,7 @@ export async function deleteCeremonyPaymentPlan(planId: string): Promise<void> {
     }
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('brother_ceremony_payment_plans')
     .delete()
     .eq('id', planId)
@@ -424,9 +422,8 @@ export async function deleteCeremonyPaymentPlan(planId: string): Promise<void> {
 }
 
 export async function cancelCeremonyPaymentPlan(planId: string): Promise<void> {
-  const supabaseAny = supabase as any
 
-  const { data: installments, error: fetchError } = await supabaseAny
+  const { data: installments, error: fetchError } = await supabase
     .from('brother_ceremony_payment_installments')
     .select('id, transaction_id')
     .eq('plan_id', planId)
@@ -443,7 +440,7 @@ export async function cancelCeremonyPaymentPlan(planId: string): Promise<void> {
     }
   }
 
-  const { error: installmentsError } = await supabaseAny
+  const { error: installmentsError } = await supabase
     .from('brother_ceremony_payment_installments')
     .update({
       transaction_id: null,
@@ -455,7 +452,7 @@ export async function cancelCeremonyPaymentPlan(planId: string): Promise<void> {
 
   if (installmentsError) throw formatError(installmentsError)
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('brother_ceremony_payment_plans')
     .update({ status: 'cancelled' })
     .eq('id', planId)

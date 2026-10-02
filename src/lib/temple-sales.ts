@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import type { Database } from '@/lib/supabase/types'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import {
@@ -52,9 +54,9 @@ function mapRow(row: TempleSaleRow): TempleSale {
 }
 
 async function resolveTempleSaleCategoryId(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
 ): Promise<string> {
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_categories')
     .select('id')
     .eq('name', TEMPLE_SALE_CATEGORY)
@@ -64,7 +66,7 @@ async function resolveTempleSaleCategoryId(
   if (error) throw error
   if (data?.id) return data.id as string
 
-  const { data: created, error: insertError } = await supabaseAny
+  const { data: created, error: insertError } = await supabase
     .from('financial_categories')
     .insert({
       name: TEMPLE_SALE_CATEGORY,
@@ -88,7 +90,7 @@ function buildSaleDescription(params: {
 }
 
 async function syncSaleTransaction(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   params: {
     saleId: string
     brotherName: string
@@ -104,13 +106,13 @@ async function syncSaleTransaction(
 
   if (!isPaid) {
     if (params.existingTransactionId) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', params.existingTransactionId)
       if (error) throw error
     }
-    await supabaseAny
+    await supabase
       .from('temple_sales')
       .update({ transaction_id: null })
       .eq('id', params.saleId)
@@ -122,7 +124,7 @@ async function syncSaleTransaction(
   }
 
   const paymentDate = params.paymentDate || todayLocalISODate()
-  const categoryId = await resolveTempleSaleCategoryId(supabaseAny)
+  const categoryId = await resolveTempleSaleCategoryId(supabase)
   const description = buildSaleDescription({
     brotherName: params.brotherName,
     description: params.description,
@@ -140,7 +142,7 @@ async function syncSaleTransaction(
   }
 
   if (params.existingTransactionId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_transactions')
       .update(payload)
       .eq('id', params.existingTransactionId)
@@ -152,7 +154,7 @@ async function syncSaleTransaction(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_transactions')
     .insert({
       ...payload,
@@ -167,7 +169,7 @@ async function syncSaleTransaction(
 
   if (error) throw error
 
-  const { error: linkError } = await supabaseAny
+  const { error: linkError } = await supabase
     .from('temple_sales')
     .update({ transaction_id: created.id })
     .eq('id', params.saleId)
@@ -180,8 +182,7 @@ export async function fetchTempleSales(filters?: {
   brotherId?: string
   status?: TempleSaleStatus | 'all'
 }): Promise<TempleSale[]> {
-  const supabaseAny = supabase as any
-  let query = supabaseAny
+  let query = supabase
     .from('temple_sales')
     .select(
       'id, brother_id, description, amount, sale_date, due_date, payment_mode, status, payment_date, transaction_id, account_id, notes, recorded_by, created_at, profiles!temple_sales_brother_id_fkey(id, full_name)',
@@ -202,7 +203,6 @@ export async function fetchTempleSales(filters?: {
 }
 
 export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSale> {
-  const supabaseAny = supabase as any
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -226,7 +226,7 @@ export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSa
   let existingTransactionId: string | null = null
 
   if (saleId) {
-    const { data: existing, error: existingError } = await supabaseAny
+    const { data: existing, error: existingError } = await supabase
       .from('temple_sales')
       .select('transaction_id')
       .eq('id', saleId)
@@ -234,13 +234,13 @@ export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSa
     if (existingError) throw formatError(existingError)
     existingTransactionId = existing?.transaction_id ?? null
 
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('temple_sales')
       .update(payload)
       .eq('id', saleId)
     if (error) throw formatError(error)
   } else {
-    const { data: created, error } = await supabaseAny
+    const { data: created, error } = await supabase
       .from('temple_sales')
       .insert(payload)
       .select('id')
@@ -249,7 +249,7 @@ export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSa
     saleId = created.id as string
   }
 
-  await syncSaleTransaction(supabaseAny, {
+  await syncSaleTransaction(supabase, {
     saleId: saleId!,
     brotherName: data.brotherName?.trim() || 'Irmão',
     description: payload.description,
@@ -260,7 +260,7 @@ export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSa
     existingTransactionId,
   })
 
-  const { data: savedRow, error: reloadError } = await supabaseAny
+  const { data: savedRow, error: reloadError } = await supabase
     .from('temple_sales')
     .select(
       'id, brother_id, description, amount, sale_date, due_date, payment_mode, status, payment_date, transaction_id, account_id, notes, recorded_by, created_at, profiles!temple_sales_brother_id_fkey(id, full_name)',
@@ -275,8 +275,7 @@ export async function saveTempleSale(data: TempleSaleFormData): Promise<TempleSa
 export async function markTempleSalePaid(
   data: TempleSaleMarkPaidData,
 ): Promise<void> {
-  const supabaseAny = supabase as any
-  const { data: existing, error: fetchError } = await supabaseAny
+  const { data: existing, error: fetchError } = await supabase
     .from('temple_sales')
     .select(
       'id, brother_id, description, amount, transaction_id, profiles!temple_sales_brother_id_fkey(full_name)',
@@ -292,7 +291,7 @@ export async function markTempleSalePaid(
 
   const paymentDate = data.paymentDate || todayLocalISODate()
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('temple_sales')
     .update({
       status: 'Pago',
@@ -305,7 +304,7 @@ export async function markTempleSalePaid(
 
   if (error) throw formatError(error)
 
-  await syncSaleTransaction(supabaseAny, {
+  await syncSaleTransaction(supabase, {
     saleId: data.saleId,
     brotherName:
       data.brotherName?.trim() ||
@@ -321,8 +320,7 @@ export async function markTempleSalePaid(
 }
 
 export async function cancelTempleSale(saleId: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { data: existing, error: fetchError } = await supabaseAny
+  const { data: existing, error: fetchError } = await supabase
     .from('temple_sales')
     .select('id, transaction_id')
     .eq('id', saleId)
@@ -337,7 +335,7 @@ export async function cancelTempleSale(saleId: string): Promise<void> {
     await deleteFinancialTransactionWithDependencies(existing.transaction_id)
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('temple_sales')
     .update({
       status: 'Cancelado',
@@ -351,8 +349,7 @@ export async function cancelTempleSale(saleId: string): Promise<void> {
 }
 
 export async function deleteTempleSale(saleId: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { data: existing, error: fetchError } = await supabaseAny
+  const { data: existing, error: fetchError } = await supabase
     .from('temple_sales')
     .select('id, transaction_id')
     .eq('id', saleId)
@@ -367,7 +364,7 @@ export async function deleteTempleSale(saleId: string): Promise<void> {
     await deleteFinancialTransactionWithDependencies(existing.transaction_id)
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('temple_sales')
     .delete()
     .eq('id', saleId)

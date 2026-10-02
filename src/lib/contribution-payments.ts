@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import type { Database } from '@/lib/supabase/types'
 import { toError } from '@/lib/async-utils'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution, Transaction } from '@/lib/data'
@@ -58,8 +60,7 @@ export async function fetchContributionNotesByTransactionIds(
 ): Promise<Record<string, string>> {
   if (transactionIds.length === 0) return {}
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select('transaction_id, notes')
     .in('transaction_id', transactionIds)
@@ -99,8 +100,7 @@ export async function repairContributionNotesOnTransactions(
     return 0
   }
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select('transaction_id, notes')
     .not('transaction_id', 'is', null)
@@ -129,7 +129,7 @@ export async function repairContributionNotesOnTransactions(
   let repaired = 0
 
   for (const [transactionId, notes] of Object.entries(notesByTransactionId)) {
-    const { data: transaction, error: fetchError } = await supabaseAny
+    const { data: transaction, error: fetchError } = await supabase
       .from('financial_transactions')
       .select('attachment_notes')
       .eq('id', transactionId)
@@ -138,7 +138,7 @@ export async function repairContributionNotesOnTransactions(
     if (fetchError) throw toError(fetchError, 'Falha ao verificar receita da mensalidade.')
     if (transaction?.attachment_notes?.trim()) continue
 
-    const { error: updateError } = await supabaseAny
+    const { error: updateError } = await supabase
       .from('financial_transactions')
       .update({ attachment_notes: notes })
       .eq('id', transactionId)
@@ -181,8 +181,7 @@ export {
 } from '@/lib/brother-membership-situation'
 
 export async function fetchMembershipFeeSettings(): Promise<MembershipFeeSettings> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('site_settings')
     .select(
       'membership_fee_amount, membership_fee_due_day, membership_fee_base_amount, membership_fee_session_package_amount',
@@ -216,8 +215,7 @@ export async function resolveProfileIdByEmail(
   const normalized = email?.trim()
   if (!normalized) return null
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('profiles')
     .select('id')
     .ilike('email', normalized)
@@ -231,8 +229,7 @@ export async function resolveProfileIdByEmail(
 export async function fetchContributionsForProfile(
   profileId: string,
 ): Promise<Contribution[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select(`
       *,
@@ -263,8 +260,7 @@ interface BillableBrotherOption {
 
 /** Irmãos aprovados com situação de cobrança (exclui desligados). */
 export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> {
-  const supabaseAny = supabase as any
-  const { data: profiles, error } = await supabaseAny
+  const { data: profiles, error } = await supabase
     .from('profiles')
     .select('id, full_name')
     .eq('status', 'approved')
@@ -274,7 +270,7 @@ export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> 
   if (approved.length === 0) return []
 
   const ids = approved.map((p) => p.id)
-  const { data: brothers, error: brothersError } = await supabaseAny
+  const { data: brothers, error: brothersError } = await supabase
     .from('brothers')
     .select('profile_id, status, regular_status, membership_situation')
     .in('profile_id', ids)
@@ -290,7 +286,7 @@ export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> 
           ? String(row.regular_status)
           : undefined,
         membershipSituation: row.membership_situation
-          ? String(row.membership_situation)
+          ? (String(row.membership_situation) as MembershipSituation)
           : undefined,
       }),
     ]),
@@ -317,7 +313,6 @@ export async function generatePendingContributionsForMonth(
     )
   }
 
-  const supabaseAny = supabase as any
   const settings = await fetchMembershipFeeSettings()
   const brothers = await fetchBillableBrothers()
   if (brothers.length === 0) {
@@ -330,7 +325,7 @@ export async function generatePendingContributionsForMonth(
     }
   }
 
-  const { data: existing, error: existingError } = await supabaseAny
+  const { data: existing, error: existingError } = await supabase
     .from('contributions')
     .select('brother_id')
     .eq('month', month)
@@ -365,7 +360,7 @@ export async function generatePendingContributionsForMonth(
     })
 
   if (toInsert.length > 0) {
-    const { error } = await supabaseAny.from('contributions').insert(toInsert)
+    const { error } = await supabase.from('contributions').insert(toInsert)
     if (error) throw error
   }
 
@@ -422,7 +417,8 @@ interface ContributionRow {
   month: number
   year: number
   amount: number
-  status: 'Pago' | 'Pendente' | 'Atrasado'
+  /** TEXT no banco; valores válidos garantidos pelas telas de lançamento. */
+  status: string
   payment_date: string | null
   transaction_id: string | null
   account_id: string | null
@@ -446,7 +442,7 @@ export function mapContributionRow(row: ContributionRow): Contribution {
     month: monthNumberToName(row.month),
     year: row.year,
     amount: Number(row.amount),
-    status: row.status,
+    status: row.status as Contribution['status'],
     paymentDate: row.payment_date ?? undefined,
     accountId: row.account_id ?? undefined,
     transactionId: row.transaction_id ?? undefined,
@@ -469,9 +465,9 @@ export function buildMensalidadeDescription(
 }
 
 async function resolveMensalidadeCategoryId(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
 ): Promise<string> {
-  const { data, error: fetchError } = await supabaseAny
+  const { data, error: fetchError } = await supabase
     .from('financial_categories')
     .select('id')
     .eq('name', MENSALIDADE_CATEGORY)
@@ -481,7 +477,7 @@ async function resolveMensalidadeCategoryId(
   if (fetchError) throw fetchError
   if (data?.id) return data.id as string
 
-  const { data: created, error: insertError } = await supabaseAny
+  const { data: created, error: insertError } = await supabase
     .from('financial_categories')
     .insert({
       name: MENSALIDADE_CATEGORY,
@@ -501,7 +497,7 @@ function formatSupabaseError(error: unknown): Error {
 }
 
 async function syncFinancialTransaction(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   params: {
     contributionId: string
     brotherName: string
@@ -522,13 +518,13 @@ async function syncFinancialTransaction(
 
   if (isBackfillOnly) {
     if (params.existingTransactionId) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', params.existingTransactionId)
       if (error) throw error
     }
-    await supabaseAny
+    await supabase
       .from('contributions')
       .update({ transaction_id: null, account_id: null })
       .eq('id', params.contributionId)
@@ -536,7 +532,7 @@ async function syncFinancialTransaction(
   }
 
   if (isPaid && params.controlOnly) {
-    await supabaseAny
+    await supabase
       .from('contributions')
       .update({ transaction_id: null, account_id: null })
       .eq('id', params.contributionId)
@@ -545,13 +541,13 @@ async function syncFinancialTransaction(
 
   if (!isPaid) {
     if (params.existingTransactionId) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', params.existingTransactionId)
       if (error) throw error
     }
-    await supabaseAny
+    await supabase
       .from('contributions')
       .update({ transaction_id: null })
       .eq('id', params.contributionId)
@@ -565,7 +561,7 @@ async function syncFinancialTransaction(
   const paymentDate =
     params.paymentDate || todayLocalISODate()
 
-  const categoryId = await resolveMensalidadeCategoryId(supabaseAny)
+  const categoryId = await resolveMensalidadeCategoryId(supabase)
 
   const description = buildMensalidadeDescription(
     params.brotherName,
@@ -588,13 +584,13 @@ async function syncFinancialTransaction(
   }
 
   if (params.existingTransactionId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_transactions')
       .update(payload)
       .eq('id', params.existingTransactionId)
     if (error) throw error
 
-    await supabaseAny
+    await supabase
       .from('contributions')
       .update({
         transaction_id: params.existingTransactionId,
@@ -609,7 +605,7 @@ async function syncFinancialTransaction(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_transactions')
     .insert({
       ...payload,
@@ -624,7 +620,7 @@ async function syncFinancialTransaction(
 
   if (error) throw error
 
-  await supabaseAny
+  await supabase
     .from('contributions')
     .update({
       transaction_id: created.id,
@@ -636,11 +632,11 @@ async function syncFinancialTransaction(
 }
 
 async function assertTransactionLinkable(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   transactionId: string,
   excludeContributionId?: string,
 ): Promise<void> {
-  let query = supabaseAny
+  let query = supabase
     .from('contributions')
     .select('id')
     .eq('transaction_id', transactionId)
@@ -680,8 +676,7 @@ export async function repairOrphanTreasuryContributions(force = false): Promise<
     return 0
   }
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select(`
       id,
@@ -727,7 +722,7 @@ export async function repairOrphanTreasuryContributions(force = false): Promise<
       continue
     }
 
-    await syncFinancialTransaction(supabaseAny, {
+    await syncFinancialTransaction(supabase, {
       contributionId: row.id,
       brotherName: row.profiles?.full_name?.trim() || 'Irmão',
       month: row.month,
@@ -750,8 +745,7 @@ export async function fetchContributionsWithProfiles(): Promise<{
   contributions: Contribution[]
   brotherNames: Record<string, string>
 }> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select(`
       *,
@@ -795,8 +789,7 @@ export function sortBrothersAlphabetically<T extends ApprovedBrotherOption>(
 }
 
 export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('profiles')
     .select(
       'id, full_name, created_at, brothers!brothers_profile_id_fkey(status, regular_status, membership_situation)',
@@ -838,7 +831,7 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
             ? String(brotherRow.regular_status)
             : undefined,
           membershipSituation: brotherRow?.membership_situation
-            ? String(brotherRow.membership_situation)
+            ? (String(brotherRow.membership_situation) as MembershipSituation)
             : undefined,
         }),
       }
@@ -849,8 +842,7 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
 export async function fetchBankAccounts(): Promise<
   { id: string; name: string }[]
 > {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_accounts')
     .select('id, name')
     .order('name', { ascending: true })
@@ -861,8 +853,7 @@ export async function fetchBankAccounts(): Promise<
 
 /** IDs de receitas já vinculadas a um mês no cronograma de mensalidades. */
 export async function fetchLinkedMembershipTransactionIds(): Promise<Set<string>> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select('transaction_id')
     .not('transaction_id', 'is', null)
@@ -882,12 +873,11 @@ export async function fetchLinkableMensalidadeTransactions(params: {
   referenceMonth?: number
   referenceYear?: number
 }): Promise<LinkableMensalidadeTransaction[]> {
-  const supabaseAny = supabase as any
   const brotherName = params.brotherName.trim()
   if (!brotherName) return []
 
   const [{ data: transactions, error: txError }, linkedIds] = await Promise.all([
-    supabaseAny
+    supabase
       .from('financial_transactions')
       .select('id, date, description, amount, account_id, financial_accounts(name)')
       .eq('type', 'Receita')
@@ -1011,7 +1001,6 @@ export async function saveContribution(
     sharedTransactionId?: string | null
   },
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
   const treasuryMode = data.treasuryMode ?? 'standard'
@@ -1027,11 +1016,11 @@ export async function saveContribution(
   let linkedAccountId: string | null = null
   if (linkedTransactionId) {
     await assertTransactionLinkable(
-      supabaseAny,
+      supabase,
       linkedTransactionId,
       options?.contributionId,
     )
-    const { data: linkedTx, error: linkedError } = await supabaseAny
+    const { data: linkedTx, error: linkedError } = await supabase
       .from('financial_transactions')
       .select('account_id')
       .eq('id', linkedTransactionId)
@@ -1080,7 +1069,7 @@ export async function saveContribution(
         existingTransactionId &&
         existingTransactionId !== sharedTransactionId
       ) {
-        const { error: deleteError } = await supabaseAny
+        const { error: deleteError } = await supabase
           .from('financial_transactions')
           .delete()
           .eq('id', existingTransactionId)
@@ -1091,14 +1080,14 @@ export async function saveContribution(
         basePayload.notes,
       )
       if (attachmentNotes) {
-        const { error: notesError } = await supabaseAny
+        const { error: notesError } = await supabase
           .from('financial_transactions')
           .update({ attachment_notes: attachmentNotes })
           .eq('id', sharedTransactionId)
         if (notesError) throw notesError
       }
 
-      const { error: linkError } = await supabaseAny
+      const { error: linkError } = await supabase
         .from('contributions')
         .update({
           transaction_id: sharedTransactionId,
@@ -1110,7 +1099,7 @@ export async function saveContribution(
     }
 
     if (isControlOnly) {
-      await syncFinancialTransaction(supabaseAny, {
+      await syncFinancialTransaction(supabase, {
         contributionId,
         brotherName,
         month,
@@ -1122,7 +1111,7 @@ export async function saveContribution(
       return
     }
 
-    await syncFinancialTransaction(supabaseAny, {
+    await syncFinancialTransaction(supabase, {
       contributionId,
       brotherName,
       month,
@@ -1143,7 +1132,7 @@ export async function saveContribution(
   let effectiveExistingTransactionId = options?.existingTransactionId
   if (!effectiveContributionId) {
     const existing = await findExistingContributionForPeriod(
-      supabaseAny,
+      supabase,
       data.brotherId,
       month,
       data.year,
@@ -1155,7 +1144,7 @@ export async function saveContribution(
   }
 
   if (effectiveContributionId) {
-    const { data: previous, error: previousError } = await supabaseAny
+    const { data: previous, error: previousError } = await supabase
       .from('contributions')
       .select(
         'brother_id, month, year, amount, status, payment_date, account_id, notes, recorded_by',
@@ -1165,7 +1154,7 @@ export async function saveContribution(
 
     if (previousError) throw formatSupabaseError(previousError)
 
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('contributions')
       .update(basePayload)
       .eq('id', effectiveContributionId)
@@ -1177,7 +1166,7 @@ export async function saveContribution(
         effectiveExistingTransactionId,
       )
     } catch (syncError) {
-      const { error: rollbackError } = await supabaseAny
+      const { error: rollbackError } = await supabase
         .from('contributions')
         .update(previous)
         .eq('id', effectiveContributionId)
@@ -1195,7 +1184,7 @@ export async function saveContribution(
     return
   }
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('contributions')
     .insert(basePayload)
     .select('id, transaction_id')
@@ -1206,7 +1195,7 @@ export async function saveContribution(
   try {
     await persistAndSync(created.id, created.transaction_id)
   } catch (syncError) {
-    await supabaseAny.from('contributions').delete().eq('id', created.id)
+    await supabase.from('contributions').delete().eq('id', created.id)
     throw formatSupabaseError(syncError)
   }
 }
@@ -1223,12 +1212,12 @@ interface ExistingContributionRef {
  * a que está paga — evitando criar novas linhas e sobrescrever a receita real.
  */
 async function findExistingContributionForPeriod(
-  supabaseAny: any,
+  supabase: SupabaseClient<Database>,
   brotherId: string,
   month: number,
   year: number,
 ): Promise<ExistingContributionRef | null> {
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('contributions')
     .select('id, transaction_id, status')
     .eq('brother_id', brotherId)
@@ -1250,17 +1239,16 @@ async function findExistingContributionForPeriod(
 }
 
 export async function deleteContribution(contribution: Contribution): Promise<void> {
-  const supabaseAny = supabase as any
 
   if (contribution.transactionId) {
-    const { error: txError } = await supabaseAny
+    const { error: txError } = await supabase
       .from('financial_transactions')
       .delete()
       .eq('id', contribution.transactionId)
     if (txError) throw txError
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('contributions')
     .delete()
     .eq('id', contribution.id)

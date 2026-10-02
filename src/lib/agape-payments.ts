@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import type { Database } from '@/lib/supabase/types'
 import { toError, isDuplicateKeyError, withTimeout } from '@/lib/async-utils'
 import { SECRETARIAT_OP_TIMEOUT_MS } from '@/lib/secretariat/constants'
 import { todayLocalISODate } from '@/lib/format-utils'
@@ -42,7 +44,8 @@ interface ChargeRow {
   year: number
   consumed_amount: number
   amount: number
-  status: 'Pago' | 'Pendente' | 'Atrasado'
+  /** TEXT no banco; valores válidos garantidos pelas telas de lançamento. */
+  status: string
   payment_date: string | null
   transaction_id: string | null
   account_id: string | null
@@ -79,13 +82,13 @@ function getMonthDateBounds(month: number, year: number) {
 
 /** Consulta direta — mesmo critério dos relatórios mensais do Ágape. */
 async function fetchConsumptionTotalsFromQuery(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   month: number,
   year: number,
 ): Promise<AgapeConsumptionTotalRow[]> {
   const { startDate, endDate } = getMonthDateBounds(month, year)
 
-  const { data: sessions, error: sessionsError } = await supabaseAny
+  const { data: sessions, error: sessionsError } = await supabase
     .from('agape_sessions')
     .select('id')
     .gte('date', startDate)
@@ -96,7 +99,7 @@ async function fetchConsumptionTotalsFromQuery(
   const sessionIds = (sessions || []).map((s: { id: string }) => s.id)
   if (sessionIds.length === 0) return []
 
-  const { data: consumptions, error } = await supabaseAny
+  const { data: consumptions, error } = await supabase
     .from('agape_consumptions')
     .select(`
       brother_id,
@@ -149,7 +152,7 @@ export function mapAgapeChargeRow(row: ChargeRow): AgapeBrotherCharge {
     year: row.year,
     consumedAmount: Number(row.consumed_amount),
     amount: Number(row.amount),
-    status: row.status,
+    status: row.status as AgapeBrotherCharge['status'],
     paymentDate: row.payment_date ?? undefined,
     accountId: row.account_id ?? undefined,
     transactionId: row.transaction_id ?? undefined,
@@ -176,7 +179,7 @@ export function mapAgapeClosingRow(row: ClosingRow): AgapeMonthlyClosing {
 }
 
 async function ensureOpenClosing(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   month: number,
   year: number,
 ): Promise<AgapeMonthlyClosing> {
@@ -188,7 +191,7 @@ async function ensureOpenClosing(
     return existing
   }
 
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_monthly_closings')
     .insert({
       month,
@@ -214,10 +217,9 @@ export async function saveAgapeMonthlyTotal(
     throw new Error('Informe um valor total maior que zero.')
   }
 
-  const supabaseAny = supabase as any
-  const closing = await ensureOpenClosing(supabaseAny, month, year)
+  const closing = await ensureOpenClosing(supabase, month, year)
 
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_monthly_closings')
     .update({ total_beverages_spent: totalBeveragesSpent })
     .eq('id', closing.id)
@@ -238,9 +240,9 @@ export function buildAgapeDescription(
 }
 
 async function resolveAgapeCategoryId(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
 ): Promise<string> {
-  const { data, error: fetchError } = await supabaseAny
+  const { data, error: fetchError } = await supabase
     .from('financial_categories')
     .select('id')
     .eq('name', AGAPE_CATEGORY)
@@ -250,7 +252,7 @@ async function resolveAgapeCategoryId(
   if (fetchError) throw fetchError
   if (data?.id) return data.id as string
 
-  const { data: created, error: insertError } = await supabaseAny
+  const { data: created, error: insertError } = await supabase
     .from('financial_categories')
     .insert({
       name: AGAPE_CATEGORY,
@@ -266,12 +268,12 @@ async function resolveAgapeCategoryId(
 }
 
 async function findExistingCharge(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   brotherId: string,
   month: number,
   year: number,
 ): Promise<{ id: string; transaction_id: string | null; status: string } | null> {
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_brother_charges')
     .select('id, transaction_id, status')
     .eq('brother_id', brotherId)
@@ -284,7 +286,7 @@ async function findExistingCharge(
 }
 
 async function syncFinancialTransaction(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   params: {
     chargeId: string
     brotherName: string
@@ -301,13 +303,13 @@ async function syncFinancialTransaction(
 
   if (!isPaid) {
     if (params.existingTransactionId) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', params.existingTransactionId)
       if (error) throw error
     }
-    await supabaseAny
+    await supabase
       .from('agape_brother_charges')
       .update({ transaction_id: null })
       .eq('id', params.chargeId)
@@ -319,7 +321,7 @@ async function syncFinancialTransaction(
   }
 
   const paymentDate = params.paymentDate || todayLocalISODate()
-  const categoryId = await resolveAgapeCategoryId(supabaseAny)
+  const categoryId = await resolveAgapeCategoryId(supabase)
   const description = buildAgapeDescription(
     params.brotherName,
     params.month,
@@ -337,7 +339,7 @@ async function syncFinancialTransaction(
   }
 
   if (params.existingTransactionId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_transactions')
       .update(payload)
       .eq('id', params.existingTransactionId)
@@ -349,7 +351,7 @@ async function syncFinancialTransaction(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_transactions')
     .insert({
       ...payload,
@@ -364,7 +366,7 @@ async function syncFinancialTransaction(
 
   if (error) throw error
 
-  await supabaseAny
+  await supabase
     .from('agape_brother_charges')
     .update({ transaction_id: created.id })
     .eq('id', params.chargeId)
@@ -373,12 +375,12 @@ async function syncFinancialTransaction(
 }
 
 async function refreshClosingTotals(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
   month: number,
   year: number,
   closingId: string,
 ): Promise<void> {
-  const { data: charges, error } = await supabaseAny
+  const { data: charges, error } = await supabase
     .from('agape_brother_charges')
     .select('consumed_amount, amount, status')
     .eq('month', month)
@@ -398,7 +400,7 @@ async function refreshClosingTotals(
       0,
     )
 
-  const { error: updateError } = await supabaseAny
+  const { error: updateError } = await supabase
     .from('agape_monthly_closings')
     .update({ total_consumed: totalConsumed, total_paid: totalPaid })
     .eq('id', closingId)
@@ -410,8 +412,7 @@ export async function fetchAgapeMonthlyClosing(
   month: number,
   year: number,
 ): Promise<AgapeMonthlyClosing | null> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_monthly_closings')
     .select('*')
     .eq('month', month)
@@ -429,8 +430,7 @@ export async function fetchAgapeChargesForMonth(
   charges: AgapeBrotherCharge[]
   brotherNames: Record<string, string>
 }> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_brother_charges')
     .select(`
       *,
@@ -464,9 +464,8 @@ export async function fetchLiveConsumptionTotals(
   month: number,
   year: number,
 ): Promise<AgapeConsumptionTotalRow[]> {
-  const supabaseAny = supabase as any
 
-  const { data, error } = await supabaseAny.rpc(
+  const { data, error } = await supabase.rpc(
     'get_agape_monthly_consumption_totals',
     { p_month: month, p_year: year },
   )
@@ -479,7 +478,7 @@ export async function fetchLiveConsumptionTotals(
     console.warn('RPC get_agape_monthly_consumption_totals falhou, usando consulta direta.', error)
   }
 
-  return fetchConsumptionTotalsFromQuery(supabaseAny, month, year)
+  return fetchConsumptionTotalsFromQuery(supabase, month, year)
 }
 
 /** Gera/atualiza cobranças a partir dos consumos lançados no Ágape no mês. */
@@ -487,7 +486,6 @@ export async function generateAgapeChargesForMonth(
   month: number,
   year: number,
 ): Promise<GenerateAgapeChargesResult> {
-  const supabaseAny = supabase as any
   const consumptionTotals = await fetchLiveConsumptionTotals(month, year)
 
   if (consumptionTotals.length === 0) {
@@ -501,7 +499,7 @@ export async function generateAgapeChargesForMonth(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const closing = await ensureOpenClosing(supabaseAny, month, year)
+  const closing = await ensureOpenClosing(supabase, month, year)
 
   let created = 0
   let updated = 0
@@ -511,7 +509,7 @@ export async function generateAgapeChargesForMonth(
     if (consumedAmount <= 0) continue
 
     const existing = await findExistingCharge(
-      supabaseAny,
+      supabase,
       row.brother_id,
       month,
       year,
@@ -527,7 +525,7 @@ export async function generateAgapeChargesForMonth(
         updatePayload.amount = consumedAmount
       }
 
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('agape_brother_charges')
         .update(updatePayload)
         .eq('id', existing.id)
@@ -535,7 +533,7 @@ export async function generateAgapeChargesForMonth(
       if (error) throw formatSupabaseError(error)
       updated += 1
     } else {
-      const { error } = await supabaseAny.from('agape_brother_charges').insert({
+      const { error } = await supabase.from('agape_brother_charges').insert({
         brother_id: row.brother_id,
         month,
         year,
@@ -551,7 +549,7 @@ export async function generateAgapeChargesForMonth(
     }
   }
 
-  await refreshClosingTotals(supabaseAny, month, year, closing.id)
+  await refreshClosingTotals(supabase, month, year, closing.id)
 
   const totalConsumed = consumptionTotals.reduce(
     (sum, r) => sum + Number(r.total_amount),
@@ -581,7 +579,6 @@ async function saveAgapeChargeInternal(
   data: AgapeChargeFormData,
   options?: { chargeId?: string; existingTransactionId?: string | null },
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const month = monthNameToNumber(data.month)
   const brotherName = data.brotherName?.trim() || 'Irmão'
 
@@ -591,7 +588,7 @@ async function saveAgapeChargeInternal(
   }
 
   const closing =
-    existingClosing ?? (await ensureOpenClosing(supabaseAny, month, data.year))
+    existingClosing ?? (await ensureOpenClosing(supabase, month, data.year))
 
   const {
     data: { user },
@@ -618,7 +615,7 @@ async function saveAgapeChargeInternal(
     chargeId: string,
     existingTransactionId?: string | null,
   ) => {
-    await syncFinancialTransaction(supabaseAny, {
+    await syncFinancialTransaction(supabase, {
       chargeId,
       brotherName,
       month,
@@ -630,11 +627,11 @@ async function saveAgapeChargeInternal(
       existingTransactionId,
     })
 
-    await refreshClosingTotals(supabaseAny, month, data.year, closing.id)
+    await refreshClosingTotals(supabase, month, data.year, closing.id)
   }
 
   if (options?.chargeId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('agape_brother_charges')
       .update(basePayload)
       .eq('id', options.chargeId)
@@ -645,14 +642,14 @@ async function saveAgapeChargeInternal(
   }
 
   const existing = await findExistingCharge(
-    supabaseAny,
+    supabase,
     data.brotherId,
     month,
     data.year,
   )
 
   if (existing) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('agape_brother_charges')
       .update(basePayload)
       .eq('id', existing.id)
@@ -662,7 +659,7 @@ async function saveAgapeChargeInternal(
     return
   }
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('agape_brother_charges')
     .insert(basePayload)
     .select('id, transaction_id')
@@ -671,13 +668,13 @@ async function saveAgapeChargeInternal(
   if (error) {
     if (isDuplicateKeyError(error)) {
       const raced = await findExistingCharge(
-        supabaseAny,
+        supabase,
         data.brotherId,
         month,
         data.year,
       )
       if (raced) {
-        const { error: updateError } = await supabaseAny
+        const { error: updateError } = await supabase
           .from('agape_brother_charges')
           .update(basePayload)
           .eq('id', raced.id)
@@ -692,7 +689,7 @@ async function saveAgapeChargeInternal(
   try {
     await persistAndSync(created.id, created.transaction_id)
   } catch (syncError) {
-    await supabaseAny.from('agape_brother_charges').delete().eq('id', created.id)
+    await supabase.from('agape_brother_charges').delete().eq('id', created.id)
     throw formatSupabaseError(syncError)
   }
 }
@@ -708,7 +705,6 @@ export async function deleteAgapeCharge(charge: AgapeBrotherCharge): Promise<voi
 async function deleteAgapeChargeInternal(
   charge: AgapeBrotherCharge,
 ): Promise<void> {
-  const supabaseAny = supabase as any
 
   const closing = await fetchAgapeMonthlyClosing(charge.month, charge.year)
   if (closing?.status === 'closed') {
@@ -718,7 +714,7 @@ async function deleteAgapeChargeInternal(
   }
 
   if (charge.transactionId) {
-    const { error: txError } = await supabaseAny
+    const { error: txError } = await supabase
       .from('financial_transactions')
       .delete()
       .eq('id', charge.transactionId)
@@ -727,7 +723,7 @@ async function deleteAgapeChargeInternal(
     }
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('agape_brother_charges')
     .delete()
     .eq('id', charge.id)
@@ -735,7 +731,7 @@ async function deleteAgapeChargeInternal(
   if (error) throw formatSupabaseError(error)
 
   if (closing?.id) {
-    await refreshClosingTotals(supabaseAny, charge.month, charge.year, closing.id)
+    await refreshClosingTotals(supabase, charge.month, charge.year, closing.id)
   }
 }
 
@@ -744,7 +740,6 @@ export async function closeAgapeMonth(
   year: number,
   notes?: string,
 ): Promise<AgapeMonthlyClosing> {
-  const supabaseAny = supabase as any
   const closing = await fetchAgapeMonthlyClosing(month, year)
 
   if (!closing) {
@@ -791,7 +786,7 @@ export async function closeAgapeMonth(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_monthly_closings')
     .update({
       status: 'closed',
@@ -827,9 +822,8 @@ export async function clearAgapeMonthClosing(
     await deleteAgapeCharge(charge)
   }
 
-  const supabaseAny = supabase as any
   if (closing?.id) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('agape_monthly_closings')
       .update({
         total_consumed: 0,
@@ -847,7 +841,6 @@ export async function reopenAgapeMonth(
   month: number,
   year: number,
 ): Promise<AgapeMonthlyClosing> {
-  const supabaseAny = supabase as any
   const closing = await fetchAgapeMonthlyClosing(month, year)
 
   if (!closing) {
@@ -858,7 +851,7 @@ export async function reopenAgapeMonth(
     throw new Error('Este mês ainda não está encerrado.')
   }
 
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('agape_monthly_closings')
     .update({
       status: 'open',

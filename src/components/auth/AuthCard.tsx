@@ -48,7 +48,7 @@ const registerSchema = z
     name: z.string().min(3, { message: 'Nome muito curto' }),
     email: z.string().email({ message: 'Email inválido' }),
     degree: z
-      .string({ required_error: 'Selecione seu grau' })
+      .string({ error: 'Selecione seu grau' })
       .min(1, 'Selecione um grau'),
     password: z
       .string()

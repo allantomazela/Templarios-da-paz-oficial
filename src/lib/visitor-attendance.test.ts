@@ -4,6 +4,7 @@ import {
   normalizeVisitorAttendanceInput,
   stripLodgeNamePrefix,
   validateVisitorAttendanceInput,
+  type VisitorAttendanceInput,
 } from './visitor-attendance'
 
 describe('visitor-attendance validation', () => {
@@ -34,7 +35,7 @@ describe('visitor-attendance validation', () => {
   })
 
   it('validates a correct visitor input', () => {
-    const input = {
+    const input: VisitorAttendanceInput = {
       name: 'Joao da Silva',
       degree: 'Mestre',
       lodge: 'Loja Harmonia',
@@ -48,7 +49,7 @@ describe('visitor-attendance validation', () => {
   })
 
   it('rejects missing required fields', () => {
-    const input = {
+    const input: VisitorAttendanceInput = {
       name: 'Jo',
       degree: 'Mestre',
       lodge: '',
@@ -62,7 +63,7 @@ describe('visitor-attendance validation', () => {
   })
 
   it('rejects invalid lodge numbers', () => {
-    const input = {
+    const input: VisitorAttendanceInput = {
       name: 'Carlos Souza',
       degree: 'Companheiro',
       lodge: 'Loja Central',
@@ -76,7 +77,7 @@ describe('visitor-attendance validation', () => {
   })
 
   it('rejects invalid masonic numbers', () => {
-    const input = {
+    const input: VisitorAttendanceInput = {
       name: 'Marcos Oliveira',
       degree: 'Aprendiz',
       lodge: 'Loja Luz',

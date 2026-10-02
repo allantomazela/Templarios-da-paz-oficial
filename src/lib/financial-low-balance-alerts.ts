@@ -1,5 +1,8 @@
 import type { BankAccount, Transaction } from '@/lib/data'
-import { computeAccountBalance } from '@/lib/financial-balances'
+import {
+  computeAccountBalance,
+  type BalanceTransaction,
+} from '@/lib/financial-balances'
 
 /** Limite padrão para alerta de saldo baixo em contas já utilizadas. */
 export const LOW_BALANCE_ALERT_THRESHOLD = 100
@@ -10,7 +13,7 @@ export const LOW_BALANCE_ALERT_THRESHOLD = 100
  */
 export function findLowBalanceAccountsForAlert(
   accounts: BankAccount[],
-  transactions: Transaction[],
+  transactions: BalanceTransaction[],
   threshold = LOW_BALANCE_ALERT_THRESHOLD,
 ): BankAccount[] {
   return accounts.filter((account) => {

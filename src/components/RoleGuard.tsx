@@ -19,7 +19,7 @@ function RoleGuardInner({
   requiredModule,
   alternativeModules,
   children,
-}: RoleGuardProps & { user: NonNullable<ReturnType<typeof useAuthStore>['user']> }) {
+}: RoleGuardProps & { user: NonNullable<ReturnType<typeof useAuthStore.getState>['user']> }) {
   const { hasPermission, getUserPermissions } = useLodgePositionsStore()
 
   const isMasterAdmin = isMasterAdminEmail(user?.email)

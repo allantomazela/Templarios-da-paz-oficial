@@ -10,8 +10,8 @@ function PublicPageLoader() {
 }
 
 /** Lazy load para páginas públicas (fora do dashboard), com Suspense próprio. */
-export function lazyPublicPage<T extends ComponentType<object>>(
-  factory: () => Promise<{ default: T }>,
+export function lazyPublicPage(
+  factory: () => Promise<{ default: ComponentType }>,
 ) {
   const LazyComponent = lazy(factory)
 

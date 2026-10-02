@@ -50,7 +50,7 @@ export function buildPendingItemsFromForecastRows(
     : rows
 
   return filteredRows
-    .map((row) => {
+    .map((row): PendingFinancialReportItem | null => {
       const amount = computePendingAmount(row.expectedAmount, row.realizedAmount)
       if (amount <= PENDING_TOLERANCE) return null
 

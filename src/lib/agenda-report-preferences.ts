@@ -38,8 +38,9 @@ function parseCategoryFilters(value: unknown): AnniversaryCategoryFilters | null
   const filters = { ...DEFAULT_ANNIVERSARY_CATEGORY_FILTERS }
 
   for (const option of ANNIVERSARY_CATEGORY_OPTIONS) {
-    if (typeof record[option.id] !== 'boolean') return null
-    filters[option.id] = record[option.id]
+    const enabled = record[option.id]
+    if (typeof enabled !== 'boolean') return null
+    filters[option.id] = enabled
   }
 
   return filters

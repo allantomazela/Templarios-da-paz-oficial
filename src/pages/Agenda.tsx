@@ -182,7 +182,7 @@ export default function Agenda() {
       return
     }
     const fullEvent = event.originalEvent ? event.originalEvent : event
-    setSelectedEvent(fullEvent)
+    setSelectedEvent(fullEvent as Event)
     setIsDetailsOpen(true)
   }
 

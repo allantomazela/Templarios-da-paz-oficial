@@ -132,7 +132,7 @@ interface AgapeState {
 
   // Consumptions
   fetchConsumptions: (sessionId?: string) => Promise<void>
-  createConsumption: (consumption: Omit<AgapeConsumption, 'id' | 'created_at' | 'updated_at'>) => Promise<{ error: any }>
+  createConsumption: (consumption: Omit<AgapeConsumption, 'id' | 'created_at' | 'updated_at' | 'recorded_by'>) => Promise<{ error: any }>
   updateConsumption: (id: string, updates: Partial<AgapeConsumption>) => Promise<{ error: any }>
   deleteConsumption: (id: string) => Promise<{ error: any }>
 

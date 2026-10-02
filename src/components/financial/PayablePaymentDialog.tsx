@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import type { BankAccount } from '@/lib/data'
 import type { FinancialPayable } from '@/lib/financial-payable-types'
 import {
   Dialog,
@@ -68,7 +67,9 @@ export function PayablePaymentDialog({
   onSave,
   saving = false,
 }: PayablePaymentDialogProps) {
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [accounts, setAccounts] = useState<
+    Awaited<ReturnType<typeof fetchBankAccounts>>
+  >([])
   const [loadingAccounts, setLoadingAccounts] = useState(false)
 
   const form = useForm<PayablePaymentFormValues>({

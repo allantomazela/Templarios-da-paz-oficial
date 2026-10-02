@@ -59,11 +59,12 @@ export function EventDetailsSheet({
   
   if (!event) return null
 
+  const eventType: string = event.type
   const isMilestone =
-    event.type === 'Aniversário' ||
-    (event as any).type === 'Maçônico' ||
-    (event as any).type === 'Feriado' ||
-    (event as any).type === 'Comemorativo'
+    eventType === 'Aniversário' ||
+    eventType === 'Maçônico' ||
+    eventType === 'Feriado' ||
+    eventType === 'Comemorativo'
 
   const locationDetails = locations.find((l) => l.id === event.locationId)
 

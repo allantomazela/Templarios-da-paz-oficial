@@ -30,7 +30,17 @@ const consumptions: AgapeConsumption[] = [
     created_at: '2026-07-10T00:00:00Z',
     updated_at: '2026-07-10T00:00:00Z',
     brother: { id: 'brother-1', full_name: 'Irmão A' },
-    menu_item: { id: 'item-1', name: 'Refrigerante', price: 15 },
+    menu_item: {
+      id: 'item-1',
+      name: 'Refrigerante',
+      description: null,
+      price: 15,
+      category: 'Bebidas',
+      image_url: null,
+      is_active: true,
+      created_at: '2026-07-01T00:00:00Z',
+      updated_at: '2026-07-01T00:00:00Z',
+    },
     recorded_by_profile: { id: 'user-1', full_name: 'Tesoureiro' },
   },
 ]

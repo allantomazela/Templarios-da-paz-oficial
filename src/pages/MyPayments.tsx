@@ -25,7 +25,10 @@ import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 import {
   fetchMembershipFeeSettings,
 } from '@/lib/contribution-payments'
-import { inferMembershipSituation } from '@/lib/brother-membership-situation'
+import {
+  inferMembershipSituation,
+  type MembershipSituation,
+} from '@/lib/brother-membership-situation'
 import { MembershipScheduleTable } from '@/components/financial/MembershipScheduleTable'
 import {
   buildMembershipScheduleForBrother,
@@ -74,7 +77,7 @@ export default function MyPayments() {
               ? String(brotherRow.regular_status)
               : undefined,
             membershipSituation: brotherRow.membership_situation
-              ? String(brotherRow.membership_situation)
+              ? (String(brotherRow.membership_situation) as MembershipSituation)
               : undefined,
           })
         : 'regular'

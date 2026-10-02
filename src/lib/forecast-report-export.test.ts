@@ -15,6 +15,23 @@ const sampleMonth: ForecastMonthSummary = {
   realizedExpense: 230,
   netExpected: 250,
   netRealized: -80,
+  cashFlow: {
+    accounts: [],
+    totals: {
+      accountId: 'total',
+      accountName: 'Total',
+      periodIncome: 150,
+      periodExpense: 230,
+      netCashFlow: -80,
+    },
+    cashFlowIncome: 150,
+    cashFlowExpense: 230,
+    cashFlowNet: -80,
+    unplannedIncome: 0,
+    unplannedExpense: 0,
+    unplannedNet: 0,
+    unplannedTransactions: [],
+  },
   rows: [
     {
       id: 'item-luz',

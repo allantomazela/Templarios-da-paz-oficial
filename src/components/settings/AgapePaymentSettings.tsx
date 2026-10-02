@@ -30,7 +30,7 @@ const paymentSettingsSchema = z.object({
   pixKey: z.string().min(1, 'A chave PIX é obrigatória'),
   pixName: z.string().min(1, 'O nome do beneficiário é obrigatório'),
   paymentType: z.enum(['monthly', 'per_session'], {
-    required_error: 'Selecione o tipo de pagamento',
+    error: 'Selecione o tipo de pagamento',
   }),
 })
 

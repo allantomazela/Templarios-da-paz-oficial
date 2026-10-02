@@ -323,7 +323,9 @@ export function LayoutSettings() {
         open={dialog.open}
         onOpenChange={dialog.onOpenChange}
         sectionToEdit={selectedSection}
-        onSave={saveCustomSectionOperation.execute}
+        onSave={async (data) => {
+          await saveCustomSectionOperation.execute(data)
+        }}
       />
     </div>
   )

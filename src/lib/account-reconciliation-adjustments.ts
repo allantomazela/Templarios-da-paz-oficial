@@ -7,7 +7,7 @@ import {
 import { notifyFinancialDataChanged } from '@/stores/useFinancialStore'
 
 export interface TransactionDependencyWarning {
-  source: 'mensalidade' | 'cerimonia' | 'agape'
+  source: TransactionDeleteDependency['source']
   label: string
 }
 

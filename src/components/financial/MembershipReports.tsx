@@ -42,7 +42,7 @@ export function MembershipReports() {
   const [activeSection, setActiveSection] = useState('em-aberto')
   const [selectedBrotherId, setSelectedBrotherId] = useState('')
   const [brothers, setBrothers] = useState<
-    { id: string; full_name: string | null; created_at?: string | null }[]
+    Awaited<ReturnType<typeof fetchApprovedBrothers>>
   >([])
   const [brotherNames, setBrotherNames] = useState<Record<string, string>>({})
   const [schedules, setSchedules] = useState<ReturnType<typeof buildAllMembershipSchedules>>([])

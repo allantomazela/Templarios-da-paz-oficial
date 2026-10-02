@@ -257,7 +257,10 @@ export function VisitorCertificate() {
               <Select
                 value={visitorInfo.degree}
                 onValueChange={(value) =>
-                  setVisitorInfo((prev) => ({ ...prev, degree: value }))
+                  setVisitorInfo((prev) => ({
+                    ...prev,
+                    degree: value as VisitorAttendance['degree'],
+                  }))
                 }
               >
                 <SelectTrigger id="degree">

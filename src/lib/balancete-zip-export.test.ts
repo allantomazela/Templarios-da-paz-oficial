@@ -45,6 +45,7 @@ const balancete: AccountingBalanceteData = {
   incomeByCategory: { Mensalidade: 150 },
   expenseByCategory: {},
   periodTransactionCount: 1,
+  typeFilter: 'all',
 }
 
 describe('balancete-zip-export', () => {
@@ -75,6 +76,7 @@ describe('balancete-zip-export', () => {
           fileName: 'recibo.pdf',
           fileSize: 100,
           mimeType: 'application/pdf',
+          thumbnailPath: null,
           uploadedBy: null,
           createdAt: '2026-03-01',
         },

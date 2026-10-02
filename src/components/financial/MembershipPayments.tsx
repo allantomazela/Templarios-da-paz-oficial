@@ -915,7 +915,12 @@ export function MembershipPayments() {
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Mês</label>
-              <Select value={generateMonth} onValueChange={setGenerateMonth}>
+              <Select
+                value={generateMonth}
+                onValueChange={(value) =>
+                  setGenerateMonth(value as (typeof CONTRIBUTION_MONTHS)[number])
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

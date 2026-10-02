@@ -43,7 +43,7 @@ export default function Profile() {
 
       const brotherRecord = await fetchBrotherForProfile(
         user.id,
-        data?.email ?? user.email,
+        user.email,
       )
       setRegistrationComplete(isBrotherRegistrationComplete(brotherRecord))
     } catch (error) {

@@ -16,7 +16,7 @@ export interface FinancialTransactionSaveInput {
   amount: number
   date: string
   category: string
-  accountId: string
+  accountId?: string
   attachmentNotes?: string
   forecastItemId?: string | null
   controlOnly?: boolean

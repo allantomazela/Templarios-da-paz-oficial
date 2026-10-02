@@ -39,15 +39,8 @@ describe('accounting-balancete', () => {
     const report = buildAccountingBalancete(accounts, transactions, {
       '2': [
         {
-          id: 'att-1',
-          transactionId: '2',
           documentType: 'nota_fiscal',
-          filePath: 'transactions/2/file.pdf',
           fileName: 'nf-material.pdf',
-          fileSize: 1000,
-          mimeType: 'application/pdf',
-          uploadedBy: null,
-          createdAt: '2026-03-10T12:00:00Z',
         },
       ],
     }, period)

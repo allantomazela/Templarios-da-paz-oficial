@@ -33,7 +33,7 @@ describe('financial-pending-report', () => {
         expectedAmount: 500,
         realizedAmount: 200,
         variance: 300,
-        linkStatus: 'partial',
+        linkStatus: 'under',
         hasLinkedTransactions: true,
       },
       {
@@ -48,7 +48,7 @@ describe('financial-pending-report', () => {
         expectedAmount: 300,
         realizedAmount: 300,
         variance: 0,
-        linkStatus: 'matched',
+        linkStatus: 'ok',
         hasLinkedTransactions: true,
       },
     ]

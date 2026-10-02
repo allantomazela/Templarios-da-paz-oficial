@@ -114,9 +114,7 @@ function ThemeApplicator() {
 }
 
 const App = () => (
-  <BrowserRouter
-    future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
-  >
+  <BrowserRouter>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
         <ThemeApplicator />

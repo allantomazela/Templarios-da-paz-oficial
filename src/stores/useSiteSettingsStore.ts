@@ -35,7 +35,7 @@ export interface Venerable {
   mandateOrder?: number
 }
 
-export interface CustomSection {
+export type CustomSection = {
   id: string
   title: string
   content: string

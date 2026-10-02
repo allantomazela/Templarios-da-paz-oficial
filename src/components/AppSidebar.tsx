@@ -22,6 +22,7 @@ import {
   UtensilsCrossed,
   QrCode,
   Link2,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -123,7 +124,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
     ['admin', 'editor', 'member'].includes(userRole) || 
     isMasterAdmin
 
-  const navItems = [
+  const navItems: SidebarNavItem[] = [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
     ...(canAccessModule('secretariat') || isMasterAdmin
       ? [{ name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' }]
@@ -365,4 +366,12 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
       ) : null}
     </div>
   )
+}
+
+interface SidebarNavItem {
+  name: string
+  icon: LucideIcon
+  path: string
+  end?: boolean
+  allowedRoles?: string[]
 }

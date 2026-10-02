@@ -27,13 +27,15 @@ import {
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import { Bell, Loader2 } from 'lucide-react'
-import type { PayableReminderSettings as PayableReminderSettingsModel } from '@/lib/financial-payable-types'
+import type {
+  PayableReminderRun,
+  PayableReminderSettings as PayableReminderSettingsModel,
+} from '@/lib/financial-payable-types'
 import {
   fetchPayableReminderRuns,
   fetchPayableReminderSettings,
   runPayablesRemindersManual,
   savePayableReminderSettings,
-  type PayableReminderRun,
 } from '@/lib/payable-reminder-settings'
 import { formatDateBR } from '@/lib/format-utils'
 

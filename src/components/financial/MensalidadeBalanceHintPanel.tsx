@@ -37,7 +37,7 @@ export function MensalidadeBalanceHintPanel({ hints }: MensalidadeBalanceHintPan
               extrato
               {hint.matchesDifference ? ' — bate com mensalidade(s) abaixo' : ''}
             </AlertTitle>
-            <AlertDescription asChild>
+            <AlertDescription>
               <ul className="mt-2 space-y-2 text-sm">
                 {hint.unlinkedTransactions.map(({ transaction }) => (
                   <li key={transaction.id} className="rounded border px-2 py-1.5">

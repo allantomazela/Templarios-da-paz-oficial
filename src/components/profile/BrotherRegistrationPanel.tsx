@@ -177,7 +177,9 @@ export function BrotherRegistrationPanel({
             brotherToEdit={brotherForForm}
             profileAvatarUrl={profile.avatar_url}
             userName={profile.full_name}
-            onSave={saveOperation.execute}
+            onSave={async (data) => {
+              await saveOperation.execute(data)
+            }}
             isSaving={saveOperation.loading}
             mode="self"
             active

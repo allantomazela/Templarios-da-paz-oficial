@@ -71,7 +71,7 @@ Data: ${formatCalendarDate(currentMinute.date, "dd 'de' MMMM 'de' yyyy", { local
 ${currentMinute.content}
 
 Assinaturas:
-${currentMinute.signatures?.map(s => `- ${s.profile_name}`).join('\n') || 'Nenhuma assinatura'}
+${currentMinute.signatures?.map(s => `- ${s.profile?.full_name ?? 'Irmão'}`).join('\n') || 'Nenhuma assinatura'}
   `
     
     const blob = new Blob([content], { type: 'text/plain' })

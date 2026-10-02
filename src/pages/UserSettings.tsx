@@ -114,7 +114,7 @@ export default function UserSettings() {
                 <Select
                   value={preferences.interface.language}
                   onValueChange={handleLanguageChange}
-                  disabled={updateInterfaceOperation.isLoading}
+                  disabled={updateInterfaceOperation.loading}
                 >
                   <SelectTrigger id="language">
                     <SelectValue />
@@ -139,7 +139,7 @@ export default function UserSettings() {
                 <Select
                   value={preferences.interface.theme}
                   onValueChange={handleThemeChange}
-                  disabled={updateInterfaceOperation.isLoading}
+                  disabled={updateInterfaceOperation.loading}
                 >
                   <SelectTrigger id="theme">
                     <SelectValue />

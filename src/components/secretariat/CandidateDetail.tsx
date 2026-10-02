@@ -133,7 +133,7 @@ export function CandidateDetail({
     updatePhaseProgress(progressId, { scheduledCheckDate: value || null })
   }
 
-  const updateCandidateStatus = async (newStatus: InitiationCandidateStatus) => {
+  const handleCandidateStatusChange = async (newStatus: InitiationCandidateStatus) => {
     if (!candidate) return
     setUpdatingCandidateStatus(true)
     try {
@@ -208,7 +208,7 @@ export function CandidateDetail({
               <div className="flex items-center gap-2">
                 <Select
                   value={localCandidateStatus}
-                  onValueChange={(v) => updateCandidateStatus(v as InitiationCandidateStatus)}
+                  onValueChange={(v) => handleCandidateStatusChange(v as InitiationCandidateStatus)}
                   disabled={updatingCandidateStatus}
                 >
                   <SelectTrigger className="w-[180px] h-9">

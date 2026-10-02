@@ -61,7 +61,7 @@ export function NotificationPreferences() {
             id="push-notifications"
             checked={preferences.notifications.push}
             onCheckedChange={(checked) => handleToggle('push', checked)}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           />
         </div>
 
@@ -81,7 +81,7 @@ export function NotificationPreferences() {
             id="email-notifications"
             checked={preferences.notifications.email}
             onCheckedChange={(checked) => handleToggle('email', checked)}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           />
         </div>
 
@@ -101,7 +101,7 @@ export function NotificationPreferences() {
             id="event-notifications"
             checked={preferences.notifications.events}
             onCheckedChange={(checked) => handleToggle('events', checked)}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           />
         </div>
 
@@ -121,7 +121,7 @@ export function NotificationPreferences() {
             id="message-notifications"
             checked={preferences.notifications.messages}
             onCheckedChange={(checked) => handleToggle('messages', checked)}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           />
         </div>
       </CardContent>

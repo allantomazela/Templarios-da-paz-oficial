@@ -234,6 +234,7 @@ export function FinancialPlanningPanel() {
         title: 'Conta a pagar criada',
         description: 'Acompanhe em Financeiro → Contas a pagar.',
       })
+      return true
     },
     {
       showSuccessToast: false,

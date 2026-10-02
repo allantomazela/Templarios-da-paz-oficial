@@ -60,6 +60,7 @@ export function buildBrotherStatementSummaryByType(
     charity: emptyTypeSummary(),
     ceremony: emptyTypeSummary(),
     agape: emptyTypeSummary(),
+    temple_sale: emptyTypeSummary(),
   }
 
   for (const payment of memberPayments) {

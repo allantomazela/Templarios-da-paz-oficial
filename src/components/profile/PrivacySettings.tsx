@@ -74,7 +74,7 @@ export function PrivacySettings() {
           <Select
             value={preferences.privacy.profileVisibility}
             onValueChange={handleVisibilityChange}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           >
             <SelectTrigger id="profile-visibility">
               <SelectValue />
@@ -108,7 +108,7 @@ export function PrivacySettings() {
             id="show-email"
             checked={preferences.privacy.showEmail}
             onCheckedChange={(checked) => handleToggle('showEmail', checked)}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           />
         </div>
 
@@ -128,7 +128,7 @@ export function PrivacySettings() {
             id="show-phone"
             checked={preferences.privacy.showPhone}
             onCheckedChange={(checked) => handleToggle('showPhone', checked)}
-            disabled={updateOperation.isLoading}
+            disabled={updateOperation.loading}
           />
         </div>
       </CardContent>

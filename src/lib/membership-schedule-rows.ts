@@ -1,5 +1,5 @@
 import type { Contribution } from '@/lib/data'
-import { CONTRIBUTION_MONTHS } from '@/lib/contribution-payments'
+import { CONTRIBUTION_MONTHS } from '@/lib/contribution-months'
 import {
   contributionCountsInTreasury,
   isMembershipBackfillContribution,

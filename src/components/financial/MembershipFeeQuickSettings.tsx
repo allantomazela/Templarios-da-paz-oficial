@@ -20,11 +20,11 @@ import type { MembershipFeeSettings } from '@/lib/contribution-payments'
 
 const schema = z.object({
   baseAmount: z.coerce
-    .number()
+    .number<number>()
     .min(0.01, 'Valor inválido')
     .max(999999, 'Valor muito alto'),
   sessionPackageAmount: z.coerce
-    .number()
+    .number<number>()
     .min(0, 'Valor inválido')
     .max(999999, 'Valor muito alto'),
 })
@@ -45,7 +45,7 @@ export function MembershipFeeQuickSettings({
   const [expanded, setExpanded] = useState(false)
   const prevRef = useRef('')
 
-  const form = useForm<FormValues>({
+  const form = useForm<z.input<typeof schema>, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       baseAmount: settings.baseAmount,

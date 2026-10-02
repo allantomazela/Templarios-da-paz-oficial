@@ -61,7 +61,7 @@ export function CheckinSettings() {
   const { toast } = useToast()
   const prevValuesRef = useRef<string>('')
 
-  const form = useForm<CheckinFormValues>({
+  const form = useForm<z.input<typeof checkinSchema>, unknown, CheckinFormValues>({
     resolver: zodResolver(checkinSchema),
     defaultValues: {
       latitude: formatCoord(templeCheckin.latitude) as string,

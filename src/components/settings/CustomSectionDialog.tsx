@@ -78,7 +78,7 @@ export function CustomSectionDialog({
     errorMessage: 'Falha ao fazer upload da imagem.',
   })
 
-  const form = useForm<CustomSectionFormValues>({
+  const form = useForm<z.input<typeof customSectionSchema>, unknown, CustomSectionFormValues>({
     resolver: zodResolver(customSectionSchema),
     defaultValues: {
       title: '',

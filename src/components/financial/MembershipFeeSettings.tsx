@@ -29,11 +29,11 @@ import { composeActiveMembershipAmount } from '@/lib/brother-membership-situatio
 
 const schema = z.object({
   baseAmount: z.coerce
-    .number()
+    .number<number>()
     .min(0.01, 'Informe um valor maior que zero')
     .max(999999, 'Valor muito alto'),
   sessionPackageAmount: z.coerce
-    .number()
+    .number<number>()
     .min(0, 'Informe zero ou mais')
     .max(999999, 'Valor muito alto'),
 })
@@ -45,7 +45,7 @@ export function MembershipFeeSettings() {
   const { toast } = useToast()
   const prevRef = useRef('')
 
-  const form = useForm<FormValues>({
+  const form = useForm<z.input<typeof schema>, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       baseAmount: membershipFee.baseAmount,

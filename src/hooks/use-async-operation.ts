@@ -12,6 +12,10 @@ interface UseAsyncOperationOptions {
   showSuccessToast?: boolean
   /** Se deve mostrar toast de erro (padrão: true) */
   showErrorToast?: boolean
+  /** Quando informado, substitui o toast de sucesso padrão */
+  onSuccess?: () => void
+  /** Quando informado, substitui o toast de erro padrão */
+  onError?: (error: Error) => void
 }
 
 /** API antiga: objeto com operation, onSuccess, onError */

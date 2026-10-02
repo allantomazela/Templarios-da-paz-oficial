@@ -33,7 +33,7 @@ const accountSchema = z.object({
   name: z.string().min(3, 'Nome é obrigatório'),
   type: z.enum(['Corrente', 'Poupança', 'Caixa', 'Investimento']),
   initialBalance: z.coerce
-    .number()
+    .number<number>()
     .min(0, 'Saldo inicial não pode ser negativo'),
 })
 
@@ -52,7 +52,7 @@ export function BankAccountDialog({
   accountToEdit,
   onSave,
 }: BankAccountDialogProps) {
-  const form = useForm<AccountFormValues>({
+  const form = useForm<z.input<typeof accountSchema>, unknown, AccountFormValues>({
     resolver: zodResolver(accountSchema),
     defaultValues: {
       name: '',

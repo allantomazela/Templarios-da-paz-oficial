@@ -89,7 +89,7 @@ export function MenuItemDialog({ open, onOpenChange, item }: MenuItemDialogProps
 
   const isSavingForm = imageUpload.isUploading || isSubmittingLocal
 
-  const form = useForm<MenuItemFormValues>({
+  const form = useForm<z.input<typeof menuItemSchema>, unknown, MenuItemFormValues>({
     resolver: zodResolver(menuItemSchema),
     defaultValues: {
       name: '',

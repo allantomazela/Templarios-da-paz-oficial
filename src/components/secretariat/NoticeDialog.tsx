@@ -45,7 +45,7 @@ export function NoticeDialog({
   noticeToEdit,
   onSave,
 }: NoticeDialogProps) {
-  const form = useForm<NoticeFormValues>({
+  const form = useForm<z.input<typeof noticeSchema>, unknown, NoticeFormValues>({
     resolver: zodResolver(noticeSchema),
     defaultValues: { title: '', content: '', isPrivate: false },
   })

@@ -93,7 +93,7 @@ export function NewsDialog({
     errorMessage: 'Falha no upload. Use imagem de até 1200 px e 5 MB.',
   })
 
-  const form = useForm<NewsFormValues>({
+  const form = useForm<z.input<typeof newsSchema>, unknown, NewsFormValues>({
     resolver: zodResolver(newsSchema),
     defaultValues: {
       title: '',

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
-import { useForm, useFieldArray, type FieldErrors } from 'react-hook-form'
+import {
+  useForm,
+  useFieldArray,
+  type FieldErrors,
+  type PathValue,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Brother, Child } from '@/lib/data'
 import { DialogFooter } from '@/components/ui/dialog'
@@ -316,7 +321,7 @@ export function BrotherForm({
     value: FormSelectSnapshot[K],
   ) => {
     formSelectRef.current[key] = value
-    form.setValue(key, value, {
+    form.setValue(key, value as PathValue<BrotherFormValues, K>, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,

@@ -9,7 +9,10 @@ const childSchema = z.object({
   dob: z.string().min(1, 'Data de nascimento do filho é obrigatória'),
 })
 
-function filterFilledChildren(value: unknown): unknown {
+type ChildFormValue = z.infer<typeof childSchema>
+
+/** O tipo do parâmetro define o tipo de entrada do campo no formulário (igual ao de saída). */
+function filterFilledChildren(value: ChildFormValue[]): unknown {
   if (!Array.isArray(value)) return []
   return value.filter((child) => {
     if (!child || typeof child !== 'object') return false

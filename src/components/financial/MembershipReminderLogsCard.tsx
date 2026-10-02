@@ -34,8 +34,7 @@ interface ReminderLogFromDB {
 }
 
 async function fetchReminderLogs(): Promise<ReminderLogRow[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('reminder_logs')
     .select(
       `

@@ -108,7 +108,6 @@ export function AccountReconciliationPanel() {
   const [loading, setLoading] = useState(true)
   const dataRevision = useFinancialStore((state) => state.dataRevision)
   const { toast } = useToast()
-  const supabaseAny = supabase as any
 
   const persistExtratoFields = async (
     accountId: string,
@@ -267,7 +266,7 @@ export function AccountReconciliationPanel() {
 
   const applyInitialBalance = useAsyncOperation(
     async (accountId: string, newInitialBalance: number) => {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_accounts')
         .update({ initial_balance: newInitialBalance })
         .eq('id', accountId)

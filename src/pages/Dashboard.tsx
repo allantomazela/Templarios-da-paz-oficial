@@ -58,7 +58,6 @@ export default function Dashboard() {
     totalCount: 0,
   })
   const [dashboardLoading, setDashboardLoading] = useState(true)
-  const supabaseAny = supabase as any
 
   const upcomingEvents = useMemo(() => {
     const today = startOfToday()
@@ -93,7 +92,7 @@ export default function Dashboard() {
       const role = user.role || user.profile?.role || 'member'
       const isAdminOrEditor = ['admin', 'editor'].includes(role)
 
-      const { data: rows, error } = await supabaseAny
+      const { data: rows, error } = await supabase
         .from('announcements')
         .select('*')
         .order('created_at', { ascending: false })
@@ -129,7 +128,7 @@ export default function Dashboard() {
 
   const loadLibraryItems = useAsyncOperation(
     async () => {
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('library_items')
         .select('*')
         .order('added_at', { ascending: false })

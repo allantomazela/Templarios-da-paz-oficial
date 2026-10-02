@@ -48,15 +48,14 @@ export default function MyPayments() {
         throw new Error('Usuário não autenticado.')
       }
 
-      const supabaseAny = supabase as any
       const [{ data: profile }, { data: brotherRow }, bundle, settings] =
         await Promise.all([
-          supabaseAny
+          supabase
             .from('profiles')
             .select('created_at')
             .eq('id', user.id)
             .maybeSingle(),
-          supabaseAny
+          supabase
             .from('brothers')
             .select('status, regular_status, membership_situation')
             .eq('profile_id', user.id)

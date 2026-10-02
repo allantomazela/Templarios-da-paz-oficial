@@ -73,10 +73,9 @@ export function CategoryDialog({
   }, [categoryToEdit, form, open])
 
   const handleSubmit = async (data: CategoryFormValues) => {
-    const supabaseAny = supabase as any
 
     // Check for duplicate category (same name and type)
-    const { data: existingCategories, error } = await supabaseAny
+    const { data: existingCategories, error } = await supabase
       .from('financial_categories')
       .select('id, name, type')
       .eq('name', data.name)

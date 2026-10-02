@@ -106,7 +106,6 @@ export function ContactMessagesList() {
   const [isReplyOpen, setIsReplyOpen] = useState(false)
   const [isCategoryOpen, setIsCategoryOpen] = useState(false)
   const { toast } = useToast()
-  const supabaseAny = supabase as any
   const hasLoadedRef = useRef(false)
 
   const replyForm = useForm<z.infer<typeof replySchema>>({
@@ -124,7 +123,7 @@ export function ContactMessagesList() {
 
   const loadMessages = useAsyncOperation(
     async () => {
-      const { data: rows, error } = await supabaseAny
+      const { data: rows, error } = await supabase
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false })
@@ -172,7 +171,7 @@ export function ContactMessagesList() {
 
   const updateStatus = useAsyncOperation(
     async (messageId: string, newStatus: string) => {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('contact_messages')
         .update({ status: newStatus })
         .eq('id', messageId)
@@ -250,7 +249,7 @@ export function ContactMessagesList() {
       }
 
       // Tentativa 1: Com todos os campos
-      let { error } = await supabaseAny
+      let { error } = await supabase
         .from('contact_messages')
         .update(updateData)
         .eq('id', selectedMessage.id)
@@ -268,7 +267,7 @@ export function ContactMessagesList() {
 
         if (isColumnError) {
           // Tentar apenas com reply_text
-          const { error: replyTextError } = await supabaseAny
+          const { error: replyTextError } = await supabase
             .from('contact_messages')
             .update({
               reply_text: data.replyText,
@@ -286,7 +285,7 @@ export function ContactMessagesList() {
 
             if (isReplyTextError) {
               // Última tentativa: apenas atualizar status
-              const { error: statusError } = await supabaseAny
+              const { error: statusError } = await supabase
                 .from('contact_messages')
                 .update({
                   status: 'replied',
@@ -359,7 +358,7 @@ export function ContactMessagesList() {
 
   const updateCategory = useAsyncOperation(
     async (messageId: string, category: string) => {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('contact_messages')
         .update({ category: category || null })
         .eq('id', messageId)

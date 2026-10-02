@@ -23,7 +23,6 @@ export function NoticesList() {
   const [selectedNotice, setSelectedNotice] = useState<Announcement | null>(
     null,
   )
-  const supabaseAny = supabase as any
   const PAGE_SIZE = 20
 
   const loadNotices = useAsyncOperation(
@@ -40,7 +39,7 @@ export function NoticesList() {
 
       setCurrentUserId(user.id)
 
-      const { data: profileData, error: profileError } = await supabaseAny
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name, role')
         .eq('id', user.id)
@@ -61,7 +60,7 @@ export function NoticesList() {
       const rangeFrom = targetPage * PAGE_SIZE
       const rangeTo = rangeFrom + PAGE_SIZE - 1
 
-      const { data: rows, error } = await supabaseAny
+      const { data: rows, error } = await supabase
         .from('announcements')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -106,7 +105,7 @@ export function NoticesList() {
   const saveOperation = useAsyncOperation(
     async (data: any) => {
       if (selectedNotice) {
-        const { data: updatedRows, error } = await supabaseAny
+        const { data: updatedRows, error } = await supabase
           .from('announcements')
           .update({
             title: data.title,
@@ -150,7 +149,7 @@ export function NoticesList() {
           throw new Error('Usuário não autenticado.')
         }
 
-        const { data: createdRows, error } = await supabaseAny
+        const { data: createdRows, error } = await supabase
           .from('announcements')
           .insert({
             title: data.title,
@@ -196,7 +195,7 @@ export function NoticesList() {
 
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('announcements')
         .delete()
         .eq('id', id)

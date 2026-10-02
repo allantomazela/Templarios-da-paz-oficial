@@ -87,9 +87,8 @@ export function BrotherMembershipPanel({
           return
         }
 
-        const supabaseAny = supabase as any
         const [{ data: profileRow }, rows] = await Promise.all([
-          supabaseAny
+          supabase
             .from('profiles')
             .select('created_at')
             .eq('id', resolvedProfileId)

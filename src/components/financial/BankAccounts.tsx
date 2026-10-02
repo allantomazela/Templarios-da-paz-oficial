@@ -50,7 +50,6 @@ export function BankAccounts() {
     null,
   )
   const { toast } = useToast()
-  const supabaseAny = supabase as any
   const loadSeqRef = useRef(0)
 
   // Load accounts from Supabase
@@ -84,7 +83,7 @@ export function BankAccounts() {
     async (data: any) => {
       if (selectedAccount) {
         // Update
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('financial_accounts')
           .update({
             name: data.name,
@@ -109,7 +108,7 @@ export function BankAccounts() {
         ]
         const randomColor = colors[Math.floor(Math.random() * colors.length)]
 
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('financial_accounts')
           .insert({
             name: data.name,
@@ -134,7 +133,7 @@ export function BankAccounts() {
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
       // Check if account has transactions
-      const { data: transactions, error: checkError } = await supabaseAny
+      const { data: transactions, error: checkError } = await supabase
         .from('financial_transactions')
         .select('id')
         .eq('account_id', id)
@@ -151,7 +150,7 @@ export function BankAccounts() {
         return
       }
 
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_accounts')
         .delete()
         .eq('id', id)

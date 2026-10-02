@@ -92,7 +92,6 @@ export default function LibraryPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editFileInputRef = useRef<HTMLInputElement>(null)
-  const supabaseAny = supabase as any
 
   const { effectiveDegree: userDegree, loading: degreeLoading } =
     useEffectiveMasonicDegree()
@@ -103,7 +102,7 @@ export default function LibraryPage() {
     async () => {
       setLoading(true)
       try {
-        const { data, error } = await supabaseAny
+        const { data, error } = await supabase
           .from('library_items')
           .select('*')
           .order('added_at', { ascending: false })

@@ -13,11 +13,11 @@ export interface Brother {
   profileId?: string
   degree: 'Aprendiz' | 'Companheiro' | 'Mestre'
   role:
-    | 'VenerÃ¡vel Mestre'
-    | 'SecretÃ¡rio'
+    | 'Venerável Mestre'
+    | 'Secretário'
     | 'Tesoureiro'
     | 'Chanceler'
-    | 'IrmÃ£o'
+    | 'Irmão'
     | 'Administrador'
   status: 'Ativo' | 'Inativo'
   initiationDate: string
@@ -87,7 +87,7 @@ export interface Event {
   title: string
   date: string
   time: string
-  type: 'SessÃ£o' | 'ReuniÃ£o' | 'Evento Social' | 'Outro'
+  type: 'Sessão' | 'Reunião' | 'Evento Social' | 'Outro'
   location: string // Legacy text location or fallback
   locationId?: string // Link to structured Location
   description: string
@@ -121,7 +121,7 @@ export interface Announcement {
 export interface BankAccount {
   id: string
   name: string
-  type: 'Corrente' | 'PoupanÃ§a' | 'Caixa' | 'Investimento'
+  type: 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento'
   initialBalance: number
   color?: string
 }
@@ -204,7 +204,7 @@ export interface LodgeDocument {
   url: string
 }
 
-/** Status do candidato Ã  iniciaÃ§Ã£o */
+/** Status do candidato à iniciação */
 export type InitiationCandidateStatus =
   | 'indicado'
   | 'em_sindicancia'
@@ -212,7 +212,7 @@ export type InitiationCandidateStatus =
   | 'reprovado'
   | 'iniciado'
 
-/** Candidato indicado Ã  iniciaÃ§Ã£o na loja */
+/** Candidato indicado à iniciação na loja */
 export interface InitiationCandidate {
   id: string
   name: string
@@ -226,7 +226,7 @@ export interface InitiationCandidate {
   updatedAt: string
 }
 
-/** DefiniÃ§Ã£o de uma fase da sindicÃ¢ncia (template da loja) */
+/** Definição de uma fase da sindicância (template da loja) */
 export interface SindicanciaPhaseDefinition {
   id: string
   name: string
@@ -238,7 +238,7 @@ export interface SindicanciaPhaseDefinition {
 /** Status do andamento de uma fase para um candidato */
 export type CandidatePhaseStatus = 'pending' | 'in_progress' | 'completed' | 'rejected'
 
-/** Andamento de um candidato em uma fase da sindicÃ¢ncia */
+/** Andamento de um candidato em uma fase da sindicância */
 export interface CandidatePhaseProgress {
   id: string
   candidateId: string
@@ -246,7 +246,7 @@ export interface CandidatePhaseProgress {
   status: CandidatePhaseStatus
   startedAt?: string | null
   completedAt?: string | null
-  /** Data prevista para a prÃ³xima verificaÃ§Ã£o/checagem desta fase (YYYY-MM-DD) */
+  /** Data prevista para a próxima verificação/checagem desta fase (YYYY-MM-DD) */
   scheduledCheckDate?: string | null
   notes?: string | null
   createdAt: string
@@ -338,7 +338,7 @@ export interface Solid {
   id: string
   date: string
   amount: number
-  category: 'Hospitalaria' | 'ManutenÃ§Ã£o' | 'Eventos' | 'Outros'
+  category: 'Hospitalaria' | 'Manutenção' | 'Eventos' | 'Outros'
   description: string
   brotherId?: string
 }

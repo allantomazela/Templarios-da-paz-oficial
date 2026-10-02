@@ -34,11 +34,14 @@ function contributionMonthNameToNumber(month: string | number | undefined): numb
   return Number.isFinite(asNumber) ? asNumber : undefined
 }
 
+// Colunas de "tipo"/"status" são TEXT no banco; os valores válidos são garantidos
+// pelas telas de cadastro, então os mapeadores só estreitam o tipo para o app.
+
 // ========== BANK ACCOUNTS ==========
 export interface BankAccountDB {
   id: string
   name: string
-  type: 'Corrente' | 'Poupança' | 'Caixa' | 'Investimento'
+  type: string
   initial_balance: number
   color?: string | null
   created_by?: string | null
@@ -50,7 +53,7 @@ export function mapBankAccountFromDB(row: BankAccountDB): BankAccount {
   return {
     id: row.id,
     name: row.name,
-    type: row.type,
+    type: row.type as BankAccount['type'],
     initialBalance: Number(row.initial_balance),
     color: row.color || undefined,
   }
@@ -69,7 +72,7 @@ export function mapBankAccountToDB(account: Partial<BankAccount>): Partial<BankA
 export interface CategoryDB {
   id: string
   name: string
-  type: 'Receita' | 'Despesa'
+  type: string
   description?: string | null
   color?: string | null
   created_by?: string | null
@@ -81,7 +84,7 @@ export function mapCategoryFromDB(row: CategoryDB): Category {
   return {
     id: row.id,
     name: row.name,
-    type: row.type,
+    type: row.type as Category['type'],
   }
 }
 
@@ -104,7 +107,7 @@ export interface TransactionDB {
   date: string
   description: string
   category: string
-  type: 'Receita' | 'Despesa'
+  type: string
   amount: number
   account_id?: string | null
   forecast_item_id?: string | null
@@ -126,18 +129,18 @@ export const FINANCIAL_BALANCE_LEDGER_COLUMNS =
 
 export function mapBalanceLedgerFromDB(row: {
   account_id?: string | null
-  type: 'Receita' | 'Despesa'
+  type: string
   amount: number
   is_control_only?: boolean | null
 }): {
   accountId?: string
-  type: 'Receita' | 'Despesa'
+  type: Transaction['type']
   amount: number
   controlOnly?: boolean
 } {
   return {
     accountId: row.account_id || undefined,
-    type: row.type,
+    type: row.type as Transaction['type'],
     amount: Number(row.amount),
     controlOnly: Boolean(row.is_control_only),
   }
@@ -149,7 +152,7 @@ export function mapTransactionFromDB(row: TransactionDB): Transaction {
     date: row.date,
     description: row.description,
     category: row.category,
-    type: row.type,
+    type: row.type as Transaction['type'],
     amount: Number(row.amount),
     accountId: row.account_id || undefined,
     forecastItemId: row.forecast_item_id || undefined,
@@ -250,7 +253,7 @@ export interface FinancialGoalDB {
   target_amount: number
   current_amount: number
   deadline?: string | null
-  status: 'Em Andamento' | 'Concluída' | 'Cancelada'
+  status: string
   created_by?: string | null
   created_at: string
   updated_at: string
@@ -289,7 +292,7 @@ export interface ContributionDB {
   month: number | string
   year: number
   amount: number
-  status: 'Pago' | 'Pendente' | 'Atrasado'
+  status: string
   payment_date?: string | null
   transaction_id?: string | null
   account_id?: string | null
@@ -305,7 +308,7 @@ export function mapContributionFromDB(row: ContributionDB): Contribution {
     month: contributionMonthNumberToName(row.month),
     year: row.year,
     amount: Number(row.amount),
-    status: row.status,
+    status: row.status as Contribution['status'],
     paymentDate: row.payment_date || undefined,
     transactionId: row.transaction_id || undefined,
     accountId: row.account_id || undefined,

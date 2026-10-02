@@ -10,6 +10,7 @@ import {
   BankAccount,
 } from '@/lib/data'
 import { supabase } from '@/lib/supabase/client'
+import type { TablesInsert } from '@/lib/supabase/types'
 import { logError } from '@/lib/logger'
 import { withTimeout } from '@/lib/async-utils'
 import { createRequestSequence } from '@/lib/request-sequence'
@@ -554,7 +555,8 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       }
       const { data, error } = await supabase
         .from('financial_transactions')
-        .insert(dbData)
+        // category_id é preenchido pelo trigger financial_transactions_set_category_id.
+        .insert(dbData as TablesInsert<'financial_transactions'>)
         .select()
         .single()
 
@@ -638,7 +640,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       const dbData = mapCategoryToDB(c)
       const { data, error } = await supabase
         .from('financial_categories')
-        .insert(dbData)
+        .insert(dbData as TablesInsert<'financial_categories'>)
         .select()
         .single()
 
@@ -707,7 +709,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       const dbData = mapContributionToDB(c)
       const { data, error } = await supabase
         .from('contributions')
-        .insert(dbData)
+        .insert(dbData as TablesInsert<'contributions'>)
         .select()
         .single()
 
@@ -776,7 +778,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       const dbData = mapBudgetToDB(b)
       const { data, error } = await supabase
         .from('financial_budgets')
-        .insert(dbData)
+        .insert(dbData as TablesInsert<'financial_budgets'>)
         .select()
         .single()
 
@@ -843,7 +845,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       const dbData = mapFinancialGoalToDB(g)
       const { data, error } = await supabase
         .from('financial_goals')
-        .insert(dbData)
+        .insert(dbData as TablesInsert<'financial_goals'>)
         .select()
         .single()
 
@@ -910,7 +912,7 @@ export const useFinancialStore = create<FinancialState>((set, get) => ({
       const dbData = mapBankAccountToDB(a)
       const { data, error } = await supabase
         .from('financial_accounts')
-        .insert(dbData)
+        .insert(dbData as TablesInsert<'financial_accounts'>)
         .select()
         .single()
 

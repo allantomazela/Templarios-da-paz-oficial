@@ -109,8 +109,7 @@ function buildStoragePath(transactionId: string, fileName: string): string {
 export async function fetchTransactionAttachments(
   transactionId: string,
 ): Promise<FinancialTransactionAttachment[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_transaction_attachments')
     .select(ATTACHMENT_SELECT_COLUMNS)
     .eq('transaction_id', transactionId)
@@ -127,12 +126,11 @@ export async function fetchAttachmentsByTransactionIds(
 ): Promise<Record<string, FinancialTransactionAttachment[]>> {
   if (transactionIds.length === 0) return {}
 
-  const supabaseAny = supabase as any
   const grouped: Record<string, FinancialTransactionAttachment[]> = {}
 
   for (let index = 0; index < transactionIds.length; index += ATTACHMENT_BATCH_SIZE) {
     const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
-    const { data, error } = await supabaseAny
+    const { data, error } = await supabase
       .from('financial_transaction_attachments')
       .select(ATTACHMENT_SELECT_COLUMNS)
       .in('transaction_id', batch)
@@ -159,12 +157,11 @@ export async function fetchAttachmentCountsByTransaction(
 ): Promise<Record<string, number>> {
   if (transactionIds.length === 0) return {}
 
-  const supabaseAny = supabase as any
   const counts: Record<string, number> = {}
 
   for (let index = 0; index < transactionIds.length; index += ATTACHMENT_BATCH_SIZE) {
     const batch = transactionIds.slice(index, index + ATTACHMENT_BATCH_SIZE)
-    const { data, error } = await supabaseAny
+    const { data, error } = await supabase
       .from('financial_transaction_attachments')
       .select('transaction_id')
       .in('transaction_id', batch)
@@ -240,8 +237,7 @@ export async function uploadTransactionAttachment(
       data: { user },
     } = await supabase.auth.getUser()
 
-    const supabaseAny = supabase as any
-    const { data, error } = await supabaseAny
+    const { data, error } = await supabase
       .from('financial_transaction_attachments')
       .insert({
         transaction_id: transactionId,
@@ -272,8 +268,7 @@ export async function uploadTransactionAttachment(
 export async function deleteTransactionAttachment(
   attachment: FinancialTransactionAttachment,
 ): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error: dbError } = await supabaseAny
+  const { error: dbError } = await supabase
     .from('financial_transaction_attachments')
     .delete()
     .eq('id', attachment.id)
@@ -326,8 +321,7 @@ export async function updateTransactionAttachment(
     throw new Error('Nenhuma alteração informada.')
   }
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_transaction_attachments')
     .update(payload)
     .eq('id', attachmentId)

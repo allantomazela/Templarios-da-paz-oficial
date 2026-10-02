@@ -10,8 +10,7 @@ const DEFAULT_SETTINGS: ReminderSettings = {
 }
 
 export async function fetchMembershipReminderSettings(): Promise<ReminderSettings> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('site_settings')
     .select(
       'membership_reminder_enabled, membership_reminder_frequency, membership_reminder_days',
@@ -39,8 +38,7 @@ export async function fetchMembershipReminderSettings(): Promise<ReminderSetting
 export async function saveMembershipReminderSettings(
   settings: ReminderSettings,
 ): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('site_settings')
     .update({
       membership_reminder_enabled: settings.enabled,
@@ -78,8 +76,7 @@ export interface MembershipReminderRun {
 export async function fetchMembershipReminderRuns(
   limit = 15,
 ): Promise<MembershipReminderRun[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('membership_reminder_runs')
     .select('*')
     .order('started_at', { ascending: false })

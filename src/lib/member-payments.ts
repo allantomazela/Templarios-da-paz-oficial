@@ -154,19 +154,18 @@ export interface MemberPaymentsBundle {
 export async function fetchMemberPaymentsBundle(
   userId: string,
 ): Promise<MemberPaymentsBundle> {
-  const supabaseAny = supabase as any
   const mappedPayments: MemberPayment[] = []
   let contributions: Contribution[] = []
 
   const [contributionsResult, charityResult, ceremonyResult, agapeResult, templeSalesResult] =
     await Promise.all([
-      supabaseAny
+      supabase
         .from('contributions')
         .select('*')
         .eq('brother_id', userId)
         .order('year', { ascending: false })
         .order('month', { ascending: false }),
-      supabaseAny
+      supabase
         .from('charity_donations')
         .select('*')
         .eq('brother_id', userId)
@@ -177,13 +176,13 @@ export async function fetchMemberPaymentsBundle(
         }
         return [] as Awaited<ReturnType<typeof fetchCeremonyPaymentPlans>>
       }),
-      supabaseAny
+      supabase
         .from('agape_brother_charges')
         .select('*')
         .eq('brother_id', userId)
         .order('year', { ascending: false })
         .order('month', { ascending: false }),
-      supabaseAny
+      supabase
         .from('temple_sales')
         .select('*')
         .eq('brother_id', userId)

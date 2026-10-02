@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import type { Database } from '@/lib/supabase/types'
 import { todayLocalISODate } from '@/lib/format-utils'
 import type { Contribution } from '@/lib/data'
 import {
@@ -26,9 +28,9 @@ function filterPeriodContributions(
 }
 
 async function resolveMensalidadeCategoryId(
-  supabaseAny: ReturnType<typeof supabase> & object,
+  supabase: SupabaseClient<Database>,
 ): Promise<string> {
-  const { data, error: fetchError } = await supabaseAny
+  const { data, error: fetchError } = await supabase
     .from('financial_categories')
     .select('id')
     .eq('name', MENSALIDADE_CATEGORY)
@@ -38,7 +40,7 @@ async function resolveMensalidadeCategoryId(
   if (fetchError) throw fetchError
   if (data?.id) return data.id as string
 
-  const { data: created, error: insertError } = await supabaseAny
+  const { data: created, error: insertError } = await supabase
     .from('financial_categories')
     .insert({
       name: MENSALIDADE_CATEGORY,
@@ -61,13 +63,12 @@ async function createSharedFinancialTransaction(params: {
   accountId: string
   notes?: string
 }): Promise<string> {
-  const supabaseAny = supabase as any
-  const categoryId = await resolveMensalidadeCategoryId(supabaseAny)
+  const categoryId = await resolveMensalidadeCategoryId(supabase)
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_transactions')
     .insert({
       date: params.paymentDate,

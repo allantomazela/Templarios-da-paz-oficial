@@ -20,8 +20,7 @@ export async function ensureAgapeSessionOpenForEvent(
     return { action: 'none', reason: 'event_type_not_importable' }
   }
 
-  const supabaseAny = supabase as any
-  const { data: existing, error: fetchError } = await supabaseAny
+  const { data: existing, error: fetchError } = await supabase
     .from('agape_sessions')
     .select('id, status')
     .eq('event_id', event.id)
@@ -38,7 +37,7 @@ export async function ensureAgapeSessionOpenForEvent(
   }
 
   if (existing?.id) {
-    const { error: updateError } = await supabaseAny
+    const { error: updateError } = await supabase
       .from('agape_sessions')
       .update({ status: 'open', updated_at: new Date().toISOString() })
       .eq('id', existing.id)
@@ -60,7 +59,7 @@ export async function ensureAgapeSessionOpenForEvent(
     location: event.location,
   })
 
-  const { error: insertError } = await supabaseAny.from('agape_sessions').insert({
+  const { error: insertError } = await supabase.from('agape_sessions').insert({
     ...payload,
     created_by: user?.id ?? null,
   })

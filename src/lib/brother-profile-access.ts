@@ -32,15 +32,14 @@ export async function fetchBrotherAccessInfo(
 ): Promise<BrotherAccessInfo | null> {
   if (!profileId?.trim()) return null
 
-  const supabaseAny = supabase as any
   const [{ data: profile, error: profileError }, { data: positions, error: positionsError }] =
     await Promise.all([
-      supabaseAny
+      supabase
         .from('profiles')
         .select('id, full_name, email, role')
         .eq('id', profileId)
         .maybeSingle(),
-      supabaseAny
+      supabase
         .from('lodge_positions')
         .select('position_type, user_id')
         .eq('user_id', profileId),
@@ -73,21 +72,20 @@ export async function fetchBrotherAccessInfo(
 export async function fetchFinancialAccessMembers(): Promise<
   FinancialAccessMember[]
 > {
-  const supabaseAny = supabase as any
   const today = new Date().toISOString().slice(0, 10)
 
   const [{ data: profiles, error: profilesError }, { data: positions, error: positionsError }, { data: brothers, error: brothersError }] =
     await Promise.all([
-      supabaseAny
+      supabase
         .from('profiles')
         .select('id, full_name, email, role, status')
         .eq('status', 'approved')
         .in('role', ['admin', 'editor']),
-      supabaseAny
+      supabase
         .from('lodge_positions')
         .select('position_type, user_id, start_date, end_date')
         .eq('position_type', 'tesoureiro'),
-      supabaseAny.from('brothers').select('id, profile_id, email'),
+      supabase.from('brothers').select('id, profile_id, email'),
     ])
 
   if (profilesError) throw profilesError
@@ -127,7 +125,7 @@ export async function fetchFinancialAccessMembers(): Promise<
   )
 
   if (missingTreasurerIds.length > 0) {
-    const { data: extraProfiles, error: extraError } = await supabaseAny
+    const { data: extraProfiles, error: extraError } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .in('id', missingTreasurerIds)

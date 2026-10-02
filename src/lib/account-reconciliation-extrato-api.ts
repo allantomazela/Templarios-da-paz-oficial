@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import type { TablesInsert } from '@/lib/supabase/types'
 import { toErrorMessage } from '@/lib/async-utils'
 
 export interface AccountReconciliationExtrato {
@@ -46,8 +47,7 @@ export function buildExtratoStateMap(
 export async function fetchAccountReconciliationExtrato(): Promise<
   AccountReconciliationExtrato[]
 > {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_account_reconciliation_extrato')
     .select('account_id, extrato_balance, note, updated_at, updated_by')
 
@@ -71,7 +71,7 @@ export async function upsertAccountReconciliationExtrato(input: {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const payload: Record<string, unknown> = {
+  const payload: TablesInsert<'financial_account_reconciliation_extrato'> = {
     account_id: input.accountId,
     updated_by: user?.id ?? null,
     updated_at: new Date().toISOString(),
@@ -86,8 +86,7 @@ export async function upsertAccountReconciliationExtrato(input: {
     payload.note = trimmed.length > 0 ? trimmed : null
   }
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_account_reconciliation_extrato')
     .upsert(payload, { onConflict: 'account_id' })
     .select('account_id, extrato_balance, note, updated_at, updated_by')

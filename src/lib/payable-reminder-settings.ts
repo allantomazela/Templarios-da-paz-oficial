@@ -10,8 +10,7 @@ const DEFAULT_SETTINGS: PayableReminderSettings = {
 }
 
 export async function fetchPayableReminderSettings(): Promise<PayableReminderSettings> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('site_settings')
     .select(
       'payable_reminder_enabled, payable_reminder_frequency, payable_reminder_days',
@@ -38,8 +37,7 @@ export async function fetchPayableReminderSettings(): Promise<PayableReminderSet
 export async function savePayableReminderSettings(
   settings: PayableReminderSettings,
 ): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('site_settings')
     .update({
       payable_reminder_enabled: settings.enabled,
@@ -106,8 +104,7 @@ function isMissingRelationError(error: { code?: string; message?: string }): boo
 export async function fetchPayableReminderRuns(
   limit = 15,
 ): Promise<PayableReminderRun[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('payable_reminder_runs')
     .select('*')
     .order('started_at', { ascending: false })

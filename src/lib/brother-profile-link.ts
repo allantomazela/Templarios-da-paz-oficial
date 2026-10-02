@@ -26,8 +26,7 @@ export async function resolveBrotherProfileIdForSave(
 export async function fetchApprovedProfilesForLink(): Promise<
   { id: string; full_name: string | null; email: string | null }[]
 > {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('profiles')
     .select('id, full_name, email')
     .eq('status', 'approved')

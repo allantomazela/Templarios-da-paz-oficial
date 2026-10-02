@@ -173,8 +173,7 @@ export async function fetchChancellorAttendance(
 }
 
 export async function fetchChancellorBrothers(): Promise<Brother[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('brothers')
     .select(CHANCELLOR_BROTHER_COLUMNS)
     .order('name', { ascending: true })

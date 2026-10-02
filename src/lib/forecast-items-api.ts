@@ -8,11 +8,12 @@ import type {
 interface ForecastItemRow {
   id: string
   description: string
-  type: 'Receita' | 'Despesa'
+  /** type/recurrence são TEXT no banco; valores válidos garantidos pela tela de cadastro. */
+  type: string
   category_id: string | null
   expected_amount: number | string
   due_day: number
-  recurrence: 'monthly' | 'annual' | 'once'
+  recurrence: string
   recurrence_month: number | null
   preferred_account_id: string | null
   is_active: boolean
@@ -57,12 +58,12 @@ function mapForecastItem(row: ForecastItemRow): ForecastItem {
   return {
     id: row.id,
     description: row.description,
-    type: row.type,
+    type: row.type as ForecastItem['type'],
     categoryId: row.category_id,
     categoryName: row.financial_categories?.name,
     expectedAmount: Number(row.expected_amount),
     dueDay: row.due_day,
-    recurrence: row.recurrence,
+    recurrence: row.recurrence as ForecastItem['recurrence'],
     recurrenceMonth: row.recurrence_month,
     preferredAccountId: row.preferred_account_id,
     preferredAccountName: row.financial_accounts?.name,
@@ -96,8 +97,7 @@ function mapMembershipOverride(
 }
 
 export async function fetchForecastItems(): Promise<ForecastItem[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_forecast_items')
     .select(
       `
@@ -117,7 +117,6 @@ export async function saveForecastItem(
   input: ForecastItemInput,
   existingId?: string | null,
 ): Promise<string> {
-  const supabaseAny = supabase as any
   const payload = {
     description: input.description.trim(),
     type: input.type,
@@ -134,7 +133,7 @@ export async function saveForecastItem(
   }
 
   if (existingId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_forecast_items')
       .update(payload)
       .eq('id', existingId)
@@ -142,7 +141,7 @@ export async function saveForecastItem(
     return existingId
   }
 
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_forecast_items')
     .insert(payload)
     .select('id')
@@ -153,8 +152,7 @@ export async function saveForecastItem(
 }
 
 export async function deleteForecastItem(id: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_forecast_items')
     .delete()
     .eq('id', id)
@@ -165,8 +163,7 @@ export async function fetchForecastMonthOverrides(
   year: number,
   month: number,
 ): Promise<ForecastMonthOverride[]> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_forecast_month_overrides')
     .select('*')
     .eq('year', year)
@@ -181,8 +178,7 @@ export async function fetchForecastMonthOverridesForRange(
 ): Promise<ForecastMonthOverride[]> {
   if (periods.length === 0) return []
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_forecast_month_overrides')
     .select('*')
 
@@ -203,8 +199,7 @@ export async function upsertForecastMonthOverride(params: {
   expectedAmountOverride: number
   notes?: string
 }): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny.from('financial_forecast_month_overrides').upsert(
+  const { error } = await supabase.from('financial_forecast_month_overrides').upsert(
     {
       forecast_item_id: params.forecastItemId,
       year: params.year,
@@ -218,8 +213,7 @@ export async function upsertForecastMonthOverride(params: {
 }
 
 export async function deleteForecastMonthOverride(id: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_forecast_month_overrides')
     .delete()
     .eq('id', id)
@@ -231,8 +225,7 @@ export async function fetchMembershipForecastOverridesForRange(
 ): Promise<MembershipForecastOverride[]> {
   if (periods.length === 0) return []
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_membership_forecast_overrides')
     .select('*')
 
@@ -252,8 +245,7 @@ export async function upsertMembershipForecastOverride(params: {
   expectedAmountOverride: number
   notes?: string
 }): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_membership_forecast_overrides')
     .upsert(
       {
@@ -268,8 +260,7 @@ export async function upsertMembershipForecastOverride(params: {
 }
 
 export async function deleteMembershipForecastOverride(id: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_membership_forecast_overrides')
     .delete()
     .eq('id', id)
@@ -288,8 +279,7 @@ export async function fetchTransactionsForForecast(): Promise<
     description: string
   }>
 > {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_transactions')
     .select('id, date, type, amount, category, account_id, forecast_item_id, description')
     .order('date', { ascending: false })
@@ -300,7 +290,7 @@ export async function fetchTransactionsForForecast(): Promise<
     (row: {
       id: string
       date: string
-      type: 'Receita' | 'Despesa'
+      type: string
       amount: number | string
       category: string
       account_id: string | null
@@ -309,7 +299,7 @@ export async function fetchTransactionsForForecast(): Promise<
     }) => ({
       id: row.id,
       date: row.date,
-      type: row.type,
+      type: row.type as 'Receita' | 'Despesa',
       amount: Number(row.amount),
       category: row.category,
       accountId: row.account_id ?? undefined,

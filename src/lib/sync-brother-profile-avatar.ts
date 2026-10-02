@@ -22,10 +22,9 @@ export async function syncBrotherPhotoFromProfile(
     if (!brother?.id) return
 
     const storedUrl = resolveProfileAvatarUrl(avatarUrl) ?? null
-    const supabaseAny = supabase as any
 
     const { error } = await withTimeout(
-      supabaseAny
+      supabase
         .from('brothers')
         .update({
           photo_url: storedUrl,

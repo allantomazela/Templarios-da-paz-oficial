@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
+import type { TablesInsert } from '@/lib/supabase/types'
 import { todayLocalISODate } from '@/lib/format-utils'
 import { toError } from '@/lib/async-utils'
 import type {
@@ -77,8 +78,7 @@ export async function fetchFinancialPayables(options?: {
   dueFrom?: string
   dueTo?: string
 }): Promise<FinancialPayable[]> {
-  const supabaseAny = supabase as any
-  let query = supabaseAny
+  let query = supabase
     .from('financial_payables')
     .select(PAYABLE_SELECT)
     .order('due_date', { ascending: true })
@@ -104,7 +104,6 @@ export async function fetchFinancialPayables(options?: {
 }
 
 async function refreshOverduePayableStatuses(rows: PayableRow[]): Promise<void> {
-  const supabaseAny = supabase as any
   const toUpdate = rows.filter((row) => {
     if (row.status === 'Pago' || row.status === 'Cancelado') return false
     return resolvePayableStatus(row.due_date, row.status) === 'Atrasado' && row.status !== 'Atrasado'
@@ -114,7 +113,7 @@ async function refreshOverduePayableStatuses(rows: PayableRow[]): Promise<void> 
 
   await Promise.all(
     toUpdate.map((row) =>
-      supabaseAny
+      supabase
         .from('financial_payables')
         .update({ status: 'Atrasado' })
         .eq('id', row.id)
@@ -128,8 +127,7 @@ async function refreshOverduePayableStatuses(rows: PayableRow[]): Promise<void> 
 }
 
 async function assertExpenseCategory(categoryId: string): Promise<string> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_categories')
     .select('id, name, type')
     .eq('id', categoryId)
@@ -156,11 +154,10 @@ async function syncPayableTransaction(params: {
   forecastItemId?: string | null
   attachmentNotes?: string
 }): Promise<string | null> {
-  const supabaseAny = supabase as any
 
   if (params.status !== 'Pago') {
     if (params.existingTransactionId) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_transactions')
         .delete()
         .eq('id', params.existingTransactionId)
@@ -187,7 +184,7 @@ async function syncPayableTransaction(params: {
   }
 
   if (params.existingTransactionId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_transactions')
       .update(payload)
       .eq('id', params.existingTransactionId)
@@ -199,8 +196,9 @@ async function syncPayableTransaction(params: {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_transactions')
+    // category_id é preenchido pelo trigger financial_transactions_set_category_id.
     .insert({
       ...payload,
       created_by: user?.id ?? null,
@@ -208,7 +206,7 @@ async function syncPayableTransaction(params: {
         typeof crypto !== 'undefined' && crypto.randomUUID
           ? crypto.randomUUID()
           : undefined,
-    })
+    } as TablesInsert<'financial_transactions'>)
     .select('id')
     .single()
 
@@ -220,7 +218,6 @@ export async function saveFinancialPayable(
   data: PayableFormData,
   existingId?: string | null,
 ): Promise<string> {
-  const supabaseAny = supabase as any
   await assertExpenseCategory(data.categoryId)
 
   const status = resolvePayableStatus(data.dueDate, 'Pendente')
@@ -241,7 +238,7 @@ export async function saveFinancialPayable(
   }
 
   if (existingId) {
-    const { data: existing, error: fetchError } = await supabaseAny
+    const { data: existing, error: fetchError } = await supabase
       .from('financial_payables')
       .select('status, transaction_id')
       .eq('id', existingId)
@@ -254,7 +251,7 @@ export async function saveFinancialPayable(
       throw new Error('Não é possível editar uma conta já paga. Estorne o pagamento primeiro.')
     }
 
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_payables')
       .update({
         description: payload.description,
@@ -277,7 +274,7 @@ export async function saveFinancialPayable(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: created, error } = await supabaseAny
+  const { data: created, error } = await supabase
     .from('financial_payables')
     .insert({
       ...payload,
@@ -294,9 +291,8 @@ export async function updatePayablePayment(
   payableId: string,
   data: PayablePaymentFormData,
 ): Promise<void> {
-  const supabaseAny = supabase as any
 
-  const { data: payable, error: fetchError } = await supabaseAny
+  const { data: payable, error: fetchError } = await supabase
     .from('financial_payables')
     .select(PAYABLE_SELECT)
     .eq('id', payableId)
@@ -337,7 +333,7 @@ export async function updatePayablePayment(
     transaction_id: transactionId,
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_payables')
     .update(updatePayload)
     .eq('id', payableId)
@@ -348,8 +344,7 @@ export async function updatePayablePayment(
 export async function cancelFinancialPayable(payableId: string): Promise<void> {
   await updatePayablePayment(payableId, { status: 'Cancelado' })
 
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_payables')
     .update({
       status: 'Cancelado',
@@ -363,8 +358,7 @@ export async function cancelFinancialPayable(payableId: string): Promise<void> {
 }
 
 export async function deleteFinancialPayable(payableId: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { data: payable, error: fetchError } = await supabaseAny
+  const { data: payable, error: fetchError } = await supabase
     .from('financial_payables')
     .select('status, transaction_id')
     .eq('id', payableId)
@@ -379,7 +373,7 @@ export async function deleteFinancialPayable(payableId: string): Promise<void> {
     )
   }
 
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_payables')
     .delete()
     .eq('id', payableId)

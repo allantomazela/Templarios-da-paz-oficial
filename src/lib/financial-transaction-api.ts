@@ -1,5 +1,6 @@
 import type { MutableRefObject } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import type { TablesInsert } from '@/lib/supabase/types'
 import type { Transaction } from '@/lib/data'
 import { mapTransactionFromDB } from '@/lib/financial-mappers'
 import {
@@ -70,8 +71,7 @@ async function assertCategoryExists(
   categoryName: string,
   type: FinancialTransactionType,
 ): Promise<void> {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_categories')
     .select('id')
     .eq('name', categoryName)
@@ -108,7 +108,6 @@ export async function saveFinancialTransaction(params: {
   idempotencyKeyRef?: MutableRefObject<string | null>
 }): Promise<string | null> {
   const { type, data, existingId, idempotencyKeyRef } = params
-  const supabaseAny = supabase as any
 
   await assertCategoryExists(data.category, type)
   if (data.controlOnly && data.accountId) {
@@ -123,7 +122,7 @@ export async function saveFinancialTransaction(params: {
   const payload = buildTransactionPayload(data, type)
 
   if (existingId) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('financial_transactions')
       .update(payload)
       .eq('id', existingId)
@@ -152,13 +151,14 @@ export async function saveFinancialTransaction(params: {
   }
 
   try {
-    const { data: inserted, error } = await supabaseAny
+    const { data: inserted, error } = await supabase
       .from('financial_transactions')
+      // category_id é preenchido pelo trigger financial_transactions_set_category_id.
       .insert({
         ...payload,
         type,
         ...(idempotencyKey && { idempotency_key: idempotencyKey }),
-      })
+      } as TablesInsert<'financial_transactions'>)
       .select('id')
       .single()
 
@@ -184,8 +184,7 @@ export async function saveFinancialTransaction(params: {
 }
 
 export async function deleteFinancialTransaction(id: string): Promise<void> {
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_transactions')
     .delete()
     .eq('id', id)

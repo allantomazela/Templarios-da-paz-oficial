@@ -34,28 +34,27 @@ export function unpaidStatusForReferenceMonth(
 export async function fetchTransactionDeleteDependencies(
   transactionId: string,
 ): Promise<TransactionDeleteDependency[]> {
-  const supabaseAny = supabase as any
   const dependencies: TransactionDeleteDependency[] = []
 
   const [contributionsRes, ceremonyRes, agapeRes, templeSalesRes, payablesRes] =
     await Promise.all([
-    supabaseAny
+    supabase
       .from('contributions')
       .select('id, month, year, status, profiles!contributions_brother_id_fkey(full_name)')
       .eq('transaction_id', transactionId),
-    supabaseAny
+    supabase
       .from('brother_ceremony_payment_installments')
       .select('id, installment_number, status')
       .eq('transaction_id', transactionId),
-    supabaseAny
+    supabase
       .from('agape_brother_charges')
       .select('id, month, year')
       .eq('transaction_id', transactionId),
-    supabaseAny
+    supabase
       .from('temple_sales')
       .select('id, description, status')
       .eq('transaction_id', transactionId),
-    supabaseAny
+    supabase
       .from('financial_payables')
       .select('id, description, status, due_date')
       .eq('transaction_id', transactionId),
@@ -112,7 +111,6 @@ export async function fetchTransactionDeleteDependencies(
 export async function unlinkFinancialTransactionDependencies(
   transactionId: string,
 ): Promise<TransactionDeleteResult> {
-  const supabaseAny = supabase as any
   const dependencies = await fetchTransactionDeleteDependencies(transactionId)
 
   let unlinkedContributions = 0
@@ -126,7 +124,7 @@ export async function unlinkFinancialTransactionDependencies(
     .map((item) => item.recordId)
 
   if (contributionIds.length > 0) {
-    const { data: contributions, error: fetchError } = await supabaseAny
+    const { data: contributions, error: fetchError } = await supabase
       .from('contributions')
       .select('id, month, year')
       .in('id', contributionIds)
@@ -136,7 +134,7 @@ export async function unlinkFinancialTransactionDependencies(
     }
 
     for (const contribution of contributions ?? []) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('contributions')
         .update({
           transaction_id: null,
@@ -158,7 +156,7 @@ export async function unlinkFinancialTransactionDependencies(
     .map((item) => item.recordId)
 
   if (agapeIds.length > 0) {
-    const { data: charges, error: fetchError } = await supabaseAny
+    const { data: charges, error: fetchError } = await supabase
       .from('agape_brother_charges')
       .select('id, month, year')
       .in('id', agapeIds)
@@ -168,7 +166,7 @@ export async function unlinkFinancialTransactionDependencies(
     }
 
     for (const charge of charges ?? []) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('agape_brother_charges')
         .update({
           transaction_id: null,
@@ -190,7 +188,7 @@ export async function unlinkFinancialTransactionDependencies(
     .map((item) => item.recordId)
 
   if (ceremonyIds.length > 0) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('brother_ceremony_payment_installments')
       .update({
         transaction_id: null,
@@ -211,7 +209,7 @@ export async function unlinkFinancialTransactionDependencies(
     .map((item) => item.recordId)
 
   if (templeSaleIds.length > 0) {
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('temple_sales')
       .update({
         transaction_id: null,
@@ -232,7 +230,7 @@ export async function unlinkFinancialTransactionDependencies(
     .map((item) => item.recordId)
 
   if (payableIds.length > 0) {
-    const { data: payables, error: fetchPayablesError } = await supabaseAny
+    const { data: payables, error: fetchPayablesError } = await supabase
       .from('financial_payables')
       .select('id, due_date')
       .in('id', payableIds)
@@ -242,7 +240,7 @@ export async function unlinkFinancialTransactionDependencies(
     }
 
     for (const payable of payables ?? []) {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_payables')
         .update({
           transaction_id: null,
@@ -274,8 +272,7 @@ export async function deleteFinancialTransactionWithDependencies(
 ): Promise<TransactionDeleteResult> {
   const result = await unlinkFinancialTransactionDependencies(transactionId)
 
-  const supabaseAny = supabase as any
-  const { error } = await supabaseAny
+  const { error } = await supabase
     .from('financial_transactions')
     .delete()
     .eq('id', transactionId)

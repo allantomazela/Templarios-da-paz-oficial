@@ -19,8 +19,7 @@ export { buildAlertFingerprint, buildAlertCompositeKey }
 export async function fetchReconciliationAlertAcknowledgments(): Promise<
   ReconciliationAlertAcknowledgment[]
 > {
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_reconciliation_alert_acknowledgments')
     .select(
       'alert_type, alert_key, transaction_fingerprint, note, acknowledged_at, acknowledged_by',
@@ -77,8 +76,7 @@ export async function acknowledgeReconciliationAlert(input: {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const supabaseAny = supabase as any
-  const { data, error } = await supabaseAny
+  const { data, error } = await supabase
     .from('financial_reconciliation_alert_acknowledgments')
     .upsert(
       {

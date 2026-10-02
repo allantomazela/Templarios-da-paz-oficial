@@ -39,3 +39,38 @@ export function getMembershipAmountWarning(
     difference,
   }
 }
+
+export interface MembershipAmountReduction {
+  previousAmount: number
+  newAmount: number
+  missingAmount: number
+}
+
+/**
+ * Edição que reduz a mensalidade para abaixo do esperado — típico de trocar a
+ * mensalidade pelo valor do lanche, o que reabre o mês no cronograma.
+ */
+export function getMembershipAmountReduction(
+  previousAmount: number,
+  newAmount: number,
+  expectedAmount: number,
+): MembershipAmountReduction | null {
+  if (![previousAmount, newAmount, expectedAmount].every(Number.isFinite)) {
+    return null
+  }
+  if (newAmount <= 0 || expectedAmount <= 0) return null
+
+  const roundedNew = roundCents(newAmount)
+  if (roundedNew >= roundCents(previousAmount)) return null
+  if (roundedNew >= roundCents(expectedAmount)) return null
+
+  return {
+    previousAmount: roundCents(previousAmount),
+    newAmount: roundedNew,
+    missingAmount: roundCents(expectedAmount - newAmount),
+  }
+}
+
+function roundCents(value: number): number {
+  return Math.round(value * 100) / 100
+}

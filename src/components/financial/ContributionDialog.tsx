@@ -57,6 +57,11 @@ import {
   resolveScheduleExpectedAmount,
 } from '@/lib/membership-schedule'
 import { ContributionAmountWarning } from '@/components/financial/ContributionAmountWarning'
+import { ContributionAmountReductionConfirm } from '@/components/financial/ContributionAmountReductionConfirm'
+import {
+  getMembershipAmountReduction,
+  type MembershipAmountReduction,
+} from '@/lib/membership-amount-check'
 import {
   detectTreasuryModeFromContribution,
   stripControlOnlyNote,
@@ -158,6 +163,10 @@ export function ContributionDialog({
   >([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [loadingLinkable, setLoadingLinkable] = useState(false)
+  const [pendingReduction, setPendingReduction] = useState<{
+    reduction: MembershipAmountReduction
+    values: ContributionFormValues
+  } | null>(null)
 
   const form = useForm<ContributionFormValues>({
     resolver: zodResolver(contributionSchema),
@@ -338,6 +347,24 @@ export function ContributionDialog({
     : 'Informe o pagamento individual do irmão. Ao marcar como Pago, a receita entra no saldo.'
 
   const handleSubmit = (values: ContributionFormValues) => {
+    const reduction =
+      contributionToEdit && expectedAmount != null
+        ? getMembershipAmountReduction(
+            Number(contributionToEdit.amount),
+            Number(values.amount),
+            expectedAmount,
+          )
+        : null
+
+    if (reduction) {
+      setPendingReduction({ reduction, values })
+      return
+    }
+
+    saveValues(values)
+  }
+
+  const saveValues = (values: ContributionFormValues) => {
     const brother = brothers.find((b) => b.id === values.brotherId)
 
     onSave({
@@ -823,6 +850,20 @@ export function ContributionDialog({
             </DialogFooter>
           </form>
         </Form>
+
+        <ContributionAmountReductionConfirm
+          reduction={pendingReduction?.reduction ?? null}
+          periodText={
+            pendingReduction
+              ? `${pendingReduction.values.month}/${pendingReduction.values.year}`
+              : ''
+          }
+          onCancel={() => setPendingReduction(null)}
+          onConfirm={() => {
+            if (pendingReduction) saveValues(pendingReduction.values)
+            setPendingReduction(null)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

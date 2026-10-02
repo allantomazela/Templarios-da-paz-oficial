@@ -20,17 +20,7 @@ export async function resetAgapeOperationalData(): Promise<AgapeResetResult> {
 }
 
 async function resetAgapeOperationalDataInternal(): Promise<AgapeResetResult> {
-  const supabaseAny = supabase as {
-    rpc: (
-      fn: string,
-      args?: Record<string, never>,
-    ) => Promise<{
-      data: unknown
-      error: { message?: string; details?: string; hint?: string; code?: string } | null
-    }>
-  }
-
-  const { data, error } = await supabaseAny.rpc('reset_agape_operational_data', {})
+  const { data, error } = await supabase.rpc('reset_agape_operational_data')
 
   if (error) {
     const detail = [error.message, error.details, error.hint]

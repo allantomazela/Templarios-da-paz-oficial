@@ -185,11 +185,12 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
         set({
           sessions: (data || []).map((session) => ({
             ...session,
-            source: session.source ?? 'manual',
+            status: session.status as AgapeSession['status'],
+            source: (session.source ?? 'manual') as AgapeSessionSource,
             event_id: session.event_id ?? null,
           })),
         })
-        devLog(`Agape: Carregadas ${data?.length || 0} sessões`)
+        devLog('log', `Agape: Carregadas ${data?.length || 0} sessões`)
       }
     } catch (error) {
       if (handleAuthError(error)) return
@@ -375,7 +376,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (agapeFetchSeq.menuItems.isCurrent(reqId)) {
         set({ menuItems: data || [] })
-        devLog(`Agape: Carregados ${data?.length || 0} itens do cardápio`)
+        devLog('log', `Agape: Carregados ${data?.length || 0} itens do cardápio`)
       }
     } catch (error) {
       if (handleAuthError(error)) return
@@ -490,7 +491,7 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
 
       if (agapeFetchSeq.consumptions.isCurrent(reqId)) {
         set({ consumptions: data || [] })
-        devLog(`Agape: Carregados ${data?.length || 0} consumos`)
+        devLog('log', `Agape: Carregados ${data?.length || 0} consumos`)
       }
     } catch (error) {
       if (handleAuthError(error)) return
@@ -528,10 +529,9 @@ export const useAgapeStore = create<AgapeState>((set, get) => ({
         return { data: insertData, error: null }
       }
 
-      // Se o erro for 409 (conflict) ou constraint única, buscar o registro existente e atualizar
+      // Se violar a constraint única (23505 / HTTP 409), buscar o registro existente e atualizar
       if (
         insertError?.code === '23505' ||
-        insertError?.status === 409 ||
         insertError?.message?.includes('unique') ||
         insertError?.message?.includes('duplicate')
       ) {

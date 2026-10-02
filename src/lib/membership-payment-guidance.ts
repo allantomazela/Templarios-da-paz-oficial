@@ -39,6 +39,38 @@ export function getMembershipLaunchGuidance(
   }
 }
 
+export interface ContributionDialogGuidanceInput {
+  isEditing: boolean
+  /** Lançamento aberto a partir de um mês específico (cronograma ou atalho). */
+  isSingleMonthLaunch: boolean
+  openMonthsCount: number
+}
+
+/** Orientação exibida no topo do formulário de mensalidade (somente lançamento novo). */
+export function resolveContributionDialogGuidance(
+  input: ContributionDialogGuidanceInput,
+): MembershipLaunchGuidance | null {
+  if (input.isEditing) return null
+
+  if (input.isSingleMonthLaunch) {
+    return getMembershipLaunchGuidance({
+      openMonthsCount: Math.max(input.openMonthsCount, 1),
+      isSingleMonthLaunch: true,
+    })
+  }
+
+  if (input.openMonthsCount >= 2) {
+    return {
+      title: 'Vários meses em aberto',
+      message: `Este irmão tem ${input.openMonthsCount} mês(es) em aberto. Para quitar vários meses com um único PIX, abra o cronograma e use "Quitar selecionados".`,
+      variant: 'warning',
+      suggestBatchSettlement: true,
+    }
+  }
+
+  return null
+}
+
 export function requiresMembershipEscalation(overdueCount: number): boolean {
   return overdueCount >= MEMBERSHIP_OVERDUE_ESCALATION_MONTHS
 }

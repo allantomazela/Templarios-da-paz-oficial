@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getMembershipLaunchGuidance,
   requiresMembershipEscalation,
+  resolveContributionDialogGuidance,
   splitOverdueAlertsByEscalation,
 } from '@/lib/membership-payment-guidance'
 
@@ -37,5 +38,46 @@ describe('membership-payment-guidance', () => {
     const { escalation, regular } = splitOverdueAlertsByEscalation(alerts)
     expect(escalation).toHaveLength(1)
     expect(regular).toHaveLength(1)
+  })
+})
+
+describe('resolveContributionDialogGuidance', () => {
+  it('não orienta na edição', () => {
+    expect(
+      resolveContributionDialogGuidance({
+        isEditing: true,
+        isSingleMonthLaunch: true,
+        openMonthsCount: 3,
+      }),
+    ).toBeNull()
+  })
+
+  it('lançamento de um mês sem outros em aberto usa a orientação individual', () => {
+    const guidance = resolveContributionDialogGuidance({
+      isEditing: false,
+      isSingleMonthLaunch: true,
+      openMonthsCount: 0,
+    })
+    expect(guidance?.title).toBe('Pagamento de um mês')
+  })
+
+  it('lançamento livre com vários meses sugere quitação em lote', () => {
+    const guidance = resolveContributionDialogGuidance({
+      isEditing: false,
+      isSingleMonthLaunch: false,
+      openMonthsCount: 2,
+    })
+    expect(guidance?.title).toBe('Vários meses em aberto')
+    expect(guidance?.suggestBatchSettlement).toBe(true)
+  })
+
+  it('lançamento livre com até um mês em aberto não orienta', () => {
+    expect(
+      resolveContributionDialogGuidance({
+        isEditing: false,
+        isSingleMonthLaunch: false,
+        openMonthsCount: 1,
+      }),
+    ).toBeNull()
   })
 })

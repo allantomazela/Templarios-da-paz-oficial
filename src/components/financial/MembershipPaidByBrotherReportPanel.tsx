@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import { buildMembershipPaidByBrotherReportData } from '@/lib/membership-open-paid-report'
 import {
@@ -118,10 +119,9 @@ export function MembershipPaidByBrotherReportPanel({
               variant="outline"
               className="gap-2"
               disabled={report.summary.brotherCount === 0}
-              onClick={() => {
-                exportMembershipPaidByBrotherCsv(report)
-                toast({ title: 'CSV exportado' })
-              }}
+              onClick={() =>
+                runCsvExportWithToast(toast, () => exportMembershipPaidByBrotherCsv(report))
+              }
             >
               <FileSpreadsheet className="h-4 w-4" />
               CSV resumo
@@ -130,10 +130,14 @@ export function MembershipPaidByBrotherReportPanel({
               variant="outline"
               className="gap-2"
               disabled={report.summary.brotherCount === 0}
-              onClick={() => {
-                exportMembershipPaidByBrotherDetailCsv(report)
-                toast({ title: 'CSV detalhado exportado' })
-              }}
+              onClick={() =>
+                runCsvExportWithToast(
+                  toast,
+                  () => exportMembershipPaidByBrotherDetailCsv(report),
+                  undefined,
+                  { successTitle: 'CSV detalhado exportado' },
+                )
+              }
             >
               <Download className="h-4 w-4" />
               CSV detalhado

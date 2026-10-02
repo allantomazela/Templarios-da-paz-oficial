@@ -14,6 +14,11 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import {
+  runCsvExportWithToast,
+  SPREADSHEET_EXPORT_DESCRIPTION,
+  SPREADSHEET_EXPORT_TITLES,
+} from '@/lib/csv-export-toast'
 import type { ForecastProjectionResult } from '@/lib/forecast-types'
 import {
   DEFAULT_FORECAST_REPORT_DISPLAY_OPTIONS,
@@ -98,22 +103,15 @@ export function ForecastPlanningReport({
   const handleExportCsv = () => {
     if (!projection) return
 
-    try {
-      exportForecastPlanningCsv(projection)
-      toast({
-        title: 'Planilha exportada',
-        description: 'O arquivo CSV foi baixado e pode ser aberto no Excel.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Nada para exportar',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Não há dados de planejamento para exportar.',
-        variant: 'destructive',
-      })
-    }
+    runCsvExportWithToast(
+      toast,
+      () => exportForecastPlanningCsv(projection),
+      SPREADSHEET_EXPORT_DESCRIPTION,
+      {
+        ...SPREADSHEET_EXPORT_TITLES,
+        errorFallback: 'Não há dados de planejamento para exportar.',
+      },
+    )
   }
 
   if (loading) {

@@ -29,6 +29,7 @@ import { TempleSaleDialog } from '@/components/financial/TempleSaleDialog'
 import { TempleSaleMarkPaidDialog } from '@/components/financial/TempleSaleMarkPaidDialog'
 import { TempleSalesReportDocument } from '@/components/financial/TempleSalesReportDocument'
 import { useToast } from '@/hooks/use-toast'
+import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import { fetchApprovedBrothers } from '@/lib/contribution-payments'
 import { downloadCsvFile } from '@/lib/export-utils'
 import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
@@ -250,22 +251,23 @@ export function TempleSalesPanel() {
       sale.paymentDate ? formatDateBR(sale.paymentDate) : '',
       sale.notes?.trim() ?? '',
     ])
-    downloadCsvFile(
-      [
-        'Irmão',
-        'Descrição',
-        'Valor (R$)',
-        'Data venda',
-        'Vencimento',
-        'Forma',
-        'Status',
-        'Data pagamento',
-        'Observações',
-      ],
-      rows,
-      'vendas-templo',
+    runCsvExportWithToast(toast, () =>
+      downloadCsvFile(
+        [
+          'Irmão',
+          'Descrição',
+          'Valor (R$)',
+          'Data venda',
+          'Vencimento',
+          'Forma',
+          'Status',
+          'Data pagamento',
+          'Observações',
+        ],
+        rows,
+        'vendas-templo',
+      ),
     )
-    toast({ title: 'CSV exportado' })
   }
 
   return (

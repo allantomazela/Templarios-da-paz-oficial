@@ -25,6 +25,11 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { useToast } from '@/hooks/use-toast'
+import {
+  runCsvExportWithToast,
+  SPREADSHEET_EXPORT_DESCRIPTION,
+  SPREADSHEET_EXPORT_TITLES,
+} from '@/lib/csv-export-toast'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
 import { formatDateBR } from '@/lib/format-utils'
@@ -213,27 +218,18 @@ export function AgendaReport() {
   }
 
   const handleExportCsv = () => {
-    try {
-      if (reportKind === 'sessions') {
-        exportAgendaSessionsCsv(sessions, dateRange, locations)
-      } else {
-        exportAgendaAnniversariesCsv(anniversaries, dateRange)
-      }
-
-      toast({
-        title: 'Planilha exportada',
-        description: 'O arquivo CSV foi baixado e pode ser aberto no Excel.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Nada para exportar',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Não há dados no período selecionado.',
-        variant: 'destructive',
-      })
-    }
+    runCsvExportWithToast(
+      toast,
+      () => {
+        if (reportKind === 'sessions') {
+          exportAgendaSessionsCsv(sessions, dateRange, locations)
+        } else {
+          exportAgendaAnniversariesCsv(anniversaries, dateRange)
+        }
+      },
+      SPREADSHEET_EXPORT_DESCRIPTION,
+      { ...SPREADSHEET_EXPORT_TITLES, errorFallback: 'Não há dados no período selecionado.' },
+    )
   }
 
   return (

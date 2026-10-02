@@ -30,6 +30,11 @@ import {
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { AgapePaymentReport } from '@/components/agape/AgapePaymentReport'
 import { useToast } from '@/hooks/use-toast'
+import {
+  runCsvExportWithToast,
+  SPREADSHEET_EXPORT_DESCRIPTION,
+  SPREADSHEET_EXPORT_TITLES,
+} from '@/lib/csv-export-toast'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { useAgapeStore } from '@/stores/useAgapeStore'
 import { logError } from '@/lib/logger'
@@ -242,22 +247,12 @@ export function AgapeReports() {
   })
 
   const handleExport = () => {
-    try {
-      exportAgapeReportCsv(reportData, reportMeta.filenameSlug)
-      toast({
-        title: 'Planilha exportada',
-        description: 'O arquivo CSV foi baixado e pode ser aberto no Excel.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Nada para exportar',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Não há dados no período selecionado.',
-        variant: 'destructive',
-      })
-    }
+    runCsvExportWithToast(
+      toast,
+      () => exportAgapeReportCsv(reportData, reportMeta.filenameSlug),
+      SPREADSHEET_EXPORT_DESCRIPTION,
+      { ...SPREADSHEET_EXPORT_TITLES, errorFallback: 'Não há dados no período selecionado.' },
+    )
   }
 
   const handleShare = async () => {

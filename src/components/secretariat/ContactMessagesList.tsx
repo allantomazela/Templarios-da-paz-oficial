@@ -38,6 +38,7 @@ import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import {
   Dialog,
   DialogContent,
@@ -518,19 +519,16 @@ export function ContactMessagesList() {
   }
 
   const handleExportCSV = () => {
-    try {
-      exportToCSV(filteredMessages, 'mensagens-contato')
-      toast({
-        title: 'Exportação Concluída',
-        description: 'Arquivo CSV baixado com sucesso.',
-      })
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro na Exportação',
-        description: error.message || 'Falha ao exportar mensagens.',
-      })
-    }
+    runCsvExportWithToast(
+      toast,
+      () => exportToCSV(filteredMessages, 'mensagens-contato'),
+      'Arquivo CSV baixado com sucesso.',
+      {
+        successTitle: 'Exportação Concluída',
+        errorTitle: 'Erro na Exportação',
+        errorFallback: 'Falha ao exportar mensagens.',
+      },
+    )
   }
 
   const handleExportPDF = () => {

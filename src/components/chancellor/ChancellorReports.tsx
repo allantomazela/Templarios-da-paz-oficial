@@ -18,6 +18,7 @@ import {
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Download, Filter } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import {
@@ -106,32 +107,33 @@ export const ChancellorReports = memo(function ChancellorReports() {
       .length
       .toString()
 
-    downloadCsvFile(
-      [
-        'Irmão',
-        'Grau',
-        'Cargo',
-        'Status',
-        'Presenças',
-        'Total Sessões',
-        '% Frequência',
-      ],
-      brotherStats.map((brother) => [
-        brother.name,
-        brother.degree,
-        brother.role || '',
-        brother.status || '',
-        brother.presences.toString(),
-        totalSessions,
-        brother.percentage.toString(),
-      ]),
-      'relatorio-frequencia',
+    runCsvExportWithToast(
+      toast,
+      () =>
+        downloadCsvFile(
+          [
+            'Irmão',
+            'Grau',
+            'Cargo',
+            'Status',
+            'Presenças',
+            'Total Sessões',
+            '% Frequência',
+          ],
+          brotherStats.map((brother) => [
+            brother.name,
+            brother.degree,
+            brother.role || '',
+            brother.status || '',
+            brother.presences.toString(),
+            totalSessions,
+            brother.percentage.toString(),
+          ]),
+          'relatorio-frequencia',
+        ),
+      'O relatório foi exportado em formato CSV.',
+      { successTitle: 'CSV Exportado' },
     )
-
-    toast({
-      title: 'CSV Exportado',
-      description: 'O relatório foi exportado em formato CSV.',
-    })
   }
 
   // Calculate Attendance per Brother

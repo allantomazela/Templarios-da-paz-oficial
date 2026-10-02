@@ -62,6 +62,7 @@ export function MembershipBrotherStatementDocument({
   const ceremonyPaid = filterMemberPaymentsByType(statement.paidPayments, 'ceremony')
   const agapePaid = filterMemberPaymentsByType(statement.paidPayments, 'agape')
   const charityPaid = filterMemberPaymentsByType(statement.paidPayments, 'charity')
+  const templeSalesPaid = filterMemberPaymentsByType(statement.paidPayments, 'temple_sale')
 
   return (
     <div className="balancete-document financial-summary-print-document w-full min-w-0 bg-white text-black">
@@ -115,6 +116,12 @@ export function MembershipBrotherStatementDocument({
                 <td>Tronco de beneficência</td>
                 <td className="balancete-num">
                   {formatCurrencyBRL(summaryByType.charity.paidTotal)}
+                </td>
+              </tr>
+              <tr>
+                <td>Vendas do templo pagas</td>
+                <td className="balancete-num">
+                  {formatCurrencyBRL(summaryByType.temple_sale.paidTotal)}
                 </td>
               </tr>
               <tr>
@@ -252,9 +259,19 @@ export function MembershipBrotherStatementDocument({
         />
       </section>
 
+      <section className="balancete-section balancete-ledger-section">
+        <h3 className="balancete-subsection-title">
+          {MEMBER_PAYMENT_TYPE_LABELS.temple_sale} ({templeSalesPaid.length})
+        </h3>
+        <PaymentRows
+          payments={templeSalesPaid}
+          emptyMessage="Nenhuma venda do templo registrada como paga."
+        />
+      </section>
+
       <p className="balancete-footer">
         Documento para conferência de pagamentos do irmão (mensalidades, taxas de grau,
-        ágape e tronco). Valores no caixa indicam receita vinculada na tesouraria.
+        ágape, tronco e vendas do templo). Valores no caixa indicam receita vinculada na tesouraria.
         Emitido pela tesouraria mediante solicitação do irmão.
       </p>
     </div>

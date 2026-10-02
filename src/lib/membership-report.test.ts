@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Contribution } from '@/lib/data'
 import {
+  buildBrotherStatementSummaryByType,
   buildMembershipBrotherStatementData,
   buildMembershipOverdueReportData,
   buildMembershipStatusReportData,
@@ -170,6 +171,30 @@ describe('membership-report', () => {
     expect(statement.paidPayments).toHaveLength(2)
     expect(statement.totalPaidAll).toBe(650)
     expect(statement.summaryByType.ceremony.paidTotal).toBe(500)
+  })
+
+  it('resume vendas do templo pagas e em aberto no extrato', () => {
+    const summary = buildBrotherStatementSummaryByType([
+      {
+        id: 'ts1',
+        type: 'temple_sale',
+        description: 'Avental',
+        amount: 120,
+        status: 'paid',
+        dueDate: '2026-04-01',
+        paymentDate: '2026-04-02',
+      },
+      {
+        id: 'ts2',
+        type: 'temple_sale',
+        description: 'Ritual',
+        amount: 80,
+        status: 'pending',
+        dueDate: '2026-05-01',
+      },
+    ])
+
+    expect(summary.temple_sale).toEqual({ paidTotal: 120, paidCount: 1, openCount: 1 })
   })
 
   it('filtra relatório de situação por atraso e busca', () => {

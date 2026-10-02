@@ -33,7 +33,7 @@ import { Loader2, Target } from 'lucide-react'
 interface CategoryFromDB {
   id: string
   name: string
-  type: 'Receita' | 'Despesa'
+  type: string
 }
 
 const goalSchema = z.object({
@@ -60,7 +60,6 @@ export function GoalDialog({
 }: GoalDialogProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
-  const supabaseAny = supabase as any
 
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(goalSchema),
@@ -78,7 +77,7 @@ export function GoalDialog({
       const loadCategories = async () => {
         setLoadingCategories(true)
         try {
-          const { data, error } = await supabaseAny
+          const { data, error } = await supabase
             .from('financial_categories')
             .select('*')
             .eq('type', 'Receita')
@@ -89,7 +88,7 @@ export function GoalDialog({
           const mapped: Category[] = (data || []).map((c: CategoryFromDB) => ({
             id: c.id,
             name: c.name,
-            type: c.type,
+            type: c.type as Category['type'],
           }))
 
           setCategories(mapped)
@@ -102,7 +101,7 @@ export function GoalDialog({
 
       loadCategories()
     }
-  }, [open, supabaseAny])
+  }, [open])
 
   useEffect(() => {
     if (goalToEdit) {

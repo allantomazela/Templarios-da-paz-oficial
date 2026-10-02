@@ -33,7 +33,7 @@ import { Loader2, Target } from 'lucide-react'
 interface CategoryFromDB {
   id: string
   name: string
-  type: 'Receita' | 'Despesa'
+  type: string
 }
 
 const budgetSchema = z.object({
@@ -61,7 +61,6 @@ export function BudgetDialog({
 }: BudgetDialogProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
-  const supabaseAny = supabase as any
 
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetSchema),
@@ -80,7 +79,7 @@ export function BudgetDialog({
       const loadCategories = async () => {
         setLoadingCategories(true)
         try {
-          const { data, error } = await supabaseAny
+          const { data, error } = await supabase
             .from('financial_categories')
             .select('*')
             .order('name')
@@ -90,7 +89,7 @@ export function BudgetDialog({
           const mapped: Category[] = (data || []).map((c: CategoryFromDB) => ({
             id: c.id,
             name: c.name,
-            type: c.type,
+            type: c.type as Category['type'],
           }))
 
           setCategories(mapped)
@@ -103,7 +102,7 @@ export function BudgetDialog({
 
       loadCategories()
     }
-  }, [open, supabaseAny])
+  }, [open])
 
   useEffect(() => {
     if (budgetToEdit) {

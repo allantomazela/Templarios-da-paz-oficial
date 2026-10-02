@@ -75,13 +75,14 @@ import {
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Transaction, BankAccount } from '@/lib/data'
+import type { TablesInsert } from '@/lib/supabase/types'
 
 interface TransactionFromDB {
   id: string
   date: string
   description: string
   category: string
-  type: 'Receita' | 'Despesa'
+  type: string
   amount: number
   account_id: string | null
 }
@@ -128,7 +129,6 @@ export function CharityCollection() {
   const dialog = useDialog()
   const [charityToEdit, setCharityToEdit] = useState<string | null>(null)
   const createIdempotencyKeyRef = useRef<string | null>(null)
-  const supabaseAny = supabase as any
 
   // Load charity transactions and accounts from Supabase
   const loadData = useAsyncOperation(
@@ -136,7 +136,7 @@ export function CharityCollection() {
       setLoading(true)
       try {
         // Find category ID for "Tronco de Beneficência"
-        let { data: categoryData, error: categoryError } = await supabaseAny
+        let { data: categoryData, error: categoryError } = await supabase
           .from('financial_categories')
           .select('id')
           .eq('name', 'Tronco de Beneficência')
@@ -150,7 +150,7 @@ export function CharityCollection() {
 
         if (!categoryData) {
           // Category doesn't exist, create it
-          const { data: newCategory, error: insertError } = await supabaseAny
+          const { data: newCategory, error: insertError } = await supabase
             .from('financial_categories')
             .insert({
               name: 'Tronco de Beneficência',
@@ -170,7 +170,7 @@ export function CharityCollection() {
           // Load transactions desta categoria (financial_transactions usa category TEXT)
           const categoryName = 'Tronco de Beneficência'
           const { data: transactionsData, error: transactionsError } =
-            await supabaseAny
+            await supabase
               .from('financial_transactions')
               .select('*')
               .eq('category', categoryName)
@@ -185,7 +185,7 @@ export function CharityCollection() {
               date: t.date,
               description: t.description,
               category: t.category || categoryName,
-              type: t.type,
+              type: t.type as Transaction['type'],
               amount: parseFloat(t.amount.toString()),
               accountId: t.account_id || undefined,
             }),
@@ -195,7 +195,7 @@ export function CharityCollection() {
         }
 
         // Load accounts
-        const { data: accountsData, error: accountsError } = await supabaseAny
+        const { data: accountsData, error: accountsError } = await supabase
           .from('financial_accounts')
           .select('*')
           .order('name')
@@ -301,7 +301,7 @@ export function CharityCollection() {
       if (!sessionLabel) throw new Error('Informe a sessão ou selecione um evento.')
 
       // Find or create category
-      let { data: categoryData, error: categoryError } = await supabaseAny
+      let { data: categoryData, error: categoryError } = await supabase
         .from('financial_categories')
         .select('id')
         .eq('name', 'Tronco de Beneficência')
@@ -314,7 +314,7 @@ export function CharityCollection() {
       }
 
       if (!categoryData) {
-        const { data: newCategory, error: insertError } = await supabaseAny
+        const { data: newCategory, error: insertError } = await supabase
           .from('financial_categories')
           .insert({
             name: 'Tronco de Beneficência',
@@ -336,7 +336,7 @@ export function CharityCollection() {
 
       if (charityToEdit) {
         // Update
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('financial_transactions')
           .update({
             description,
@@ -355,8 +355,9 @@ export function CharityCollection() {
             : undefined
         if (idempotencyKey) createIdempotencyKeyRef.current = idempotencyKey
         try {
-          const { error } = await supabaseAny
+          const { error } = await supabase
             .from('financial_transactions')
+            // category_id é preenchido pelo trigger financial_transactions_set_category_id.
             .insert({
               description,
               amount: data.amount,
@@ -365,7 +366,7 @@ export function CharityCollection() {
               type: 'Receita',
               account_id: data.accountId || null,
               ...(idempotencyKey && { idempotency_key: idempotencyKey }),
-            })
+            } as TablesInsert<'financial_transactions'>)
 
           if (error) {
             const pgErr = error as { code?: string }

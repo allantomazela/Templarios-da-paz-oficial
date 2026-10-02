@@ -32,7 +32,6 @@ export default function MyMessages() {
   const [currentUserName, setCurrentUserName] = useState<string>('Você')
   const dialog = useDialog()
   const [replyTo, setReplyTo] = useState<string | undefined>(undefined)
-  const supabaseAny = supabase as any
 
   // Carregar destinatários separadamente
   const loadRecipients = useAsyncOperation(
@@ -47,7 +46,7 @@ export default function MyMessages() {
       }
 
       // Carregar lista de destinatários
-      const { data: profileRows, error: profilesError } = await supabaseAny
+      const { data: profileRows, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .neq('id', user.id)
@@ -90,7 +89,7 @@ export default function MyMessages() {
       setCurrentUserId(user.id)
 
       // Buscar perfil sem .single() para evitar erro 406
-      const { data: profileData, error: profileError } = await supabaseAny
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('id', user.id)
@@ -107,12 +106,12 @@ export default function MyMessages() {
 
       // Buscar mensagens enviadas e recebidas separadamente (mais confiável que .or())
       const [sentResult, receivedResult] = await Promise.all([
-        supabaseAny
+        supabase
           .from('internal_messages')
           .select('*')
           .eq('sender_id', user.id)
           .order('created_at', { ascending: false }),
-        supabaseAny
+        supabase
           .from('internal_messages')
           .select('*')
           .eq('recipient_id', user.id)
@@ -141,7 +140,7 @@ export default function MyMessages() {
         recipients: [row.recipient_name],
         date: format(new Date(row.created_at), 'yyyy-MM-dd'),
         read: row.is_read || row.recipient_id !== user.id,
-        type: row.recipient_id === user.id ? 'received' : 'sent',
+        type: (row.recipient_id === user.id ? 'received' : 'sent') as Message['type'],
       }))
 
       setMessages(mappedMessages)
@@ -164,7 +163,7 @@ export default function MyMessages() {
         throw new Error('Destinatário não encontrado.')
       }
 
-      const { data: createdRows, error } = await supabaseAny
+      const { data: createdRows, error } = await supabase
         .from('internal_messages')
         .insert({
           sender_id: currentUserId,
@@ -189,7 +188,7 @@ export default function MyMessages() {
         recipients: [row.recipient_name],
         date: format(new Date(row.created_at), 'yyyy-MM-dd'),
         read: row.is_read || row.recipient_id !== currentUserId,
-        type: row.recipient_id === currentUserId ? 'received' : 'sent',
+        type: (row.recipient_id === currentUserId ? 'received' : 'sent') as Message['type'],
       }))
 
       setMessages((prev) => [...newMessages, ...prev])
@@ -202,7 +201,7 @@ export default function MyMessages() {
         link: '/dashboard/messages',
       }]
 
-      const { error: notificationError } = await supabaseAny
+      const { error: notificationError } = await supabase
         .from('notifications')
         .insert(notificationsPayload)
 
@@ -221,7 +220,7 @@ export default function MyMessages() {
   const markAsRead = async (messageId: string) => {
     if (!currentUserId) return
 
-    await supabaseAny
+    await supabase
       .from('internal_messages')
       .update({ is_read: true })
       .eq('id', messageId)

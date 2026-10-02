@@ -27,7 +27,6 @@ export function MessagesList() {
   const [currentUserName, setCurrentUserName] = useState<string>('Você')
   const dialog = useDialog()
   const [replyTo, setReplyTo] = useState<string | undefined>(undefined)
-  const supabaseAny = supabase as any
 
   const loadMessages = useAsyncOperation(
     async () => {
@@ -42,7 +41,7 @@ export function MessagesList() {
 
       setCurrentUserId(user.id)
 
-      const { data: profileData, error: profileError } = await supabaseAny
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('id', user.id)
@@ -57,12 +56,12 @@ export function MessagesList() {
 
       // Buscar mensagens enviadas e recebidas separadamente (mais confiável que .or())
       const [sentResult, receivedResult] = await Promise.all([
-        supabaseAny
+        supabase
           .from('internal_messages')
           .select('*')
           .eq('sender_id', user.id)
           .order('created_at', { ascending: false }),
-        supabaseAny
+        supabase
           .from('internal_messages')
           .select('*')
           .eq('recipient_id', user.id)
@@ -92,12 +91,12 @@ export function MessagesList() {
         recipients: [row.recipient_name],
         date: format(new Date(row.created_at), 'yyyy-MM-dd'),
         read: row.is_read || row.recipient_id !== user.id,
-        type: row.recipient_id === user.id ? 'received' : 'sent',
+        type: (row.recipient_id === user.id ? 'received' : 'sent') as Message['type'],
       }))
 
       setMessages(mappedMessages)
 
-      const { data: profileRows, error: profilesError } = await supabaseAny
+      const { data: profileRows, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .order('full_name', { ascending: true })
@@ -148,7 +147,7 @@ export function MessagesList() {
         is_read: recipient.id === currentUserId,
       }))
 
-      const { data: createdRows, error } = await supabaseAny
+      const { data: createdRows, error } = await supabase
         .from('internal_messages')
         .insert(payload)
         .select('*')
@@ -166,7 +165,7 @@ export function MessagesList() {
         recipients: [row.recipient_name],
         date: format(new Date(row.created_at), 'yyyy-MM-dd'),
         read: row.is_read || row.recipient_id !== currentUserId,
-        type: row.recipient_id === currentUserId ? 'received' : 'sent',
+        type: (row.recipient_id === currentUserId ? 'received' : 'sent') as Message['type'],
       }))
 
       setMessages((prev) => [...newMessages, ...prev])
@@ -179,7 +178,7 @@ export function MessagesList() {
           link: '/dashboard/secretariat?tab=messages',
         }))
 
-        const { error: notificationError } = await supabaseAny
+        const { error: notificationError } = await supabase
           .from('notifications')
           .insert(notificationsPayload)
 
@@ -246,7 +245,7 @@ export function MessagesList() {
       ),
     )
 
-    await supabaseAny
+    await supabase
       .from('internal_messages')
       .update({ is_read: true })
       .eq('id', messageId)

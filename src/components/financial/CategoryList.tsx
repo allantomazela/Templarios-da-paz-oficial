@@ -41,7 +41,7 @@ const ITEMS_PER_PAGE = 5
 interface CategoryFromDB {
   id: string
   name: string
-  type: 'Receita' | 'Despesa'
+  type: string
   created_at: string
   updated_at: string
 }
@@ -59,13 +59,12 @@ export function CategoryList() {
     null,
   )
   const { toast } = useToast()
-  const supabaseAny = supabase as any
 
   // Load categories from Supabase
   const loadCategories = useAsyncOperation(
     async () => {
       setLoading(true)
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('financial_categories')
         .select('*')
         .order('name', { ascending: true })
@@ -77,7 +76,7 @@ export function CategoryList() {
       const mapped: Category[] = (data || []).map((c: CategoryFromDB) => ({
         id: c.id,
         name: c.name,
-        type: c.type,
+        type: c.type as Category['type'],
       }))
 
       setCategories(mapped)
@@ -112,7 +111,7 @@ export function CategoryList() {
     async (data: any) => {
       if (selectedCategory) {
         // Update
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('financial_categories')
           .update({
             name: data.name,
@@ -126,7 +125,7 @@ export function CategoryList() {
         return 'Categoria atualizada com sucesso.'
       } else {
         // Create
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('financial_categories')
           .insert({
             name: data.name,
@@ -148,7 +147,7 @@ export function CategoryList() {
   const deleteOperation = useAsyncOperation(
     async (id: string) => {
       // Buscar nome da categoria (financial_transactions usa category TEXT)
-      const { data: cat, error: catError } = await supabaseAny
+      const { data: cat, error: catError } = await supabase
         .from('financial_categories')
         .select('name')
         .eq('id', id)
@@ -158,7 +157,7 @@ export function CategoryList() {
         if (catError) throw catError
         // Categoria não existe, pode seguir com delete
       } else {
-        const { data: transactions, error: checkError } = await supabaseAny
+        const { data: transactions, error: checkError } = await supabase
           .from('financial_transactions')
           .select('id')
           .eq('category', cat.name)
@@ -176,7 +175,7 @@ export function CategoryList() {
         }
       }
 
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_categories')
         .delete()
         .eq('id', id)

@@ -21,10 +21,10 @@ import { formatCurrencyBRL, formatDateBR } from '@/lib/format-utils'
 interface BudgetFromDB {
   id: string
   name: string
-  type: 'Receita' | 'Despesa'
+  type: string
   category_id: string | null
   amount: number
-  period: 'Mensal' | 'Anual' | 'Personalizado'
+  period: string
   start_date: string | null
   end_date: string | null
   financial_categories?: {
@@ -50,7 +50,7 @@ interface TransactionFromDB {
   date: string
   description: string
   category: string
-  type: 'Receita' | 'Despesa'
+  type: string
   amount: number
   account_id: string | null
 }
@@ -61,7 +61,6 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
-  const supabaseAny = supabase as any
 
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false)
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null)
@@ -75,7 +74,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
       setLoading(true)
       try {
         // Load budgets
-        const { data: budgetsData, error: budgetsError } = await supabaseAny
+        const { data: budgetsData, error: budgetsError } = await supabase
           .from('budgets')
           .select(
             `
@@ -94,17 +93,17 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
           (b: BudgetFromDB) => ({
             id: b.id,
             name: b.name,
-            type: b.type,
+            type: b.type as Budget['type'],
             category: b.financial_categories?.name || undefined,
             amount: parseFloat(b.amount.toString()),
-            period: b.period,
+            period: b.period as Budget['period'],
             startDate: b.start_date || undefined,
             endDate: b.end_date || undefined,
           }),
         )
 
         // Load goals
-        const { data: goalsData, error: goalsError } = await supabaseAny
+        const { data: goalsData, error: goalsError } = await supabase
           .from('financial_goals')
           .select(
             `
@@ -131,7 +130,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
         // Load transactions for progress calculation (financial_transactions usa category TEXT)
         const { data: transactionsData, error: transactionsError } =
-          await supabaseAny
+          await supabase
             .from('financial_transactions')
             .select('*')
             .order('date', { ascending: false })
@@ -144,7 +143,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
             date: t.date,
             description: t.description,
             category: t.category || 'Sem categoria',
-            type: t.type,
+            type: t.type as Transaction['type'],
             amount: parseFloat(t.amount.toString()),
             accountId: t.account_id || undefined,
           }),
@@ -224,7 +223,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
       // Find category by name if provided
       let categoryId = null
       if (data.category) {
-        const { data: categoryData, error: categoryError } = await supabaseAny
+        const { data: categoryData, error: categoryError } = await supabase
           .from('financial_categories')
           .select('id')
           .eq('name', data.category)
@@ -244,7 +243,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
       if (selectedBudget) {
         // Update
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('budgets')
           .update({
             name: data.name,
@@ -263,7 +262,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
         return 'Orçamento atualizado.'
       } else {
         // Create
-        const { error } = await supabaseAny.from('budgets').insert({
+        const { error } = await supabase.from('budgets').insert({
           name: data.name,
           type: data.type,
           category_id: categoryId,
@@ -287,7 +286,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
   const handleDeleteBudget = useAsyncOperation(
     async (id: string) => {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('budgets')
         .delete()
         .eq('id', id)
@@ -330,7 +329,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
       // Find category by name if provided
       let linkedCategoryId = null
       if (data.linkedCategory) {
-        const { data: categoryData, error: categoryError } = await supabaseAny
+        const { data: categoryData, error: categoryError } = await supabase
           .from('financial_categories')
           .select('id')
           .eq('name', data.linkedCategory)
@@ -350,7 +349,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
       if (selectedGoal) {
         // Update
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('financial_goals')
           .update({
             name: data.name,
@@ -366,7 +365,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
         return 'Meta atualizada.'
       } else {
         // Create
-        const { error } = await supabaseAny.from('financial_goals').insert({
+        const { error } = await supabase.from('financial_goals').insert({
           name: data.name,
           target_amount: data.targetAmount,
           linked_category_id: linkedCategoryId,
@@ -387,7 +386,7 @@ export const BudgetsAndGoals = memo(function BudgetsAndGoals() {
 
   const handleDeleteGoal = useAsyncOperation(
     async (id: string) => {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('financial_goals')
         .delete()
         .eq('id', id)

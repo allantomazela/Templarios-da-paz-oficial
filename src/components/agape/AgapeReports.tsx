@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useReactToPrint } from 'react-to-print'
 import {
   Download,
   FileSpreadsheet,
@@ -30,6 +29,7 @@ import {
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { AgapePaymentReport } from '@/components/agape/AgapePaymentReport'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import {
   runCsvExportWithToast,
   SPREADSHEET_EXPORT_DESCRIPTION,
@@ -209,7 +209,7 @@ export function AgapeReports() {
     return { value: year, label: String(year) }
   })
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: reportRef,
     documentTitle: reportMeta.filenameSlug,
     pageStyle: `
@@ -230,20 +230,7 @@ export function AgapeReports() {
         }
       }
     `,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description:
-          'Use "Salvar como PDF" na janela de impressão, se desejar.',
-      })
-    },
-    onPrintError: () => {
-      toast({
-        title: 'Erro ao imprimir',
-        description: 'Não foi possível gerar o relatório. Tente novamente.',
-        variant: 'destructive',
-      })
-    },
+    successDescription: 'Use "Salvar como PDF" na janela de impressão, se desejar.',
   })
 
   const handleExport = () => {

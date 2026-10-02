@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
-import { useReactToPrint } from 'react-to-print'
 import { Download, Loader2, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import type { BankAccount, Transaction } from '@/lib/data'
 import { fetchFinancialAccountsAndTransactions } from '@/lib/financial-balances'
 import {
@@ -374,16 +374,11 @@ export function FinancialCustomReport({
     }
   }
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: previewRef,
     documentTitle: `Relatorio_Financeiro_Personalizado_${format(new Date(), 'yyyy-MM-dd')}`,
     pageStyle: CUSTOM_REPORT_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão.',
-      })
-    },
+    successDescription: 'Use "Salvar como PDF" na janela de impressão.',
   })
 
   if (loading) {

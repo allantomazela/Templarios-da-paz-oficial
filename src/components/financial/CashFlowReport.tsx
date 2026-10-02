@@ -21,7 +21,7 @@ import {
   Loader2,
   Printer,
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import {
   endOfDay,
   endOfMonth,
@@ -30,7 +30,6 @@ import {
   startOfMonth,
 } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useReactToPrint } from 'react-to-print'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -80,7 +79,6 @@ export function CashFlowReport() {
   const { accounts, transactions, loading } = useFinancialCoreData({
     fullHistory: true,
   })
-  const { toast } = useToast()
   const [periodConfig, setPeriodConfig] = useState<FinancialReportPeriodConfig>(
     DEFAULT_FINANCIAL_REPORT_PERIOD_CONFIG,
   )
@@ -116,15 +114,11 @@ export function CashFlowReport() {
     [accounts],
   )
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: printRef,
     documentTitle: `Fluxo_Caixa_${format(new Date(), 'yyyy-MM-dd')}`,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório Impresso',
-        description: 'Relatório de fluxo de caixa enviado para impressão.',
-      })
-    },
+    successTitle: 'Relatório Impresso',
+    successDescription: 'Relatório de fluxo de caixa enviado para impressão.',
   })
 
   if (loading) {

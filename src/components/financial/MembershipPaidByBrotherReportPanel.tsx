@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { useReactToPrint } from 'react-to-print'
 import { Download, FileSpreadsheet, Printer } from 'lucide-react'
 import { BrotherSearchCombobox } from '@/components/financial/BrotherSearchCombobox'
 import { Button } from '@/components/ui/button'
@@ -13,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import { buildMembershipPaidByBrotherReportData } from '@/lib/membership-open-paid-report'
@@ -46,13 +46,10 @@ export function MembershipPaidByBrotherReportPanel({
     [schedules, selectedBrotherId],
   )
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: printRef,
     documentTitle: 'Mensalidades Pagas por Irmão',
     pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({ title: 'Relatório enviado à impressão' })
-    },
   })
 
   return (

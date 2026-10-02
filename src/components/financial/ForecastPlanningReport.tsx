@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useReactToPrint } from 'react-to-print'
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import {
   runCsvExportWithToast,
   SPREADSHEET_EXPORT_DESCRIPTION,
@@ -80,24 +80,12 @@ export function ForecastPlanningReport({
   const resolvedMonthScope =
     monthScope === 'all' ? 'all' : Number(monthScope)
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: reportRef,
     documentTitle: `Planejamento_Financeiro_${format(new Date(), 'yyyy-MM-dd')}`,
     pageStyle: FORECAST_PRINT_PAGE_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description:
-          'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
-      })
-    },
-    onPrintError: () => {
-      toast({
-        title: 'Erro ao imprimir',
-        description: 'Não foi possível exportar o relatório. Tente novamente.',
-        variant: 'destructive',
-      })
-    },
+    successDescription: 'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
+    errorDescription: 'Não foi possível exportar o relatório. Tente novamente.',
   })
 
   const handleExportCsv = () => {

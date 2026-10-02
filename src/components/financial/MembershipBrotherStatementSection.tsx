@@ -1,9 +1,9 @@
 import { useRef } from 'react'
-import { useReactToPrint } from 'react-to-print'
 import { Download, FileSpreadsheet, Loader2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import type { MembershipBrotherStatementData } from '@/lib/membership-report'
 import {
   exportMembershipBrotherStatementPaymentsCsv,
@@ -26,16 +26,12 @@ export function MembershipBrotherStatementSection({
   const { toast } = useToast()
   const statementPrintRef = useRef<HTMLDivElement>(null)
 
-  const handlePrintStatement = useReactToPrint({
+  const handlePrintStatement = usePrintReport({
     contentRef: statementPrintRef,
     documentTitle: `Extrato_Mensalidade_${selectedBrotherId}`,
     pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Extrato enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão.',
-      })
-    },
+    successTitle: 'Extrato enviado à impressão',
+    successDescription: 'Use "Salvar como PDF" na janela de impressão.',
   })
 
   return (

@@ -28,7 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useReactToPrint } from 'react-to-print'
+import { usePrintReport } from '@/hooks/use-print-report'
+import { A4_REPORT_PRINT_STYLE } from '@/lib/report-print-style'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { format } from 'date-fns'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
@@ -70,35 +71,15 @@ export const ChancellorReports = memo(function ChancellorReports() {
   })
   const [degreeFilter, setDegreeFilter] = useState('all')
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: reportRef,
     documentTitle: `Relatorio_Chanceler_Frequencia_${format(new Date(), 'yyyy-MM-dd')}`,
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 15mm 20mm;
-      }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório Gerado',
-        description: 'O relatório foi enviado para impressão/PDF. Use "Salvar como PDF" na janela de impressão para salvar o arquivo.',
-      })
-    },
-    onPrintError: (error) => {
-      toast({
-        title: 'Erro ao Gerar PDF',
-        description: 'Não foi possível gerar o PDF. Tente novamente.',
-        variant: 'destructive',
-      })
-      console.error('Erro ao imprimir:', error)
-    },
+    pageStyle: A4_REPORT_PRINT_STYLE,
+    successTitle: 'Relatório Gerado',
+    successDescription:
+      'O relatório foi enviado para impressão/PDF. Use "Salvar como PDF" na janela de impressão para salvar o arquivo.',
+    errorTitle: 'Erro ao Gerar PDF',
+    errorDescription: 'Não foi possível gerar o PDF. Tente novamente.',
   })
 
   const handleExport = () => {

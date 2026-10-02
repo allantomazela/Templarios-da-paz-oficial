@@ -1,7 +1,6 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useReactToPrint } from 'react-to-print'
 import { Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +24,8 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
+import { A4_REPORT_PRINT_STYLE } from '@/lib/report-print-style'
 import {
   runCsvExportWithToast,
   SPREADSHEET_EXPORT_DESCRIPTION,
@@ -169,31 +170,11 @@ export function AgendaReport() {
     positions.find((p) => p.position_type === 'chanceler')?.user?.full_name ||
     'Chanceler'
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: reportRef,
     documentTitle: `${reportKind}_${periodAnchor}`,
-    pageStyle: `
-      @page { size: A4; margin: 15mm 20mm; }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão, se desejar.',
-      })
-    },
-    onPrintError: () => {
-      toast({
-        title: 'Erro ao imprimir',
-        description: 'Não foi possível gerar o relatório. Tente novamente.',
-        variant: 'destructive',
-      })
-    },
+    pageStyle: A4_REPORT_PRINT_STYLE,
+    successDescription: 'Use "Salvar como PDF" na janela de impressão, se desejar.',
   })
 
   const monthOptions = Array.from({ length: 24 }, (_, index) => {

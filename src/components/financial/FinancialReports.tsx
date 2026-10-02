@@ -21,8 +21,8 @@ import {
   Calendar,
   Loader2,
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
-import { useReactToPrint } from 'react-to-print'
+import { usePrintReport } from '@/hooks/use-print-report'
+import { A4_REPORT_PRINT_STYLE } from '@/lib/report-print-style'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -54,7 +54,6 @@ import { FinancialReportPeriodSelector } from '@/components/financial/FinancialR
 import { MembershipReports } from '@/components/financial/MembershipReports'
 
 export function FinancialReports() {
-  const { toast } = useToast()
   const { accounts, transactions, loading } = useFinancialCoreData({
     fullHistory: true,
   })
@@ -130,31 +129,12 @@ export function FinancialReports() {
     return computeAccountPeriodBreakdown(accounts, filteredTransactions)
   }, [accounts, filteredTransactions])
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: printRef,
     documentTitle: `Relatorio_Financeiro_${periodConfig.period}`,
-    pageStyle: `
-      @page { size: A4; margin: 15mm 20mm; }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-      }
-    `,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
-      })
-    },
-    onPrintError: () => {
-      toast({
-        title: 'Erro ao imprimir',
-        description: 'Não foi possível exportar o relatório. Tente novamente.',
-        variant: 'destructive',
-      })
-    },
+    pageStyle: A4_REPORT_PRINT_STYLE,
+    successDescription: 'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
+    errorDescription: 'Não foi possível exportar o relatório. Tente novamente.',
   })
 
   const pieConfig = {

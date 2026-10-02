@@ -1,10 +1,10 @@
 import { useRef } from 'react'
 import { format } from 'date-fns'
-import { useReactToPrint } from 'react-to-print'
 import { Download, FileSpreadsheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import type { MembershipOverdueReportData } from '@/lib/membership-report'
 import {
@@ -36,16 +36,11 @@ export function MembershipOverdueReportSection({
   const { summary } = overdueReport
   const isEmpty = summary.brotherCount === 0
 
-  const handlePrintOverdue = useReactToPrint({
+  const handlePrintOverdue = usePrintReport({
     contentRef: overduePrintRef,
     documentTitle: `Mensalidades_Atraso_${format(new Date(), 'yyyy-MM-dd')}`,
     pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Relatório enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão.',
-      })
-    },
+    successDescription: 'Use "Salvar como PDF" na janela de impressão.',
   })
 
   return (

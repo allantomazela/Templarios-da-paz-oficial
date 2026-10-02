@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -39,6 +38,7 @@ import { BalancetePrintDocument } from '@/components/financial/BalancetePrintDoc
 import { BalanceteReportContentOptions } from '@/components/financial/BalanceteReportContentOptions'
 import { exportBalanceteZip } from '@/lib/balancete-zip-export'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 
 const BALANCETE_PRINT_PAGE_STYLE = `
   @page { size: A4 landscape; margin: 10mm; }
@@ -193,23 +193,13 @@ export function AccountingBalanceteReport({
       ? undefined
       : accounts.find((account) => account.id === accountFilter)?.name
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: previewRef,
     documentTitle: `Balancete_Contabil_${periodConfig.period}_${typeFilter}`,
     pageStyle: BALANCETE_PRINT_PAGE_STYLE,
-    onAfterPrint: () => {
-      toast({
-        title: 'Balancete enviado à impressão',
-        description: 'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
-      })
-    },
-    onPrintError: () => {
-      toast({
-        title: 'Erro ao imprimir',
-        description: 'Não foi possível gerar o balancete. Tente novamente.',
-        variant: 'destructive',
-      })
-    },
+    successTitle: 'Balancete enviado à impressão',
+    successDescription: 'Use "Salvar como PDF" na janela de impressão para gerar o arquivo.',
+    errorDescription: 'Não foi possível gerar o balancete. Tente novamente.',
   })
 
   const isBusy = loading || attachmentsLoading

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useReactToPrint } from 'react-to-print'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,6 +28,7 @@ import { TempleSaleDialog } from '@/components/financial/TempleSaleDialog'
 import { TempleSaleMarkPaidDialog } from '@/components/financial/TempleSaleMarkPaidDialog'
 import { TempleSalesReportDocument } from '@/components/financial/TempleSalesReportDocument'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import { fetchApprovedBrothers } from '@/lib/contribution-payments'
 import { downloadCsvFile } from '@/lib/export-utils'
@@ -154,13 +154,10 @@ export function TempleSalesPanel() {
     }
   }, [sales, summary, brotherFilter, brothers, statusFilter])
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: printRef,
     documentTitle: 'Vendas do Templo',
     pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({ title: 'Relatório enviado à impressão' })
-    },
   })
 
   async function handleSave(data: TempleSaleFormData) {

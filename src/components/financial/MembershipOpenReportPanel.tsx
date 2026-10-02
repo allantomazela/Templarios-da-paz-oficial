@@ -1,5 +1,4 @@
 import { useMemo, useRef } from 'react'
-import { useReactToPrint } from 'react-to-print'
 import { Download, FileSpreadsheet, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import { usePrintReport } from '@/hooks/use-print-report'
 import { runCsvExportWithToast } from '@/lib/csv-export-toast'
 import { formatCurrencyBRL } from '@/lib/format-utils'
 import { buildMembershipOpenReportData } from '@/lib/membership-open-paid-report'
@@ -37,13 +37,10 @@ export function MembershipOpenReportPanel({
     [schedules],
   )
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = usePrintReport({
     contentRef: printRef,
     documentTitle: 'Mensalidades em Aberto',
     pageStyle: MEMBERSHIP_PRINT_STYLE,
-    onAfterPrint: () => {
-      toast({ title: 'Relatório enviado à impressão' })
-    },
   })
 
   return (

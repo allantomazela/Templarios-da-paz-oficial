@@ -14,9 +14,8 @@ export type PhaseDefinitionSaveInput = {
 export async function createPhaseDefinition(
   data: PhaseDefinitionSaveInput,
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny.from('sindicancia_phase_definitions').insert({
+    supabase.from('sindicancia_phase_definitions').insert({
       name: data.name,
       description: data.description ?? null,
       order: data.order,
@@ -34,9 +33,8 @@ export async function updatePhaseDefinition(
   id: string,
   data: PhaseDefinitionSaveInput,
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('sindicancia_phase_definitions')
       .update({
         name: data.name,
@@ -54,9 +52,8 @@ export async function updatePhaseDefinition(
 }
 
 export async function deletePhaseDefinition(id: string): Promise<void> {
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny.from('sindicancia_phase_definitions').delete().eq('id', id),
+    supabase.from('sindicancia_phase_definitions').delete().eq('id', id),
     SECRETARIAT_OP_TIMEOUT_MS,
     TIMEOUT_MSG,
   )

@@ -37,9 +37,8 @@ function isMissingTableError(error: { code?: string }): boolean {
 }
 
 export async function fetchLodgeDocuments(): Promise<LodgeDocument[]> {
-  const supabaseAny = supabase as any
   const { data: rows, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('lodge_documents')
       .select('*')
       .order('upload_date', { ascending: false })
@@ -60,9 +59,8 @@ export async function updateLodgeDocument(
   id: string,
   data: Pick<DocumentSaveInput, 'title' | 'description' | 'category'>,
 ): Promise<LodgeDocument> {
-  const supabaseAny = supabase as any
   const { data: updatedRows, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('lodge_documents')
       .update({
         title: data.title,
@@ -100,9 +98,8 @@ export async function createLodgeDocument(
     data: { user },
   } = await supabase.auth.getUser()
 
-  const supabaseAny = supabase as any
   const { data: createdRows, error } = await withTimeout(
-    supabaseAny
+    supabase
       .from('lodge_documents')
       .insert({
         title: data.title,
@@ -137,9 +134,8 @@ export async function deleteLodgeDocument(
   id: string,
   fileUrl?: string,
 ): Promise<void> {
-  const supabaseAny = supabase as any
   const { error } = await withTimeout(
-    supabaseAny.from('lodge_documents').delete().eq('id', id),
+    supabase.from('lodge_documents').delete().eq('id', id),
     SECRETARIAT_OP_TIMEOUT_MS,
     TIMEOUT_MSG,
   )

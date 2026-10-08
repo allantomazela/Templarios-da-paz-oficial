@@ -251,6 +251,8 @@ body {
 
   #gob-report-container,
   #gob-report-container *,
+  #attendance-signature-sheet-container,
+  #attendance-signature-sheet-container *,
   #agape-report-container,
   #agape-report-container *,
   #agenda-monthly-report-container,
@@ -375,6 +377,32 @@ body {
     height: var(--presence-card-height) !important;
     min-height: var(--presence-card-height) !important;
     max-height: var(--presence-card-height) !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Folha de presença A4 do Chanceler — margens vêm do @page do pageStyle */
+  #attendance-signature-sheet-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    z-index: 9999;
+    box-sizing: border-box;
+    font-size: 10pt;
+  }
+
+  #attendance-signature-sheet-container thead {
+    display: table-header-group;
+  }
+
+  #attendance-signature-sheet-container tr {
     page-break-inside: avoid;
     break-inside: avoid;
   }

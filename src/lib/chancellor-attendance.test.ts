@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   countUnjustifiedAbsencesForSessions,
+  isBrotherActiveInLodge,
   isUnjustifiedAbsenceForAlert,
+  selectBrothersForAttendanceList,
 } from '@/lib/chancellor-attendance'
 import type { Attendance, Brother } from '@/lib/data'
 
@@ -94,5 +96,43 @@ describe('countUnjustifiedAbsencesForSessions', () => {
     expect(
       countUnjustifiedAbsencesForSessions(brother, ['s2', 's4', 's5'], records),
     ).toBe(1)
+  })
+})
+
+describe('quadro ativo na chamada', () => {
+  const formerBrother: Brother = {
+    ...brother,
+    id: 'brother-2',
+    profileId: 'profile-2',
+    name: 'Ex-membro',
+    status: 'Inativo',
+    membershipSituation: 'desligado',
+  }
+  const onLeave: Brother = {
+    ...brother,
+    id: 'brother-3',
+    profileId: 'profile-3',
+    membershipSituation: 'afastado',
+  }
+
+  it('considera ativo apenas quem está Ativo e não afastado/desligado', () => {
+    expect(isBrotherActiveInLodge(brother)).toBe(true)
+    expect(isBrotherActiveInLodge(formerBrother)).toBe(false)
+    expect(isBrotherActiveInLodge(onLeave)).toBe(false)
+  })
+
+  it('sessão nova lista somente o quadro ativo', () => {
+    expect(
+      selectBrothersForAttendanceList([brother, formerBrother, onLeave], []).map((b) => b.id),
+    ).toEqual(['brother-1'])
+  })
+
+  it('sessão antiga mantém quem já tinha lançamento (pelo id do perfil)', () => {
+    expect(
+      selectBrothersForAttendanceList(
+        [brother, formerBrother, onLeave],
+        [{ brotherId: 'profile-2' }],
+      ).map((b) => b.id),
+    ).toEqual(['brother-1', 'brother-2'])
   })
 })

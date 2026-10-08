@@ -39,6 +39,7 @@ import {
   brothersWithoutProfileForAttendance,
   profileIdForAttendanceDb,
   attendanceBelongsToBrother,
+  selectBrothersForAttendanceList,
 } from '@/lib/chancellor-attendance'
 
 interface AttendanceDialogProps {
@@ -179,7 +180,7 @@ export function AttendanceDialog({
         (ar) => ar.sessionRecordId === existingSessionRecord.id,
       )
       setAttendances(
-        brothers.map((b) => {
+        selectBrothersForAttendanceList(brothers, existing).map((b) => {
           const found = existing.find((e) =>
             attendanceBelongsToBrother(b, e.brotherId),
           )
@@ -195,8 +196,8 @@ export function AttendanceDialog({
         (dbRows) => {
           if (dbRows === null) return
           if (initSessionKeyRef.current !== initKey) return
-          setAttendances((prev) =>
-            prev.map((p) => {
+          setAttendances((prev) => {
+            const merged = prev.map((p) => {
               const brother = brothers.find((b) => b.id === p.brotherId)
               if (!brother) return p
               const fromDb = dbRows.find((r) =>
@@ -212,8 +213,25 @@ export function AttendanceDialog({
                     justification: fromDb.justification ?? '',
                   }
                 : p
-            }),
-          )
+            })
+            const listedIds = new Set(merged.map((p) => p.brotherId))
+            const historicalOnly = selectBrothersForAttendanceList(brothers, dbRows)
+              .filter((b) => !listedIds.has(b.id))
+              .map((b) => {
+                const fromDb = dbRows.find((r) =>
+                  attendanceBelongsToBrother(b, r.brotherId),
+                )
+                return {
+                  brotherId: b.id,
+                  status: (fromDb?.status ?? 'Ausente') as
+                    | 'Presente'
+                    | 'Ausente'
+                    | 'Justificado',
+                  justification: fromDb?.justification ?? '',
+                }
+              })
+            return [...merged, ...historicalOnly]
+          })
           const brotherIds = new Set(brothers.map((b) => b.id))
           setQrOnlyAttendances(
             dbRows
@@ -236,7 +254,7 @@ export function AttendanceDialog({
     } else {
       setObservations('')
       setAttendances(
-        brothers.map((b) => ({
+        selectBrothersForAttendanceList(brothers, []).map((b) => ({
           brotherId: b.id,
           status: 'Ausente',
           justification: '',
@@ -396,7 +414,7 @@ export function AttendanceDialog({
 
   const presentCount = attendances.filter((a) => a.status === 'Presente').length
   const visitorCount = visitorList.length
-  const totalBrothers = brothers.length || 1
+  const totalBrothers = attendances.length || 1
   const percentage = Math.round((presentCount / totalBrothers) * 100)
   const totalParticipants = presentCount + visitorCount
 

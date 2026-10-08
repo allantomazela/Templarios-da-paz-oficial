@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Event, SessionRecord } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
+import { AttendanceSignatureSheetDialog } from './AttendanceSignatureSheetDialog'
 import { QRCheckinScanner } from './QRCheckinScanner'
 import {
   CheckCircle,
@@ -22,6 +23,7 @@ import {
   QrCode,
   DoorOpen,
   Loader2,
+  Printer,
 } from 'lucide-react'
 import {
   formatDateBR,
@@ -62,8 +64,10 @@ export function AttendanceManager() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<SessionRecord | null>(null)
   const [openingEventId, setOpeningEventId] = useState<string | null>(null)
+  const [signatureSheetEvent, setSignatureSheetEvent] = useState<Event | null>(null)
   const dialog = useDialog()
   const scannerDialog = useDialog()
+  const signatureSheetDialog = useDialog()
 
   devLog('log', `AttendanceManager: Total de eventos no store: ${events.length}`)
 
@@ -152,6 +156,27 @@ export function AttendanceManager() {
     } finally {
       setOpeningEventId(null)
     }
+  }
+
+  const handleOpenSignatureSheet = (event: Event) => {
+    setSignatureSheetEvent(event)
+    signatureSheetDialog.openDialog()
+  }
+
+  const renderSignatureSheetButton = (event: Event, fullWidth = false) => {
+    if (!canManageSessions) return null
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className={fullWidth ? 'w-full' : undefined}
+        onClick={() => handleOpenSignatureSheet(event)}
+        title="Imprimir folha de presença A4 para o livro"
+      >
+        <Printer className="mr-2 h-4 w-4" />
+        Folha A4
+      </Button>
+    )
   }
 
   const renderStatusBadge = (displayStatus: SessionDisplayStatus) => {
@@ -254,8 +279,9 @@ export function AttendanceManager() {
                     {formatDateBR(event.date)} às {event.time?.slice(0, 5) || '—'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {renderStatusBadge(displayStatus)}
+                  {renderSignatureSheetButton(event)}
                   {renderActionButton(event, record, displayStatus)}
                 </div>
               </div>
@@ -341,7 +367,10 @@ export function AttendanceManager() {
                   </TableCell>
                   <TableCell>{renderStatusBadge(displayStatus)}</TableCell>
                   <TableCell className="text-right">
-                    {renderActionButton(event, record, displayStatus)}
+                    <div className="flex justify-end gap-2">
+                      {renderSignatureSheetButton(event)}
+                      {renderActionButton(event, record, displayStatus)}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -373,6 +402,7 @@ export function AttendanceManager() {
                   <CalendarIcon className="h-4 w-4" />
                   {formatDateBR(event.date)}
                 </div>
+                {renderSignatureSheetButton(event, true)}
                 {renderActionButton(event, record, displayStatus, true)}
               </CardContent>
             </Card>
@@ -387,6 +417,12 @@ export function AttendanceManager() {
         existingSessionRecord={selectedRecord}
         onSave={handleSave}
         canManageSessions={canManageSessions}
+      />
+
+      <AttendanceSignatureSheetDialog
+        open={signatureSheetDialog.open}
+        onOpenChange={signatureSheetDialog.onOpenChange}
+        event={signatureSheetEvent}
       />
 
       <QRCheckinScanner

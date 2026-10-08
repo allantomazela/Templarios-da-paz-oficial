@@ -54,12 +54,34 @@ export function isUnjustifiedAbsenceForAlert(
   return record.status === 'Ausente'
 }
 
-/** Irmão elegível ao alerta de frequência (quadro ativo). */
-export function isBrotherEligibleForFrequencyAlert(brother: Brother): boolean {
+/** Irmão ativo e regular no quadro de obreiros (exclui afastados e desligados). */
+export function isBrotherActiveInLodge(brother: Brother): boolean {
   if (brother.status !== 'Ativo') return false
   const situation = brother.membershipSituation
   if (situation === 'afastado' || situation === 'desligado') return false
   return true
+}
+
+/** Irmão elegível ao alerta de frequência (quadro ativo). */
+export function isBrotherEligibleForFrequencyAlert(brother: Brother): boolean {
+  return isBrotherActiveInLodge(brother)
+}
+
+/**
+ * Irmãos exibidos na chamada de uma sessão: o quadro ativo mais quem já tem
+ * lançamento nela, para que sessões antigas preservem o histórico de ex-membros.
+ */
+export function selectBrothersForAttendanceList(
+  brothers: Brother[],
+  sessionAttendance: Pick<Attendance, 'brotherId'>[],
+): Brother[] {
+  return brothers.filter(
+    (brother) =>
+      isBrotherActiveInLodge(brother) ||
+      sessionAttendance.some((record) =>
+        attendanceBelongsToBrother(brother, record.brotherId),
+      ),
+  )
 }
 
 export function countUnjustifiedAbsencesForSessions(

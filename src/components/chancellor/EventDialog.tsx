@@ -29,12 +29,16 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { FormHeader } from '@/components/ui/form-header'
 import { Calendar } from 'lucide-react'
+import { MASONIC_DEGREE_OPTIONS, type MasonicDegree } from '@/lib/masonic-degree'
+
+const NO_DEGREE = 'none'
 
 const eventSchema = z.object({
   title: z.string().min(3, 'Título é obrigatório'),
   date: z.string().min(1, 'Data é obrigatória'),
   time: z.string().min(1, 'Hora é obrigatória'),
   type: z.enum(['Sessão', 'Reunião', 'Evento Social', 'Outro']),
+  degree: z.enum([NO_DEGREE, 'Aprendiz', 'Companheiro', 'Mestre']),
   location: z.string().min(3, 'Local é obrigatório'),
   description: z.string().min(3, 'Descrição é obrigatória'),
   attendees: z.coerce.number<number>().min(0, 'Número de participantes inválido'),
@@ -42,11 +46,21 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>
 
+export type EventDialogSaveData = Omit<EventFormValues, 'degree'> & {
+  degree: MasonicDegree | null
+}
+
 interface EventDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   eventToEdit: Event | null
-  onSave: (data: EventFormValues) => void
+  onSave: (data: EventDialogSaveData) => void
+}
+
+function toSaveData(values: EventFormValues): EventDialogSaveData {
+  const degree =
+    values.type === 'Sessão' && values.degree !== NO_DEGREE ? values.degree : null
+  return { ...values, degree }
 }
 
 export function EventDialog({
@@ -62,11 +76,13 @@ export function EventDialog({
       date: '',
       time: '20:00',
       type: 'Sessão',
+      degree: NO_DEGREE,
       location: 'Templo Principal',
       description: '',
       attendees: 0,
     },
   })
+  const selectedType = form.watch('type')
 
   useEffect(() => {
     if (eventToEdit) {
@@ -75,6 +91,7 @@ export function EventDialog({
         date: eventToEdit.date,
         time: eventToEdit.time,
         type: eventToEdit.type,
+        degree: eventToEdit.degree ?? NO_DEGREE,
         location: eventToEdit.location,
         description: eventToEdit.description,
         attendees: eventToEdit.attendees,
@@ -85,6 +102,7 @@ export function EventDialog({
         date: '',
         time: '20:00',
         type: 'Sessão',
+        degree: NO_DEGREE,
         location: 'Templo Principal',
         description: '',
         attendees: 0,
@@ -106,7 +124,10 @@ export function EventDialog({
           icon={<Calendar className="h-5 w-5" />}
         />
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit((values) => onSave(toSaveData(values)))}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="title"
@@ -191,6 +212,33 @@ export function EventDialog({
                 )}
               />
             </div>
+            {selectedType === 'Sessão' && (
+              <FormField
+                control={form.control}
+                name="degree"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grau da sessão</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_DEGREE}>Não informado</SelectItem>
+                        {MASONIC_DEGREE_OPTIONS.map((degree) => (
+                          <SelectItem key={degree} value={degree}>
+                            {degree}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="location"

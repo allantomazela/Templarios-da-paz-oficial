@@ -33,7 +33,10 @@ import { A4_REPORT_PRINT_STYLE } from '@/lib/report-print-style'
 import { ReportHeader } from '@/components/reports/ReportHeader'
 import { format } from 'date-fns'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
-import { computeBrotherAttendancePercentage } from '@/lib/chancellor-attendance'
+import {
+  computeBrotherAttendancePercentage,
+  isBrotherActiveInLodge,
+} from '@/lib/chancellor-attendance'
 import { downloadCsvFile } from '@/lib/export-utils'
 
 export const ChancellorReports = memo(function ChancellorReports() {
@@ -120,6 +123,7 @@ export const ChancellorReports = memo(function ChancellorReports() {
   // Calculate Attendance per Brother
   const brotherStats = useMemo(() => {
     return brothers
+      .filter(isBrotherActiveInLodge)
       .filter((b) => degreeFilter === 'all' || b.degree === degreeFilter)
       .map((brother) => {
         const { presences, percentage } = computeBrotherAttendancePercentage(

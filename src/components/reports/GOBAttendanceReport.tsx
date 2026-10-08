@@ -39,7 +39,9 @@ import { ReportHeader } from './ReportHeader'
 import {
   findBrotherAttendanceForSession,
   isAttendancePresent,
+  isBrotherActiveInLodge,
 } from '@/lib/chancellor-attendance'
+import { gobAttendanceStatusLetter } from '@/lib/gob-attendance-status'
 
 export function GOBAttendanceReport() {
   const {
@@ -103,7 +105,7 @@ export function GOBAttendanceReport() {
         )
 
         return brothers
-          .filter((b) => b.status === 'Ativo')
+          .filter(isBrotherActiveInLodge)
           .sort((a, b) => a.name.localeCompare(b.name))
           .map((brother) => {
             let status = 'Pendente'
@@ -288,7 +290,7 @@ export function GOBAttendanceReport() {
                                 : 'text-gray-600'
                           }`}
                         >
-                          {status === 'Presente' ? 'P' : status === 'Ausente' ? 'A' : 'J'}
+                          {gobAttendanceStatusLetter(status)}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5 print:py-1">

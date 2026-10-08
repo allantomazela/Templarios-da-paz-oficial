@@ -44,6 +44,10 @@ function getSessionDisplayStatus(record?: SessionRecord): SessionDisplayStatus {
   return 'finalizada'
 }
 
+function formatEventTypeWithDegree(event: Event): string {
+  return event.degree ? `${event.type} · ${event.degree}` : event.type
+}
+
 function sessionStatusLabel(status: SessionDisplayStatus): string {
   switch (status) {
     case 'aberta':
@@ -363,7 +367,9 @@ export function AttendanceManager() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{event.title}</div>
-                    <div className="text-xs text-muted-foreground">{event.type}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatEventTypeWithDegree(event)}
+                    </div>
                   </TableCell>
                   <TableCell>{renderStatusBadge(displayStatus)}</TableCell>
                   <TableCell className="text-right">
@@ -394,7 +400,9 @@ export function AttendanceManager() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium leading-tight">{event.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{event.type}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatEventTypeWithDegree(event)}
+                    </p>
                   </div>
                   {renderStatusBadge(displayStatus)}
                 </div>

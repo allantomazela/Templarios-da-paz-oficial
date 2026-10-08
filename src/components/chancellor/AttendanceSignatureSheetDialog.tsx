@@ -45,8 +45,8 @@ export function AttendanceSignatureSheetDialog({
   }, [open, initialized, fetchPositions])
 
   useEffect(() => {
-    if (open) setSessionDegree('Aprendiz')
-  }, [open, event?.id])
+    if (open) setSessionDegree(event?.degree ?? 'Aprendiz')
+  }, [open, event?.id, event?.degree])
 
   const rows = useMemo(
     () => buildSignatureSheetRows(brothers, sessionDegree),

@@ -1135,6 +1135,7 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          degree: string | null
           description: string | null
           generated_batch_id: string | null
           id: string
@@ -1149,6 +1150,7 @@ export type Database = {
         Insert: {
           created_at?: string
           date: string
+          degree?: string | null
           description?: string | null
           generated_batch_id?: string | null
           id?: string
@@ -1163,6 +1165,7 @@ export type Database = {
         Update: {
           created_at?: string
           date?: string
+          degree?: string | null
           description?: string | null
           generated_batch_id?: string | null
           id?: string
@@ -3058,6 +3061,24 @@ export type Database = {
           total_items: number
         }[]
       }
+      get_chancellor_brothers: {
+        Args: never
+        Returns: {
+          attendance_rate: number
+          cim: string | null
+          degree: string
+          elevation_date: string | null
+          email: string
+          exaltation_date: string | null
+          id: string
+          initiation_date: string
+          membership_situation: string
+          name: string
+          profile_id: string | null
+          role: string
+          status: string
+        }[]
+      }
       get_brother_session_total: {
         Args: { p_brother_id: string; p_session_id: string }
         Returns: {
@@ -3156,6 +3177,16 @@ export type Database = {
           sessions_removed: number
           transactions_removed: number
         }[]
+      }
+      update_brother_degree_info: {
+        Args: {
+          p_brother_id: string
+          p_degree: string
+          p_elevation_date: string | null
+          p_exaltation_date: string | null
+          p_initiation_date: string | null
+        }
+        Returns: undefined
       }
     }
     Enums: {

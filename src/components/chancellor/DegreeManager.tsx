@@ -30,6 +30,8 @@ import { Pencil, Search } from 'lucide-react'
 import { Brother } from '@/lib/data'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { saveBrotherDegreeInfo } from '@/lib/chancellor-degree-api'
+import { coerceMasonicDegree } from '@/lib/masonic-degree'
 
 export function DegreeManager() {
   const { brothers, updateBrotherDegree } = useChancellorStore()
@@ -63,12 +65,13 @@ export function DegreeManager() {
   const saveOperation = useAsyncOperation(
     async () => {
       if (editingBrother) {
-        updateBrotherDegree(editingBrother.id, {
-          degree: formData.degree as any,
+        const saved = await saveBrotherDegreeInfo(editingBrother.id, {
+          degree: coerceMasonicDegree(formData.degree),
           initiationDate: formData.initiationDate,
           elevationDate: formData.elevationDate,
           exaltationDate: formData.exaltationDate,
         })
+        updateBrotherDegree(editingBrother.id, saved)
         return `Registro do Ir. ${editingBrother.name} atualizado com sucesso.`
       }
       return null
@@ -198,7 +201,9 @@ export function DegreeManager() {
             <Button variant="outline" onClick={() => dialog.closeDialog()}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>Salvar Alterações</Button>
+            <Button onClick={handleSave} disabled={saveOperation.loading}>
+              Salvar Alterações
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

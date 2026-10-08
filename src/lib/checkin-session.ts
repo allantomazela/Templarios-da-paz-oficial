@@ -1,22 +1,11 @@
 import { supabase } from '@/lib/supabase/client'
+import { isMissingRpcError } from '@/lib/supabase-rpc-errors'
 
 export interface OpenCheckinSession {
   session_record_id: string
   event_id: string
   event_date: string
   event_time: string
-}
-
-function isMissingRpcError(error: { code?: string; message?: string }): boolean {
-  const code = error.code || ''
-  const message = (error.message || '').toLowerCase()
-  return (
-    code === 'PGRST202' ||
-    code === '42883' ||
-    message.includes('404') ||
-    message.includes('could not find the function') ||
-    message.includes('does not exist')
-  )
 }
 
 /** RPC get_open_session_for_checkin retorna TABLE → array com 0 ou 1 linha. */

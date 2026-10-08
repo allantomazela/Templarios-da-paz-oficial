@@ -1,8 +1,10 @@
-import { ptBR } from 'date-fns/locale'
-import { ReportHeader } from '@/components/reports/ReportHeader'
-import { formatCalendarDate, formatDateBR } from '@/lib/format-utils'
 import type { SignatureSheetRow } from '@/lib/attendance-signature-sheet'
 import type { MasonicDegree } from '@/lib/masonic-degree'
+import { AttendanceSignatureSheetHeader } from './AttendanceSignatureSheetHeader'
+import { AttendanceSignatureSheetFooter } from './AttendanceSignatureSheetFooter'
+
+const CELL = 'border border-black px-[2mm] align-middle'
+const HEAD_CELL = `${CELL} bg-gray-100 py-[1.5mm] text-[8pt] font-bold uppercase tracking-wider`
 
 export function AttendanceSignatureSheetDocument({
   eventTitle,
@@ -15,75 +17,57 @@ export function AttendanceSignatureSheetDocument({
   chancellor,
 }: AttendanceSignatureSheetDocumentProps) {
   return (
-    <div className="bg-white text-black">
-      <ReportHeader
-        title="FOLHA DE PRESENÇA"
-        subtitle={`Sessão de ${formatDateBR(eventDate)}`}
+    <div className="bg-white text-[10pt] leading-snug text-black">
+      <AttendanceSignatureSheetHeader
+        eventTitle={eventTitle}
+        eventDate={eventDate}
+        eventTime={eventTime}
+        locationName={locationName}
+        sessionDegree={sessionDegree}
       />
 
-      <div className="mb-3 grid grid-cols-2 gap-x-6 gap-y-1 border-b border-black pb-2 text-xs sm:grid-cols-4">
-        <SheetInfo label="Natureza da Sessão" value={eventTitle} />
-        <SheetInfo label="Grau da Sessão" value={sessionDegree} />
-        <SheetInfo
-          label="Data e Hora"
-          value={`${formatCalendarDate(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}${eventTime ? ` às ${eventTime}` : ''}`}
-        />
-        <SheetInfo label="Local" value={locationName || 'Templo Principal'} />
-      </div>
-
-      <table className="w-full border-collapse text-xs">
+      <table className="w-full table-fixed border-collapse">
+        <colgroup>
+          <col className="w-[9mm]" />
+          <col />
+          <col className="w-[23mm]" />
+          <col className="w-[20mm]" />
+          <col className="w-[56mm]" />
+        </colgroup>
         <thead>
-          <tr className="border-b-2 border-black">
-            <th className="w-[9mm] py-1 text-center font-bold">Nº</th>
-            <th className="py-1 text-left font-bold">Nome do Irmão</th>
-            <th className="w-[24mm] py-1 text-center font-bold">Grau</th>
-            <th className="w-[22mm] py-1 text-center font-bold">CIM</th>
-            <th className="w-[62mm] py-1 text-center font-bold">Assinatura</th>
+          <tr>
+            <th className={`${HEAD_CELL} text-center`}>Nº</th>
+            <th className={`${HEAD_CELL} text-left`}>Nome do Irmão</th>
+            <th className={`${HEAD_CELL} text-center`}>Grau</th>
+            <th className={`${HEAD_CELL} text-center`}>CIM</th>
+            <th className={`${HEAD_CELL} text-center`}>Assinatura</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.brotherId} className="h-[10mm] break-inside-avoid border-b border-gray-400">
-              <td className="text-center font-medium">{row.order}</td>
-              <td className="pr-2 font-medium">{row.name}</td>
-              <td className="text-center">{row.degree}</td>
-              <td className="text-center">{row.cim || '—'}</td>
-              <td className="align-bottom">
-                <div className="mb-1 border-b border-dotted border-black" />
-              </td>
+            <tr key={row.brotherId} className="h-[10mm] break-inside-avoid">
+              <td className={`${CELL} text-center text-[9pt]`}>{row.order}</td>
+              <td className={`${CELL} text-[10pt] font-medium`}>{row.name}</td>
+              <td className={`${CELL} text-center text-[9pt]`}>{row.degree}</td>
+              <td className={`${CELL} text-center text-[9pt]`}>{row.cim || '—'}</td>
+              <td className={CELL} />
             </tr>
           ))}
         </tbody>
       </table>
 
-      {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm">Nenhum irmão ativo para o grau selecionado.</p>
-      ) : (
-        <p className="mt-2 text-[10px]">Total de irmãos do quadro para esta sessão: {rows.length}</p>
+      {rows.length === 0 && (
+        <div className="py-[6mm] text-center text-[10pt]">
+          Nenhum irmão ativo para o grau selecionado.
+        </div>
       )}
 
-      <div className="mt-14 grid grid-cols-2 gap-12 break-inside-avoid">
-        <SignatureLine name={venerableMaster} role="Venerável Mestre" />
-        <SignatureLine name={chancellor} role="Chanceler" />
-      </div>
-    </div>
-  )
-}
-
-function SheetInfo({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="block text-[9px] font-bold uppercase">{label}</span>
-      <span className="font-semibold">{value}</span>
-    </div>
-  )
-}
-
-function SignatureLine({ name, role }: { name: string; role: string }) {
-  return (
-    <div className="border-t-2 border-black pt-2 text-center">
-      <p className="text-xs font-bold">{name}</p>
-      <p className="text-[10px] font-semibold uppercase">{role}</p>
+      <AttendanceSignatureSheetFooter
+        eventDate={eventDate}
+        totalBrothers={rows.length}
+        venerableMaster={venerableMaster}
+        chancellor={chancellor}
+      />
     </div>
   )
 }

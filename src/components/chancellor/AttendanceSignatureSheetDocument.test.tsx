@@ -23,13 +23,14 @@ describe('AttendanceSignatureSheetDocument', () => {
         ]}
       />,
     )
-    expect(screen.getByText('FOLHA DE PRESENÇA')).toBeTruthy()
+    expect(screen.getByText('Livro de Presença')).toBeTruthy()
     expect(screen.getByText('Irmão A')).toBeTruthy()
     expect(screen.getByText('123')).toBeTruthy()
-    expect(screen.getByText('—')).toBeTruthy()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
     expect(screen.getByText('VM Teste')).toBeTruthy()
+    expect(screen.getByText('Venerável Mestre em Exercício')).toBeTruthy()
     expect(screen.getByText('Chanceler Teste')).toBeTruthy()
-    expect(screen.getByText(/Total de irmãos do quadro para esta sessão: 2/)).toBeTruthy()
+    expect(screen.getByText(/convocados para esta sessão: 2/)).toBeTruthy()
   })
 
   it('avisa quando não há irmãos para o grau', () => {

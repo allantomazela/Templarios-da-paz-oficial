@@ -31,6 +31,22 @@ jobs:
         npm run lint
         npm run test
 
+    # Não bloqueia o deploy: uma instabilidade de rede no Supabase não deve impedir a publicação.
+    - name: 4.1 Equivalência da formatação de nomes (banco x formulários)
+      continue-on-error: true
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      run: |
+        if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+          echo "::warning::Secrets do Supabase ausentes; teste de equivalência de nomes não executado."
+          exit 0
+        fi
+        if ! npm run test:db; then
+          echo "::warning::format_person_name (banco) e formatPersonName (formulários) divergem ou o Supabase não respondeu. Veja o log deste passo."
+          exit 1
+        fi
+
     - name: 5. Buildando
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

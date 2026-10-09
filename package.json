@@ -18,7 +18,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:db": "vitest run --mode db src/lib/person-name.db.test.ts"
+    "test:db": "node --env-file-if-exists=.env-dev node_modules/vitest/vitest.mjs run --mode db src/lib/person-name.db.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

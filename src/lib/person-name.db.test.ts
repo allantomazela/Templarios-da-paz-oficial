@@ -6,16 +6,18 @@ import { PERSON_NAME_CASES } from './person-name.cases'
 /**
  * Garante que o gatilho do banco (public.format_person_name) e a formatação dos formulários
  * (formatPersonName) produzem o mesmo resultado. Acessa o Supabase pela rede, por isso só roda
- * com `npm run test:db` e as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY definidas.
+ * com `npm run test:db`, que lê VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY do ambiente ou do .env-dev.
  */
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
 const supabaseKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-const shouldRun = import.meta.env.MODE === 'db' && Boolean(supabaseUrl && supabaseKey)
 
-describe.runIf(shouldRun)('format_person_name (banco) ≡ formatPersonName (formulários)', () => {
+describe.runIf(import.meta.env.MODE === 'db')('format_person_name (banco) ≡ formatPersonName (formulários)', () => {
   it('produz o mesmo resultado para todos os casos de referência', async () => {
-    const client = createClient(supabaseUrl as string, supabaseKey as string, {
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY (ambiente ou .env-dev).')
+    }
+    const client = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false },
     })
 

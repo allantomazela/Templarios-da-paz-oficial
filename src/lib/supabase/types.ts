@@ -2651,6 +2651,7 @@ export type Database = {
           session_default_time: string
           session_default_title: string
           session_months_ahead: number
+          session_temple_name: string | null
           session_weekday: number
           session_weeks_of_month: Json
           site_title: string | null
@@ -2710,6 +2711,7 @@ export type Database = {
           session_default_time?: string
           session_default_title?: string
           session_months_ahead?: number
+          session_temple_name?: string | null
           session_weekday?: number
           session_weeks_of_month?: Json
           site_title?: string | null
@@ -2769,6 +2771,7 @@ export type Database = {
           session_default_time?: string
           session_default_title?: string
           session_months_ahead?: number
+          session_temple_name?: string | null
           session_weekday?: number
           session_weeks_of_month?: Json
           site_title?: string | null

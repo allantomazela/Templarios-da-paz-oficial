@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { Brother, Location } from '@/lib/data'
+import type { Brother } from '@/lib/data'
 import {
   buildSignatureSheetRows,
-  signatureSheetLocationName,
   signatureSheetRowHeightMm,
   SIGNATURE_SHEET_MAX_ROW_MM,
   SIGNATURE_SHEET_MIN_ROW_MM,
@@ -55,27 +54,6 @@ describe('buildSignatureSheetRows', () => {
     expect(rows.some((row) => row.name === 'Desligado' || row.name === 'Afastado')).toBe(false)
     expect(rows.find((row) => row.name === 'Mestre B')?.cim).toBe('123')
     expect(rows.find((row) => row.name === 'Aprendiz A')?.cim).toBe('')
-  })
-})
-
-describe('signatureSheetLocationName', () => {
-  const contact = { city: 'Botucatu - SP', address: 'Rua Joaquim Marins, 565' }
-  const locations = [{ id: 'loc-1', name: 'Loja Irmã — Templo Norte' }] as Location[]
-
-  it('sessão no templo da loja sai como Templo das Espadas', () => {
-    const event = { location: 'Templários da Paz 3969 — Botucatu - SP' }
-    expect(signatureSheetLocationName(event, locations, 'Templários da Paz 3969', contact)).toBe(
-      'Templo das Espadas',
-    )
-  })
-
-  it('local cadastrado e local digitado mantêm o nome', () => {
-    expect(
-      signatureSheetLocationName({ locationId: 'loc-1' }, locations, 'Templários da Paz 3969', contact),
-    ).toBe('Loja Irmã — Templo Norte')
-    expect(
-      signatureSheetLocationName({ location: 'Salão Social' }, locations, 'Templários da Paz 3969', contact),
-    ).toBe('Salão Social')
   })
 })
 

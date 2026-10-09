@@ -37,10 +37,8 @@ import {
   SESSION_WEEKDAY_OPTIONS,
   SESSION_WEEK_OF_MONTH_OPTIONS,
 } from '@/lib/session-generator'
-import {
-  LODGE_EVENT_LOCATION_ID,
-  buildLodgeLocationName,
-} from '@/lib/event-locations'
+import { buildLodgeLocationName } from '@/lib/event-locations'
+import { SessionLocationFields } from './SessionLocationFields'
 
 const sessionScheduleSchema = z.object({
   weekday: z.coerce.number<number>().min(0).max(6),
@@ -51,9 +49,10 @@ const sessionScheduleSchema = z.object({
   defaultTitle: z.string().min(3, 'Título é obrigatório'),
   defaultLocationId: z.string().min(1, 'Selecione um local'),
   monthsAhead: z.coerce.number<number>().min(1).max(24),
+  templeName: z.string().trim().max(80, 'Use até 80 caracteres'),
 })
 
-type SessionScheduleFormValues = z.infer<typeof sessionScheduleSchema>
+export type SessionScheduleFormValues = z.infer<typeof sessionScheduleSchema>
 
 export function SessionScheduleSettings() {
   const {
@@ -75,6 +74,7 @@ export function SessionScheduleSettings() {
       defaultTitle: sessionSchedule.defaultTitle,
       defaultLocationId: sessionSchedule.defaultLocationId,
       monthsAhead: sessionSchedule.monthsAhead,
+      templeName: sessionSchedule.templeName,
     },
   })
 
@@ -89,6 +89,7 @@ export function SessionScheduleSettings() {
         defaultTitle: sessionSchedule.defaultTitle,
         defaultLocationId: sessionSchedule.defaultLocationId,
         monthsAhead: sessionSchedule.monthsAhead,
+        templeName: sessionSchedule.templeName,
       })
     }
   }, [sessionSchedule, form])
@@ -260,32 +261,10 @@ export function SessionScheduleSettings() {
               />
             </div>
 
-            <FormField
+            <SessionLocationFields
               control={form.control}
-              name="defaultLocationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Local padrão</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o local" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={LODGE_EVENT_LOCATION_ID}>
-                        {buildLodgeLocationName(siteTitle, contact.city)}
-                      </SelectItem>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              lodgeLocationLabel={buildLodgeLocationName(siteTitle, contact.city)}
+              locations={locations}
             />
 
             <Button type="submit" disabled={loading}>

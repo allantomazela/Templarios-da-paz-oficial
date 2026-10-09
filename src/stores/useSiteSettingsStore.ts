@@ -13,7 +13,7 @@ import {
   normalizeSessionWeekday,
   parseSessionWeeksOfMonth,
 } from '@/lib/session-generator'
-import { LODGE_EVENT_LOCATION_ID } from '@/lib/event-locations'
+import { LODGE_EVENT_LOCATION_ID, LODGE_TEMPLE_NAME } from '@/lib/event-locations'
 
 const siteSettingsFetchSeq = createRequestSequence()
 const venerablesFetchSeq = createRequestSequence()
@@ -123,6 +123,8 @@ export interface SiteSettingsState {
     defaultTitle: string
     defaultLocationId: string
     monthsAhead: number
+    /** Nome do templo das sessões da loja, exibido nos impressos. */
+    templeName: string
   }
 
   fetchSettings: (force?: boolean, silent?: boolean) => Promise<void>
@@ -282,6 +284,7 @@ const mapSettingsFromDB = (data: any) => {
         data.session_default_location_id || LODGE_EVENT_LOCATION_ID,
       monthsAhead:
         Number(data.session_months_ahead) || DEFAULT_SESSION_MONTHS_AHEAD,
+      templeName: data.session_temple_name?.trim() || LODGE_TEMPLE_NAME,
     },
   }
 }
@@ -356,6 +359,7 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
     defaultTitle: DEFAULT_SESSION_TITLE,
     defaultLocationId: LODGE_EVENT_LOCATION_ID,
     monthsAhead: DEFAULT_SESSION_MONTHS_AHEAD,
+    templeName: LODGE_TEMPLE_NAME,
   },
 
   fetchSettings: async (force = false, silent = false) => {
@@ -715,6 +719,9 @@ export const useSiteSettingsStore = create<SiteSettingsState>((set, get) => ({
       }
       if (data.monthsAhead !== undefined) {
         updates.session_months_ahead = Math.max(1, Math.min(24, data.monthsAhead))
+      }
+      if (data.templeName !== undefined) {
+        updates.session_temple_name = data.templeName.trim() || null
       }
 
       const { error } = await supabase

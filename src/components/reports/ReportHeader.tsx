@@ -4,6 +4,7 @@ import {
   BrandLogoImg,
   BRAND_LOGO_INTRINSIC_SIZE,
 } from '@/components/brand/BrandLogoImg'
+import { SquareAndCompassIcon } from '@/components/brand/SquareAndCompassIcon'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -12,6 +13,8 @@ interface ReportHeaderProps {
   subtitle?: string
   description?: string
   className?: string
+  /** Mostra o Esquadro e Compasso à direita (impressos maçônicos oficiais). */
+  showMasonicSymbol?: boolean
 }
 
 export function ReportHeader({
@@ -19,6 +22,7 @@ export function ReportHeader({
   subtitle,
   description,
   className = '',
+  showMasonicSymbol = false,
 }: ReportHeaderProps) {
   const { logoUrl, contact, siteTitle } = useSiteSettingsStore()
 
@@ -83,6 +87,10 @@ export function ReportHeader({
             })}
           </p>
         </div>
+
+        {showMasonicSymbol && (
+          <SquareAndCompassIcon className="h-12 w-12 flex-shrink-0 text-black print:h-10 print:w-10" />
+        )}
       </div>
     </div>
   )

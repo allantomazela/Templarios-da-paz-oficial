@@ -116,6 +116,29 @@ export function inferLocationIdFromEvent(
   return { locationId: LODGE_EVENT_LOCATION_ID, customLocation: '' }
 }
 
+/**
+ * Local exibido nos impressos oficiais: sessões no templo da loja saem com o nome do templo;
+ * locais cadastrados ou digitados mantêm o próprio nome.
+ */
+export function resolvePrintedEventLocation(
+  event: { location?: string; locationId?: string },
+  locations: Location[],
+  siteTitle: string,
+  contact: LodgeContactInfo,
+  templeName: string = LODGE_TEMPLE_NAME,
+): string {
+  const temple = templeName.trim() || LODGE_TEMPLE_NAME
+  const { locationId, customLocation } = inferLocationIdFromEvent(
+    event,
+    locations,
+    siteTitle,
+    contact,
+  )
+  if (locationId === LODGE_EVENT_LOCATION_ID) return temple
+  if (locationId === MANUAL_EVENT_LOCATION_ID) return customLocation || temple
+  return locations.find((location) => location.id === locationId)?.name || temple
+}
+
 export function defaultNewEventLocationId(): string {
   return LODGE_EVENT_LOCATION_ID
 }

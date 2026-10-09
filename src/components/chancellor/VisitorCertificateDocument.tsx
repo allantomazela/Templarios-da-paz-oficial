@@ -13,6 +13,7 @@ import {
   BrandLogoImg,
   BRAND_LOGO_INTRINSIC_SIZE,
 } from '@/components/brand/BrandLogoImg'
+import { SquareAndCompassIcon } from '@/components/brand/SquareAndCompassIcon'
 import type { Event, VisitorAttendance } from '@/lib/data'
 
 /** Classe para forçar texto preto na pré-visualização (tema escuro global). */
@@ -91,7 +92,7 @@ export function VisitorCertificateDocument({
 
       {/* Cabeçalho */}
       <header className="relative z-10 px-[2mm] text-center">
-        <div className="mb-1 flex justify-center">
+        <div className="mb-1 flex items-center justify-center gap-3">
           <BrandLogoImg
             logoUrl={logoUrl}
             alt="Brasão da Loja"
@@ -102,6 +103,7 @@ export function VisitorCertificateDocument({
             sizes="44px"
             crossOrigin="anonymous"
           />
+          <SquareAndCompassIcon className="h-11 w-11 text-[#8b6914] print:h-10 print:w-10" />
         </div>
         <p className="certificate-accent text-[8px] uppercase tracking-[0.32em] text-[#8b6914]">
           Grande Oriente · Luz · Fraternidade

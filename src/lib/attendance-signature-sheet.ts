@@ -1,12 +1,5 @@
-import type { Brother, Location } from '@/lib/data'
+import type { Brother } from '@/lib/data'
 import { isBrotherActiveInLodge } from '@/lib/chancellor-attendance'
-import {
-  inferLocationIdFromEvent,
-  LODGE_EVENT_LOCATION_ID,
-  LODGE_TEMPLE_NAME,
-  MANUAL_EVENT_LOCATION_ID,
-  type LodgeContactInfo,
-} from '@/lib/event-locations'
 import {
   canAccessDegree,
   normalizeMasonicDegree,
@@ -49,24 +42,6 @@ export function buildSignatureSheetRows(
       degree: brother.degree,
       cim: brother.cim?.trim() ?? '',
     }))
-}
-
-/** Sessões no templo da loja saem com o nome do templo; outros locais mantêm o nome cadastrado. */
-export function signatureSheetLocationName(
-  event: { location?: string; locationId?: string },
-  locations: Location[],
-  siteTitle: string,
-  contact: LodgeContactInfo,
-): string {
-  const { locationId, customLocation } = inferLocationIdFromEvent(
-    event,
-    locations,
-    siteTitle,
-    contact,
-  )
-  if (locationId === LODGE_EVENT_LOCATION_ID) return LODGE_TEMPLE_NAME
-  if (locationId === MANUAL_EVENT_LOCATION_ID) return customLocation || LODGE_TEMPLE_NAME
-  return locations.find((location) => location.id === locationId)?.name || LODGE_TEMPLE_NAME
 }
 
 export function signatureSheetDocumentTitle(eventDate: string, degree: MasonicDegree) {

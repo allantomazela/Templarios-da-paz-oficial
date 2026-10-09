@@ -42,6 +42,8 @@ import {
   isBrotherActiveInLodge,
 } from '@/lib/chancellor-attendance'
 import { gobAttendanceStatusLetter } from '@/lib/gob-attendance-status'
+import { resolvePrintedEventLocation } from '@/lib/event-locations'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 
 export function GOBAttendanceReport() {
   const {
@@ -54,6 +56,9 @@ export function GOBAttendanceReport() {
   } = useChancellorStore()
   const { addHistory } = useReportStore()
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
+  const siteTitle = useSiteSettingsStore((s) => s.siteTitle)
+  const contact = useSiteSettingsStore((s) => s.contact)
+  const templeName = useSiteSettingsStore((s) => s.sessionSchedule.templeName)
   const [selectedEventId, setSelectedEventId] = useState<string>('')
   const { toast } = useToast()
 
@@ -127,9 +132,9 @@ export function GOBAttendanceReport() {
       })()
     : []
 
-  const locationName = selectedEvent?.locationId
-    ? locations.find((l) => l.id === selectedEvent.locationId)?.name
-    : selectedEvent?.location
+  const locationName = selectedEvent
+    ? resolvePrintedEventLocation(selectedEvent, locations, siteTitle, contact, templeName)
+    : ''
 
   const presentCount = eventAttendance.filter((a) =>
     isAttendancePresent(a.status),
@@ -199,6 +204,7 @@ export function GOBAttendanceReport() {
             <ReportHeader
               title="LISTA DE PRESENÇA"
               subtitle={`Sessão de ${formatDateBR(selectedEvent.date)}`}
+              showMasonicSymbol
             />
 
             {/* Event Details - Formato GOB Compacto */}
@@ -229,7 +235,7 @@ export function GOBAttendanceReport() {
                     Local
                   </span>
                   <span className="text-sm print:text-xs font-semibold text-black">
-                    {locationName || 'Templo Principal'}
+                    {locationName}
                   </span>
                 </div>
                 <div>

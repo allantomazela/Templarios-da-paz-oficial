@@ -41,7 +41,7 @@ export function AttendanceSignatureSheetHeader({
             {addressLine}
           </div>
         </div>
-        <SquareAndCompassIcon className="h-[14mm] w-[14mm] flex-shrink-0 text-black" />
+        <SquareAndCompassIcon className="h-[14mm] w-[14mm] flex-shrink-0" />
       </div>
 
       <div

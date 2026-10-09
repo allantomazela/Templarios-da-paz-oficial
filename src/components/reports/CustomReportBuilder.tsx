@@ -309,6 +309,7 @@ export function CustomReportBuilder() {
         <ReportHeader
           title="Relatório de Frequência"
           description="Estatísticas de presença dos irmãos da loja"
+          showMasonicSymbol={false}
         />
 
         <Table>

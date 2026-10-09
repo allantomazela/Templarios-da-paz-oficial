@@ -103,7 +103,7 @@ export function VisitorCertificateDocument({
             sizes="44px"
             crossOrigin="anonymous"
           />
-          <SquareAndCompassIcon className="h-11 w-11 text-[#8b6914] print:h-10 print:w-10" />
+          <SquareAndCompassIcon className="h-11 w-11 print:h-10 print:w-10" />
         </div>
         <p className="certificate-accent text-[8px] uppercase tracking-[0.32em] text-[#8b6914]">
           Grande Oriente · Luz · Fraternidade

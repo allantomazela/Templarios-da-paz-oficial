@@ -26,6 +26,11 @@ function haversineMeters(
 const DEFAULT_TEMPLE_LAT = -22.8812604
 const DEFAULT_TEMPLE_LNG = -48.4554303
 const DEFAULT_RADIUS_METERS = 50
+/** events.date + events.time são horário de Brasília (sem horário de verão desde 2019). */
+const LODGE_TIME_ZONE = 'America/Sao_Paulo'
+const LODGE_UTC_OFFSET = '-03:00'
+/** Mesmo fechamento de get_open_session_for_checkin (4h após o início). */
+const CLOSE_MINUTES_AFTER = 240
 const GEO_ERROR_MESSAGE =
   'Você precisa estar fisicamente no Templo para assinar a presença.'
 
@@ -188,14 +193,25 @@ serve(async (req) => {
         : DEFAULT_RADIUS_METERS
 
     const now = new Date()
-    const sessionDate = new Date(event.date + 'T' + event.time)
+    const sessionDate = new Date(`${event.date}T${event.time}${LODGE_UTC_OFFSET}`)
     const openAt = new Date(sessionDate.getTime() - openMinutes * 60 * 1000)
+    const closeAt = new Date(sessionDate.getTime() + CLOSE_MINUTES_AFTER * 60 * 1000)
 
     if (now < openAt) {
       return new Response(
         JSON.stringify({
-          error: `Check-in liberado a partir de ${openAt.toLocaleString('pt-BR')}.`,
+          error: `Check-in liberado a partir de ${openAt.toLocaleString('pt-BR', { timeZone: LODGE_TIME_ZONE })}.`,
         }),
+        {
+          status: 400,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
+    if (now > closeAt) {
+      return new Response(
+        JSON.stringify({ error: 'O check-in desta sessão já foi encerrado.' }),
         {
           status: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },

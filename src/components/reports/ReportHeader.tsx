@@ -13,7 +13,7 @@ interface ReportHeaderProps {
   subtitle?: string
   description?: string
   className?: string
-  /** Mostra o Esquadro e Compasso à direita (impressos maçônicos oficiais). */
+  /** Esquadro e Compasso à direita do título; padrão em todos os impressos oficiais da loja. */
   showMasonicSymbol?: boolean
 }
 
@@ -22,7 +22,7 @@ export function ReportHeader({
   subtitle,
   description,
   className = '',
-  showMasonicSymbol = false,
+  showMasonicSymbol = true,
 }: ReportHeaderProps) {
   const { logoUrl, contact, siteTitle } = useSiteSettingsStore()
 
@@ -89,7 +89,7 @@ export function ReportHeader({
         </div>
 
         {showMasonicSymbol && (
-          <SquareAndCompassIcon className="h-12 w-12 flex-shrink-0 text-black print:h-10 print:w-10" />
+          <SquareAndCompassIcon className="h-12 w-12 flex-shrink-0 print:h-10 print:w-10" />
         )}
       </div>
     </div>

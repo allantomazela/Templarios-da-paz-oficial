@@ -204,7 +204,6 @@ export function GOBAttendanceReport() {
             <ReportHeader
               title="LISTA DE PRESENÇA"
               subtitle={`Sessão de ${formatDateBR(selectedEvent.date)}`}
-              showMasonicSymbol
             />
 
             {/* Event Details - Formato GOB Compacto */}

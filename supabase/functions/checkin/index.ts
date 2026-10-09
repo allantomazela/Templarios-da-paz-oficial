@@ -29,6 +29,13 @@ const DEFAULT_RADIUS_METERS = 50
 const GEO_ERROR_MESSAGE =
   'Você precisa estar fisicamente no Templo para assinar a presença.'
 
+function degreeBlockedMessage(sessionDegree: string | null): string {
+  const sessionLabel = sessionDegree
+    ? `Esta sessão é de grau ${sessionDegree}`
+    : 'Esta sessão é restrita por grau'
+  return `${sessionLabel} e seu grau não permite o check-in por QR. Procure o Chanceler.`
+}
+
 interface CheckinBody {
   sessionRecordId?: string
   token?: string
@@ -150,7 +157,7 @@ serve(async (req) => {
 
     const { data: event, error: eventError } = await serviceClient
       .from('events')
-      .select('id, date, time')
+      .select('id, date, time, degree')
       .eq('id', sessionRecord.event_id)
       .single()
 
@@ -196,6 +203,21 @@ serve(async (req) => {
       )
     }
 
+    const { data: degreeAllowed, error: degreeError } = await serviceClient.rpc(
+      'can_checkin_session_degree',
+      { p_user_id: user.id, p_session_record_id: sessionRecordId },
+    )
+    if (degreeError) throw degreeError
+    if (degreeAllowed !== true) {
+      return new Response(
+        JSON.stringify({ error: degreeBlockedMessage(event.degree) }),
+        {
+          status: 403,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
     if (latitude == null || longitude == null) {
       return new Response(
         JSON.stringify({ error: GEO_ERROR_MESSAGE }),
@@ -224,6 +246,15 @@ serve(async (req) => {
     })
 
     if (insertError) {
+      if (insertError.code === '42501') {
+        return new Response(
+          JSON.stringify({ error: degreeBlockedMessage(event.degree) }),
+          {
+            status: 403,
+            headers: { ...headers, 'Content-Type': 'application/json' },
+          },
+        )
+      }
       if (insertError.code === '23505') {
         return new Response(
           JSON.stringify({ error: 'Você já realizou check-in nesta sessão.' }),

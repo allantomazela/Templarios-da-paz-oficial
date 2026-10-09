@@ -28,6 +28,7 @@ import {
   SIGNATURE_SHEET_DEGREE_LABELS,
   SIGNATURE_SHEET_PRINT_STYLE,
   signatureSheetDocumentTitle,
+  signatureSheetLocationName,
 } from '@/lib/attendance-signature-sheet'
 import { AttendanceSignatureSheetDocument } from './AttendanceSignatureSheetDocument'
 
@@ -39,6 +40,8 @@ export function AttendanceSignatureSheetDialog({
   const { brothers, locations } = useChancellorStore()
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
   const fetchSettings = useSiteSettingsStore((s) => s.fetchSettings)
+  const siteTitle = useSiteSettingsStore((s) => s.siteTitle)
+  const contact = useSiteSettingsStore((s) => s.contact)
   const [sessionDegree, setSessionDegree] = useState<MasonicDegree>('Aprendiz')
   const sheetRef = useRef<HTMLDivElement>(null)
 
@@ -72,9 +75,7 @@ export function AttendanceSignatureSheetDialog({
 
   if (!event) return null
 
-  const locationName = event.locationId
-    ? locations.find((location) => location.id === event.locationId)?.name
-    : event.location
+  const locationName = signatureSheetLocationName(event, locations, siteTitle, contact)
   const venerableMaster =
     positions.find((p) => p.position_type === 'veneravel_mestre')?.user?.full_name ||
     'Venerável Mestre'

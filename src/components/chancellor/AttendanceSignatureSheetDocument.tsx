@@ -54,7 +54,7 @@ export function AttendanceSignatureSheetDocument({
               <td className={`${CELL} text-center text-[8pt]`}>{row.order}</td>
               <td className={`${CELL} truncate text-[9pt] font-medium`}>{row.name}</td>
               <td className={`${CELL} text-center text-[8pt]`}>{row.degree}</td>
-              <td className={`${CELL} text-center text-[8pt]`}>{row.cim || '—'}</td>
+              <td className={`${CELL} text-center text-[8pt]`}>{row.cim}</td>
               <td className={CELL} />
             </tr>
           ))}

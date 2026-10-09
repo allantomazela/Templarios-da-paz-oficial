@@ -1,6 +1,8 @@
 import { ptBR } from 'date-fns/locale'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { BrandLogoImg, BRAND_LOGO_INTRINSIC_SIZE } from '@/components/brand/BrandLogoImg'
+import { SquareAndCompassIcon } from '@/components/brand/SquareAndCompassIcon'
+import { LODGE_TEMPLE_NAME } from '@/lib/event-locations'
 import { formatCalendarDate } from '@/lib/format-utils'
 import { formatLodgeNameWithPrefix } from '@/lib/visitor-attendance'
 import type { MasonicDegree } from '@/lib/masonic-degree'
@@ -39,7 +41,7 @@ export function AttendanceSignatureSheetHeader({
             {addressLine}
           </div>
         </div>
-        <div aria-hidden className="h-[14mm] w-[14mm] flex-shrink-0" />
+        <SquareAndCompassIcon className="h-[14mm] w-[14mm] flex-shrink-0 text-black" />
       </div>
 
       <div
@@ -58,7 +60,7 @@ export function AttendanceSignatureSheetHeader({
         <SessionField label="Horário">{eventTime || '—'}</SessionField>
         <SessionField label="Grau">{sessionDegree}</SessionField>
         <SessionField label="Local" last>
-          {locationName || 'Templo Principal'}
+          {locationName || LODGE_TEMPLE_NAME}
         </SessionField>
       </dl>
     </header>

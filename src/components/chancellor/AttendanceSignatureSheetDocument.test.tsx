@@ -6,7 +6,7 @@ const baseProps = {
   eventTitle: 'Sessão Ordinária',
   eventDate: '2026-10-15',
   eventTime: '20:00',
-  locationName: 'Templo Principal',
+  locationName: 'Templo das Espadas',
   sessionDegree: 'Aprendiz' as const,
   venerableMaster: 'VM Teste',
   chancellor: 'Chanceler Teste',
@@ -26,7 +26,9 @@ describe('AttendanceSignatureSheetDocument', () => {
     expect(screen.getByText('Livro de Presença')).toBeTruthy()
     expect(screen.getByText('Irmão A')).toBeTruthy()
     expect(screen.getByText('123')).toBeTruthy()
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    const brotherBRow = screen.getByText('Irmão B').closest('tr')
+    expect(brotherBRow?.children[3]?.textContent).toBe('')
+    expect(screen.getByRole('img', { name: 'Esquadro e Compasso' })).toBeTruthy()
     expect(screen.getByText('VM Teste')).toBeTruthy()
     expect(screen.getByText('Venerável Mestre em Exercício')).toBeTruthy()
     expect(screen.getByText('Chanceler Teste')).toBeTruthy()

@@ -1,6 +1,5 @@
 import { normalizeBrotherSearchText } from '@/lib/membership-control-only'
-
-const NAME_CONNECTORS = new Set(['de', 'da', 'do', 'das', 'dos', 'e'])
+import { PERSON_NAME_CONNECTORS as NAME_CONNECTORS } from '@/lib/person-name'
 
 export function personNameTokens(name: string | null | undefined): string[] {
   return normalizeBrotherSearchText(name ?? '')

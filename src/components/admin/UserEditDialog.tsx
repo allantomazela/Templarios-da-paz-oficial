@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { PersonNameInput } from '@/components/ui/person-name-input'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
@@ -124,7 +125,7 @@ export function UserEditDialog({
                 <FormItem>
                   <FormLabel>Nome completo</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Nome do irmão" />
+                    <PersonNameInput autoComplete="off" {...field} placeholder="Nome do irmão" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

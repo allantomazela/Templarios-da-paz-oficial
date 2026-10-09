@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PersonNameInput } from '@/components/ui/person-name-input'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -135,7 +136,7 @@ export function CandidateDialog({
                 <FormItem>
                   <FormLabel>Nome completo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do candidato" {...field} disabled={isSaving} />
+                    <PersonNameInput placeholder="Nome do candidato" autoComplete="off" {...field} disabled={isSaving} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

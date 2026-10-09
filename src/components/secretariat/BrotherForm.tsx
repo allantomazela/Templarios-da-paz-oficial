@@ -18,6 +18,7 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PersonNameInput } from '@/components/ui/person-name-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import {
@@ -607,7 +608,7 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Nome Completo *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome do irmão" {...field} />
+                        <PersonNameInput placeholder="Nome do irmão" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -985,7 +986,7 @@ export function BrotherForm({
                     <FormItem>
                       <FormLabel>Nome do Cônjuge</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome completo" {...field} />
+                        <PersonNameInput placeholder="Nome completo" autoComplete="off" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

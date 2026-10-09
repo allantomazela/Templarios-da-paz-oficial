@@ -12,6 +12,7 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PersonNameInput } from '@/components/ui/person-name-input'
 import {
   Select,
   SelectContent,
@@ -182,7 +183,7 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
                 <FormItem>
                   <FormLabel>Nome Completo *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Seu nome completo" {...field} />
+                    <PersonNameInput placeholder="Seu nome completo" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

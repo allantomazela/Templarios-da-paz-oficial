@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PersonNameInput } from '@/components/ui/person-name-input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { FormHeader } from '@/components/ui/form-header'
@@ -228,7 +229,7 @@ export function VenerableDialog({
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do Venerável" {...field} />
+                    <PersonNameInput placeholder="Nome do Venerável" autoComplete="off" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

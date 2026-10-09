@@ -20,40 +20,43 @@ export function AttendanceSignatureSheetHeader({
     .join(' — ')
 
   return (
-    <header className="mb-[5mm]">
-      <div className="flex items-center gap-[4mm] border-b-[3px] border-double border-black pb-[3mm]">
+    <header className="mb-[2mm]">
+      <div className="flex items-center gap-[3mm] border-b-[3px] border-double border-black pb-[2mm]">
         <BrandLogoImg
           logoUrl={logoUrl}
           alt="Logo da Loja"
-          className="h-[20mm] w-[20mm] flex-shrink-0 object-contain"
-          fallbackClassName="h-[16mm] w-[16mm] flex-shrink-0 text-black"
+          className="h-[14mm] w-[14mm] flex-shrink-0 rounded-full object-contain"
+          fallbackClassName="h-[12mm] w-[12mm] flex-shrink-0 text-black"
           loading="eager"
           width={BRAND_LOGO_INTRINSIC_SIZE}
           height={BRAND_LOGO_INTRINSIC_SIZE}
         />
         <div className="min-w-0 flex-1 text-center leading-tight">
-          <div className="text-[13pt] font-bold uppercase tracking-wide">{lodgeName}</div>
-          {contact.city && (
-            <div className="mt-[1mm] text-[10pt] font-semibold">Oriente de {contact.city}</div>
-          )}
-          {addressLine && <div className="mt-[0.5mm] text-[8.5pt]">{addressLine}</div>}
+          <div className="text-[12.5pt] font-bold uppercase tracking-wide">{lodgeName}</div>
+          <div className="mt-[1mm] text-[8.5pt]">
+            {contact.city && <span className="font-semibold">Oriente de {contact.city}</span>}
+            {contact.city && addressLine && ' · '}
+            {addressLine}
+          </div>
         </div>
-        <div aria-hidden className="h-[20mm] w-[20mm] flex-shrink-0" />
+        <div aria-hidden className="h-[14mm] w-[14mm] flex-shrink-0" />
       </div>
 
-      <div className="mt-[4mm] text-center leading-tight">
-        <div role="heading" aria-level={1} className="text-[15pt] font-bold uppercase tracking-[0.25em]">
-          Livro de Presença
-        </div>
-        <div className="mt-[1.5mm] text-[10.5pt] font-semibold">{eventTitle}</div>
+      <div
+        role="heading"
+        aria-level={1}
+        className="mt-[1.5mm] text-center text-[13pt] font-bold uppercase leading-tight tracking-[0.25em]"
+      >
+        Livro de Presença
       </div>
 
-      <dl className="mt-[3mm] grid grid-cols-4 border border-black text-center leading-tight">
+      <dl className="mt-[1mm] grid grid-cols-[1.5fr_1.4fr_0.7fr_0.9fr_1.3fr] border border-black text-center leading-tight">
+        <SessionField label="Sessão">{eventTitle}</SessionField>
         <SessionField label="Data">
           {formatCalendarDate(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </SessionField>
         <SessionField label="Horário">{eventTime || '—'}</SessionField>
-        <SessionField label="Grau da Sessão">{sessionDegree}</SessionField>
+        <SessionField label="Grau">{sessionDegree}</SessionField>
         <SessionField label="Local" last>
           {locationName || 'Templo Principal'}
         </SessionField>
@@ -72,9 +75,9 @@ function SessionField({
   last?: boolean
 }) {
   return (
-    <div className={`px-[2mm] py-[1.5mm] ${last ? '' : 'border-r border-black'}`}>
-      <dt className="text-[7.5pt] font-bold uppercase tracking-wider">{label}</dt>
-      <dd className="mt-[0.8mm] text-[10pt] font-semibold">{children}</dd>
+    <div className={`min-w-0 px-[1.5mm] py-[1mm] ${last ? '' : 'border-r border-black'}`}>
+      <dt className="text-[6.5pt] font-bold uppercase tracking-wider">{label}</dt>
+      <dd className="mt-[0.5mm] truncate text-[9pt] font-semibold">{children}</dd>
     </div>
   )
 }

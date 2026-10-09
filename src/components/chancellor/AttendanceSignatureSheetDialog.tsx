@@ -20,6 +20,7 @@ import {
 import type { Event } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { useLodgePositionsStore } from '@/stores/useLodgePositionsStore'
+import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { usePrintReport } from '@/hooks/use-print-report'
 import { MASONIC_DEGREE_OPTIONS, type MasonicDegree } from '@/lib/masonic-degree'
 import {
@@ -37,12 +38,17 @@ export function AttendanceSignatureSheetDialog({
 }: AttendanceSignatureSheetDialogProps) {
   const { brothers, locations } = useChancellorStore()
   const { positions, fetchPositions, initialized } = useLodgePositionsStore()
+  const fetchSettings = useSiteSettingsStore((s) => s.fetchSettings)
   const [sessionDegree, setSessionDegree] = useState<MasonicDegree>('Aprendiz')
   const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open && !initialized) void fetchPositions()
   }, [open, initialized, fetchPositions])
+
+  useEffect(() => {
+    if (open) void fetchSettings()
+  }, [open, fetchSettings])
 
   useEffect(() => {
     if (open) setSessionDegree(event?.degree ?? 'Aprendiz')

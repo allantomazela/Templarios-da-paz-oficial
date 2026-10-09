@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { Brother } from '@/lib/data'
-import { buildSignatureSheetRows } from '@/lib/attendance-signature-sheet'
+import {
+  buildSignatureSheetRows,
+  signatureSheetRowHeightMm,
+  SIGNATURE_SHEET_MAX_ROW_MM,
+  SIGNATURE_SHEET_MIN_ROW_MM,
+  SIGNATURE_SHEET_ROWS_AREA_MM,
+} from '@/lib/attendance-signature-sheet'
 
 function brother(overrides: Partial<Brother>): Brother {
   return {
@@ -48,5 +54,19 @@ describe('buildSignatureSheetRows', () => {
     expect(rows.some((row) => row.name === 'Desligado' || row.name === 'Afastado')).toBe(false)
     expect(rows.find((row) => row.name === 'Mestre B')?.cim).toBe('123')
     expect(rows.find((row) => row.name === 'Aprendiz A')?.cim).toBe('')
+  })
+})
+
+describe('signatureSheetRowHeightMm', () => {
+  it('40 irmãos cabem na área de uma página', () => {
+    const height = signatureSheetRowHeightMm(40)
+    expect(height).toBe(SIGNATURE_SHEET_MIN_ROW_MM)
+    expect(height * 40).toBeLessThanOrEqual(SIGNATURE_SHEET_ROWS_AREA_MM)
+  })
+
+  it('com menos irmãos as linhas crescem, sem passar do máximo', () => {
+    expect(signatureSheetRowHeightMm(29)).toBe(7.1)
+    expect(signatureSheetRowHeightMm(10)).toBe(SIGNATURE_SHEET_MAX_ROW_MM)
+    expect(signatureSheetRowHeightMm(0)).toBe(SIGNATURE_SHEET_MAX_ROW_MM)
   })
 })

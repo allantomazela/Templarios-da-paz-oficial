@@ -48,9 +48,25 @@ export function signatureSheetDocumentTitle(eventDate: string, degree: MasonicDe
   return `Folha_Presenca_${eventDate}_${degree}`
 }
 
-/** A4 retrato com margens que deixam folga para colar a folha no livro. */
+/**
+ * Altura útil para as linhas de assinatura numa única página A4: 297mm menos as margens
+ * da @page (2 × 10mm), o cabeçalho (~40mm), o título da tabela (~5mm), o rodapé (~23mm)
+ * e uma folga para arredondamentos do navegador.
+ */
+export const SIGNATURE_SHEET_ROWS_AREA_MM = 208
+export const SIGNATURE_SHEET_MIN_ROW_MM = 5.2
+export const SIGNATURE_SHEET_MAX_ROW_MM = 9
+
+/** Até 40 irmãos cabem numa página; com menos irmãos, as linhas crescem para facilitar a assinatura. */
+export function signatureSheetRowHeightMm(rowCount: number): number {
+  if (rowCount <= 0) return SIGNATURE_SHEET_MAX_ROW_MM
+  const fitted = Math.floor((SIGNATURE_SHEET_ROWS_AREA_MM / rowCount) * 10) / 10
+  return Math.min(SIGNATURE_SHEET_MAX_ROW_MM, Math.max(SIGNATURE_SHEET_MIN_ROW_MM, fitted))
+}
+
+/** A4 retrato com margens laterais que deixam folga para colar a folha no livro. */
 export const SIGNATURE_SHEET_PRINT_STYLE = `
-  @page { size: A4 portrait; margin: 12mm 14mm; }
+  @page { size: A4 portrait; margin: 10mm 14mm; }
   @media print {
     body {
       -webkit-print-color-adjust: exact;

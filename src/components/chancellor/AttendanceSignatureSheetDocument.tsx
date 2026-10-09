@@ -1,10 +1,13 @@
-import type { SignatureSheetRow } from '@/lib/attendance-signature-sheet'
+import {
+  signatureSheetRowHeightMm,
+  type SignatureSheetRow,
+} from '@/lib/attendance-signature-sheet'
 import type { MasonicDegree } from '@/lib/masonic-degree'
 import { AttendanceSignatureSheetHeader } from './AttendanceSignatureSheetHeader'
 import { AttendanceSignatureSheetFooter } from './AttendanceSignatureSheetFooter'
 
-const CELL = 'border border-black px-[2mm] align-middle'
-const HEAD_CELL = `${CELL} bg-gray-100 py-[1.5mm] text-[8pt] font-bold uppercase tracking-wider`
+const CELL = 'border border-black px-[1.5mm] py-0 align-middle leading-none'
+const HEAD_CELL = `${CELL} bg-gray-100 py-[1mm] text-[7pt] font-bold uppercase tracking-wider`
 
 export function AttendanceSignatureSheetDocument({
   eventTitle,
@@ -16,6 +19,8 @@ export function AttendanceSignatureSheetDocument({
   venerableMaster,
   chancellor,
 }: AttendanceSignatureSheetDocumentProps) {
+  const rowStyle = { height: `${signatureSheetRowHeightMm(rows.length)}mm` }
+
   return (
     <div className="bg-white text-[10pt] leading-snug text-black">
       <AttendanceSignatureSheetHeader
@@ -28,11 +33,11 @@ export function AttendanceSignatureSheetDocument({
 
       <table className="w-full table-fixed border-collapse">
         <colgroup>
-          <col className="w-[9mm]" />
+          <col className="w-[8mm]" />
           <col />
-          <col className="w-[23mm]" />
-          <col className="w-[20mm]" />
-          <col className="w-[56mm]" />
+          <col className="w-[21mm]" />
+          <col className="w-[17mm]" />
+          <col className="w-[60mm]" />
         </colgroup>
         <thead>
           <tr>
@@ -45,11 +50,11 @@ export function AttendanceSignatureSheetDocument({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.brotherId} className="h-[10mm] break-inside-avoid">
-              <td className={`${CELL} text-center text-[9pt]`}>{row.order}</td>
-              <td className={`${CELL} text-[10pt] font-medium`}>{row.name}</td>
-              <td className={`${CELL} text-center text-[9pt]`}>{row.degree}</td>
-              <td className={`${CELL} text-center text-[9pt]`}>{row.cim || '—'}</td>
+            <tr key={row.brotherId} style={rowStyle} className="break-inside-avoid">
+              <td className={`${CELL} text-center text-[8pt]`}>{row.order}</td>
+              <td className={`${CELL} truncate text-[9pt] font-medium`}>{row.name}</td>
+              <td className={`${CELL} text-center text-[8pt]`}>{row.degree}</td>
+              <td className={`${CELL} text-center text-[8pt]`}>{row.cim || '—'}</td>
               <td className={CELL} />
             </tr>
           ))}

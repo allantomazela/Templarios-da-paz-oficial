@@ -5,6 +5,7 @@ import * as z from 'zod'
 import { MapPin, Mail, Phone, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PersonNameInput } from '@/components/ui/person-name-input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Form,
@@ -172,7 +173,7 @@ export function ContactSection({
                     <FormItem>
                       <FormLabel>Nome Completo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Seu nome" {...field} />
+                        <PersonNameInput placeholder="Seu nome" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

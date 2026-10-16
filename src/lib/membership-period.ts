@@ -1,5 +1,8 @@
 import type { Contribution } from '@/lib/data'
-import type { MembershipSituation } from '@/lib/brother-membership-situation'
+import {
+  isBrotherBillable,
+  type MembershipSituation,
+} from '@/lib/brother-membership-situation'
 
 export interface YearMonth {
   year: number
@@ -152,15 +155,15 @@ export function resolveScheduleStart(
 }
 
 /**
- * Desligados não acumulam meses novos: o cronograma vai só até o último
- * período com lançamento registrado (ou fica vazio sem lançamentos).
+ * Desligados e In Memoriam não acumulam meses novos: o cronograma vai só até o
+ * último período com lançamento registrado (ou fica vazio sem lançamentos).
  */
 export function resolveScheduleEnd(
   now: Date,
   contributions: Contribution[],
   situation?: MembershipSituation | null,
 ): YearMonth | null {
-  if (situation !== 'desligado') {
+  if (!situation || isBrotherBillable(situation)) {
     return { year: now.getFullYear(), month: now.getMonth() + 1 }
   }
 

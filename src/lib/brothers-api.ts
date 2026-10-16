@@ -356,10 +356,20 @@ export async function syncBrotherSituationFromProfileStatus(
   profileId: string,
   profileStatus: string,
 ): Promise<void> {
-  if (profileStatus !== 'blocked' && profileStatus !== 'approved') return
+  if (
+    profileStatus !== 'blocked' &&
+    profileStatus !== 'approved' &&
+    profileStatus !== 'in_memoriam'
+  ) {
+    return
+  }
 
   const situation: MembershipSituation =
-    profileStatus === 'blocked' ? 'desligado' : 'regular'
+    profileStatus === 'blocked'
+      ? 'desligado'
+      : profileStatus === 'in_memoriam'
+        ? 'in_memoriam'
+        : 'regular'
 
   await withTimeout(
     supabase

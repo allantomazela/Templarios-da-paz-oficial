@@ -1,5 +1,8 @@
 import type { Attendance, Brother, SessionRecord } from '@/lib/data'
-import { inferMembershipSituation } from '@/lib/brother-membership-situation'
+import {
+  inferMembershipSituation,
+  isBrotherOnActiveSecretariatRoster,
+} from '@/lib/brother-membership-situation'
 
 /** attendance.brother_id referencia profiles.id — converte id da linha brothers. */
 export function profileIdForAttendanceDb(
@@ -66,12 +69,11 @@ export function isBrotherActiveInLodge(brother: Brother): boolean {
 }
 
 /**
- * Lista de chamada / Folha de Presença: Ativo no quadro, inclusive afastado
- * (saúde). Desligado e Inativo ficam de fora.
+ * Lista de chamada / Folha de Presença: regulares e afastados (saúde).
+ * Desligados e In Memoriam ficam de fora.
  */
 export function isBrotherOnAttendanceRoster(brother: Brother): boolean {
-  if (brother.status !== 'Ativo') return false
-  return inferMembershipSituation(brother) !== 'desligado'
+  return isBrotherOnActiveSecretariatRoster(brother)
 }
 
 /** Irmão elegível ao alerta de frequência (quadro regular). */

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import {
   inferMembershipSituation,
+  isBrotherBillable,
   type MembershipSituation,
 } from '@/lib/brother-membership-situation'
 
@@ -89,7 +90,7 @@ export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> 
       full_name: profile.full_name,
       situation: byProfile.get(profile.id) ?? ('regular' as MembershipSituation),
     }))
-    .filter((brother) => brother.situation !== 'desligado')
+    .filter((brother) => isBrotherBillable(brother.situation))
 }
 
 /** Ordem alfabética pt-BR para listas de irmãos (mensalidades, ágape, etc.). */

@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Brother } from '@/lib/data'
 import {
+  Flower2,
   HeartPulse,
   MoreHorizontal,
   Search,
@@ -42,6 +43,8 @@ import {
 } from 'lucide-react'
 import { BrotherDialog } from './BrotherDialog'
 import { BrotherDetails } from './BrotherDetails'
+import { BrothersDegreeSummary } from './BrothersDegreeSummary'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import {
@@ -66,9 +69,12 @@ import {
 } from '@/lib/brothers-api'
 import {
   inferMembershipSituation,
+  isBrotherOnActiveSecretariatRoster,
   MEMBERSHIP_SITUATION_LABELS,
   type MembershipSituation,
 } from '@/lib/brother-membership-situation'
+
+type BrothersRosterTab = 'ativos' | 'desligados' | 'in_memoriam'
 import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import useAuthStore from '@/stores/useAuthStore'
@@ -78,7 +84,7 @@ import { useModuleActivation } from '@/hooks/use-module-activation'
 export function BrothersList() {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [rosterTab, setRosterTab] = useState<BrothersRosterTab>('ativos')
   const [situationFilter, setSituationFilter] = useState('all')
   const [degreeFilter, setDegreeFilter] = useState('all')
   const [brothers, setBrothers] = useState<Brother[]>([])
@@ -116,18 +122,40 @@ export function BrothersList() {
     { refreshOnVisible: true },
   )
 
-  const filteredBrothers = brothers.filter((brother) => {
+  const rosterCounts = useMemo(() => {
+    let ativos = 0
+    let desligados = 0
+    let inMemoriam = 0
+    for (const brother of brothers) {
+      const situation = inferMembershipSituation(brother)
+      if (situation === 'desligado') desligados += 1
+      else if (situation === 'in_memoriam') inMemoriam += 1
+      else ativos += 1
+    }
+    return { ativos, desligados, inMemoriam }
+  }, [brothers])
+
+  const rosterBrothers = useMemo(() => {
+    return brothers.filter((brother) => {
+      const situation = inferMembershipSituation(brother)
+      if (rosterTab === 'ativos') return isBrotherOnActiveSecretariatRoster(brother)
+      if (rosterTab === 'desligados') return situation === 'desligado'
+      return situation === 'in_memoriam'
+    })
+  }, [brothers, rosterTab])
+
+  const filteredBrothers = rosterBrothers.filter((brother) => {
     const situation = inferMembershipSituation(brother)
     const matchesSearch =
       brother.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       brother.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus =
-      statusFilter === 'all' || brother.status === statusFilter
     const matchesSituation =
-      situationFilter === 'all' || situation === situationFilter
+      rosterTab !== 'ativos' ||
+      situationFilter === 'all' ||
+      situation === situationFilter
     const matchesDegree =
       degreeFilter === 'all' || brother.degree === degreeFilter
-    return matchesSearch && matchesStatus && matchesSituation && matchesDegree
+    return matchesSearch && matchesSituation && matchesDegree
   })
 
   const saveOperation = useAsyncOperation(
@@ -218,10 +246,18 @@ export function BrothersList() {
 
   const situationBadgeClass = (situation: MembershipSituation) => {
     if (situation === 'desligado') return ''
+    if (situation === 'in_memoriam') {
+      return 'bg-slate-600 hover:bg-slate-700 text-white'
+    }
     if (situation === 'afastado') {
       return 'bg-amber-600 hover:bg-amber-700 text-white'
     }
     return 'bg-green-600 hover:bg-green-700'
+  }
+
+  const situationBadgeVariant = (situation: MembershipSituation) => {
+    if (situation === 'desligado') return 'destructive' as const
+    return 'default' as const
   }
 
   const handleDeleteConfirm = async () => {
@@ -280,6 +316,23 @@ export function BrothersList() {
 
   return (
     <div className="space-y-4">
+      <Tabs
+        value={rosterTab}
+        onValueChange={(value) => setRosterTab(value as BrothersRosterTab)}
+      >
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
+          <TabsTrigger value="ativos">
+            Ativos ({rosterCounts.ativos})
+          </TabsTrigger>
+          <TabsTrigger value="desligados">
+            Desligados ({rosterCounts.desligados})
+          </TabsTrigger>
+          <TabsTrigger value="in_memoriam">
+            In Memoriam ({rosterCounts.inMemoriam})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div className="flex flex-col sm:flex-row flex-1 gap-2">
           <div className="relative flex-1 max-w-sm">
@@ -291,7 +344,7 @@ export function BrothersList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select value={degreeFilter} onValueChange={setDegreeFilter}>
               <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Grau" />
@@ -303,39 +356,34 @@ export function BrothersList() {
                 <SelectItem value="Mestre">Mestre</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="Ativo">Ativo</SelectItem>
-                <SelectItem value="Inativo">Inativo</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={situationFilter} onValueChange={setSituationFilter}>
-              <SelectTrigger className="w-full sm:w-[170px]">
-                <SelectValue placeholder="Situação" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas situações</SelectItem>
-                <SelectItem value="regular">Regular</SelectItem>
-                <SelectItem value="afastado">Afastado (saúde)</SelectItem>
-                <SelectItem value="desligado">Desligado</SelectItem>
-              </SelectContent>
-            </Select>
+            {rosterTab === 'ativos' ? (
+              <Select value={situationFilter} onValueChange={setSituationFilter}>
+                <SelectTrigger className="w-full sm:w-[170px]">
+                  <SelectValue placeholder="Situação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas situações</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="afastado">Afastado (saúde)</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : null}
           </div>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />{' '}
-          <span className="hidden sm:inline">Adicionar</span> Irmão
-        </Button>
+        {rosterTab === 'ativos' ? (
+          <Button onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" />{' '}
+            <span className="hidden sm:inline">Adicionar</span> Irmão
+          </Button>
+        ) : null}
       </div>
 
-      <BrothersDegreeSummary
-        brothers={brothers}
-        loading={loadBrothersLoading}
-      />
+      {rosterTab === 'ativos' ? (
+        <BrothersDegreeSummary
+          brothers={brothers}
+          loading={loadBrothersLoading}
+        />
+      ) : null}
 
       {/* Desktop Table */}
       <div className="hidden md:block rounded-md border bg-card">
@@ -359,7 +407,11 @@ export function BrothersList() {
             ) : filteredBrothers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">
-                  Nenhum irmão encontrado.
+                  {rosterTab === 'ativos'
+                    ? 'Nenhum irmão ativo encontrado.'
+                    : rosterTab === 'desligados'
+                      ? 'Nenhum irmão desligado.'
+                      : 'Nenhum irmão In Memoriam.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -372,9 +424,7 @@ export function BrothersList() {
                   <TableCell>{brother.role}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={
-                        situation === 'desligado' ? 'destructive' : 'default'
-                      }
+                      variant={situationBadgeVariant(situation)}
                       className={situationBadgeClass(situation)}
                     >
                       {MEMBERSHIP_SITUATION_LABELS[situation]}
@@ -395,7 +445,9 @@ export function BrothersList() {
                         <DropdownMenuItem onClick={() => openEdit(brother)}>
                           <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
-                        {situation !== 'afastado' && (
+                        {situation !== 'afastado' &&
+                          situation !== 'desligado' &&
+                          situation !== 'in_memoriam' && (
                           <DropdownMenuItem
                             onClick={() => setSituation(brother, 'afastado')}
                           >
@@ -403,13 +455,22 @@ export function BrothersList() {
                             Afastamento (saúde)
                           </DropdownMenuItem>
                         )}
-                        {situation !== 'desligado' && (
+                        {situation !== 'desligado' &&
+                          situation !== 'in_memoriam' && (
                           <DropdownMenuItem
                             onClick={() => setSituation(brother, 'desligado')}
                             className="text-destructive"
                           >
                             <UserX className="mr-2 h-4 w-4" />
                             Registrar desligamento
+                          </DropdownMenuItem>
+                        )}
+                        {situation !== 'in_memoriam' && (
+                          <DropdownMenuItem
+                            onClick={() => setSituation(brother, 'in_memoriam')}
+                          >
+                            <Flower2 className="mr-2 h-4 w-4" />
+                            Marcar In Memoriam
                           </DropdownMenuItem>
                         )}
                         {situation !== 'regular' && (
@@ -449,7 +510,11 @@ export function BrothersList() {
           </div>
         ) : filteredBrothers.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border rounded-md">
-            Nenhum irmão encontrado.
+            {rosterTab === 'ativos'
+              ? 'Nenhum irmão ativo encontrado.'
+              : rosterTab === 'desligados'
+                ? 'Nenhum irmão desligado.'
+                : 'Nenhum irmão In Memoriam.'}
           </div>
         ) : (
           filteredBrothers.map((brother) => {
@@ -465,9 +530,7 @@ export function BrothersList() {
                     </p>
                   </div>
                   <Badge
-                    variant={
-                      situation === 'desligado' ? 'destructive' : 'default'
-                    }
+                    variant={situationBadgeVariant(situation)}
                     className={`${situationBadgeClass(situation)} text-[10px]`}
                   >
                     {MEMBERSHIP_SITUATION_LABELS[situation]}
@@ -492,7 +555,8 @@ export function BrothersList() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {situation !== 'desligado' && (
+                    {situation !== 'desligado' &&
+                      situation !== 'in_memoriam' && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -501,6 +565,16 @@ export function BrothersList() {
                         aria-label={`Desligar ${brother.name}`}
                       >
                         <UserX className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {situation !== 'in_memoriam' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSituation(brother, 'in_memoriam')}
+                        aria-label={`In Memoriam ${brother.name}`}
+                      >
+                        <Flower2 className="h-4 w-4" />
                       </Button>
                     )}
                     {situation !== 'regular' && (
@@ -595,54 +669,6 @@ export function BrothersList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  )
-}
-
-const BROTHER_DEGREES: Brother['degree'][] = ['Aprendiz', 'Companheiro', 'Mestre']
-
-interface BrothersDegreeSummaryProps {
-  brothers: Brother[]
-  loading: boolean
-}
-
-function BrothersDegreeSummary({ brothers, loading }: BrothersDegreeSummaryProps) {
-  const summary = useMemo(() => {
-    const counts: Record<Brother['degree'], number> = {
-      Aprendiz: 0,
-      Companheiro: 0,
-      Mestre: 0,
-    }
-
-    for (const brother of brothers) {
-      counts[brother.degree] += 1
-    }
-
-    return { counts, total: brothers.length }
-  }, [brothers])
-
-  if (loading) return null
-
-  return (
-    <div
-      className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 rounded-md border bg-muted/40 px-3 py-2 text-sm"
-      aria-label="Resumo de irmãos por grau"
-    >
-      <span className="text-muted-foreground">Cadastro total</span>
-      {BROTHER_DEGREES.map((degree) => (
-        <span key={degree} className="inline-flex items-center gap-1.5">
-          <span className="text-muted-foreground">{degree}</span>
-          <Badge variant="secondary" className="min-w-[2rem] justify-center font-semibold tabular-nums">
-            {summary.counts[degree]}
-          </Badge>
-        </span>
-      ))}
-      <span className="inline-flex items-center gap-1.5 border-l border-border pl-3 sm:ml-1">
-        <span className="font-medium">Total</span>
-        <Badge className="min-w-[2rem] justify-center font-semibold tabular-nums">
-          {summary.total}
-        </Badge>
-      </span>
     </div>
   )
 }

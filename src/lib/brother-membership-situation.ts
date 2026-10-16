@@ -1,11 +1,16 @@
 import type { Brother } from '@/lib/data'
 
-export type MembershipSituation = 'regular' | 'afastado' | 'desligado'
+export type MembershipSituation =
+  | 'regular'
+  | 'afastado'
+  | 'desligado'
+  | 'in_memoriam'
 
 export const MEMBERSHIP_SITUATION_LABELS: Record<MembershipSituation, string> = {
   regular: 'Regular',
   afastado: 'Afastado (saúde)',
   desligado: 'Desligado',
+  in_memoriam: 'In Memoriam',
 }
 
 export const DEFAULT_MEMBERSHIP_BASE_AMOUNT = 200
@@ -14,9 +19,12 @@ export const DEFAULT_MEMBERSHIP_SESSION_PACKAGE_AMOUNT = 90
 export function normalizeMembershipSituation(
   value: string | null | undefined,
 ): MembershipSituation {
-  const normalized = value?.trim().toLowerCase()
+  const normalized = value?.trim().toLowerCase().replace(/\s+/g, '_')
   if (normalized === 'afastado') return 'afastado'
   if (normalized === 'desligado') return 'desligado'
+  if (normalized === 'in_memoriam' || normalized === 'inmemoriam') {
+    return 'in_memoriam'
+  }
   return 'regular'
 }
 
@@ -32,31 +40,48 @@ export function inferMembershipSituation(brother: Pick<
   if (brother.regularStatus?.trim().toLowerCase() === 'afastado') {
     return 'afastado'
   }
+  if (brother.regularStatus?.trim().toLowerCase() === 'in memoriam') {
+    return 'in_memoriam'
+  }
   return 'regular'
+}
+
+/** Quadro ativo da Secretaria: regulares e afastados (saúde). */
+export function isBrotherOnActiveSecretariatRoster(brother: Pick<
+  Brother,
+  'status' | 'regularStatus' | 'membershipSituation'
+>): boolean {
+  const situation = inferMembershipSituation(brother)
+  return situation === 'regular' || situation === 'afastado'
 }
 
 export function brotherStatusForSituation(
   situation: MembershipSituation,
 ): Brother['status'] {
-  return situation === 'desligado' ? 'Inativo' : 'Ativo'
+  return situation === 'desligado' || situation === 'in_memoriam'
+    ? 'Inativo'
+    : 'Ativo'
 }
 
 export function regularStatusForSituation(
   situation: MembershipSituation,
 ): string {
   if (situation === 'desligado') return 'Desligado'
+  if (situation === 'in_memoriam') return 'In Memoriam'
   if (situation === 'afastado') return 'Afastado'
   return 'Regular'
 }
 
 export function profileStatusForSituation(
   situation: MembershipSituation,
-): 'approved' | 'blocked' {
-  return situation === 'desligado' ? 'blocked' : 'approved'
+): 'approved' | 'blocked' | 'in_memoriam' {
+  if (situation === 'desligado') return 'blocked'
+  if (situation === 'in_memoriam') return 'in_memoriam'
+  return 'approved'
 }
 
 export function isBrotherBillable(situation: MembershipSituation): boolean {
-  return situation !== 'desligado'
+  return situation === 'regular' || situation === 'afastado'
 }
 
 export function resolveContributionAmountForSituation(

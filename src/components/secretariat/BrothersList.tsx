@@ -1,22 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,23 +11,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Brother } from '@/lib/data'
-import {
-  Flower2,
-  HeartPulse,
-  MoreHorizontal,
-  Search,
-  Plus,
-  Eye,
-  Pencil,
-  UserCheck,
-  UserX,
-  Trash2,
-  Loader2,
-} from 'lucide-react'
+import type { Brother } from '@/lib/data'
+import { Search, Plus, Loader2 } from 'lucide-react'
 import { BrotherDialog } from './BrotherDialog'
 import { BrotherDetails } from './BrotherDetails'
 import { BrothersDegreeSummary } from './BrothersDegreeSummary'
+import { BrothersRosterViews } from './BrothersRosterViews'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
@@ -54,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   toBrotherSaveInput,
   type BrotherFormValues,
@@ -73,8 +45,7 @@ import {
   MEMBERSHIP_SITUATION_LABELS,
   type MembershipSituation,
 } from '@/lib/brother-membership-situation'
-
-type BrothersRosterTab = 'ativos' | 'desligados' | 'in_memoriam'
+import type { BrothersRosterTab } from './brothers-roster-tab'
 import { isAuthError, getSaveErrorMessage } from '@/lib/auth-utils'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import useAuthStore from '@/stores/useAuthStore'
@@ -153,23 +124,18 @@ export function BrothersList() {
       rosterTab !== 'ativos' ||
       situationFilter === 'all' ||
       situation === situationFilter
-    const matchesDegree =
-      degreeFilter === 'all' || brother.degree === degreeFilter
+    const matchesDegree = degreeFilter === 'all' || brother.degree === degreeFilter
     return matchesSearch && matchesSituation && matchesDegree
   })
 
   const saveOperation = useAsyncOperation(
     async (data: BrotherSaveInput, brotherToUpdate: Brother | null) => {
       if (brotherToUpdate) {
-        const updatedBrother = await updateBrother(
-          brotherToUpdate.id,
-          data,
-          {
-            role: brotherToUpdate.role,
-            status: brotherToUpdate.status,
-            attendanceRate: brotherToUpdate.attendanceRate,
-          },
-        )
+        const updatedBrother = await updateBrother(brotherToUpdate.id, data, {
+          role: brotherToUpdate.role,
+          status: brotherToUpdate.status,
+          attendanceRate: brotherToUpdate.attendanceRate,
+        })
         setBrothers((prev) =>
           prev.map((b) => (b.id === brotherToUpdate.id ? updatedBrother : b)),
         )
@@ -201,10 +167,7 @@ export function BrothersList() {
 
   const situationOperation = useAsyncOperation(
     async (brother: Brother, situation: MembershipSituation) => {
-      const updatedBrother = await setBrotherMembershipSituation(
-        brother,
-        situation,
-      )
+      const updatedBrother = await setBrotherMembershipSituation(brother, situation)
       setBrothers((prev) =>
         prev.map((b) => (b.id === brother.id ? updatedBrother : b)),
       )
@@ -218,8 +181,7 @@ export function BrothersList() {
 
   const handleSave = useCallback(
     async (data: BrotherFormValues) => {
-      const brotherToUpdate =
-        editingBrotherRef.current ?? selectedBrother
+      const brotherToUpdate = editingBrotherRef.current ?? selectedBrother
       const payload = toBrotherSaveInput(data) as BrotherSaveInput
 
       setIsSavingBrother(true)
@@ -243,22 +205,6 @@ export function BrothersList() {
   }
 
   const canDeleteBrother = (brother: Brother) => !isMasterAdminEmail(brother.email)
-
-  const situationBadgeClass = (situation: MembershipSituation) => {
-    if (situation === 'desligado') return ''
-    if (situation === 'in_memoriam') {
-      return 'bg-slate-600 hover:bg-slate-700 text-white'
-    }
-    if (situation === 'afastado') {
-      return 'bg-amber-600 hover:bg-amber-700 text-white'
-    }
-    return 'bg-green-600 hover:bg-green-700'
-  }
-
-  const situationBadgeVariant = (situation: MembershipSituation) => {
-    if (situation === 'desligado') return 'destructive' as const
-    return 'default' as const
-  }
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
@@ -288,9 +234,7 @@ export function BrothersList() {
         variant: 'destructive',
         title: 'Erro ao excluir',
         description:
-          error instanceof Error
-            ? error.message
-            : getSaveErrorMessage(error),
+          error instanceof Error ? error.message : getSaveErrorMessage(error),
       })
     } finally {
       setIsDeleting(false)
@@ -321,9 +265,7 @@ export function BrothersList() {
         onValueChange={(value) => setRosterTab(value as BrothersRosterTab)}
       >
         <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
-          <TabsTrigger value="ativos">
-            Ativos ({rosterCounts.ativos})
-          </TabsTrigger>
+          <TabsTrigger value="ativos">Ativos ({rosterCounts.ativos})</TabsTrigger>
           <TabsTrigger value="desligados">
             Desligados ({rosterCounts.desligados})
           </TabsTrigger>
@@ -333,9 +275,9 @@ export function BrothersList() {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex flex-col sm:flex-row flex-1 gap-2">
-          <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+          <div className="relative max-w-sm flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou email..."
@@ -385,228 +327,16 @@ export function BrothersList() {
         />
       ) : null}
 
-      {/* Desktop Table */}
-      <div className="hidden md:block rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Grau</TableHead>
-              <TableHead>Cargo</TableHead>
-              <TableHead>Situação</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loadBrothersLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  Carregando irmãos...
-                </TableCell>
-              </TableRow>
-            ) : filteredBrothers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  {rosterTab === 'ativos'
-                    ? 'Nenhum irmão ativo encontrado.'
-                    : rosterTab === 'desligados'
-                      ? 'Nenhum irmão desligado.'
-                      : 'Nenhum irmão In Memoriam.'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredBrothers.map((brother) => {
-                const situation = inferMembershipSituation(brother)
-                return (
-                <TableRow key={brother.id}>
-                  <TableCell className="font-medium">{brother.name}</TableCell>
-                  <TableCell>{brother.degree}</TableCell>
-                  <TableCell>{brother.role}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={situationBadgeVariant(situation)}
-                      className={situationBadgeClass(situation)}
-                    >
-                      {MEMBERSHIP_SITUATION_LABELS[situation]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openDetails(brother)}>
-                          <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openEdit(brother)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        {situation !== 'afastado' &&
-                          situation !== 'desligado' &&
-                          situation !== 'in_memoriam' && (
-                          <DropdownMenuItem
-                            onClick={() => setSituation(brother, 'afastado')}
-                          >
-                            <HeartPulse className="mr-2 h-4 w-4" />
-                            Afastamento (saúde)
-                          </DropdownMenuItem>
-                        )}
-                        {situation !== 'desligado' &&
-                          situation !== 'in_memoriam' && (
-                          <DropdownMenuItem
-                            onClick={() => setSituation(brother, 'desligado')}
-                            className="text-destructive"
-                          >
-                            <UserX className="mr-2 h-4 w-4" />
-                            Registrar desligamento
-                          </DropdownMenuItem>
-                        )}
-                        {situation !== 'in_memoriam' && (
-                          <DropdownMenuItem
-                            onClick={() => setSituation(brother, 'in_memoriam')}
-                          >
-                            <Flower2 className="mr-2 h-4 w-4" />
-                            Marcar In Memoriam
-                          </DropdownMenuItem>
-                        )}
-                        {situation !== 'regular' && (
-                          <DropdownMenuItem
-                            onClick={() => setSituation(brother, 'regular')}
-                            className="text-green-600"
-                          >
-                            <UserCheck className="mr-2 h-4 w-4" />
-                            Reativar (regular)
-                          </DropdownMenuItem>
-                        )}
-                        {canDeleteBrother(brother) && (
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteTarget(brother)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="md:hidden space-y-3">
-        {loadBrothersLoading ? (
-          <div className="text-center py-8 text-muted-foreground border rounded-md">
-            Carregando irmãos...
-          </div>
-        ) : filteredBrothers.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground border rounded-md">
-            {rosterTab === 'ativos'
-              ? 'Nenhum irmão ativo encontrado.'
-              : rosterTab === 'desligados'
-                ? 'Nenhum irmão desligado.'
-                : 'Nenhum irmão In Memoriam.'}
-          </div>
-        ) : (
-          filteredBrothers.map((brother) => {
-            const situation = inferMembershipSituation(brother)
-            return (
-            <Card key={brother.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-semibold">{brother.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {brother.role}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={situationBadgeVariant(situation)}
-                    className={`${situationBadgeClass(situation)} text-[10px]`}
-                  >
-                    {MEMBERSHIP_SITUATION_LABELS[situation]}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between mt-4">
-                  <Badge variant="outline" className="text-xs">
-                    {brother.degree}
-                  </Badge>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDetails(brother)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEdit(brother)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    {situation !== 'desligado' &&
-                      situation !== 'in_memoriam' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setSituation(brother, 'desligado')}
-                        aria-label={`Desligar ${brother.name}`}
-                      >
-                        <UserX className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {situation !== 'in_memoriam' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSituation(brother, 'in_memoriam')}
-                        aria-label={`In Memoriam ${brother.name}`}
-                      >
-                        <Flower2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {situation !== 'regular' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-green-600 hover:text-green-700"
-                        onClick={() => setSituation(brother, 'regular')}
-                        aria-label={`Reativar ${brother.name}`}
-                      >
-                        <UserCheck className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDeleteBrother(brother) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(brother)}
-                        aria-label={`Excluir ${brother.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            )
-          })
-        )}
-      </div>
+      <BrothersRosterViews
+        brothers={filteredBrothers}
+        loading={loadBrothersLoading}
+        rosterTab={rosterTab}
+        canDeleteBrother={canDeleteBrother}
+        onDetails={openDetails}
+        onEdit={openEdit}
+        onSetSituation={setSituation}
+        onDelete={setDeleteTarget}
+      />
 
       <BrotherDialog
         open={dialog.open}

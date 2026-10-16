@@ -31,7 +31,8 @@ jobs:
         npm run lint
         npm run test
 
-    # Não bloqueia o deploy: uma instabilidade de rede no Supabase não deve impedir a publicação.
+    # Aviso no Actions se divergir, mas NÃO bloqueia o deploy: falha de rede no Supabase
+    # não pode impedir publicação do site. Revisar se o aviso aparecer com frequência.
     - name: 4.1 Equivalência da formatação de nomes (banco x formulários)
       continue-on-error: true
       env:

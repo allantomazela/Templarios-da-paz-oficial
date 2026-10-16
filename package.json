@@ -5,8 +5,8 @@
   "version": "0.0.79",
   "type": "module",
   "scripts": {
-    "start": "vite dev",
-    "dev": "vite",
+    "start": "node --env-file-if-exists=.env-dev node_modules/vite/bin/vite.js",
+    "dev": "node --env-file-if-exists=.env-dev node_modules/vite/bin/vite.js",
     "build": "npm run generate:pwa-icons && vite build",
     "build:dev": "npm run generate:pwa-icons && vite build --mode development",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",

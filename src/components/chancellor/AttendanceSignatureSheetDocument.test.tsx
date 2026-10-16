@@ -18,21 +18,46 @@ describe('AttendanceSignatureSheetDocument', () => {
       <AttendanceSignatureSheetDocument
         {...baseProps}
         rows={[
-          { order: 1, brotherId: 'a', name: 'Irmão A', degree: 'Mestre', cim: '123' },
-          { order: 2, brotherId: 'b', name: 'Irmão B', degree: 'Aprendiz', cim: '' },
+          {
+            order: 1,
+            brotherId: 'a',
+            name: 'Irmão A',
+            degree: 'Mestre',
+            cim: '123',
+            justifiedLeave: false,
+          },
+          {
+            order: 2,
+            brotherId: 'b',
+            name: 'Irmão B',
+            degree: 'Aprendiz',
+            cim: '',
+            justifiedLeave: false,
+          },
+          {
+            order: 3,
+            brotherId: 'c',
+            name: 'Irmão Afastado',
+            degree: 'Mestre',
+            cim: '',
+            justifiedLeave: true,
+          },
         ]}
       />,
     )
     expect(screen.getByText('Livro de Presença')).toBeTruthy()
+    expect(screen.getByText('Assinatura / Obs.')).toBeTruthy()
     expect(screen.getByText('Irmão A')).toBeTruthy()
     expect(screen.getByText('123')).toBeTruthy()
     const brotherBRow = screen.getByText('Irmão B').closest('tr')
     expect(brotherBRow?.children[3]?.textContent).toBe('')
+    expect(brotherBRow?.children[4]?.textContent).toBe('')
+    expect(screen.getByText('Justificado')).toBeTruthy()
     expect(screen.getByRole('img', { name: 'Esquadro e Compasso' })).toBeTruthy()
     expect(screen.getByText('VM Teste')).toBeTruthy()
     expect(screen.getByText('Venerável Mestre em Exercício')).toBeTruthy()
     expect(screen.getByText('Chanceler Teste')).toBeTruthy()
-    expect(screen.getByText(/convocados para esta sessão: 2/)).toBeTruthy()
+    expect(screen.getByText(/convocados para esta sessão: 3/)).toBeTruthy()
   })
 
   it('avisa quando não há irmãos para o grau', () => {

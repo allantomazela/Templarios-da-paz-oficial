@@ -33,25 +33,32 @@ const brothers: Brother[] = [
 ]
 
 describe('buildSignatureSheetRows', () => {
-  it('sessão de Aprendiz lista todo o quadro ativo em ordem alfabética', () => {
+  it('sessão de Aprendiz lista regulares e afastados em ordem alfabética', () => {
     const rows = buildSignatureSheetRows(brothers, 'Aprendiz')
-    expect(rows.map((row) => row.name)).toEqual(['Aprendiz A', 'Companheiro C', 'Mestre B'])
-    expect(rows.map((row) => row.order)).toEqual([1, 2, 3])
+    expect(rows.map((row) => row.name)).toEqual([
+      'Afastado',
+      'Aprendiz A',
+      'Companheiro C',
+      'Mestre B',
+    ])
+    expect(rows.map((row) => row.order)).toEqual([1, 2, 3, 4])
   })
 
   it('sessão de Companheiro exclui Aprendizes', () => {
     const rows = buildSignatureSheetRows(brothers, 'Companheiro')
-    expect(rows.map((row) => row.name)).toEqual(['Companheiro C', 'Mestre B'])
+    expect(rows.map((row) => row.name)).toEqual(['Afastado', 'Companheiro C', 'Mestre B'])
   })
 
-  it('sessão de Mestre lista somente Mestres', () => {
+  it('sessão de Mestre lista Mestres regulares e afastados', () => {
     const rows = buildSignatureSheetRows(brothers, 'Mestre')
-    expect(rows.map((row) => row.name)).toEqual(['Mestre B'])
+    expect(rows.map((row) => row.name)).toEqual(['Afastado', 'Mestre B'])
   })
 
-  it('nunca inclui afastados ou desligados e normaliza o CIM', () => {
+  it('inclui afastados como Justificado, exclui desligados e normaliza o CIM', () => {
     const rows = buildSignatureSheetRows(brothers, 'Aprendiz')
-    expect(rows.some((row) => row.name === 'Desligado' || row.name === 'Afastado')).toBe(false)
+    expect(rows.some((row) => row.name === 'Desligado')).toBe(false)
+    expect(rows.find((row) => row.name === 'Afastado')?.justifiedLeave).toBe(true)
+    expect(rows.find((row) => row.name === 'Mestre B')?.justifiedLeave).toBe(false)
     expect(rows.find((row) => row.name === 'Mestre B')?.cim).toBe('123')
     expect(rows.find((row) => row.name === 'Aprendiz A')?.cim).toBe('')
   })

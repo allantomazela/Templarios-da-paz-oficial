@@ -45,7 +45,7 @@ export function AttendanceSignatureSheetDocument({
             <th className={`${HEAD_CELL} text-left`}>Nome do Irmão</th>
             <th className={`${HEAD_CELL} text-center`}>Grau</th>
             <th className={`${HEAD_CELL} text-center`}>CIM</th>
-            <th className={`${HEAD_CELL} text-center`}>Assinatura</th>
+            <th className={`${HEAD_CELL} text-center`}>Assinatura / Obs.</th>
           </tr>
         </thead>
         <tbody>
@@ -55,7 +55,16 @@ export function AttendanceSignatureSheetDocument({
               <td className={`${CELL} truncate text-[9pt] font-medium`}>{row.name}</td>
               <td className={`${CELL} text-center text-[8pt]`}>{row.degree}</td>
               <td className={`${CELL} text-center text-[8pt]`}>{row.cim}</td>
-              <td className={CELL} />
+              <td className={CELL}>
+                {row.justifiedLeave ? (
+                  <div className="flex h-full items-end gap-[1.5mm] px-[0.5mm] pb-[1mm]">
+                    <span className="shrink-0 text-[8pt] font-semibold leading-none">
+                      Justificado
+                    </span>
+                    <span className="mb-[0.5mm] min-w-0 flex-1 border-b border-black" />
+                  </div>
+                ) : null}
+              </td>
             </tr>
           ))}
         </tbody>

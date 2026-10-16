@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   countUnjustifiedAbsencesForSessions,
+  defaultAttendanceForBrother,
   isBrotherActiveInLodge,
+  isBrotherOnAttendanceRoster,
   isUnjustifiedAbsenceForAlert,
   selectBrothersForAttendanceList,
 } from '@/lib/chancellor-attendance'
@@ -115,16 +117,30 @@ describe('quadro ativo na chamada', () => {
     membershipSituation: 'afastado',
   }
 
-  it('considera ativo apenas quem está Ativo e não afastado/desligado', () => {
+  it('quadro regular exclui afastados e desligados; chamada inclui afastados', () => {
     expect(isBrotherActiveInLodge(brother)).toBe(true)
     expect(isBrotherActiveInLodge(formerBrother)).toBe(false)
     expect(isBrotherActiveInLodge(onLeave)).toBe(false)
+    expect(isBrotherOnAttendanceRoster(brother)).toBe(true)
+    expect(isBrotherOnAttendanceRoster(onLeave)).toBe(true)
+    expect(isBrotherOnAttendanceRoster(formerBrother)).toBe(false)
   })
 
-  it('sessão nova lista somente o quadro ativo', () => {
+  it('sessão nova lista regulares e afastados; desligados ficam de fora', () => {
     expect(
       selectBrothersForAttendanceList([brother, formerBrother, onLeave], []).map((b) => b.id),
-    ).toEqual(['brother-1'])
+    ).toEqual(['brother-1', 'brother-3'])
+  })
+
+  it('afastado inicia como Justificado na chamada', () => {
+    expect(defaultAttendanceForBrother(onLeave)).toEqual({
+      status: 'Justificado',
+      justification: 'Afastado (saúde)',
+    })
+    expect(defaultAttendanceForBrother(brother)).toEqual({
+      status: 'Ausente',
+      justification: '',
+    })
   })
 
   it('sessão antiga mantém quem já tinha lançamento (pelo id do perfil)', () => {
@@ -133,6 +149,6 @@ describe('quadro ativo na chamada', () => {
         [brother, formerBrother, onLeave],
         [{ brotherId: 'profile-2' }],
       ).map((b) => b.id),
-    ).toEqual(['brother-1', 'brother-2'])
+    ).toEqual(['brother-1', 'brother-2', 'brother-3'])
   })
 })

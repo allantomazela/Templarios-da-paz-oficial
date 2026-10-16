@@ -39,6 +39,7 @@ import {
   brothersWithoutProfileForAttendance,
   profileIdForAttendanceDb,
   attendanceBelongsToBrother,
+  defaultAttendanceForBrother,
   selectBrothersForAttendanceList,
 } from '@/lib/chancellor-attendance'
 
@@ -184,11 +185,15 @@ export function AttendanceDialog({
           const found = existing.find((e) =>
             attendanceBelongsToBrother(b, e.brotherId),
           )
-          return {
-            brotherId: b.id,
-            status: found ? found.status : 'Ausente',
-            justification: found ? found.justification || '' : '',
+          if (found) {
+            return {
+              brotherId: b.id,
+              status: found.status,
+              justification: found.justification || '',
+            }
           }
+          const defaults = defaultAttendanceForBrother(b)
+          return { brotherId: b.id, ...defaults }
         }),
       )
       setQrOnlyAttendances([])
@@ -256,8 +261,7 @@ export function AttendanceDialog({
       setAttendances(
         selectBrothersForAttendanceList(brothers, []).map((b) => ({
           brotherId: b.id,
-          status: 'Ausente',
-          justification: '',
+          ...defaultAttendanceForBrother(b),
         })),
       )
       setVisitorList([])

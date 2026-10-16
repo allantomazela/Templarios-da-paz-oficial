@@ -1,5 +1,6 @@
 import type { Brother } from '@/lib/data'
-import { isBrotherActiveInLodge } from '@/lib/chancellor-attendance'
+import { isBrotherOnAttendanceRoster } from '@/lib/chancellor-attendance'
+import { inferMembershipSituation } from '@/lib/brother-membership-situation'
 import {
   canAccessDegree,
   normalizeMasonicDegree,
@@ -12,6 +13,8 @@ export interface SignatureSheetRow {
   name: string
   degree: string
   cim: string
+  /** Afastado (saúde): coluna de assinatura vem com "Justificado" + espaço para obs. */
+  justifiedLeave: boolean
 }
 
 export const SIGNATURE_SHEET_DEGREE_LABELS: Record<MasonicDegree, string> = {
@@ -21,8 +24,8 @@ export const SIGNATURE_SHEET_DEGREE_LABELS: Record<MasonicDegree, string> = {
 }
 
 /**
- * Linhas da folha de assinaturas: só o quadro ativo, que tenha grau para a sessão
- * (Aprendiz = todos; Companheiro = Companheiros e Mestres; Mestre = só Mestres).
+ * Linhas da folha de assinaturas: quadro ativo (regulares + afastados por saúde),
+ * com grau compatível com a sessão. Desligados ficam de fora.
  */
 export function buildSignatureSheetRows(
   brothers: Brother[],
@@ -31,7 +34,7 @@ export function buildSignatureSheetRows(
   return brothers
     .filter(
       (brother) =>
-        isBrotherActiveInLodge(brother) &&
+        isBrotherOnAttendanceRoster(brother) &&
         canAccessDegree(normalizeMasonicDegree(brother.degree), sessionDegree),
     )
     .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
@@ -41,6 +44,7 @@ export function buildSignatureSheetRows(
       name: brother.name,
       degree: brother.degree,
       cim: brother.cim?.trim() ?? '',
+      justifiedLeave: inferMembershipSituation(brother) === 'afastado',
     }))
 }
 

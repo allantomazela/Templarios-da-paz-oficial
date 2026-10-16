@@ -1,4 +1,5 @@
 import type { Attendance, Brother, SessionRecord } from '@/lib/data'
+import { inferMembershipSituation } from '@/lib/brother-membership-situation'
 
 /** attendance.brother_id referencia profiles.id — converte id da linha brothers. */
 export function profileIdForAttendanceDb(
@@ -54,22 +55,44 @@ export function isUnjustifiedAbsenceForAlert(
   return record.status === 'Ausente'
 }
 
-/** Irmão ativo e regular no quadro de obreiros (exclui afastados e desligados). */
+/**
+ * Quadro regular (GOB, alertas de frequência): Ativo e não afastado/desligado.
+ * Afastados por saúde entram na chamada e na Folha impressa via
+ * isBrotherOnAttendanceRoster, mas não contam como quadro “em atividade”.
+ */
 export function isBrotherActiveInLodge(brother: Brother): boolean {
   if (brother.status !== 'Ativo') return false
-  const situation = brother.membershipSituation
-  if (situation === 'afastado' || situation === 'desligado') return false
-  return true
+  return inferMembershipSituation(brother) === 'regular'
 }
 
-/** Irmão elegível ao alerta de frequência (quadro ativo). */
+/**
+ * Lista de chamada / Folha de Presença: Ativo no quadro, inclusive afastado
+ * (saúde). Desligado e Inativo ficam de fora.
+ */
+export function isBrotherOnAttendanceRoster(brother: Brother): boolean {
+  if (brother.status !== 'Ativo') return false
+  return inferMembershipSituation(brother) !== 'desligado'
+}
+
+/** Irmão elegível ao alerta de frequência (quadro regular). */
 export function isBrotherEligibleForFrequencyAlert(brother: Brother): boolean {
   return isBrotherActiveInLodge(brother)
 }
 
+export function defaultAttendanceForBrother(brother: Brother): {
+  status: 'Presente' | 'Ausente' | 'Justificado'
+  justification: string
+} {
+  if (inferMembershipSituation(brother) === 'afastado') {
+    return { status: 'Justificado', justification: 'Afastado (saúde)' }
+  }
+  return { status: 'Ausente', justification: '' }
+}
+
 /**
- * Irmãos exibidos na chamada de uma sessão: o quadro ativo mais quem já tem
- * lançamento nela, para que sessões antigas preservem o histórico de ex-membros.
+ * Irmãos exibidos na chamada de uma sessão: o quadro (regulares + afastados)
+ * mais quem já tem lançamento nela, para que sessões antigas preservem o
+ * histórico de ex-membros.
  */
 export function selectBrothersForAttendanceList(
   brothers: Brother[],
@@ -77,7 +100,7 @@ export function selectBrothersForAttendanceList(
 ): Brother[] {
   return brothers.filter(
     (brother) =>
-      isBrotherActiveInLodge(brother) ||
+      isBrotherOnAttendanceRoster(brother) ||
       sessionAttendance.some((record) =>
         attendanceBelongsToBrother(brother, record.brotherId),
       ),

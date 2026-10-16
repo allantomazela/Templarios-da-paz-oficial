@@ -95,8 +95,8 @@ export function AttendanceSignatureSheetDialog({
         <DialogHeader>
           <DialogTitle>Folha de presença para o livro</DialogTitle>
           <DialogDescription>
-            Lista apenas os irmãos ativos e regulares do quadro. Escolha o grau da sessão
-            antes de imprimir.
+            Lista o quadro ativo (inclui afastados por saúde; desligados ficam de fora).
+            Escolha o grau da sessão antes de imprimir.
           </DialogDescription>
         </DialogHeader>
 

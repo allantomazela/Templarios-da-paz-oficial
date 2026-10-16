@@ -14,6 +14,7 @@ import { Event, SessionRecord } from '@/lib/data'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
 import { AttendanceSignatureSheetDialog } from './AttendanceSignatureSheetDialog'
+import { AttendanceSignatureSheetBatchDialog } from './AttendanceSignatureSheetBatchDialog'
 import { QRCheckinScanner } from './QRCheckinScanner'
 import {
   CheckCircle,
@@ -72,6 +73,7 @@ export function AttendanceManager() {
   const dialog = useDialog()
   const scannerDialog = useDialog()
   const signatureSheetDialog = useDialog()
+  const signatureSheetBatchDialog = useDialog()
 
   devLog('log', `AttendanceManager: Total de eventos no store: ${events.length}`)
 
@@ -320,7 +322,18 @@ export function AttendanceManager() {
             Eventos ordenados do mais antigo ao mais recente.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canManageSessions ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signatureSheetBatchDialog.openDialog()}
+              title="Imprimir várias folhas A4 para colar no livro"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Folhas em lote
+            </Button>
+          ) : null}
           <Badge variant="secondary" className="text-sm">
             {eventsWithStatus.length} evento{eventsWithStatus.length !== 1 ? 's' : ''}
           </Badge>
@@ -431,6 +444,11 @@ export function AttendanceManager() {
         open={signatureSheetDialog.open}
         onOpenChange={signatureSheetDialog.onOpenChange}
         event={signatureSheetEvent}
+      />
+
+      <AttendanceSignatureSheetBatchDialog
+        open={signatureSheetBatchDialog.open}
+        onOpenChange={signatureSheetBatchDialog.onOpenChange}
       />
 
       <QRCheckinScanner

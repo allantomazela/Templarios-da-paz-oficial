@@ -54,11 +54,10 @@ describe('buildSignatureSheetRows', () => {
     expect(rows.map((row) => row.name)).toEqual(['Afastado', 'Mestre B'])
   })
 
-  it('inclui afastados como Justificado, exclui desligados e normaliza o CIM', () => {
+  it('inclui afastados com coluna em branco, exclui desligados e normaliza o CIM', () => {
     const rows = buildSignatureSheetRows(brothers, 'Aprendiz')
     expect(rows.some((row) => row.name === 'Desligado')).toBe(false)
-    expect(rows.find((row) => row.name === 'Afastado')?.justifiedLeave).toBe(true)
-    expect(rows.find((row) => row.name === 'Mestre B')?.justifiedLeave).toBe(false)
+    expect(rows.some((row) => row.name === 'Afastado')).toBe(true)
     expect(rows.find((row) => row.name === 'Mestre B')?.cim).toBe('123')
     expect(rows.find((row) => row.name === 'Aprendiz A')?.cim).toBe('')
   })

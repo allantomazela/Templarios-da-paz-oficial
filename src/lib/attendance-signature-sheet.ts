@@ -1,6 +1,5 @@
 import type { Brother } from '@/lib/data'
 import { isBrotherOnAttendanceRoster } from '@/lib/chancellor-attendance'
-import { inferMembershipSituation } from '@/lib/brother-membership-situation'
 import {
   canAccessDegree,
   normalizeMasonicDegree,
@@ -13,8 +12,6 @@ export interface SignatureSheetRow {
   name: string
   degree: string
   cim: string
-  /** Afastado (saúde): coluna de assinatura vem com "Justificado" + espaço para obs. */
-  justifiedLeave: boolean
 }
 
 export const SIGNATURE_SHEET_DEGREE_LABELS: Record<MasonicDegree, string> = {
@@ -44,7 +41,6 @@ export function buildSignatureSheetRows(
       name: brother.name,
       degree: brother.degree,
       cim: brother.cim?.trim() ?? '',
-      justifiedLeave: inferMembershipSituation(brother) === 'afastado',
     }))
 }
 

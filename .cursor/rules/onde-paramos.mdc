@@ -1,0 +1,11 @@
+---
+description: Ler e atualizar docs/ONDE_PARAMOS.md para saber onde o trabalho parou
+alwaysApply: true
+---
+
+# Continuidade do trabalho
+
+- No início de uma tarefa de produto, leia `docs/ONDE_PARAMOS.md` antes de procurar o estado em documentos antigos. `ESTADO_ATUAL.md` não é a referência de continuidade.
+- Ao concluir uma mudança pedida pelo usuário, atualize `docs/ONDE_PARAMOS.md` antes de encerrar: data, commit se já existir, o que ficou pronto, arquivos principais e o próximo passo concreto. Se não houver commit, registre "alteração local ainda não commitada".
+- Mantenha o arquivo curto. Substitua a seção "Última mudança concluída"; não acumule histórico longo.
+- Não faça commit só por causa desta atualização. O commit segue o pedido explícito do usuário.

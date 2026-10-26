@@ -9,8 +9,8 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 26/10/2026 |
-| Commit de produto | `501912e` (16/10/2026 14:47), `main` igual a `origin/main` |
-| Esta sessão | registro de continuidade, ainda sem commit |
+| Commit de produto | `501912e` (16/10/2026 14:47) |
+| Registro de continuidade | commit desta sessão em `main` |
 
 **O que ficou pronto no código publicado:** quadro de irmãos da Secretaria com abas Ativos, Desligados e In Memoriam. Desligados e In Memoriam saem da lista e da contagem do quadro ativo. Situação `in_memoriam` no cadastro, com migração `supabase/migrations/20261016120000_brothers_membership_situation_in_memoriam.sql`. A lista em si foi extraída para `src/components/secretariat/BrothersRosterViews.tsx`; `BrothersList.tsx` ficou como orquestrador (abas, filtros e CRUD).
 

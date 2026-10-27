@@ -25,7 +25,11 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { usePrintReport } from '@/hooks/use-print-report'
 import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
 import { resolvePrintedEventLocation } from '@/lib/event-locations'
-import { buildSignatureSheetRows } from '@/lib/attendance-signature-sheet'
+import {
+  buildSignatureSheetRows,
+  SIGNATURE_SHEET_ORDER_LABELS,
+  type SignatureSheetOrder,
+} from '@/lib/attendance-signature-sheet'
 import {
   filterEventsForSignatureSheetBatch,
   SIGNATURE_SHEET_BATCH_PRINT_STYLE,
@@ -55,6 +59,7 @@ export function AttendanceSignatureSheetBatchDialog({
   const [fromDate, setFromDate] = useState(todayLocalISODate())
   const [toDate, setToDate] = useState(todayLocalISODate())
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sheetOrder, setSheetOrder] = useState<SignatureSheetOrder>('name')
   const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,6 +73,7 @@ export function AttendanceSignatureSheetBatchDialog({
   useEffect(() => {
     if (!open) return
     setPeriod('current_month')
+    setSheetOrder('name')
     const today = todayLocalISODate()
     setFromDate(today)
     setToDate(today)
@@ -106,10 +112,10 @@ export function AttendanceSignatureSheetBatchDialog({
           contact,
           templeName,
         ),
-        rows: buildSignatureSheetRows(brothers, sessionDegree),
+        rows: buildSignatureSheetRows(brothers, sessionDegree, sheetOrder),
       }
     })
-  }, [selectedEvents, brothers, locations, siteTitle, contact, templeName])
+  }, [selectedEvents, brothers, locations, siteTitle, contact, templeName, sheetOrder])
 
   const handlePrint = usePrintReport({
     contentRef: sheetRef,
@@ -150,7 +156,7 @@ export function AttendanceSignatureSheetBatchDialog({
           <DialogTitle>Imprimir folhas em lote</DialogTitle>
           <DialogDescription>
             Uma página A4 por sessão, na ordem do livro. Cada folha usa o grau cadastrado
-            na sessão. Afastados entram com a coluna de assinatura em branco.
+            na sessão. A ordem da lista vale para todas as folhas deste lote.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,8 +179,28 @@ export function AttendanceSignatureSheetBatchDialog({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="batch-order">Ordem da lista</Label>
+            <Select
+              value={sheetOrder}
+              onValueChange={(value) => setSheetOrder(value as SignatureSheetOrder)}
+            >
+              <SelectTrigger id="batch-order">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SIGNATURE_SHEET_ORDER_LABELS) as SignatureSheetOrder[]).map(
+                  (order) => (
+                    <SelectItem key={order} value={order}>
+                      {SIGNATURE_SHEET_ORDER_LABELS[order]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
+          </div>
           {period === 'custom' ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
               <div className="space-y-2">
                 <Label htmlFor="batch-from">De</Label>
                 <Input
@@ -195,7 +221,7 @@ export function AttendanceSignatureSheetBatchDialog({
               </div>
             </div>
           ) : (
-            <p className="self-end text-sm text-muted-foreground">
+            <p className="self-end text-sm text-muted-foreground sm:col-span-2">
               {candidates.length}{' '}
               {candidates.length === 1 ? 'sessão' : 'sessões'} no período ·{' '}
               {selectedEvents.length} selecionada{selectedEvents.length !== 1 ? 's' : ''}

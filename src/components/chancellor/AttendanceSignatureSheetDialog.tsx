@@ -26,8 +26,10 @@ import { MASONIC_DEGREE_OPTIONS, type MasonicDegree } from '@/lib/masonic-degree
 import {
   buildSignatureSheetRows,
   SIGNATURE_SHEET_DEGREE_LABELS,
+  SIGNATURE_SHEET_ORDER_LABELS,
   SIGNATURE_SHEET_PRINT_STYLE,
   signatureSheetDocumentTitle,
+  type SignatureSheetOrder,
 } from '@/lib/attendance-signature-sheet'
 import { resolvePrintedEventLocation } from '@/lib/event-locations'
 import { AttendanceSignatureSheetDocument } from './AttendanceSignatureSheetDocument'
@@ -44,6 +46,7 @@ export function AttendanceSignatureSheetDialog({
   const contact = useSiteSettingsStore((s) => s.contact)
   const templeName = useSiteSettingsStore((s) => s.sessionSchedule.templeName)
   const [sessionDegree, setSessionDegree] = useState<MasonicDegree>('Aprendiz')
+  const [sheetOrder, setSheetOrder] = useState<SignatureSheetOrder>('name')
   const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,12 +58,14 @@ export function AttendanceSignatureSheetDialog({
   }, [open, fetchSettings])
 
   useEffect(() => {
-    if (open) setSessionDegree(event?.degree ?? 'Aprendiz')
+    if (!open) return
+    setSessionDegree(event?.degree ?? 'Aprendiz')
+    setSheetOrder('name')
   }, [open, event?.id, event?.degree])
 
   const rows = useMemo(
-    () => buildSignatureSheetRows(brothers, sessionDegree),
-    [brothers, sessionDegree],
+    () => buildSignatureSheetRows(brothers, sessionDegree, sheetOrder),
+    [brothers, sessionDegree, sheetOrder],
   )
 
   const handlePrint = usePrintReport({
@@ -96,29 +101,52 @@ export function AttendanceSignatureSheetDialog({
           <DialogTitle>Folha de presença para o livro</DialogTitle>
           <DialogDescription>
             Lista o quadro ativo (inclui afastados por saúde; desligados ficam de fora).
-            Escolha o grau da sessão antes de imprimir.
+            Escolha o grau da sessão e a ordem da lista antes de imprimir.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2">
-          <Label htmlFor="signature-sheet-degree">Grau da sessão</Label>
-          <Select
-            value={sessionDegree}
-            onValueChange={(value) => setSessionDegree(value as MasonicDegree)}
-          >
-            <SelectTrigger id="signature-sheet-degree" className="w-full sm:w-80">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MASONIC_DEGREE_OPTIONS.map((degree) => (
-                <SelectItem key={degree} value={degree}>
-                  {SIGNATURE_SHEET_DEGREE_LABELS[degree]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            {rows.length} irmão{rows.length !== 1 ? 's' : ''} na folha.
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="signature-sheet-degree">Grau da sessão</Label>
+            <Select
+              value={sessionDegree}
+              onValueChange={(value) => setSessionDegree(value as MasonicDegree)}
+            >
+              <SelectTrigger id="signature-sheet-degree">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MASONIC_DEGREE_OPTIONS.map((degree) => (
+                  <SelectItem key={degree} value={degree}>
+                    {SIGNATURE_SHEET_DEGREE_LABELS[degree]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signature-sheet-order">Ordem da lista</Label>
+            <Select
+              value={sheetOrder}
+              onValueChange={(value) => setSheetOrder(value as SignatureSheetOrder)}
+            >
+              <SelectTrigger id="signature-sheet-order">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SIGNATURE_SHEET_ORDER_LABELS) as SignatureSheetOrder[]).map(
+                  (order) => (
+                    <SelectItem key={order} value={order}>
+                      {SIGNATURE_SHEET_ORDER_LABELS[order]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            {rows.length} irmão{rows.length !== 1 ? 's' : ''} na folha. A ordem alfabética
+            é a padrão; por grau vale só nesta impressão.
           </p>
         </div>
 

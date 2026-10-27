@@ -54,6 +54,17 @@ describe('buildSignatureSheetRows', () => {
     expect(rows.map((row) => row.name)).toEqual(['Afastado', 'Mestre B'])
   })
 
+  it('por grau lista Mestres, Companheiros e Aprendizes, e alfabético dentro do grau', () => {
+    const rows = buildSignatureSheetRows(brothers, 'Aprendiz', 'degree')
+    expect(rows.map((row) => row.name)).toEqual([
+      'Afastado',
+      'Mestre B',
+      'Companheiro C',
+      'Aprendiz A',
+    ])
+    expect(rows.map((row) => row.order)).toEqual([1, 2, 3, 4])
+  })
+
   it('inclui afastados com coluna em branco, exclui desligados e normaliza o CIM', () => {
     const rows = buildSignatureSheetRows(brothers, 'Aprendiz')
     expect(rows.some((row) => row.name === 'Desligado')).toBe(false)

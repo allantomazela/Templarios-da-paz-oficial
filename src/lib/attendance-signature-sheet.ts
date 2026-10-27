@@ -20,6 +20,33 @@ export const SIGNATURE_SHEET_DEGREE_LABELS: Record<MasonicDegree, string> = {
   Mestre: 'Mestre (somente Mestres)',
 }
 
+/** Alfabética é o padrão. Por grau fica a critério do Chanceler, na hora de imprimir. */
+export type SignatureSheetOrder = 'name' | 'degree'
+
+export const SIGNATURE_SHEET_ORDER_LABELS: Record<SignatureSheetOrder, string> = {
+  name: 'Alfabética',
+  degree: 'Por grau (Mestres, Companheiros, Aprendizes)',
+}
+
+const DEGREE_PRINT_RANK: Record<MasonicDegree, number> = {
+  Mestre: 0,
+  Companheiro: 1,
+  Aprendiz: 2,
+}
+
+function compareSignatureSheetBrothers(
+  left: Brother,
+  right: Brother,
+  order: SignatureSheetOrder,
+): number {
+  if (order === 'degree') {
+    const leftRank = DEGREE_PRINT_RANK[normalizeMasonicDegree(left.degree) ?? 'Aprendiz']
+    const rightRank = DEGREE_PRINT_RANK[normalizeMasonicDegree(right.degree) ?? 'Aprendiz']
+    if (leftRank !== rightRank) return leftRank - rightRank
+  }
+  return left.name.localeCompare(right.name, 'pt-BR')
+}
+
 /**
  * Linhas da folha de assinaturas: quadro ativo (regulares + afastados por saúde),
  * com grau compatível com a sessão. Desligados ficam de fora.
@@ -27,6 +54,7 @@ export const SIGNATURE_SHEET_DEGREE_LABELS: Record<MasonicDegree, string> = {
 export function buildSignatureSheetRows(
   brothers: Brother[],
   sessionDegree: MasonicDegree,
+  order: SignatureSheetOrder = 'name',
 ): SignatureSheetRow[] {
   return brothers
     .filter(
@@ -34,7 +62,7 @@ export function buildSignatureSheetRows(
         isBrotherOnAttendanceRoster(brother) &&
         canAccessDegree(normalizeMasonicDegree(brother.degree), sessionDegree),
     )
-    .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
+    .sort((left, right) => compareSignatureSheetBrothers(left, right, order))
     .map((brother, index) => ({
       order: index + 1,
       brotherId: brother.id,

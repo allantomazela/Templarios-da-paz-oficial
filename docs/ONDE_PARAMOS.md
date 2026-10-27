@@ -9,18 +9,23 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 26/10/2026 |
-| Commit de produto | `501912e` (16/10/2026 14:47) |
-| Registro de continuidade | commit desta sessão em `main` |
+| Branch | `main` |
 
 **O que ficou pronto no código publicado:** quadro de irmãos da Secretaria com abas Ativos, Desligados e In Memoriam. Desligados e In Memoriam saem da lista e da contagem do quadro ativo. Situação `in_memoriam` no cadastro, com migração `supabase/migrations/20261016120000_brothers_membership_situation_in_memoriam.sql`. A lista em si foi extraída para `src/components/secretariat/BrothersRosterViews.tsx`; `BrothersList.tsx` ficou como orquestrador (abas, filtros e CRUD).
 
 No mesmo dia, antes disso: impressão em lote das folhas de presença na Chancelaria e afastados por saúde na folha e na chamada como Justificado, com a coluna de assinatura em branco para o Chanceler anotar à mão.
 
+## Banco
+
+Em 26/10/2026 o SQL `20261016120000_brothers_membership_situation_in_memoriam.sql` foi executado no Supabase **Templários Oficial** e concluiu com sucesso. A situação `in_memoriam` está aceita em `public.brothers`.
+
+No mesmo dia, o CIM da planilha `membros_obreiros-v2.xlsx` foi gravado para o quadro. Celso de Paiva Costa ficou `338371` e José Antônio Dalanezi ficou `327932`, conferidos na imagem do Chanceler.
+
+A folha de presença ganhou a opção **Ordem da lista**, na impressão avulsa e no lote. O padrão continua alfabético. O Chanceler pode escolher **Por grau (Mestres, Companheiros, Aprendizes)** só naquela impressão. Dentro de cada grau, a ordem segue o nome.
+
 ## Onde continuar
 
-Não havia tarefa pela metade no código. O próximo passo é o que for pedido a partir daqui.
-
-Conferir, se ainda não foi feito no Supabase de produção, se a migração `20261016120000_brothers_membership_situation_in_memoriam.sql` já foi aplicada.
+O próximo passo é o que for pedido a partir daqui.
 
 ## Como ver isto de novo
 

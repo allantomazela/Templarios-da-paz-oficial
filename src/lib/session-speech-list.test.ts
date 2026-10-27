@@ -100,8 +100,8 @@ describe('buildSessionSpeechRows', () => {
     )
     expect(rows.map((row) => row.name)).toEqual([
       'Dia das Crianças',
-      'Dia do Médico',
       'Dia do Professor',
+      'Dia do Médico',
     ])
   })
 })

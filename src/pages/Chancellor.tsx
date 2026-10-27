@@ -14,6 +14,11 @@ const AttendanceManager = lazy(() =>
     default: m.AttendanceManager,
   })),
 )
+const SessionSpeechPanel = lazy(() =>
+  import('@/components/chancellor/SessionSpeechPanel').then((m) => ({
+    default: m.SessionSpeechPanel,
+  })),
+)
 const DegreeManager = lazy(() =>
   import('@/components/chancellor/DegreeManager').then((m) => ({
     default: m.DegreeManager,
@@ -43,6 +48,7 @@ const VisitorCertificate = lazy(() =>
 type ChancellorTabId =
   | 'overview'
   | 'attendance'
+  | 'speech'
   | 'events'
   | 'solids'
   | 'degrees'
@@ -52,6 +58,7 @@ type ChancellorTabId =
 const CHANCELLOR_TABS: { id: ChancellorTabId; label: string }[] = [
   { id: 'overview', label: 'Visão Geral' },
   { id: 'attendance', label: 'Presença' },
+  { id: 'speech', label: 'Falas da sessão' },
   { id: 'events', label: 'Agenda da Loja' },
   { id: 'solids', label: 'Sólidos' },
   { id: 'degrees', label: 'Controle de Graus' },
@@ -133,6 +140,9 @@ export default function Chancellor() {
           </ChancellorTabPanel>
           <ChancellorTabPanel active={tab === 'attendance'}>
             <AttendanceManager />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'speech'}>
+            <SessionSpeechPanel />
           </ChancellorTabPanel>
           <ChancellorTabPanel active={tab === 'events'}>
             <EventsManager />

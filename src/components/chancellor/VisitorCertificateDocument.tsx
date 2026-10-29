@@ -11,9 +11,10 @@ import {
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { SquareAndCompassIcon } from '@/components/brand/SquareAndCompassIcon'
+import { CertificateOrnament } from './CertificateOrnament'
 import type { Event, VisitorAttendance } from '@/lib/data'
 
-/** Classe para forçar texto preto na pré-visualização (tema escuro global). */
+/** Classe para forçar texto escuro na pré-visualização (tema escuro global). */
 export const VISITOR_CERTIFICATE_DOCUMENT_CLASS = 'visitor-certificate-document'
 
 /** Cartão de presença 20 cm × 15 cm. */
@@ -50,140 +51,75 @@ export function VisitorCertificateDocument({
   blank = false,
 }: VisitorCertificateDocumentProps) {
   const { logoUrl, contact, siteTitle } = useSiteSettingsStore()
-  const lodgeDisplay = visitor ? formatLodgeNameWithPrefix(visitor.lodge) : ''
+  const isBlank = blank || !visitor || !event
   const lodgeName = siteTitle || 'Templários da Paz'
+  const sessionLabel = event ? `${event.type} — ${event.title}` : ''
+  const sessionDate = event
+    ? formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+    : ''
 
   return (
     <div
-      className={`${VISITOR_CERTIFICATE_PRINT_CLASS} ${VISITOR_CERTIFICATE_DOCUMENT_CLASS} relative mx-auto box-border grid overflow-hidden bg-[#f6f0e4] font-serif text-[#1a140c] print:p-0`}
+      className={`${VISITOR_CERTIFICATE_PRINT_CLASS} ${VISITOR_CERTIFICATE_DOCUMENT_CLASS} relative mx-auto box-border flex flex-col overflow-hidden bg-[#f7f3ea] print:p-0`}
       style={{
         width: VISITOR_CERTIFICATE_WIDTH_CSS,
         height: VISITOR_CERTIFICATE_HEIGHT_CSS,
         minHeight: VISITOR_CERTIFICATE_HEIGHT_CSS,
         maxHeight: VISITOR_CERTIFICATE_HEIGHT_CSS,
         color: '#1a140c',
-        gridTemplateRows: 'auto auto minmax(0, 1fr) auto auto',
-        padding: '6mm 7mm 3.5mm',
+        padding: '10mm 14mm 7mm',
       }}
     >
-      <div className="pointer-events-none absolute inset-[2.2mm] border-2 border-[#5b0303]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[3.6mm] border border-[#a6843d]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[4.8mm] border border-[#5b0303]/40" aria-hidden />
+      <CertificateOrnament />
 
-      {(['top-[6mm] left-[6mm]', 'top-[6mm] right-[6mm]', 'bottom-[6mm] left-[6mm]', 'bottom-[6mm] right-[6mm]'] as const).map(
-        (position) => (
-          <span
-            key={position}
-            className={`pointer-events-none absolute ${position} text-[10px] leading-none text-[#a6843d]`}
-            aria-hidden
-          >
-            ∴
-          </span>
-        ),
-      )}
-
-      <header className="relative z-10 grid grid-cols-[18mm_minmax(0,1fr)_18mm] items-center gap-2 px-[2mm]">
-        <BrandLogoImg
-          logoUrl={logoUrl}
-          alt="Brasão da Loja"
-          className="h-[16mm] w-[16mm] object-contain"
-          fallbackClassName="h-[14mm] w-[14mm] text-[#a6843d]"
-          sizes="18mm"
-          loading="eager"
-          decoding="sync"
-          crossOrigin="anonymous"
-        />
-        <div className="text-center">
-          <p className="certificate-motto uppercase text-[#a6843d]">
-            Sabedoria · Força · Beleza
-          </p>
-          <h1 className="certificate-lodge-name mt-0.5 font-bold">
-            {lodgeName}
-          </h1>
-          {contact.address ? (
-            <p className="mt-0.5 text-[8px] leading-snug text-[#1a140c]">
-              {contact.address}
-              {contact.city ? ` · ${contact.city}` : ''}
-            </p>
-          ) : null}
+      <header className="relative z-10 text-center">
+        <div className="flex items-center justify-center gap-3">
+          <BrandLogoImg
+            logoUrl={logoUrl}
+            alt="Brasão da Loja"
+            className="h-[13mm] w-[13mm] object-contain"
+            fallbackClassName="h-[12mm] w-[12mm] text-[#a6843d]"
+            sizes="14mm"
+            loading="eager"
+            decoding="sync"
+            crossOrigin="anonymous"
+          />
+          <SquareAndCompassIcon className="h-[13mm] w-[13mm]" />
         </div>
-        <SquareAndCompassIcon className="mx-auto h-[16mm] w-[16mm]" />
+        <p className="certificate-motto uppercase">Sabedoria · Força · Beleza</p>
+        <p className="certificate-lodge-name">{lodgeName}</p>
+        {contact.address ? (
+          <p className="certificate-address">
+            {contact.address}
+            {contact.city ? ` · ${contact.city}` : ''}
+          </p>
+        ) : null}
       </header>
 
-      <div className="certificate-title-band relative z-10 mx-[2mm] my-1">
-        <h2 className="certificate-title">Certificado de Presença</h2>
+      <h2 className="certificate-title relative z-10">Certificado de Presença</h2>
+      <p className="certificate-lead relative z-10">Este certificado é apresentado ao Ir∴</p>
+      <p className="certificate-name-line relative z-10">{isBlank ? '\u00a0' : visitor?.name}</p>
+
+      <div className="certificate-body relative z-10">
+        {isBlank ? <BlankStatement /> : <FilledStatement visitor={visitor!} sessionDate={sessionDate} />}
       </div>
 
-      {/* Corpo */}
-      <div className="certificate-body relative z-10 flex min-h-0 items-center justify-center px-[4mm] text-center text-[#1a140c]">
-        {blank || !visitor || !event ? (
-          <BlankCertificateStatement />
-        ) : (
-          <p>
-            Certificamos que o Ir∴{' '}
-            <strong className="font-semibold text-black">{visitor.name}</strong>, no
-            Grau de{' '}
-            <strong className="font-semibold text-black">{visitor.degree}</strong>, da{' '}
-            <strong className="font-semibold text-black">
-              {lodgeDisplay} Nº {visitor.lodgeNumber}
-            </strong>
-            , filiada à{' '}
-            <strong className="font-semibold text-black">{visitor.obedience}</strong>
-            {visitor.masonicNumber ? (
-              <>
-                , portador do Registro Maçônico Nº{' '}
-                <strong className="font-semibold text-black">
-                  {visitor.masonicNumber}
-                </strong>
-              </>
-            ) : null}
-            , esteve presente na sessão realizada em{' '}
-            <strong className="font-semibold text-black">
-              {formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
-                locale: ptBR,
-              })}
-            </strong>
-            , na qualidade de{' '}
-            <strong className="font-semibold text-black">Visitante</strong>.
-          </p>
-        )}
-      </div>
-
-      <p className="certificate-session relative z-10 px-[2mm] text-center italic text-[#5b0303]">
-        {blank || !event ? (
+      <p className="certificate-session relative z-10">
+        {isBlank ? (
           <>
-            Sessão: <HandLine width="88mm" />
+            Sessão <Write blank size="wide" />
           </>
         ) : (
-          `${event.type} — ${event.title}`
+          `“${sessionLabel}”`
         )}
       </p>
 
-      {/* Assinaturas */}
-      <footer className="relative z-10 mt-1 grid grid-cols-2 gap-6 px-[8mm]">
-        <div className="text-center">
-          <p className="certificate-gold mb-0.5 text-[8px]" aria-hidden>∴</p>
-          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#5b0303]" />
-          <p className="text-[9px] font-semibold leading-tight text-[#1a140c]">
-            {venerableMaster}
-          </p>
-          <p className="certificate-gold text-[7px] uppercase tracking-[0.14em]">
-            Venerável Mestre
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="certificate-gold mb-0.5 text-[8px]" aria-hidden>∴</p>
-          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#5b0303]" />
-          <p className="text-[9px] font-semibold leading-tight text-[#1a140c]">
-            {chancellor}
-          </p>
-          <p className="certificate-gold text-[7px] uppercase tracking-[0.14em]">
-            Chanceler
-          </p>
-        </div>
+      <footer className="relative z-10 mt-1 grid grid-cols-2 gap-8 px-[6mm]">
+        <Signature name={venerableMaster} role="Venerável Mestre" />
+        <Signature name={chancellor} role="Chanceler" />
       </footer>
 
-      <p className="certificate-footer relative z-10 px-[2mm] text-center text-[#5b0303]">
+      <p className="certificate-footer relative z-10">
         {blank
           ? 'Formulário para preenchimento à mão'
           : `Emitido em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} · Documento eletrônico`}
@@ -201,26 +137,63 @@ interface VisitorCertificateDocumentProps {
   blank?: boolean
 }
 
-function HandLine({ width }: { width: string }) {
+function FilledStatement({
+  visitor,
+  sessionDate,
+}: {
+  visitor: VisitorAttendance
+  sessionDate: string
+}) {
+  const lodgeDisplay = formatLodgeNameWithPrefix(visitor.lodge)
   return (
-    <span
-      className="mx-0.5 inline-block border-b border-black align-baseline"
-      style={{ width, minHeight: '1em' }}
-    >
-      {'\u00a0'}
+    <p className="certificate-prose">
+      Certificamos que o Ir∴ acima nominado, no Grau de <Write>{visitor.degree}</Write>, da{' '}
+      <Write size="wide">{`${lodgeDisplay} Nº ${visitor.lodgeNumber}`}</Write>
+      , filiada à <Write>{visitor.obedience}</Write>
+      {visitor.masonicNumber ? (
+        <>
+          , portador do Registro Maçônico Nº <Write>{visitor.masonicNumber}</Write>
+        </>
+      ) : null}
+      , esteve presente na sessão realizada em <Write size="wide">{sessionDate}</Write>, na
+      qualidade de <Write>Visitante</Write>.
+    </p>
+  )
+}
+
+function BlankStatement() {
+  return (
+    <p className="certificate-prose">
+      Certificamos que o Ir∴ acima nominado, no Grau de <Write blank />, da{' '}
+      <Write blank size="wide" /> Nº <Write blank size="short" />, filiada à <Write blank />,
+      portador do Registro Maçônico Nº <Write blank />, esteve presente na sessão realizada em{' '}
+      <Write blank size="wide" />, na qualidade de <Write>Visitante</Write>.
+    </p>
+  )
+}
+
+function Write({
+  children,
+  blank = false,
+  size = 'medium',
+}: {
+  children?: string
+  blank?: boolean
+  size?: 'short' | 'medium' | 'wide'
+}) {
+  return (
+    <span className={`certificate-write certificate-write-${size}${blank ? ' is-blank' : ''}`}>
+      {blank ? '\u00a0' : children}
     </span>
   )
 }
 
-function BlankCertificateStatement() {
+function Signature({ name, role }: { name: string; role: string }) {
   return (
-    <p>
-      Certificamos que o Ir∴ <HandLine width="42mm" />, no Grau de{' '}
-      <HandLine width="24mm" />, da A∴ R∴ L∴ S∴ <HandLine width="36mm" /> Nº{' '}
-      <HandLine width="14mm" />, filiada à <HandLine width="28mm" />, portador do
-      Registro Maçônico Nº <HandLine width="22mm" />, esteve presente na sessão
-      realizada em <HandLine width="32mm" />, na qualidade de{' '}
-      <strong className="font-semibold text-black">Visitante</strong>.
-    </p>
+    <div className="certificate-sign">
+      <p className="certificate-sign-name">{name}</p>
+      <span className="certificate-sign-line" />
+      <p className="certificate-gold certificate-sign-role">{role}</p>
+    </div>
   )
 }

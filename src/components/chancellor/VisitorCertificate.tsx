@@ -208,9 +208,9 @@ export function VisitorCertificate() {
           </CardTitle>
           <CardDescription>
             Gere o certificado, imprima em folha A4 na orientação paisagem e
-            compartilhe no WhatsApp em PDF e JPEG. O cartão fica centralizado
-            na folha, no padrão da impressora. O modelo em branco serve para
-            preencher à mão.
+            compartilhe no WhatsApp em PDF e JPEG. O texto fica justificado e
+            as linhas acompanham a largura do cartão de 20 cm × 15 cm. O modelo
+            em branco serve para preencher à mão.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

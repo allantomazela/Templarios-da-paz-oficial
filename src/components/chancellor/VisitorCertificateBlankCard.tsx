@@ -73,9 +73,10 @@ export function VisitorCertificateBlankCard({
       <CardHeader>
         <CardTitle className="text-base">Preenchimento manual</CardTitle>
         <CardDescription>
-          Imprime o certificado de 20 cm × 15 cm, centralizado na folha A4
-          paisagem, com linhas em branco. Não precisa escolher a sessão nem
-          preencher o visitante. Deixe o papel em A4 e a orientação em paisagem.
+          Imprime o mesmo certificado de 20 cm × 15 cm, com o nome em linha
+          larga e os demais campos justificados para escrever à mão. Não precisa
+          escolher a sessão nem preencher o visitante. Deixe o papel em A4 e a
+          orientação em paisagem.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

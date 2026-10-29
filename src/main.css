@@ -515,86 +515,183 @@ body {
   }
 }
 
-/* Certificado de visitante — texto preto na tela (regras globais p/h* usam branco no tema escuro) */
+/* Certificado de visitante — texto escuro na tela (regras globais p/h* usam branco no tema escuro) */
 .visitor-certificate-document,
 .visitor-certificate-document p,
 .visitor-certificate-document h1,
 .visitor-certificate-document h2,
-.visitor-certificate-document h3,
+.visitor-certificate-document span,
 .visitor-certificate-document strong,
-.visitor-certificate-document em,
 .visitor-certificate-document footer,
 .visitor-certificate-document header {
   color: #1a140c !important;
+  font-family: Palatino, 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+}
+
+.visitor-certificate-document .certificate-ornament {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .visitor-certificate-document .certificate-motto,
-.visitor-certificate-document .certificate-accent {
+.visitor-certificate-document .certificate-accent,
+.visitor-certificate-document .certificate-gold {
   color: #a6843d !important;
-  margin: 0;
+  margin: 0.4mm 0 0;
   font-size: 7px;
   line-height: 1.2;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
 }
 
 .visitor-certificate-document .certificate-lodge-name {
   color: #5b0303 !important;
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.15;
-  letter-spacing: 0.04em;
-}
-
-.visitor-certificate-document .certificate-title-band {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 8mm;
-  padding: 1.4mm 3mm;
-  background-color: #5b0303 !important;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-
-.visitor-certificate-document .certificate-title {
-  width: 100%;
-  margin: 0;
-  color: #f8f1e3 !important;
-  font-size: 12px !important;
+  margin: 0.4mm 0 0;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.16em;
-  text-indent: 0.16em;
-  text-align: center;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  text-indent: 0.08em;
   text-transform: uppercase;
 }
 
-.visitor-certificate-document .certificate-body p {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-  letter-spacing: 0;
-}
-
-.visitor-certificate-document .certificate-session {
-  margin: 0;
-  color: #5b0303 !important;
-  font-size: 10px;
-  line-height: 1.3;
-  letter-spacing: 0;
-}
-
-.visitor-certificate-document .certificate-footer {
-  margin: 0;
-  color: #5b0303 !important;
-  font-size: 6.5px;
+.visitor-certificate-document .certificate-address {
+  margin: 0.3mm 0 0;
+  font-size: 7.5px;
   line-height: 1.2;
   letter-spacing: 0;
 }
 
-.visitor-certificate-document .certificate-gold {
-  color: #a6843d !important;
+.visitor-certificate-document .certificate-title {
+  margin: 1.6mm 0 0;
+  color: #5b0303 !important;
+  font-family: Georgia, 'Palatino Linotype', Palatino, serif;
+  font-size: 22px !important;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-indent: 0;
+  text-transform: none;
+}
+
+.visitor-certificate-document .certificate-lead {
+  margin: 1.2mm 0 0;
+  font-size: 9px;
+  font-style: italic;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.visitor-certificate-document .certificate-name-line {
+  width: 78%;
+  min-height: 7.5mm;
+  margin: 0.6mm auto 0;
+  border-bottom: 0.35mm solid #5b0303;
+  color: #5b0303 !important;
+  font-family: Georgia, 'Palatino Linotype', Palatino, serif;
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.visitor-certificate-document .certificate-body {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-height: 0;
+  margin-top: 1.5mm;
+}
+
+.visitor-certificate-document .certificate-prose {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.65;
+  letter-spacing: 0;
+  text-align: justify;
+  text-align-last: left;
+  text-justify: inter-word;
+}
+
+.visitor-certificate-document .certificate-write {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0 1.2mm 0.1mm;
+  border-bottom: 0.28mm solid #5b0303;
+  color: #1a140c !important;
+  line-height: 1.05;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+.visitor-certificate-document .certificate-write.is-blank {
+  width: 24%;
+  min-width: 18mm;
+}
+
+.visitor-certificate-document .certificate-write-wide.is-blank {
+  width: 36%;
+  min-width: 32mm;
+}
+
+.visitor-certificate-document .certificate-write-short.is-blank {
+  width: 12%;
+  min-width: 12mm;
+}
+
+.visitor-certificate-document .certificate-session {
+  margin: 1mm 0 0;
+  color: #5b0303 !important;
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.visitor-certificate-document .certificate-sign {
+  text-align: center;
+}
+
+.visitor-certificate-document .certificate-sign-name {
+  margin: 0;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.visitor-certificate-document .certificate-sign-line {
+  display: block;
+  width: 42mm;
+  max-width: 100%;
+  height: 0;
+  margin: 4mm auto 0.6mm;
+  border-top: 0.3mm solid #5b0303;
+}
+
+.visitor-certificate-document .certificate-sign-role {
+  margin: 0;
+  font-size: 7px;
+  font-style: normal;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  text-transform: uppercase;
+}
+
+.visitor-certificate-document .certificate-footer {
+  margin: 0.8mm 0 0;
+  color: #5b0303 !important;
+  font-size: 6.5px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-align: center;
 }
 
 /* Melhor espaçamento de texto global - Usando variáveis CSS customizáveis */

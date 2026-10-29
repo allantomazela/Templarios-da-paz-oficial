@@ -44,6 +44,9 @@ describe('VisitorCertificateDocument', () => {
       />,
     )
     expect(screen.getByText('João Visitante')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Certificado de Presença' }).className).toContain(
+      'certificate-title',
+    )
     expect(screen.queryByText('Formulário para preenchimento à mão')).toBeNull()
   })
 

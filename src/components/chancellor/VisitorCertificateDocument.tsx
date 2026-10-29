@@ -9,10 +9,7 @@ import {
   VISITOR_CERTIFICATE_WIDTH_CSS,
 } from '@/lib/visitor-certificate-export'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
-import {
-  BrandLogoImg,
-  BRAND_LOGO_INTRINSIC_SIZE,
-} from '@/components/brand/BrandLogoImg'
+import { BrandLogoImg } from '@/components/brand/BrandLogoImg'
 import { SquareAndCompassIcon } from '@/components/brand/SquareAndCompassIcon'
 import type { Event, VisitorAttendance } from '@/lib/data'
 
@@ -25,7 +22,7 @@ export const VISITOR_CERTIFICATE_PRINT_CLASS = 'visitor-presence-card'
 export const VISITOR_CERTIFICATE_PAGE_STYLE = `
   @page {
     size: A4 landscape;
-    margin: 8mm;
+    margin: 12mm;
   }
   @media print {
     html, body {
@@ -69,9 +66,9 @@ export function VisitorCertificateDocument({
         padding: '6mm 7mm 3.5mm',
       }}
     >
-      <div className="pointer-events-none absolute inset-[2.2mm] border-2 border-[#1b2838]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[2.2mm] border-2 border-[#5b0303]" aria-hidden />
       <div className="pointer-events-none absolute inset-[3.6mm] border border-[#a6843d]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[4.8mm] border border-[#1b2838]/35" aria-hidden />
+      <div className="pointer-events-none absolute inset-[4.8mm] border border-[#5b0303]/40" aria-hidden />
 
       {(['top-[6mm] left-[6mm]', 'top-[6mm] right-[6mm]', 'bottom-[6mm] left-[6mm]', 'bottom-[6mm] right-[6mm]'] as const).map(
         (position) => (
@@ -85,23 +82,22 @@ export function VisitorCertificateDocument({
         ),
       )}
 
-      <header className="relative z-10 grid grid-cols-[16mm_minmax(0,1fr)_16mm] items-center gap-2 px-[2mm]">
+      <header className="relative z-10 grid grid-cols-[18mm_minmax(0,1fr)_18mm] items-center gap-2 px-[2mm]">
         <BrandLogoImg
           logoUrl={logoUrl}
           alt="Brasão da Loja"
-          className="h-[14mm] w-[14mm] object-contain"
-          fallbackClassName="h-[12mm] w-[12mm] text-[#a6843d]"
-          width={BRAND_LOGO_INTRINSIC_SIZE}
-          height={BRAND_LOGO_INTRINSIC_SIZE}
-          sizes="16mm"
+          className="h-[16mm] w-[16mm] object-contain"
+          fallbackClassName="h-[14mm] w-[14mm] text-[#a6843d]"
+          sizes="18mm"
           loading="eager"
+          decoding="sync"
           crossOrigin="anonymous"
         />
         <div className="text-center">
-          <p className="text-[7px] uppercase tracking-[0.34em] text-[#a6843d]">
+          <p className="certificate-motto uppercase text-[#a6843d]">
             Sabedoria · Força · Beleza
           </p>
-          <h1 className="mt-0.5 text-[15px] font-bold leading-tight tracking-wide text-[#1b2838] print:text-[14px]">
+          <h1 className="certificate-lodge-name mt-0.5 font-bold">
             {lodgeName}
           </h1>
           {contact.address ? (
@@ -111,17 +107,15 @@ export function VisitorCertificateDocument({
             </p>
           ) : null}
         </div>
-        <SquareAndCompassIcon className="h-[14mm] w-[14mm]" />
+        <SquareAndCompassIcon className="mx-auto h-[16mm] w-[16mm]" />
       </header>
 
-      <div className="relative z-10 mx-[2mm] my-1 bg-[#1b2838] px-3 py-1 text-center">
-        <h2 className="text-[13px] font-bold uppercase tracking-[0.22em] text-[#f6f0e4] print:text-[12px]">
-          Certificado de Presença
-        </h2>
+      <div className="certificate-title-band relative z-10 mx-[2mm] my-1">
+        <h2 className="certificate-title">Certificado de Presença</h2>
       </div>
 
       {/* Corpo */}
-      <div className="relative z-10 flex min-h-0 items-center justify-center px-[4mm] text-center text-[11px] leading-[1.5] text-[#1a140c] print:text-[10px]">
+      <div className="certificate-body relative z-10 flex min-h-0 items-center justify-center px-[4mm] text-center text-[#1a140c]">
         {blank || !visitor || !event ? (
           <BlankCertificateStatement />
         ) : (
@@ -155,7 +149,7 @@ export function VisitorCertificateDocument({
         )}
       </div>
 
-      <p className="relative z-10 px-[2mm] text-center text-[10px] italic leading-snug text-[#1b2838] print:text-[9px]">
+      <p className="certificate-session relative z-10 px-[2mm] text-center italic text-[#5b0303]">
         {blank || !event ? (
           <>
             Sessão: <HandLine width="88mm" />
@@ -168,28 +162,28 @@ export function VisitorCertificateDocument({
       {/* Assinaturas */}
       <footer className="relative z-10 mt-1 grid grid-cols-2 gap-6 px-[8mm]">
         <div className="text-center">
-          <p className="mb-0.5 text-[8px] text-[#a6843d]" aria-hidden>∴</p>
-          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#1b2838]" />
+          <p className="certificate-gold mb-0.5 text-[8px]" aria-hidden>∴</p>
+          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#5b0303]" />
           <p className="text-[9px] font-semibold leading-tight text-[#1a140c]">
             {venerableMaster}
           </p>
-          <p className="text-[7px] uppercase tracking-[0.14em] text-[#a6843d]">
+          <p className="certificate-gold text-[7px] uppercase tracking-[0.14em]">
             Venerável Mestre
           </p>
         </div>
         <div className="text-center">
-          <p className="mb-0.5 text-[8px] text-[#a6843d]" aria-hidden>∴</p>
-          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#1b2838]" />
+          <p className="certificate-gold mb-0.5 text-[8px]" aria-hidden>∴</p>
+          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#5b0303]" />
           <p className="text-[9px] font-semibold leading-tight text-[#1a140c]">
             {chancellor}
           </p>
-          <p className="text-[7px] uppercase tracking-[0.14em] text-[#a6843d]">
+          <p className="certificate-gold text-[7px] uppercase tracking-[0.14em]">
             Chanceler
           </p>
         </div>
       </footer>
 
-      <p className="relative z-10 px-[2mm] text-center text-[6.5px] leading-tight text-[#1b2838]">
+      <p className="certificate-footer relative z-10 px-[2mm] text-center text-[#5b0303]">
         {blank
           ? 'Formulário para preenchimento à mão'
           : `Emitido em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} · Documento eletrônico`}

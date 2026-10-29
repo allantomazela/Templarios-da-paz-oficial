@@ -19,7 +19,8 @@ export function SquareAndCompassIcon({
       alt={title}
       className={cn('object-contain', className)}
       loading="eager"
-      decoding="async"
+      decoding="sync"
+      crossOrigin="anonymous"
       width={512}
       height={512}
     />

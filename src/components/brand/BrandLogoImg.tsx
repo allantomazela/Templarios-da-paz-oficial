@@ -13,7 +13,7 @@ interface BrandLogoImgProps {
   className?: string
   fallbackClassName?: string
   loading?: 'eager' | 'lazy'
-  decoding?: 'async' | 'auto'
+  decoding?: 'async' | 'sync' | 'auto'
   sizes?: string
   style?: CSSProperties
   /** Prioridade de fetch (ex.: `high` no logo acima da dobra / LCP). */

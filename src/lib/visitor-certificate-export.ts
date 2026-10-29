@@ -1,14 +1,20 @@
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
-/** Cartão desenhado em 20 cm × 15 cm. A impressão coloca esse cartão no centro de uma folha A4 paisagem. */
+/** Cartão de presença no tamanho usual da loja: 20 cm × 15 cm. */
 export const VISITOR_CERTIFICATE_WIDTH_MM = 200
 export const VISITOR_CERTIFICATE_HEIGHT_MM = 150
 export const VISITOR_CERTIFICATE_A4_WIDTH_MM = 297
 export const VISITOR_CERTIFICATE_A4_HEIGHT_MM = 210
-/** Mantém a proporção 20×15 e cabe na A4 paisagem com margem. */
-export const VISITOR_CERTIFICATE_ON_A4_WIDTH_MM = 250
-export const VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM = 187.5
+/**
+ * Na folha A4 o cartão sai neste tamanho, sem ampliar.
+ * A versão anterior (250×187,5 mm) encostava na margem e a impressora cortava a borda.
+ */
+export const VISITOR_CERTIFICATE_ON_A4_WIDTH_MM = VISITOR_CERTIFICATE_WIDTH_MM
+export const VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM = VISITOR_CERTIFICATE_HEIGHT_MM
+
+/** Captura acima da tela para as logos não ficarem serrilhadas na impressão. */
+const CERTIFICATE_CAPTURE_SCALE = 3
 
 export const VISITOR_CERTIFICATE_WIDTH_CSS = `${VISITOR_CERTIFICATE_WIDTH_MM}mm`
 export const VISITOR_CERTIFICATE_HEIGHT_CSS = `${VISITOR_CERTIFICATE_HEIGHT_MM}mm`
@@ -17,6 +23,8 @@ export interface VisitorCertificateExportResult {
   jpegBlob: Blob
   pdfBlob: Blob
   jpegDataUrl: string
+  /** PNG em alta definição, usado na impressão e no PDF. */
+  printDataUrl: string
 }
 
 function sanitizeFileName(value: string): string {
@@ -43,17 +51,17 @@ export function buildBlankVisitorCertificateFileBaseName(): string {
 async function waitForImages(element: HTMLElement): Promise<void> {
   const images = Array.from(element.querySelectorAll('img'))
   await Promise.all(
-    images.map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) {
-            resolve()
-            return
-          }
+    images.map(async (img) => {
+      if (!img.complete) {
+        await new Promise<void>((resolve) => {
           img.onload = () => resolve()
           img.onerror = () => resolve()
-        }),
-    ),
+        })
+      }
+      if (typeof img.decode === 'function') {
+        await img.decode().catch(() => undefined)
+      }
+    }),
   )
 }
 
@@ -72,7 +80,7 @@ export async function exportVisitorCertificateAssets(
   await waitForImages(element)
 
   const captureOptions = {
-    scale: Math.min(window.devicePixelRatio || 2, 2),
+    scale: CERTIFICATE_CAPTURE_SCALE,
     useCORS: true,
     backgroundColor: '#f6f0e4',
     logging: false,
@@ -93,12 +101,13 @@ export async function exportVisitorCertificateAssets(
     })
   }
 
-  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92)
+  const printDataUrl = canvas.toDataURL('image/png')
+  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95)
   const jpegBlob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error('Falha ao gerar JPEG'))),
       'image/jpeg',
-      0.92,
+      0.95,
     )
   })
 
@@ -109,19 +118,19 @@ export async function exportVisitorCertificateAssets(
   })
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
-  const imageX = (pageWidth - VISITOR_CERTIFICATE_ON_A4_WIDTH_MM) / 2
-  const imageY = (pageHeight - VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM) / 2
+  const imageX = (pageWidth - VISITOR_CERTIFICATE_WIDTH_MM) / 2
+  const imageY = (pageHeight - VISITOR_CERTIFICATE_HEIGHT_MM) / 2
   pdf.addImage(
-    jpegDataUrl,
-    'JPEG',
+    printDataUrl,
+    'PNG',
     imageX,
     imageY,
-    VISITOR_CERTIFICATE_ON_A4_WIDTH_MM,
-    VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM,
+    VISITOR_CERTIFICATE_WIDTH_MM,
+    VISITOR_CERTIFICATE_HEIGHT_MM,
   )
   const pdfBlob = pdf.output('blob')
 
-  return { jpegBlob, pdfBlob, jpegDataUrl }
+  return { jpegBlob, pdfBlob, jpegDataUrl, printDataUrl }
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
@@ -144,7 +153,7 @@ function escapeHtml(value: string): string {
 }
 
 export function openVisitorCertificatePrintWindow(
-  jpegDataUrl: string,
+  printDataUrl: string,
   documentTitle: string,
 ): boolean {
   if (typeof window === 'undefined') return false
@@ -163,28 +172,27 @@ export function openVisitorCertificatePrintWindow(
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       margin: 0;
+      height: 100%;
       background: #fff;
     }
     body {
-      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     img {
       display: block;
-      width: ${VISITOR_CERTIFICATE_ON_A4_WIDTH_MM}mm;
-      height: ${VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM}mm;
-      object-fit: contain;
+      width: ${VISITOR_CERTIFICATE_WIDTH_MM}mm;
+      height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm;
     }
     @page {
       size: A4 landscape;
-      margin: 8mm;
+      margin: 12mm;
     }
   </style>
 </head>
 <body>
-  <img id="certificate-print-img" src="${jpegDataUrl}" alt="Certificado de presença" />
+  <img id="certificate-print-img" src="${printDataUrl}" alt="Certificado de presença" />
   <script>
     (function () {
       function doPrint() {

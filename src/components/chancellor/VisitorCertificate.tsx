@@ -169,7 +169,7 @@ export function VisitorCertificate() {
     try {
       const assets = await runExport()
       const opened = openVisitorCertificatePrintWindow(
-        assets.jpegDataUrl,
+        assets.printDataUrl,
         fileBaseName,
       )
       if (!opened) {
@@ -406,8 +406,9 @@ export function VisitorCertificate() {
               Pré-visualização
             </CardTitle>
             <CardDescription>
-              Na impressão, deixe o papel em A4 e a orientação em paisagem. O
-              certificado aparece centralizado, como nesta pré-visualização.
+              O certificado mede 20 cm × 15 cm e sai centralizado na folha A4
+              paisagem, sem ampliar. Deixe o papel em A4 e a orientação em
+              paisagem para a borda não ser cortada.
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">

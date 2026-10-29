@@ -5,6 +5,11 @@ import {
   EMPTY_SESSION_SPEECH_FILTERS,
   type SessionSpeechFilters,
 } from '@/lib/session-speech-list'
+import {
+  manualSpeechValidationError,
+  mergeManualSpeechRows,
+  type SessionSpeechNote,
+} from '@/lib/session-speech-manual'
 
 function brother(overrides: Partial<Brother>): Brother {
   return {
@@ -102,6 +107,40 @@ describe('buildSessionSpeechRows', () => {
       'Dia das Crianças',
       'Dia do Professor',
       'Dia do Médico',
+    ])
+  })
+})
+
+describe('falas manuais', () => {
+  const note: SessionSpeechNote = {
+    id: 'n1',
+    date: '2026-10-26',
+    speech: 'Homenagem',
+    name: 'Visitante',
+    note: '',
+  }
+
+  it('exige data, fala e nome', () => {
+    expect(manualSpeechValidationError({ date: '', speech: 'A', name: 'B', note: '' })).toMatch(/data/i)
+    expect(manualSpeechValidationError({ date: '2026-10-26', speech: '  ', name: 'B', note: '' })).toMatch(/falado/i)
+    expect(manualSpeechValidationError({ date: '2026-10-26', speech: 'A', name: 'B', note: '' })).toBeNull()
+  })
+
+  it('entra na lista do período mesmo sem filtro automático', () => {
+    const rows = mergeManualSpeechRows(
+      buildSessionSpeechRows([], EMPTY_SESSION_SPEECH_FILTERS, '2026-10-26', '2026-10-26'),
+      [note, { ...note, id: 'fora', date: '2026-11-01' }],
+      '2026-10-26',
+      '2026-10-26',
+    )
+    expect(rows).toEqual([
+      {
+        id: 'manual-n1',
+        date: '2026-10-26',
+        speech: 'Homenagem',
+        name: 'Visitante',
+        link: 'Registro manual do Chanceler',
+      },
     ])
   })
 })

@@ -9,11 +9,11 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 29/10/2026 |
-| Commit | 2fa7d37 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** a aba Presença da Chancelaria separa próximas e anteriores, com busca e filtros. Arquivos: `src/components/chancellor/AttendancePresenceList.tsx`, `src/components/chancellor/AttendancePresenceRows.tsx` e `src/lib/attendance-presence-list.ts`.
+**O que ficou pronto:** na Chancelaria, a Agenda da Loja separa próximas e anteriores como a Presença. Falas da sessão ganhou registro manual (data, fala, nome e observação), gravado na tabela nova `session_speech_notes` no Supabase Templários Oficial, com RLS só para quem gere a Chancelaria. O Controle de Graus continua editando grau e datas; desligados e In Memoriam ficam num grupo recolhido e seguem editáveis. O site publicado ainda não recebeu esta tela.
 
-No mesmo commit, o `package-lock.json` recebeu o `npm audit fix` sem `--force`. Os avisos foram de 36 para 9. Os 9 restantes pedem troca major do Vitest/Vite ou rebaixamento do Tailwind, e ficaram de fora.
+Arquivos: `src/components/chancellor/LodgeAgendaList.tsx`, `src/components/chancellor/SessionSpeechManualForm.tsx`, `src/components/chancellor/DegreeManager.tsx`, `src/lib/session-speech-manual.ts`, `supabase/migrations/20261029120000_session_speech_notes.sql`.
 
 ## Banco
 

@@ -332,7 +332,11 @@ export function buildSessionSpeechRows(
 
   if (filters.society) addSocietyDates(rows, start, end)
 
-  return rows.sort((left, right) => {
+  return sortSessionSpeechRows(rows)
+}
+
+export function sortSessionSpeechRows(rows: SessionSpeechRow[]): SessionSpeechRow[] {
+  return [...rows].sort((left, right) => {
     const byDate = left.date.localeCompare(right.date)
     if (byDate !== 0) return byDate
     const bySpeech = left.speech.localeCompare(right.speech, 'pt-BR')

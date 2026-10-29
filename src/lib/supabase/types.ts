@@ -2942,6 +2942,47 @@ export type Database = {
         }
         Relationships: []
       }
+      session_speech_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string
+          person_name: string
+          speech: string
+          speech_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string
+          person_name: string
+          speech: string
+          speech_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string
+          person_name?: string
+          speech?: string
+          speech_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_speech_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visitor_attendances: {
         Row: {
           created_at: string

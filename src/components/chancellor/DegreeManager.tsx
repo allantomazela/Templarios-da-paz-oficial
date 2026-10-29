@@ -1,57 +1,65 @@
-import { useState } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
+import { useMemo, useState } from 'react'
+import { ChevronDown, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import useChancellorStore from '@/stores/useChancellorStore'
-import { formatDateBR, toDateInputValue } from '@/lib/format-utils'
-import { Pencil, Search } from 'lucide-react'
+import { toDateInputValue } from '@/lib/format-utils'
 import { Brother } from '@/lib/data'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { saveBrotherDegreeInfo } from '@/lib/chancellor-degree-api'
 import { coerceMasonicDegree } from '@/lib/masonic-degree'
+import {
+  brotherMatchesDegreeSearch,
+  partitionDegreeRoster,
+} from '@/lib/degree-roster'
+import { DegreeEditDialog, type DegreeFormData } from './DegreeEditDialog'
+import { DegreeRosterTable } from './DegreeRosterTable'
+
+const EMPTY_FORM: DegreeFormData = {
+  degree: 'Aprendiz',
+  initiationDate: '',
+  elevationDate: '',
+  exaltationDate: '',
+}
 
 export function DegreeManager() {
   const { brothers, updateBrotherDegree } = useChancellorStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [editingBrother, setEditingBrother] = useState<Brother | null>(null)
+  const [formData, setFormData] = useState<DegreeFormData>(EMPTY_FORM)
   const dialog = useDialog()
 
-  // Form State
-  const [formData, setFormData] = useState({
-    degree: '',
-    initiationDate: '',
-    elevationDate: '',
-    exaltationDate: '',
-  })
+  const filtered = useMemo(
+    () => brothers.filter((brother) => brotherMatchesDegreeSearch(brother, searchTerm)),
+    [brothers, searchTerm],
+  )
+  const roster = useMemo(() => partitionDegreeRoster(filtered), [filtered])
+  const searching = searchTerm.trim().length > 0
 
-  const filteredBrothers = brothers.filter((b) =>
-    b.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  const saveOperation = useAsyncOperation(
+    async () => {
+      if (!editingBrother) return null
+      const saved = await saveBrotherDegreeInfo(editingBrother.id, {
+        degree: coerceMasonicDegree(formData.degree),
+        initiationDate: formData.initiationDate,
+        elevationDate: formData.elevationDate,
+        exaltationDate: formData.exaltationDate,
+      })
+      updateBrotherDegree(editingBrother.id, saved)
+      return `Registro do Ir. ${editingBrother.name} atualizado com sucesso.`
+    },
+    {
+      successMessage: 'Dados atualizados com sucesso!',
+      errorMessage: 'Falha ao atualizar os dados.',
+    },
   )
 
-  const handleEdit = (brother: Brother) => {
+  function handleEdit(brother: Brother) {
     setEditingBrother(brother)
     setFormData({
       degree: brother.degree,
@@ -62,151 +70,72 @@ export function DegreeManager() {
     dialog.openDialog()
   }
 
-  const saveOperation = useAsyncOperation(
-    async () => {
-      if (editingBrother) {
-        const saved = await saveBrotherDegreeInfo(editingBrother.id, {
-          degree: coerceMasonicDegree(formData.degree),
-          initiationDate: formData.initiationDate,
-          elevationDate: formData.elevationDate,
-          exaltationDate: formData.exaltationDate,
-        })
-        updateBrotherDegree(editingBrother.id, saved)
-        return `Registro do Ir. ${editingBrother.name} atualizado com sucesso.`
-      }
-      return null
-    },
-    {
-      successMessage: 'Dados atualizados com sucesso!',
-      errorMessage: 'Falha ao atualizar os dados.',
-    },
-  )
-
-  const handleSave = async () => {
+  async function handleSave() {
     const result = await saveOperation.execute()
-    if (result) {
-      dialog.closeDialog()
-    }
+    if (result) dialog.closeDialog()
   }
-
-  const formatDate = (dateStr?: string) =>
-    dateStr ? formatDateBR(dateStr) || '-' : '-'
 
   return (
     <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold">Controle de alterações de grau</h3>
+        <p className="text-sm text-muted-foreground">
+          O quadro ativo fica nesta lista. Desligados e In Memoriam ficam no grupo
+          de baixo e continuam editáveis.
+        </p>
+      </div>
+
       <div className="relative max-w-sm">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar irmão..."
+          placeholder="Buscar irmão ou CIM..."
           className="pl-8"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          aria-label="Buscar irmão ou CIM"
         />
       </div>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Irmão</TableHead>
-              <TableHead>Grau Atual</TableHead>
-              <TableHead>Iniciação</TableHead>
-              <TableHead>Elevação</TableHead>
-              <TableHead>Exaltação</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredBrothers.map((brother) => (
-              <TableRow key={brother.id}>
-                <TableCell className="font-medium">{brother.name}</TableCell>
-                <TableCell>{brother.degree}</TableCell>
-                <TableCell>{formatDate(brother.initiationDate)}</TableCell>
-                <TableCell>{formatDate(brother.elevationDate)}</TableCell>
-                <TableCell>{formatDate(brother.exaltationDate)}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(brother)}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" /> Editar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <section className="space-y-2">
+        <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Quadro ativo ({roster.active.length})
+        </h4>
+        <DegreeRosterTable
+          brothers={roster.active}
+          emptyLabel="Nenhum irmão do quadro ativo neste filtro."
+          onEdit={handleEdit}
+        />
+      </section>
 
-      <Dialog open={dialog.open} onOpenChange={dialog.onOpenChange}>
-        <DialogContent aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>Atualizar Grau e Datas</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Grau</Label>
-              <Select
-                value={formData.degree}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, degree: val })
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Aprendiz">Aprendiz</SelectItem>
-                  <SelectItem value="Companheiro">Companheiro</SelectItem>
-                  <SelectItem value="Mestre">Mestre</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Iniciação</Label>
-              <Input
-                type="date"
-                className="col-span-3"
-                value={formData.initiationDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, initiationDate: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Elevação</Label>
-              <Input
-                type="date"
-                className="col-span-3"
-                value={formData.elevationDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, elevationDate: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Exaltação</Label>
-              <Input
-                type="date"
-                className="col-span-3"
-                value={formData.exaltationDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, exaltationDate: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => dialog.closeDialog()}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saveOperation.loading}>
-              Salvar Alterações
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Collapsible key={searching ? 'search-open' : 'browse'} defaultOpen={searching}>
+        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border bg-card px-3 py-2 text-left text-sm font-medium hover:bg-accent data-[state=open]:[&_svg]:rotate-180">
+          <span>
+            Desligados e In Memoriam
+            <span className="ml-2 text-muted-foreground">({roster.inactive.length})</span>
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-2">
+          <DegreeRosterTable
+            brothers={roster.inactive}
+            emptyLabel="Nenhum irmão desligado ou In Memoriam neste filtro."
+            onEdit={handleEdit}
+          />
+        </CollapsibleContent>
+      </Collapsible>
+
+      <DegreeEditDialog
+        open={dialog.open}
+        brotherName={editingBrother?.name ?? 'irmão'}
+        formData={formData}
+        saving={saveOperation.loading}
+        onOpenChange={dialog.onOpenChange}
+        onChange={setFormData}
+        onCancel={() => dialog.closeDialog()}
+        onSave={() => {
+          void handleSave()
+        }}
+      />
     </div>
   )
 }

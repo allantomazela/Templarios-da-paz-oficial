@@ -54,10 +54,6 @@ function compareItemsAsc(left: AttendanceListItem, right: AttendanceListItem) {
   return compareChancellorEventsByDateAsc(left.event, right.event)
 }
 
-function compareItemsDesc(left: AttendanceListItem, right: AttendanceListItem) {
-  return compareChancellorEventsByDateAsc(right.event, left.event)
-}
-
 function normalizeSearch(value: string): string {
   return value
     .normalize('NFD')
@@ -87,11 +83,13 @@ export function filterAttendanceItems(
   })
 }
 
-export type AttendanceMonthGroup = {
+export type DatedMonthGroup<T> = {
   key: string
   label: string
-  items: AttendanceListItem[]
+  items: T[]
 }
+
+export type AttendanceMonthGroup = DatedMonthGroup<AttendanceListItem>
 
 function monthLabel(key: string): string {
   const [year, month] = key.split('-')
@@ -101,16 +99,18 @@ function monthLabel(key: string): string {
 }
 
 /** Próximas em ordem crescente. Anteriores agrupadas por mês, do mais recente ao mais antigo. */
-export function splitAttendanceByDate(
-  items: AttendanceListItem[],
+export function splitDatedItems<T>(
+  items: T[],
   today: string,
-): { upcoming: AttendanceListItem[]; pastMonths: AttendanceMonthGroup[] } {
-  const upcoming: AttendanceListItem[] = []
-  const undated: AttendanceListItem[] = []
-  const pastByMonth = new Map<string, AttendanceListItem[]>()
+  readDate: (item: T) => string | null | undefined,
+  compareAsc: (left: T, right: T) => number,
+): { upcoming: T[]; pastMonths: DatedMonthGroup<T>[] } {
+  const upcoming: T[] = []
+  const undated: T[] = []
+  const pastByMonth = new Map<string, T[]>()
 
   for (const item of items) {
-    const day = calendarDay(item.event.date)
+    const day = calendarDay(readDate(item))
     if (!day) {
       undated.push(item)
       continue
@@ -125,14 +125,15 @@ export function splitAttendanceByDate(
     pastByMonth.set(monthKey, bucket)
   }
 
-  upcoming.sort(compareItemsAsc)
+  upcoming.sort(compareAsc)
+  const compareDesc = (left: T, right: T) => compareAsc(right, left)
 
-  const pastMonths: AttendanceMonthGroup[] = [...pastByMonth.entries()]
+  const pastMonths: DatedMonthGroup<T>[] = [...pastByMonth.entries()]
     .sort(([left], [right]) => right.localeCompare(left))
     .map(([key, monthItems]) => ({
       key,
       label: monthLabel(key),
-      items: [...monthItems].sort(compareItemsDesc),
+      items: [...monthItems].sort(compareDesc),
     }))
 
   if (undated.length > 0) {
@@ -146,6 +147,13 @@ export function splitAttendanceByDate(
   return { upcoming, pastMonths }
 }
 
+export function splitAttendanceByDate(
+  items: AttendanceListItem[],
+  today: string,
+): { upcoming: AttendanceListItem[]; pastMonths: AttendanceMonthGroup[] } {
+  return splitDatedItems(items, today, (item) => item.event.date, compareItemsAsc)
+}
+
 export function attendanceYears(items: AttendanceListItem[]): string[] {
   const years = new Set<string>()
   for (const item of items) {
@@ -157,7 +165,7 @@ export function attendanceYears(items: AttendanceListItem[]): string[] {
 
 /** Mês corrente aberto. Sem eventos nesse mês, abre o mês anterior mais recente. */
 export function initialOpenMonthKeys(
-  groups: AttendanceMonthGroup[],
+  groups: { key: string }[],
   today: string,
 ): string[] {
   const current = today.slice(0, 7)

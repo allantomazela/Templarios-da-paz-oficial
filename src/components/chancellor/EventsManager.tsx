@@ -1,44 +1,27 @@
 import { useState } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import useChancellorStore from '@/stores/useChancellorStore'
 import { Event } from '@/lib/data'
-import { EventDialog } from './EventDialog'
-import { formatDateBR } from '@/lib/format-utils'
-import { Badge } from '@/components/ui/badge'
+import { EventDialog, type EventDialogSaveData } from './EventDialog'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
+import { todayLocalISODate } from '@/lib/format-utils'
+import { LodgeAgendaList } from './LodgeAgendaList'
 
 export function EventsManager() {
   const { events, addEvent, updateEvent, deleteEvent } = useChancellorStore()
-  const [searchTerm, setSearchTerm] = useState('')
   const dialog = useDialog()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
 
-  const filteredEvents = events.filter((event) =>
-    event.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
   const saveOperation = useAsyncOperation(
-    async (data: any) => {
+    async (data: EventDialogSaveData) => {
       if (selectedEvent) {
         const saved = await updateEvent({ ...selectedEvent, ...data })
         if (!saved) throw new Error('Falha ao atualizar evento')
         return 'Evento atualizado com sucesso.'
-      } else {
-        const saved = await addEvent({ id: crypto.randomUUID(), ...data })
-        if (!saved) throw new Error('Falha ao criar evento')
-        return 'Evento criado com sucesso.'
       }
+      const saved = await addEvent({ id: crypto.randomUUID(), ...data })
+      if (!saved) throw new Error('Falha ao criar evento')
+      return 'Evento criado com sucesso.'
     },
     {
       successMessage: 'Operação realizada com sucesso!',
@@ -57,15 +40,9 @@ export function EventsManager() {
     },
   )
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: EventDialogSaveData) => {
     const result = await saveOperation.execute(data)
-    if (result) {
-      dialog.closeDialog()
-    }
-  }
-
-  const handleDelete = (id: string) => {
-    deleteOperation.execute(id)
+    if (result) dialog.closeDialog()
   }
 
   const openNew = () => {
@@ -80,75 +57,15 @@ export function EventsManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar eventos..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Evento / Sessão
-        </Button>
-      </div>
-
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Hora</TableHead>
-              <TableHead>Evento</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Local</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredEvents.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Nenhum evento encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredEvents.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell>
-                    {formatDateBR(event.date)}
-                  </TableCell>
-                  <TableCell>{event.time}</TableCell>
-                  <TableCell className="font-medium">{event.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{event.type}</Badge>
-                  </TableCell>
-                  <TableCell>{event.location}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(event)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(event.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <LodgeAgendaList
+        events={events}
+        today={todayLocalISODate()}
+        onCreate={openNew}
+        onEdit={openEdit}
+        onDelete={(id) => {
+          void deleteOperation.execute(id)
+        }}
+      />
 
       <EventDialog
         open={dialog.open}

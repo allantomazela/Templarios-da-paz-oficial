@@ -9,11 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 29/10/2026 |
-| Commit | cdee23b |
+| Commit | 8a78603 |
 
-**O que ficou pronto:** na Chancelaria, a Agenda da Loja separa próximas e anteriores como a Presença. Falas da sessão ganhou registro manual (data, fala, nome e observação), gravado na tabela `session_speech_notes` no Supabase Templários Oficial, com RLS só para quem gere a Chancelaria. O Controle de Graus continua editando grau e datas; desligados e In Memoriam ficam num grupo recolhido e seguem editáveis.
-
-Arquivos: `src/components/chancellor/LodgeAgendaList.tsx`, `src/components/chancellor/SessionSpeechManualForm.tsx`, `src/components/chancellor/DegreeManager.tsx`, `src/lib/session-speech-manual.ts`, `supabase/migrations/20261029120000_session_speech_notes.sql`.
+**O que ficou pronto:** no Certificado de Presença para Visitantes, o cartão preenchido continua igual. Abaixo dele há o modelo em branco, no mesmo tamanho de 20 cm × 15 cm, com linhas para nome, grau, loja, número, obediência, registro, data e sessão. O botão **Imprimir para preenchimento manual** não exige sessão nem dados do visitante. Arquivos: `src/components/chancellor/VisitorCertificateBlankCard.tsx` e `src/components/chancellor/VisitorCertificateDocument.tsx`.
 
 ## Banco
 

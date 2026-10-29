@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 29/10/2026 |
-| Commit | 8fa3ac5 |
+| Commit | f845caa |
 
-**O que ficou pronto:** o Certificado de Presença para Visitantes imprime centralizado em folha A4 paisagem, no padrão da impressora. O desenho ganhou moldura azul e dourada, a faixa do título e a divisa Sabedoria, Força e Beleza. As duas logos, o brasão da loja e o esquadro e compasso, permanecem. O formulário em branco usa o mesmo modelo. Arquivos: `src/components/chancellor/VisitorCertificateDocument.tsx` e `src/lib/visitor-certificate-export.ts`.
+**O que ficou pronto:** o título "Certificado de Presença" ficou centralizado, em creme sobre a faixa vinho da logo (`#5b0303`), no lugar do azul. A impressão voltou ao cartão de 20×15 cm, centralizado na A4 paisagem, para a borda não ser cortada. A captura da impressão e do PDF passou a PNG em escala maior, para as duas logos saírem mais nítidas. Arquivos: `src/components/chancellor/VisitorCertificateDocument.tsx`, `src/main.css` e `src/lib/visitor-certificate-export.ts`.
 
 ## Banco
 

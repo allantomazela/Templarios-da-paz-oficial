@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 29/10/2026 |
-| Commit | f845caa |
+| Commit | 48968d1 |
 
-**O que ficou pronto:** o título "Certificado de Presença" ficou centralizado, em creme sobre a faixa vinho da logo (`#5b0303`), no lugar do azul. A impressão voltou ao cartão de 20×15 cm, centralizado na A4 paisagem, para a borda não ser cortada. A captura da impressão e do PDF passou a PNG em escala maior, para as duas logos saírem mais nítidas. Arquivos: `src/components/chancellor/VisitorCertificateDocument.tsx`, `src/main.css` e `src/lib/visitor-certificate-export.ts`.
+**O que ficou pronto:** o Certificado de Presença foi redesenhado no formato do modelo de referência: moldura trabalhada (filetes, trançado, cantos e medalhões) em vinho e dourado, emblemas no topo, título em vinho, nome numa linha larga e texto justificado. No formulário em branco, as linhas de escrita crescem com a largura do cartão. O tamanho continua 20×15 cm na A4 paisagem. Arquivos: `src/components/chancellor/VisitorCertificateDocument.tsx`, `src/components/chancellor/CertificateOrnament.tsx` e `src/main.css`.
 
 ## Banco
 

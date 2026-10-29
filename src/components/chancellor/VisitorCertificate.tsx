@@ -27,6 +27,7 @@ import {
 } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import { VisitorCertificateDocument } from './VisitorCertificateDocument'
+import { VisitorCertificateBlankCard } from './VisitorCertificateBlankCard'
 import type { VisitorAttendance } from '@/lib/data'
 import {
   DEGREE_OPTIONS,
@@ -208,6 +209,7 @@ export function VisitorCertificate() {
           <CardDescription>
             Gere cartões de presença no formato 20 cm × 15 cm, imprima com
             visualização fiel ao modelo e compartilhe no WhatsApp em PDF e JPEG.
+            O modelo em branco serve para preencher à mão.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -389,6 +391,11 @@ export function VisitorCertificate() {
           </div>
         </CardContent>
       </Card>
+
+      <VisitorCertificateBlankCard
+        venerableMaster={venerableMaster}
+        chancellor={chancellor}
+      />
 
       {canGenerate && selectedEvent && (
         <Card>

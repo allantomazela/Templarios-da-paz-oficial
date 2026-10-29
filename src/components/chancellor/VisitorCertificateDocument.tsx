@@ -49,9 +49,10 @@ export function VisitorCertificateDocument({
   event,
   venerableMaster,
   chancellor,
+  blank = false,
 }: VisitorCertificateDocumentProps) {
   const { logoUrl, contact, siteTitle } = useSiteSettingsStore()
-  const lodgeDisplay = formatLodgeNameWithPrefix(visitor.lodge)
+  const lodgeDisplay = visitor ? formatLodgeNameWithPrefix(visitor.lodge) : ''
   const lodgeName = siteTitle || 'Templários da Paz'
 
   return (
@@ -138,37 +139,47 @@ export function VisitorCertificateDocument({
 
       {/* Corpo */}
       <div className="relative z-10 flex min-h-0 items-center justify-center px-[3mm] text-center text-[10px] leading-[1.45] text-black print:text-[9.5px]">
-        <p>
-          Certificamos que o Ir∴{' '}
-          <strong className="font-semibold text-black">{visitor.name}</strong>, no
-          Grau de{' '}
-          <strong className="font-semibold text-black">{visitor.degree}</strong>, da{' '}
-          <strong className="font-semibold text-black">
-            {lodgeDisplay} Nº {visitor.lodgeNumber}
-          </strong>
-          , filiada à{' '}
-          <strong className="font-semibold text-black">{visitor.obedience}</strong>
-          {visitor.masonicNumber ? (
-            <>
-              , portador do Registro Maçônico Nº{' '}
-              <strong className="font-semibold text-black">
-                {visitor.masonicNumber}
-              </strong>
-            </>
-          ) : null}
-          , esteve presente na sessão realizada em{' '}
-          <strong className="font-semibold text-black">
-            {formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
-              locale: ptBR,
-            })}
-          </strong>
-          , na qualidade de{' '}
-          <strong className="font-semibold text-black">Visitante</strong>.
-        </p>
+        {blank || !visitor || !event ? (
+          <BlankCertificateStatement />
+        ) : (
+          <p>
+            Certificamos que o Ir∴{' '}
+            <strong className="font-semibold text-black">{visitor.name}</strong>, no
+            Grau de{' '}
+            <strong className="font-semibold text-black">{visitor.degree}</strong>, da{' '}
+            <strong className="font-semibold text-black">
+              {lodgeDisplay} Nº {visitor.lodgeNumber}
+            </strong>
+            , filiada à{' '}
+            <strong className="font-semibold text-black">{visitor.obedience}</strong>
+            {visitor.masonicNumber ? (
+              <>
+                , portador do Registro Maçônico Nº{' '}
+                <strong className="font-semibold text-black">
+                  {visitor.masonicNumber}
+                </strong>
+              </>
+            ) : null}
+            , esteve presente na sessão realizada em{' '}
+            <strong className="font-semibold text-black">
+              {formatCalendarDate(event.date, "dd 'de' MMMM 'de' yyyy", {
+                locale: ptBR,
+              })}
+            </strong>
+            , na qualidade de{' '}
+            <strong className="font-semibold text-black">Visitante</strong>.
+          </p>
+        )}
       </div>
 
       <p className="relative z-10 px-[2mm] text-center text-[9px] italic leading-snug text-black print:text-[8.5px]">
-        {event.type} — {event.title}
+        {blank || !event ? (
+          <>
+            Sessão: <HandLine width="88mm" />
+          </>
+        ) : (
+          `${event.type} — ${event.title}`
+        )}
       </p>
 
       {/* Assinaturas */}
@@ -194,17 +205,43 @@ export function VisitorCertificateDocument({
       </footer>
 
       <p className="relative z-10 px-[2mm] text-center text-[6.5px] leading-tight text-black print:text-[6px]">
-        Emitido em{' '}
-        {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} · Documento
-        eletrônico
+        {blank
+          ? 'Formulário para preenchimento à mão'
+          : `Emitido em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} · Documento eletrônico`}
       </p>
     </div>
   )
 }
 
 interface VisitorCertificateDocumentProps {
-  visitor: VisitorAttendance
-  event: Event
+  visitor?: VisitorAttendance
+  event?: Event
   venerableMaster: string
   chancellor: string
+  /** Cartão sem os dados do visitante, para escrever à mão. */
+  blank?: boolean
+}
+
+function HandLine({ width }: { width: string }) {
+  return (
+    <span
+      className="mx-0.5 inline-block border-b border-black align-baseline"
+      style={{ width, minHeight: '1em' }}
+    >
+      {'\u00a0'}
+    </span>
+  )
+}
+
+function BlankCertificateStatement() {
+  return (
+    <p>
+      Certificamos que o Ir∴ <HandLine width="42mm" />, no Grau de{' '}
+      <HandLine width="24mm" />, da A∴ R∴ L∴ S∴ <HandLine width="36mm" /> Nº{' '}
+      <HandLine width="14mm" />, filiada à <HandLine width="28mm" />, portador do
+      Registro Maçônico Nº <HandLine width="22mm" />, esteve presente na sessão
+      realizada em <HandLine width="32mm" />, na qualidade de{' '}
+      <strong className="font-semibold text-black">Visitante</strong>.
+    </p>
+  )
 }

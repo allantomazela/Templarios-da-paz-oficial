@@ -30,6 +30,11 @@ export function buildVisitorCertificateFileBaseName(visitorName: string): string
   return `Certificado_Presenca_${name}_${date}`
 }
 
+export function buildBlankVisitorCertificateFileBaseName(): string {
+  const date = new Date().toISOString().slice(0, 10)
+  return `Certificado_Presenca_Em_Branco_${date}`
+}
+
 async function waitForImages(element: HTMLElement): Promise<void> {
   const images = Array.from(element.querySelectorAll('img'))
   await Promise.all(

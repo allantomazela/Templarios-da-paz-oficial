@@ -8,10 +8,12 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 28/10/2026 |
-| Commit | alteração local ainda não commitada |
+| Data | 29/10/2026 |
+| Commit | 2fa7d37 |
 
-**O que ficou pronto:** manual único em PDF, com capítulos Acesso, Secretaria, Chancelaria, Financeiro e Ágape. Cada aba tem a frase de para que serve, o passo a passo e a captura da tela publicada. Arquivo: `docs/manual-uso/Manual-de-uso-Templarios-da-Paz.pdf`. A pasta está no `.gitignore` porque as imagens trazem dados reais da loja.
+**O que ficou pronto:** a aba Presença da Chancelaria separa próximas e anteriores, com busca e filtros. Arquivos: `src/components/chancellor/AttendancePresenceList.tsx`, `src/components/chancellor/AttendancePresenceRows.tsx` e `src/lib/attendance-presence-list.ts`.
+
+No mesmo commit, o `package-lock.json` recebeu o `npm audit fix` sem `--force`. Os avisos foram de 36 para 9. Os 9 restantes pedem troca major do Vitest/Vite ou rebaixamento do Tailwind, e ficaram de fora.
 
 ## Banco
 

@@ -207,9 +207,10 @@ export function VisitorCertificate() {
             Certificado de Presença para Visitantes
           </CardTitle>
           <CardDescription>
-            Gere cartões de presença no formato 20 cm × 15 cm, imprima com
-            visualização fiel ao modelo e compartilhe no WhatsApp em PDF e JPEG.
-            O modelo em branco serve para preencher à mão.
+            Gere o certificado, imprima em folha A4 na orientação paisagem e
+            compartilhe no WhatsApp em PDF e JPEG. O cartão fica centralizado
+            na folha, no padrão da impressora. O modelo em branco serve para
+            preencher à mão.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -402,11 +403,11 @@ export function VisitorCertificate() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Share2 className="h-4 w-4" />
-              Pré-visualização (20 cm × 15 cm)
+              Pré-visualização
             </CardTitle>
             <CardDescription>
-              O que você vê aqui é o mesmo conteúdo enviado à impressão e aos
-              arquivos PDF/JPEG.
+              Na impressão, deixe o papel em A4 e a orientação em paisagem. O
+              certificado aparece centralizado, como nesta pré-visualização.
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto rounded-lg border bg-neutral-200/60 p-4 dark:bg-neutral-900/40">

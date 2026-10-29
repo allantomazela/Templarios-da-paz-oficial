@@ -4,9 +4,9 @@ import { formatCalendarDate } from '@/lib/format-utils'
 import { formatLodgeNameWithPrefix } from '@/lib/visitor-attendance'
 import {
   VISITOR_CERTIFICATE_HEIGHT_CSS,
-  VISITOR_CERTIFICATE_HEIGHT_MM,
+  VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM,
+  VISITOR_CERTIFICATE_ON_A4_WIDTH_MM,
   VISITOR_CERTIFICATE_WIDTH_CSS,
-  VISITOR_CERTIFICATE_WIDTH_MM,
 } from '@/lib/visitor-certificate-export'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import {
@@ -24,8 +24,8 @@ export const VISITOR_CERTIFICATE_PRINT_CLASS = 'visitor-presence-card'
 
 export const VISITOR_CERTIFICATE_PAGE_STYLE = `
   @page {
-    size: ${VISITOR_CERTIFICATE_WIDTH_MM}mm ${VISITOR_CERTIFICATE_HEIGHT_MM}mm;
-    margin: 0;
+    size: A4 landscape;
+    margin: 8mm;
   }
   @media print {
     html, body {
@@ -34,10 +34,11 @@ export const VISITOR_CERTIFICATE_PAGE_STYLE = `
       print-color-adjust: exact;
     }
     .${VISITOR_CERTIFICATE_PRINT_CLASS} {
-      width: ${VISITOR_CERTIFICATE_WIDTH_MM}mm !important;
-      height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm !important;
-      min-height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm !important;
-      max-height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm !important;
+      width: ${VISITOR_CERTIFICATE_ON_A4_WIDTH_MM}mm !important;
+      height: ${VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM}mm !important;
+      min-height: ${VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM}mm !important;
+      max-height: ${VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM}mm !important;
+      margin: 0 auto !important;
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -57,33 +58,26 @@ export function VisitorCertificateDocument({
 
   return (
     <div
-      className={`${VISITOR_CERTIFICATE_PRINT_CLASS} ${VISITOR_CERTIFICATE_DOCUMENT_CLASS} relative mx-auto box-border grid overflow-hidden bg-[#fdfbf7] font-serif text-black print:p-0`}
+      className={`${VISITOR_CERTIFICATE_PRINT_CLASS} ${VISITOR_CERTIFICATE_DOCUMENT_CLASS} relative mx-auto box-border grid overflow-hidden bg-[#f6f0e4] font-serif text-[#1a140c] print:p-0`}
       style={{
         width: VISITOR_CERTIFICATE_WIDTH_CSS,
         height: VISITOR_CERTIFICATE_HEIGHT_CSS,
         minHeight: VISITOR_CERTIFICATE_HEIGHT_CSS,
         maxHeight: VISITOR_CERTIFICATE_HEIGHT_CSS,
-        color: '#000000',
+        color: '#1a140c',
         gridTemplateRows: 'auto auto minmax(0, 1fr) auto auto',
-        padding: '5mm 6mm 4mm',
+        padding: '6mm 7mm 3.5mm',
       }}
     >
-      {/* Moldura maçônica */}
-      <div
-        className="pointer-events-none absolute inset-[3mm] border-2 border-[#8b6914]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-[4.5mm] border border-[#c9a227]/60"
-        aria-hidden
-      />
+      <div className="pointer-events-none absolute inset-[2.2mm] border-2 border-[#1b2838]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[3.6mm] border border-[#a6843d]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[4.8mm] border border-[#1b2838]/35" aria-hidden />
 
-      {/* Cantoneiras decorativas */}
-      {(['top-[5mm] left-[5mm]', 'top-[5mm] right-[5mm]', 'bottom-[5mm] left-[5mm]', 'bottom-[5mm] right-[5mm]'] as const).map(
+      {(['top-[6mm] left-[6mm]', 'top-[6mm] right-[6mm]', 'bottom-[6mm] left-[6mm]', 'bottom-[6mm] right-[6mm]'] as const).map(
         (position) => (
           <span
             key={position}
-            className={`pointer-events-none absolute ${position} text-[9px] text-[#8b6914]/80`}
+            className={`pointer-events-none absolute ${position} text-[10px] leading-none text-[#a6843d]`}
             aria-hidden
           >
             ∴
@@ -91,54 +85,43 @@ export function VisitorCertificateDocument({
         ),
       )}
 
-      {/* Cabeçalho */}
-      <header className="relative z-10 px-[2mm] text-center">
-        <div className="mb-1 flex items-center justify-center gap-3">
-          <BrandLogoImg
-            logoUrl={logoUrl}
-            alt="Brasão da Loja"
-            className="h-11 w-11 object-contain print:h-10 print:w-10"
-            fallbackClassName="h-9 w-9 text-[#8b6914]"
-            width={BRAND_LOGO_INTRINSIC_SIZE}
-            height={BRAND_LOGO_INTRINSIC_SIZE}
-            sizes="44px"
-            crossOrigin="anonymous"
-          />
-          <SquareAndCompassIcon className="h-11 w-11 print:h-10 print:w-10" />
-        </div>
-        <p className="certificate-accent text-[8px] uppercase tracking-[0.32em] text-[#8b6914]">
-          Grande Oriente · Luz · Fraternidade
-        </p>
-        <h1 className="mt-0.5 text-base font-bold leading-tight tracking-wide text-black print:text-[15px]">
-          {lodgeName}
-        </h1>
-        {contact.address && (
-          <p className="mt-0.5 text-[8px] leading-snug text-black">
-            {contact.address}
-            {contact.city ? ` · ${contact.city}` : ''}
+      <header className="relative z-10 grid grid-cols-[16mm_minmax(0,1fr)_16mm] items-center gap-2 px-[2mm]">
+        <BrandLogoImg
+          logoUrl={logoUrl}
+          alt="Brasão da Loja"
+          className="h-[14mm] w-[14mm] object-contain"
+          fallbackClassName="h-[12mm] w-[12mm] text-[#a6843d]"
+          width={BRAND_LOGO_INTRINSIC_SIZE}
+          height={BRAND_LOGO_INTRINSIC_SIZE}
+          sizes="16mm"
+          loading="eager"
+          crossOrigin="anonymous"
+        />
+        <div className="text-center">
+          <p className="text-[7px] uppercase tracking-[0.34em] text-[#a6843d]">
+            Sabedoria · Força · Beleza
           </p>
-        )}
+          <h1 className="mt-0.5 text-[15px] font-bold leading-tight tracking-wide text-[#1b2838] print:text-[14px]">
+            {lodgeName}
+          </h1>
+          {contact.address ? (
+            <p className="mt-0.5 text-[8px] leading-snug text-[#1a140c]">
+              {contact.address}
+              {contact.city ? ` · ${contact.city}` : ''}
+            </p>
+          ) : null}
+        </div>
+        <SquareAndCompassIcon className="h-[14mm] w-[14mm]" />
       </header>
 
-      {/* Título */}
-      <div className="relative z-10 my-1 px-[2mm] text-center">
-        <div className="mx-auto flex max-w-[160mm] items-center gap-1.5">
-          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a227]" />
-          <span className="text-[7px] text-[#8b6914]">∴</span>
-          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a227]" />
-        </div>
-        <h2 className="my-1 text-lg font-bold uppercase tracking-[0.18em] text-black print:text-[16px]">
+      <div className="relative z-10 mx-[2mm] my-1 bg-[#1b2838] px-3 py-1 text-center">
+        <h2 className="text-[13px] font-bold uppercase tracking-[0.22em] text-[#f6f0e4] print:text-[12px]">
           Certificado de Presença
         </h2>
-        <div className="mx-auto flex max-w-[160mm] items-center gap-1.5">
-          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a227]" />
-          <span className="text-[7px] text-[#8b6914]">∴</span>
-          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a227]" />
-        </div>
       </div>
 
       {/* Corpo */}
-      <div className="relative z-10 flex min-h-0 items-center justify-center px-[3mm] text-center text-[10px] leading-[1.45] text-black print:text-[9.5px]">
+      <div className="relative z-10 flex min-h-0 items-center justify-center px-[4mm] text-center text-[11px] leading-[1.5] text-[#1a140c] print:text-[10px]">
         {blank || !visitor || !event ? (
           <BlankCertificateStatement />
         ) : (
@@ -172,7 +155,7 @@ export function VisitorCertificateDocument({
         )}
       </div>
 
-      <p className="relative z-10 px-[2mm] text-center text-[9px] italic leading-snug text-black print:text-[8.5px]">
+      <p className="relative z-10 px-[2mm] text-center text-[10px] italic leading-snug text-[#1b2838] print:text-[9px]">
         {blank || !event ? (
           <>
             Sessão: <HandLine width="88mm" />
@@ -183,28 +166,30 @@ export function VisitorCertificateDocument({
       </p>
 
       {/* Assinaturas */}
-      <footer className="relative z-10 mt-1 grid grid-cols-2 gap-4 px-[4mm] print:gap-3">
+      <footer className="relative z-10 mt-1 grid grid-cols-2 gap-6 px-[8mm]">
         <div className="text-center">
-          <div className="mx-auto mb-0.5 h-7 w-[52mm] max-w-full border-t border-black print:h-6" />
-          <p className="text-[9px] font-semibold leading-tight text-black print:text-[8.5px]">
+          <p className="mb-0.5 text-[8px] text-[#a6843d]" aria-hidden>∴</p>
+          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#1b2838]" />
+          <p className="text-[9px] font-semibold leading-tight text-[#1a140c]">
             {venerableMaster}
           </p>
-          <p className="certificate-accent text-[7px] uppercase tracking-wider text-[#8b6914]">
+          <p className="text-[7px] uppercase tracking-[0.14em] text-[#a6843d]">
             Venerável Mestre
           </p>
         </div>
         <div className="text-center">
-          <div className="mx-auto mb-0.5 h-7 w-[52mm] max-w-full border-t border-black print:h-6" />
-          <p className="text-[9px] font-semibold leading-tight text-black print:text-[8.5px]">
+          <p className="mb-0.5 text-[8px] text-[#a6843d]" aria-hidden>∴</p>
+          <div className="mx-auto mb-0.5 h-6 w-[48mm] max-w-full border-t border-[#1b2838]" />
+          <p className="text-[9px] font-semibold leading-tight text-[#1a140c]">
             {chancellor}
           </p>
-          <p className="certificate-accent text-[7px] uppercase tracking-wider text-[#8b6914]">
+          <p className="text-[7px] uppercase tracking-[0.14em] text-[#a6843d]">
             Chanceler
           </p>
         </div>
       </footer>
 
-      <p className="relative z-10 px-[2mm] text-center text-[6.5px] leading-tight text-black print:text-[6px]">
+      <p className="relative z-10 px-[2mm] text-center text-[6.5px] leading-tight text-[#1b2838]">
         {blank
           ? 'Formulário para preenchimento à mão'
           : `Emitido em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} · Documento eletrônico`}

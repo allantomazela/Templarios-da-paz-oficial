@@ -1,9 +1,14 @@
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
-/** Cartão de presença: 20 cm × 15 cm (paisagem). */
+/** Cartão desenhado em 20 cm × 15 cm. A impressão coloca esse cartão no centro de uma folha A4 paisagem. */
 export const VISITOR_CERTIFICATE_WIDTH_MM = 200
 export const VISITOR_CERTIFICATE_HEIGHT_MM = 150
+export const VISITOR_CERTIFICATE_A4_WIDTH_MM = 297
+export const VISITOR_CERTIFICATE_A4_HEIGHT_MM = 210
+/** Mantém a proporção 20×15 e cabe na A4 paisagem com margem. */
+export const VISITOR_CERTIFICATE_ON_A4_WIDTH_MM = 250
+export const VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM = 187.5
 
 export const VISITOR_CERTIFICATE_WIDTH_CSS = `${VISITOR_CERTIFICATE_WIDTH_MM}mm`
 export const VISITOR_CERTIFICATE_HEIGHT_CSS = `${VISITOR_CERTIFICATE_HEIGHT_MM}mm`
@@ -69,7 +74,7 @@ export async function exportVisitorCertificateAssets(
   const captureOptions = {
     scale: Math.min(window.devicePixelRatio || 2, 2),
     useCORS: true,
-    backgroundColor: '#fdfbf7',
+    backgroundColor: '#f6f0e4',
     logging: false,
     width: element.offsetWidth,
     height: element.offsetHeight,
@@ -100,15 +105,19 @@ export async function exportVisitorCertificateAssets(
   const pdf = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
-    format: [VISITOR_CERTIFICATE_WIDTH_MM, VISITOR_CERTIFICATE_HEIGHT_MM],
+    format: 'a4',
   })
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const imageX = (pageWidth - VISITOR_CERTIFICATE_ON_A4_WIDTH_MM) / 2
+  const imageY = (pageHeight - VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM) / 2
   pdf.addImage(
     jpegDataUrl,
     'JPEG',
-    0,
-    0,
-    VISITOR_CERTIFICATE_WIDTH_MM,
-    VISITOR_CERTIFICATE_HEIGHT_MM,
+    imageX,
+    imageY,
+    VISITOR_CERTIFICATE_ON_A4_WIDTH_MM,
+    VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM,
   )
   const pdfBlob = pdf.output('blob')
 
@@ -153,25 +162,24 @@ export function openVisitorCertificatePrintWindow(
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
-      width: ${VISITOR_CERTIFICATE_WIDTH_MM}mm;
-      height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm;
+      margin: 0;
       background: #fff;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     img {
       display: block;
-      width: ${VISITOR_CERTIFICATE_WIDTH_MM}mm;
-      height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm;
+      width: ${VISITOR_CERTIFICATE_ON_A4_WIDTH_MM}mm;
+      height: ${VISITOR_CERTIFICATE_ON_A4_HEIGHT_MM}mm;
       object-fit: contain;
     }
     @page {
-      size: ${VISITOR_CERTIFICATE_WIDTH_MM}mm ${VISITOR_CERTIFICATE_HEIGHT_MM}mm;
-      margin: 0;
-    }
-    @media print {
-      html, body {
-        width: ${VISITOR_CERTIFICATE_WIDTH_MM}mm;
-        height: ${VISITOR_CERTIFICATE_HEIGHT_MM}mm;
-      }
+      size: A4 landscape;
+      margin: 8mm;
     }
   </style>
 </head>

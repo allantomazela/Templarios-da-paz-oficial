@@ -1,12 +1,4 @@
 import { useState, useMemo } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,35 +7,27 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
 import { AttendanceSignatureSheetDialog } from './AttendanceSignatureSheetDialog'
 import { AttendanceSignatureSheetBatchDialog } from './AttendanceSignatureSheetBatchDialog'
+import { AttendancePresenceList } from './AttendancePresenceList'
 import { QRCheckinScanner } from './QRCheckinScanner'
 import {
   CheckCircle,
   Clock,
-  CalendarIcon,
-  RefreshCw,
   QrCode,
   DoorOpen,
   Loader2,
   Printer,
 } from 'lucide-react'
-import {
-  formatDateBR,
-  todayLocalISODate,
-} from '@/lib/format-utils'
+import { formatDateBR, todayLocalISODate } from '@/lib/format-utils'
 import { compareChancellorEventsByDateAsc } from '@/lib/chancellor-event-sort'
+import {
+  getSessionDisplayStatus,
+  type SessionDisplayStatus,
+} from '@/lib/attendance-presence-list'
 import { useDialog } from '@/hooks/use-dialog'
 import { useAsyncOperation } from '@/hooks/use-async-operation'
 import { useChancellorSessionPermissions } from '@/hooks/use-chancellor-session-permissions'
 import { useToast } from '@/hooks/use-toast'
 import { devLog } from '@/lib/logger'
-
-type SessionDisplayStatus = 'nao_iniciada' | 'aberta' | 'finalizada'
-
-function getSessionDisplayStatus(record?: SessionRecord): SessionDisplayStatus {
-  if (!record) return 'nao_iniciada'
-  if (record.status === 'Pendente') return 'aberta'
-  return 'finalizada'
-}
 
 function formatEventTypeWithDegree(event: Event): string {
   return event.degree ? `${event.type} · ${event.degree}` : event.type
@@ -84,15 +68,16 @@ export function AttendanceManager() {
       return { event, record, displayStatus }
     })
 
-    merged.sort((left, right) =>
-      compareChancellorEventsByDateAsc(left.event, right.event),
-    )
-
     return merged
   }, [events, sessionRecords])
 
   const todayEvents = useMemo(
-    () => eventsWithStatus.filter(({ event }) => event.date === todayLocalISODate()),
+    () =>
+      eventsWithStatus
+        .filter(({ event }) => event.date === todayLocalISODate())
+        .sort((left, right) =>
+          compareChancellorEventsByDateAsc(left.event, right.event),
+        ),
     [eventsWithStatus],
   )
 
@@ -315,121 +300,20 @@ export function AttendanceManager() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Controle de Presença</h3>
-          <p className="text-sm text-muted-foreground">
-            Eventos ordenados do mais antigo ao mais recente.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {canManageSessions ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => signatureSheetBatchDialog.openDialog()}
-              title="Imprimir várias folhas A4 para colar no livro"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Folhas em lote
-            </Button>
-          ) : null}
-          <Badge variant="secondary" className="text-sm">
-            {eventsWithStatus.length} evento{eventsWithStatus.length !== 1 ? 's' : ''}
-          </Badge>
-          <Button variant="outline" size="icon" onClick={handleRefresh} title="Atualizar lista">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Evento</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {eventsWithStatus.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <CalendarIcon className="h-12 w-12 text-muted-foreground opacity-50" />
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Nenhum evento agendado
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Crie eventos na Agenda ou na seção &quot;Agenda da Loja&quot; para registrar
-                      presença.
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              eventsWithStatus.map(({ event, record, displayStatus }) => (
-                <TableRow key={event.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      {formatDateBR(event.date)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{event.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatEventTypeWithDegree(event)}
-                    </div>
-                  </TableCell>
-                  <TableCell>{renderStatusBadge(displayStatus)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {renderSignatureSheetButton(event)}
-                      {renderActionButton(event, record, displayStatus)}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="md:hidden space-y-3">
-        {eventsWithStatus.length === 0 ? (
-          <div className="rounded-md border bg-card p-8 text-center">
-            <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-            <p className="mt-2 text-sm font-medium text-muted-foreground">
-              Nenhum evento agendado
-            </p>
-          </div>
-        ) : (
-          eventsWithStatus.map(({ event, record, displayStatus }) => (
-            <Card key={event.id} className="overflow-hidden">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium leading-tight">{event.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatEventTypeWithDegree(event)}
-                    </p>
-                  </div>
-                  {renderStatusBadge(displayStatus)}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CalendarIcon className="h-4 w-4" />
-                  {formatDateBR(event.date)}
-                </div>
-                {renderSignatureSheetButton(event, true)}
-                {renderActionButton(event, record, displayStatus, true)}
-              </CardContent>
-            </Card>
-          ))
+      <AttendancePresenceList
+        items={eventsWithStatus}
+        today={todayLocalISODate()}
+        showBatch={canManageSessions}
+        onRefresh={handleRefresh}
+        onOpenBatch={() => signatureSheetBatchDialog.openDialog()}
+        renderStatus={renderStatusBadge}
+        renderActions={(item, fullWidth) => (
+          <>
+            {renderSignatureSheetButton(item.event, fullWidth)}
+            {renderActionButton(item.event, item.record, item.displayStatus, fullWidth)}
+          </>
         )}
-      </div>
+      />
 
       <AttendanceDialog
         open={dialog.open}

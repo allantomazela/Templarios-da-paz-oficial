@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 29/10/2026 |
-| Commit | 8a78603 |
+| Commit | 8fa3ac5 |
 
-**O que ficou pronto:** no Certificado de Presença para Visitantes, o cartão preenchido continua igual. Abaixo dele há o modelo em branco, no mesmo tamanho de 20 cm × 15 cm, com linhas para nome, grau, loja, número, obediência, registro, data e sessão. O botão **Imprimir para preenchimento manual** não exige sessão nem dados do visitante. Arquivos: `src/components/chancellor/VisitorCertificateBlankCard.tsx` e `src/components/chancellor/VisitorCertificateDocument.tsx`.
+**O que ficou pronto:** o Certificado de Presença para Visitantes imprime centralizado em folha A4 paisagem, no padrão da impressora. O desenho ganhou moldura azul e dourada, a faixa do título e a divisa Sabedoria, Força e Beleza. As duas logos, o brasão da loja e o esquadro e compasso, permanecem. O formulário em branco usa o mesmo modelo. Arquivos: `src/components/chancellor/VisitorCertificateDocument.tsx` e `src/lib/visitor-certificate-export.ts`.
 
 ## Banco
 

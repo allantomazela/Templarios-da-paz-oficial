@@ -8,12 +8,10 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 26/10/2026 |
-| Branch | `main` |
+| Data | 28/10/2026 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto no código publicado:** quadro de irmãos da Secretaria com abas Ativos, Desligados e In Memoriam. Desligados e In Memoriam saem da lista e da contagem do quadro ativo. Situação `in_memoriam` no cadastro, com migração `supabase/migrations/20261016120000_brothers_membership_situation_in_memoriam.sql`. A lista em si foi extraída para `src/components/secretariat/BrothersRosterViews.tsx`; `BrothersList.tsx` ficou como orquestrador (abas, filtros e CRUD).
-
-No mesmo dia, antes disso: impressão em lote das folhas de presença na Chancelaria e afastados por saúde na folha e na chamada como Justificado, com a coluna de assinatura em branco para o Chanceler anotar à mão.
+**O que ficou pronto:** manual único em PDF, com capítulos Acesso, Secretaria, Chancelaria, Financeiro e Ágape. Cada aba tem a frase de para que serve, o passo a passo e a captura da tela publicada. Arquivo: `docs/manual-uso/Manual-de-uso-Templarios-da-Paz.pdf`. A pasta está no `.gitignore` porque as imagens trazem dados reais da loja.
 
 ## Banco
 

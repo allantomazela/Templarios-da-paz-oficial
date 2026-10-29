@@ -41,5 +41,8 @@ coverage
 # Supabase CLI temp
 supabase/.temp/
 
+# Manual de uso com capturas reais da loja (nomes, valores). Não versionar.
+docs/manual-uso/
+
 # Local package manager cache (Windows/Pods)
 .pods-cache/

@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 29/10/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | cdee23b |
 
-**O que ficou pronto:** na Chancelaria, a Agenda da Loja separa próximas e anteriores como a Presença. Falas da sessão ganhou registro manual (data, fala, nome e observação), gravado na tabela nova `session_speech_notes` no Supabase Templários Oficial, com RLS só para quem gere a Chancelaria. O Controle de Graus continua editando grau e datas; desligados e In Memoriam ficam num grupo recolhido e seguem editáveis. O site publicado ainda não recebeu esta tela.
+**O que ficou pronto:** na Chancelaria, a Agenda da Loja separa próximas e anteriores como a Presença. Falas da sessão ganhou registro manual (data, fala, nome e observação), gravado na tabela `session_speech_notes` no Supabase Templários Oficial, com RLS só para quem gere a Chancelaria. O Controle de Graus continua editando grau e datas; desligados e In Memoriam ficam num grupo recolhido e seguem editáveis.
 
 Arquivos: `src/components/chancellor/LodgeAgendaList.tsx`, `src/components/chancellor/SessionSpeechManualForm.tsx`, `src/components/chancellor/DegreeManager.tsx`, `src/lib/session-speech-manual.ts`, `supabase/migrations/20261029120000_session_speech_notes.sql`.
 

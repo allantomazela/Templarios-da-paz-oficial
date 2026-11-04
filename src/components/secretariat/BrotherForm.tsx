@@ -928,24 +928,27 @@ export function BrotherForm({
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="membershipDuesStartDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Início da cobrança de mensalidade</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        O primeiro mês cobrado é o mês desta data. Ex.:
-                        04/11/2026 → Novembro/2026. A mensalidade pode ser paga
-                        em qualquer dia daquele mês.
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!isSelfMode && (
+                  <FormField
+                    control={form.control}
+                    name="membershipDuesStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Início da cobrança de mensalidade</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          O primeiro mês cobrado é o mês desta data. Ex.:
+                          04/11/2026 → Novembro/2026. A mensalidade pode ser
+                          paga em qualquer dia daquele mês. Definição da
+                          Secretaria / Tesouraria.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="regularStatus"

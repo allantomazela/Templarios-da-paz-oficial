@@ -135,6 +135,8 @@ export async function saveMyBrotherRegistration(
     email,
     profileId,
     photoUrl: syncedPhoto,
+    // Início da cobrança é só Secretaria/Tesouraria — o irmão não altera no perfil.
+    membershipDuesStartDate: existing?.membershipDuesStartDate,
   }
 
   if (existing?.id) {

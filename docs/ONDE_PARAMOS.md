@@ -8,10 +8,10 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 29/10/2026 |
-| Commit | 48968d1 |
+| Data | 04/11/2026 |
+| Commit | 97efc35 |
 
-**O que ficou pronto:** o Certificado de Presença foi redesenhado no formato do modelo de referência: moldura trabalhada (filetes, trançado, cantos e medalhões) em vinho e dourado, emblemas no topo, título em vinho, nome numa linha larga e texto justificado. No formulário em branco, as linhas de escrita crescem com a largura do cartão. O tamanho continua 20×15 cm na A4 paisagem. Arquivos: `src/components/chancellor/VisitorCertificateDocument.tsx`, `src/components/chancellor/CertificateOrnament.tsx` e `src/main.css`.
+**O que ficou pronto:** a mensalidade ganhou o campo **Início da cobrança** no cadastro do irmão (`membership_dues_start_date`). O primeiro mês cobrado é o mês civil dessa data (ex.: 04/11/2026 → Novembro/2026); o pagamento pode ser feito em qualquer dia daquele mês. Cronograma e geração de pendentes respeitam essa data. Migração aplicada no Supabase Templários Oficial. Arquivos: `src/lib/membership-period.ts`, `src/lib/contribution-generation.ts`, `src/components/secretariat/BrotherForm.tsx`.
 
 ## Banco
 

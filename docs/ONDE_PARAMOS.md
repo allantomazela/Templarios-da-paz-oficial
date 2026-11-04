@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 04/11/2026 |
-| Commit | 97efc35 |
+| Commit | fa6ec15 |
 
-**O que ficou pronto:** a mensalidade ganhou o campo **Início da cobrança** no cadastro do irmão (`membership_dues_start_date`). O primeiro mês cobrado é o mês civil dessa data (ex.: 04/11/2026 → Novembro/2026); o pagamento pode ser feito em qualquer dia daquele mês. Cronograma e geração de pendentes respeitam essa data. Migração aplicada no Supabase Templários Oficial. Arquivos: `src/lib/membership-period.ts`, `src/lib/contribution-generation.ts`, `src/components/secretariat/BrotherForm.tsx`.
+**O que ficou pronto:** o campo **Início da cobrança de mensalidade** ficou só na edição da Secretaria; no perfil do irmão o campo some e o salvamento do próprio cadastro não altera essa data. Arquivos: `src/components/secretariat/BrotherForm.tsx`, `src/lib/brothers-api.ts`.
 
 ## Banco
 

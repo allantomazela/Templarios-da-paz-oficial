@@ -259,6 +259,9 @@ export function BrotherForm({
         originLodgeNumber: brotherToEdit.originLodgeNumber || '',
         currentLodgeNumber: brotherToEdit.currentLodgeNumber || '',
         affiliationDate: toDateInputValue(brotherToEdit.affiliationDate),
+        membershipDuesStartDate: toDateInputValue(
+          brotherToEdit.membershipDuesStartDate,
+        ),
         regularStatus: nextRegularStatus,
         notes: brotherToEdit.notes || '',
         spouseName: brotherToEdit.spouseName || '',
@@ -921,6 +924,24 @@ export function BrotherForm({
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="membershipDuesStartDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Início da cobrança de mensalidade</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        O primeiro mês cobrado é o mês desta data. Ex.:
+                        04/11/2026 → Novembro/2026. A mensalidade pode ser paga
+                        em qualquer dia daquele mês.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

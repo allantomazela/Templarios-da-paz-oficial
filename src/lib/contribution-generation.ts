@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { isMembershipHistoricalPeriod } from '@/lib/membership-schedule'
+import { isPeriodBeforeDuesStart } from '@/lib/membership-period'
 import { resolveContributionAmountForSituation } from '@/lib/brother-membership-situation'
 import { fetchMembershipFeeSettings } from '@/lib/contribution-fee-settings'
 import { fetchBillableBrothers } from '@/lib/contribution-brothers'
@@ -51,6 +52,9 @@ export async function generatePendingContributionsForMonth(
   let createdAfastado = 0
   const toInsert = brothers
     .filter((b) => !existingIds.has(b.id))
+    .filter(
+      (b) => !isPeriodBeforeDuesStart(year, month, b.membershipDuesStartDate),
+    )
     .map((b) => {
       const feeAmount =
         amount ??

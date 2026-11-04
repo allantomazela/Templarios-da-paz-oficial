@@ -130,12 +130,14 @@ export function BrotherMembershipPanel({
       feeSettings,
       memberSince,
       brother.membershipSituation,
+      brother.membershipDuesStartDate,
     )
   }, [
     profileId,
     profileLinked,
     brother.name,
     brother.membershipSituation,
+    brother.membershipDuesStartDate,
     contributions,
     feeSettings,
     memberSince,

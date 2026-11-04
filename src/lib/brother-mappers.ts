@@ -39,6 +39,7 @@ export function mapBrotherToDB(brother: Partial<Brother>) {
     origin_lodge_number: brother.originLodgeNumber || null,
     current_lodge_number: brother.currentLodgeNumber || null,
     affiliation_date: brother.affiliationDate || null,
+    membership_dues_start_date: brother.membershipDuesStartDate || null,
     regular_status: brother.regularStatus || null,
     ...(situation ? { membership_situation: situation } : {}),
     notes: brother.notes || null,
@@ -102,6 +103,9 @@ export function mapBrotherFromDB(row: Record<string, unknown>): Brother {
       : undefined,
     affiliationDate: row.affiliation_date
       ? String(row.affiliation_date)
+      : undefined,
+    membershipDuesStartDate: row.membership_dues_start_date
+      ? String(row.membership_dues_start_date)
       : undefined,
     regularStatus: row.regular_status ? String(row.regular_status) : undefined,
     notes: row.notes ? String(row.notes) : undefined,

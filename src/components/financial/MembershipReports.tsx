@@ -139,6 +139,7 @@ export function MembershipReports() {
       feeSettings,
       brother?.created_at,
       brother?.membershipSituation,
+      brother?.membershipDuesStartDate,
     )
 
     return buildMembershipBrotherStatementData(

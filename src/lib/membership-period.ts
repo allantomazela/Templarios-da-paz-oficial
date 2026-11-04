@@ -130,10 +130,43 @@ export function* iterMonths(
   }
 }
 
+/** Extrai ano/mês de uma data civil `YYYY-MM-DD` (sem deslocar fuso). */
+export function yearMonthFromCalendarDate(
+  calendarDate: string | null | undefined,
+): YearMonth | null {
+  if (!calendarDate) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(calendarDate.trim())
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  if (!year || month < 1 || month > 12) return null
+  return { year, month }
+}
+
+/** True quando o período é anterior ao início da cobrança do irmão. */
+export function isPeriodBeforeDuesStart(
+  year: number,
+  month: number,
+  duesStartDate: string | null | undefined,
+): boolean {
+  const start = yearMonthFromCalendarDate(duesStartDate)
+  if (!start) return false
+  return year < start.year || (year === start.year && month < start.month)
+}
+
+/**
+ * Início do cronograma. Se `duesStartDate` estiver preenchida, o primeiro mês
+ * cobrado é o mês civil dessa data (ex.: 04/11/2026 → Novembro/2026), sem
+ * puxar meses anteriores por lançamentos antigos ou pela data da conta.
+ */
 export function resolveScheduleStart(
   memberSince: Date | null,
   contributions: Contribution[],
+  duesStartDate?: string | null,
 ): YearMonth {
+  const locked = yearMonthFromCalendarDate(duesStartDate)
+  if (locked) return locked
+
   const now = new Date()
   let startYear = now.getFullYear()
   let startMonth = now.getMonth() + 1

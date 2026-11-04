@@ -36,6 +36,11 @@ export interface Brother {
   originLodgeNumber?: string
   currentLodgeNumber?: string
   affiliationDate?: string
+  /**
+   * Início da cobrança de mensalidade (`YYYY-MM-DD`).
+   * O primeiro mês cobrado é o mês civil desta data.
+   */
+  membershipDuesStartDate?: string
   regularStatus?: string
   /** Situação operacional para cobrança e acesso */
   membershipSituation?: 'regular' | 'afastado' | 'desligado' | 'in_memoriam'

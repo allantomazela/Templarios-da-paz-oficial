@@ -111,10 +111,15 @@ export function buildMembershipBackfillPeriods(
   trackingStartYear = MEMBERSHIP_TRACKING_START_YEAR,
   trackingStartMonth = MEMBERSHIP_TRACKING_START_MONTH,
   situation?: MembershipSituation | null,
+  duesStartDate?: string | null,
 ): MembershipBackfillPeriod[] {
   const brotherContributions = contributions.filter((c) => c.brotherId === brotherId)
   const memberSinceDate = memberSince ? new Date(memberSince) : null
-  const start = resolveScheduleStart(memberSinceDate, brotherContributions)
+  const start = resolveScheduleStart(
+    memberSinceDate,
+    brotherContributions,
+    duesStartDate,
+  )
 
   const endMonth = trackingStartMonth - 1
   if (endMonth < 1) return []
@@ -222,11 +227,16 @@ export function buildMembershipScheduleForBrother(
   settings: MembershipFeeScheduleSettings,
   memberSince?: string | null,
   situation?: MembershipSituation | null,
+  duesStartDate?: string | null,
 ): BrotherMembershipSchedule {
   const brotherContributions = contributions.filter((c) => c.brotherId === brotherId)
   const byPeriod = groupContributionsByPeriod(brotherContributions)
   const memberSinceDate = memberSince ? new Date(memberSince) : null
-  const start = resolveScheduleStart(memberSinceDate, brotherContributions)
+  const start = resolveScheduleStart(
+    memberSinceDate,
+    brotherContributions,
+    duesStartDate,
+  )
 
   const now = new Date()
   const end = resolveScheduleEnd(now, brotherContributions, situation)
@@ -260,6 +270,7 @@ export function buildAllMembershipSchedules(
     full_name: string | null
     created_at?: string | null
     membershipSituation?: MembershipSituation | null
+    membershipDuesStartDate?: string | null
   }[],
   brotherNames: Record<string, string>,
   settings: MembershipFeeScheduleSettings,
@@ -284,6 +295,7 @@ export function buildAllMembershipSchedules(
         settings,
         brother?.created_at,
         situation,
+        brother?.membershipDuesStartDate,
       )
     })
     .sort((a, b) => a.brotherName.localeCompare(b.brotherName, 'pt-BR'))

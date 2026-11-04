@@ -67,7 +67,8 @@ export function MembershipGenerateDialog({
           <DialogDescription>
             Cria um lançamento <strong>Pendente</strong> para cada irmão com
             conta aprovada que ainda não possui registro no mês escolhido.
-            Valor regular: {formatCurrencyBRL(feeSettings.defaultAmount)} ·
+            Quem tem início de cobrança depois desse mês não entra. Valor
+            regular: {formatCurrencyBRL(feeSettings.defaultAmount)} ·
             afastado: {formatCurrencyBRL(feeSettings.baseAmount)}.
             Desligados não entram na geração.
           </DialogDescription>

@@ -127,6 +127,36 @@ describe('buildMembershipScheduleForBrother', () => {
     expect(alerts.every((a) => a.overdueCount > 0)).toBe(true)
   })
 
+  it('início da cobrança em nov/2026: não cobra outubro mesmo com conta antiga', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 10, 4))
+
+    const schedule = buildMembershipScheduleForBrother(
+      'brother-1',
+      'Irmão Novo',
+      [
+        contribution({
+          month: 'Outubro',
+          year: 2026,
+          status: 'Pendente',
+        }),
+      ],
+      settings,
+      '2026-10-01T00:00:00Z',
+      'regular',
+      '2026-11-04',
+    )
+
+    vi.useRealTimers()
+    expect(schedule.entries.some((e) => e.month === 10 && e.year === 2026)).toBe(
+      false,
+    )
+    const nov = schedule.entries.find((e) => e.month === 11 && e.year === 2026)
+    expect(nov?.status).toBe('upcoming')
+    expect(nov?.remainingAmount).toBe(150)
+    expect(schedule.overdueMonthCount).toBe(0)
+  })
+
   it('desligado: não gera meses após o último lançamento', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 9, 1))

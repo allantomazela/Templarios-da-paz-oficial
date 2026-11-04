@@ -132,6 +132,7 @@ export function useMembershipPaymentsData() {
       feeSettings,
       brother?.created_at,
       brother?.membershipSituation,
+      brother?.membershipDuesStartDate,
     )
   }, [
     selectedBrotherId,

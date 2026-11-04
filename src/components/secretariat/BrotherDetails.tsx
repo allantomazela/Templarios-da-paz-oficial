@@ -344,6 +344,16 @@ export function BrotherDetails({
                   <span className="text-sm">{formatDate(brother.affiliationDate)}</span>
                 </div>
               )}
+              {brother.membershipDuesStartDate && (
+                <div>
+                  <span className="text-xs text-muted-foreground block">
+                    Início da cobrança de mensalidade
+                  </span>
+                  <span className="text-sm">
+                    {formatDate(brother.membershipDuesStartDate)}
+                  </span>
+                </div>
+              )}
               {brother.regularStatus && (
                 <div>
                   <span className="text-xs text-muted-foreground block">

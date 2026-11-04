@@ -10,12 +10,14 @@ export type ApprovedBrotherOption = {
   full_name: string | null
   created_at?: string | null
   membershipSituation?: MembershipSituation | null
+  membershipDuesStartDate?: string | null
 }
 
 export interface BillableBrotherOption {
   id: string
   full_name: string | null
   situation: MembershipSituation
+  membershipDuesStartDate?: string | null
 }
 
 interface BrotherSituationColumns {
@@ -68,7 +70,9 @@ export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> 
   const ids = approved.map((p) => p.id)
   const { data: brothers, error: brothersError } = await supabase
     .from('brothers')
-    .select('profile_id, status, regular_status, membership_situation')
+    .select(
+      'profile_id, status, regular_status, membership_situation, membership_dues_start_date',
+    )
     .in('profile_id', ids)
 
   if (brothersError) throw brothersError
@@ -76,20 +80,29 @@ export async function fetchBillableBrothers(): Promise<BillableBrotherOption[]> 
   const byProfile = new Map(
     ((brothers || []) as Array<Record<string, unknown>>).map((row) => [
       String(row.profile_id),
-      situationFromBrotherRow({
-        status: row.status as string | null,
-        regular_status: row.regular_status as string | null,
-        membership_situation: row.membership_situation as string | null,
-      }),
+      {
+        situation: situationFromBrotherRow({
+          status: row.status as string | null,
+          regular_status: row.regular_status as string | null,
+          membership_situation: row.membership_situation as string | null,
+        }),
+        membershipDuesStartDate: row.membership_dues_start_date
+          ? String(row.membership_dues_start_date)
+          : null,
+      },
     ]),
   )
 
   return approved
-    .map((profile) => ({
-      id: profile.id,
-      full_name: profile.full_name,
-      situation: byProfile.get(profile.id) ?? ('regular' as MembershipSituation),
-    }))
+    .map((profile) => {
+      const linked = byProfile.get(profile.id)
+      return {
+        id: profile.id,
+        full_name: profile.full_name,
+        situation: linked?.situation ?? ('regular' as MembershipSituation),
+        membershipDuesStartDate: linked?.membershipDuesStartDate ?? null,
+      }
+    })
     .filter((brother) => isBrotherBillable(brother.situation))
 }
 
@@ -110,7 +123,7 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, full_name, created_at, brothers!brothers_profile_id_fkey(status, regular_status, membership_situation)',
+      'id, full_name, created_at, brothers!brothers_profile_id_fkey(status, regular_status, membership_situation, membership_dues_start_date)',
     )
     .eq('status', 'approved')
 
@@ -120,7 +133,14 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
     id: string
     full_name: string | null
     created_at: string
-    brothers?: BrotherSituationColumns | BrotherSituationColumns[] | null
+    brothers?:
+      | (BrotherSituationColumns & {
+          membership_dues_start_date?: string | null
+        })
+      | (BrotherSituationColumns & {
+          membership_dues_start_date?: string | null
+        })[]
+      | null
   }>
 
   return sortBrothersAlphabetically(
@@ -133,6 +153,9 @@ export async function fetchApprovedBrothers(): Promise<ApprovedBrotherOption[]> 
         full_name: row.full_name,
         created_at: row.created_at,
         membershipSituation: situationFromBrotherRow(brotherRow),
+        membershipDuesStartDate: brotherRow?.membership_dues_start_date
+          ? String(brotherRow.membership_dues_start_date)
+          : null,
       }
     }),
   )

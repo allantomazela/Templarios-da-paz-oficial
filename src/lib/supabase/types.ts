@@ -645,6 +645,7 @@ export type Database = {
           id: string
           initiation_date: string
           masonic_registration_number: string | null
+          membership_dues_start_date: string | null
           membership_situation: string
           name: string
           notes: string | null
@@ -685,6 +686,7 @@ export type Database = {
           id?: string
           initiation_date: string
           masonic_registration_number?: string | null
+          membership_dues_start_date?: string | null
           membership_situation?: string
           name: string
           notes?: string | null
@@ -717,6 +719,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           current_lodge_number?: string | null
+          membership_dues_start_date?: string | null
           degree?: string
           dob?: string | null
           elevation_date?: string | null

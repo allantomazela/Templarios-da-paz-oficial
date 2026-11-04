@@ -60,7 +60,9 @@ export default function MyPayments() {
             .maybeSingle(),
           supabase
             .from('brothers')
-            .select('status, regular_status, membership_situation')
+            .select(
+              'status, regular_status, membership_situation, membership_dues_start_date',
+            )
             .eq('profile_id', user.id)
             .maybeSingle(),
           fetchMemberPaymentsBundle(user.id),
@@ -89,6 +91,9 @@ export default function MyPayments() {
         settings,
         profile?.created_at,
         situation,
+        brotherRow?.membership_dues_start_date
+          ? String(brotherRow.membership_dues_start_date)
+          : null,
       )
     },
     {

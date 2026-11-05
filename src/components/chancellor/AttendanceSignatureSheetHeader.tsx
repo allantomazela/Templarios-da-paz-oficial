@@ -15,6 +15,7 @@ export function AttendanceSignatureSheetHeader({
   locationName,
   sessionDegree,
   documentHeading = 'Livro de Presença',
+  blankSessionFields = false,
 }: AttendanceSignatureSheetHeaderProps) {
   const { logoUrl, siteTitle, contact } = useSiteSettingsStore()
   const lodgeName = formatLodgeNameWithPrefix(siteTitle || 'Templários da Paz')
@@ -54,13 +55,19 @@ export function AttendanceSignatureSheetHeader({
       </div>
 
       <dl className="mt-[1mm] grid grid-cols-[1.5fr_1.4fr_0.7fr_0.9fr_1.3fr] border border-black text-center leading-tight">
-        <SessionField label="Sessão">{eventTitle}</SessionField>
-        <SessionField label="Data">
+        <SessionField label="Sessão" blank={blankSessionFields}>
+          {eventTitle}
+        </SessionField>
+        <SessionField label="Data" blank={blankSessionFields}>
           {formatCalendarDate(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </SessionField>
-        <SessionField label="Horário">{eventTime || '—'}</SessionField>
-        <SessionField label="Grau">{sessionDegree}</SessionField>
-        <SessionField label="Local" last>
+        <SessionField label="Horário" blank={blankSessionFields}>
+          {eventTime || '—'}
+        </SessionField>
+        <SessionField label="Grau" blank={blankSessionFields}>
+          {sessionDegree}
+        </SessionField>
+        <SessionField label="Local" blank={blankSessionFields} last>
           {locationName || LODGE_TEMPLE_NAME}
         </SessionField>
       </dl>
@@ -71,16 +78,24 @@ export function AttendanceSignatureSheetHeader({
 function SessionField({
   label,
   children,
+  blank = false,
   last = false,
 }: {
   label: string
   children: React.ReactNode
+  blank?: boolean
   last?: boolean
 }) {
   return (
     <div className={`min-w-0 px-[1.5mm] py-[1mm] ${last ? '' : 'border-r border-black'}`}>
       <dt className="text-[6.5pt] font-bold uppercase tracking-wider">{label}</dt>
-      <dd className="mt-[0.5mm] truncate text-[9pt] font-semibold">{children}</dd>
+      <dd
+        className={`mt-[0.5mm] min-h-[3.5mm] truncate text-[9pt] font-semibold ${
+          blank ? 'text-transparent' : ''
+        }`}
+      >
+        {blank ? '\u00A0' : children}
+      </dd>
     </div>
   )
 }
@@ -93,4 +108,6 @@ interface AttendanceSignatureSheetHeaderProps {
   sessionDegree: MasonicDegree
   /** Título abaixo do brasão. Padrão: Livro de Presença. */
   documentHeading?: string
+  /** Deixa Sessão/Data/Horário/Grau/Local vazios para preenchimento à mão. */
+  blankSessionFields?: boolean
 }

@@ -32,17 +32,18 @@ export function VisitorSignatureSheetDocument({
         locationName={locationName}
         sessionDegree={sessionDegree}
         documentHeading="Livro de Presença — Visitantes"
+        blankSessionFields
       />
 
       <table className="w-full table-fixed border-collapse">
         <colgroup>
           <col className="w-[7mm]" />
+          <col className="w-[38mm]" />
+          <col className="w-[14mm]" />
+          <col className="w-[14mm]" />
           <col />
-          <col className="w-[16mm]" />
-          <col className="w-[16mm]" />
-          <col className="w-[28mm]" />
           <col className="w-[18mm]" />
-          <col className="w-[36mm]" />
+          <col className="w-[34mm]" />
         </colgroup>
         <thead>
           <tr>

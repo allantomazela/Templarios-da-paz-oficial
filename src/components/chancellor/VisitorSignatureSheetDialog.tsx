@@ -94,8 +94,9 @@ export function VisitorSignatureSheetDialog({
         <DialogHeader>
           <DialogTitle>Folha de presença — Visitantes</DialogTitle>
           <DialogDescription>
-            Cabeçalho da loja e linhas em branco para Nome, Grau, CIM, Loja/Nº,
-            Obediência e Assinatura. Impressão aparte da folha do quadro.
+            Sessão, data, horário, grau e local saem em branco para preencher à
+            mão. Linhas para Nome, Grau, CIM, Loja/Nº, Obediência e Assinatura.
+            Impressão aparte da folha do quadro.
           </DialogDescription>
         </DialogHeader>
 

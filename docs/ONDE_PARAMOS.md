@@ -8,10 +8,10 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 04/11/2026 |
-| Commit | fa6ec15 |
+| Data | 05/11/2026 |
+| Commit | f0a8356 |
 
-**O que ficou pronto:** o campo **Início da cobrança de mensalidade** ficou só na edição da Secretaria; no perfil do irmão o campo some e o salvamento do próprio cadastro não altera essa data. Arquivos: `src/components/secretariat/BrotherForm.tsx`, `src/lib/brothers-api.ts`.
+**O que ficou pronto:** a Chancelaria imprime, no mesmo diálogo da folha de presença, uma **folha de visitantes em branco** (cabeçalho da loja + linhas para Nome, Grau, CIM, Loja/Nº, Obediência e Assinatura), em impressão separada da lista do quadro. Arquivos: `src/components/chancellor/VisitorSignatureSheetDocument.tsx`, `src/components/chancellor/AttendanceSignatureSheetDialog.tsx`.
 
 ## Banco
 

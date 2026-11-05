@@ -383,9 +383,8 @@ body {
     break-inside: avoid;
   }
 
-  /* Folha de presença A4 do Chanceler — margens vêm do @page do pageStyle */
-  #attendance-signature-sheet-container,
-  #visitor-signature-sheet-container {
+  /* Folha do quadro — margens vêm do @page do pageStyle */
+  #attendance-signature-sheet-container {
     position: absolute;
     left: 0;
     top: 0;
@@ -401,28 +400,49 @@ body {
     font-size: 10pt;
   }
 
-  #attendance-signature-sheet-container thead,
-  #visitor-signature-sheet-container thead {
+  #attendance-signature-sheet-container thead {
     display: table-header-group;
   }
 
-  #attendance-signature-sheet-container tr,
-  #visitor-signature-sheet-container tr {
+  #attendance-signature-sheet-container tr {
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* Grade da folha de visitantes: células vazias precisam de empty-cells + borda explícita */
+  /*
+   * Folha de visitantes: sem position:absolute nem break-inside por tr —
+   * no Chromium isso fazia as horizontais sumirem a partir da ~linha 15.
+   */
+  #visitor-signature-sheet-container {
+    position: static !important;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 !important;
+    background: white !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+    font-size: 10pt;
+  }
+
+  #visitor-signature-sheet-container thead {
+    display: table-header-group;
+  }
+
   #visitor-signature-sheet-container table {
     width: 100% !important;
     table-layout: fixed !important;
     border-collapse: collapse !important;
     empty-cells: show !important;
+    border: 0.6pt solid #000 !important;
   }
 
   #visitor-signature-sheet-container th,
   #visitor-signature-sheet-container td {
-    border: 0.4pt solid #000 !important;
+    border: 0.6pt solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   /* Mostrar relatório do chanceler na impressão */

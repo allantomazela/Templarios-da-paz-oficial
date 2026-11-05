@@ -93,12 +93,16 @@ export const SIGNATURE_SHEET_MIN_ROW_MM = 5.2
 export const SIGNATURE_SHEET_MAX_ROW_MM = 9
 
 /**
- * Área útil da folha de visitantes (mais folga que a do quadro): título mais longo,
- * mais colunas e margem para a impressão não gerar 2ª página.
+ * Área útil das 25 linhas (A4 297 − margens 10/12 − cabeçalho − thead − 15 mm
+ * até assinaturas − bloco de assinaturas ≈ 180 mm).
  */
-export const VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM = 175
-/** Altura fixa das linhas em branco — suficiente para assinar e cabe numa A4. */
-export const VISITOR_SIGNATURE_SHEET_ROW_MM = 7
+export const VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM = 180
+/** Altura por linha: preenchimento manual confortável e uma única A4. */
+export const VISITOR_SIGNATURE_SHEET_ROW_MM = 7.2
+/** Espaço entre o fim da tabela e as linhas de assinatura. */
+export const VISITOR_SIGNATURE_SHEET_SIGNATURE_GAP_MM = 15
+/** Espaço entre a linha de assinatura e o nome. */
+export const VISITOR_SIGNATURE_SHEET_NAME_GAP_MM = 5
 
 /** Quantidade de linhas em branco que cabem numa única A4. */
 export function visitorSignatureBlankRowCount(
@@ -133,18 +137,21 @@ export const SIGNATURE_SHEET_PRINT_STYLE = `
 `
 
 /**
- * A4 da folha de visitantes: força grades das células vazias (Chrome colapsa bordas
- * sem empty-cells/nbsp) e margens compatíveis com desligar cabeçalho/rodapé do navegador.
+ * A4 visitantes: margens físicas (10/12/10/10), grade estável e sem scale().
+ * Cabeçalho/rodapé do Chrome só somem se o usuário desmarcar a opção no diálogo.
  */
 export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
-  @page { size: A4 portrait; margin: 10mm 14mm; }
+  @page { size: A4 portrait; margin: 10mm 10mm 12mm 10mm; }
   @media print {
     html, body {
       height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     #visitor-signature-sheet-container {
+      position: static !important;
       padding: 0 !important;
       margin: 0 !important;
       max-width: none !important;
@@ -152,15 +159,20 @@ export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
       background: white !important;
       color: #000 !important;
     }
+    #visitor-signature-sheet-container .visitor-signature-sheet {
+      page-break-inside: avoid;
+      break-inside: avoid-page;
+    }
     #visitor-signature-sheet-container table {
       width: 100% !important;
       table-layout: fixed !important;
       border-collapse: collapse !important;
       empty-cells: show !important;
+      border: 0.6pt solid #000 !important;
     }
     #visitor-signature-sheet-container th,
     #visitor-signature-sheet-container td {
-      border: 0.4pt solid #000 !important;
+      border: 0.6pt solid #000 !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }

@@ -1,6 +1,10 @@
 import { ptBR } from 'date-fns/locale'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { formatCalendarDate } from '@/lib/format-utils'
+import {
+  VISITOR_SIGNATURE_SHEET_NAME_GAP_MM,
+  VISITOR_SIGNATURE_SHEET_SIGNATURE_GAP_MM,
+} from '@/lib/attendance-signature-sheet'
 
 export function AttendanceSignatureSheetFooter({
   eventDate,
@@ -10,9 +14,16 @@ export function AttendanceSignatureSheetFooter({
   totalLabel = 'Irmãos do quadro convocados para esta sessão',
   compact = false,
   hideMeta = false,
+  visitorLayout = false,
 }: AttendanceSignatureSheetFooterProps) {
   const { contact } = useSiteSettingsStore()
   const longDate = formatCalendarDate(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+  const signaturesTopMm = visitorLayout
+    ? VISITOR_SIGNATURE_SHEET_SIGNATURE_GAP_MM
+    : compact
+      ? 4
+      : 8
+  const nameGapMm = visitorLayout ? VISITOR_SIGNATURE_SHEET_NAME_GAP_MM : 1
 
   return (
     <footer className="mt-[2mm] break-inside-avoid leading-tight">
@@ -28,20 +39,51 @@ export function AttendanceSignatureSheetFooter({
         </div>
       )}
 
-      <div className={`grid grid-cols-2 gap-[14mm] ${compact ? 'mt-[4mm]' : 'mt-[8mm]'}`}>
-        <SignatureBlock name={venerableMaster} role="Venerável Mestre em Exercício" />
-        <SignatureBlock name={chancellor} role="Chanceler" />
+      <div
+        className="grid grid-cols-2 gap-[14mm]"
+        style={{ marginTop: `${signaturesTopMm}mm` }}
+      >
+        <SignatureBlock
+          name={venerableMaster}
+          role="Venerável Mestre em Exercício"
+          nameGapMm={nameGapMm}
+          lineMaxWidthMm={visitorLayout ? 75 : undefined}
+        />
+        <SignatureBlock
+          name={chancellor}
+          role="Chanceler"
+          nameGapMm={nameGapMm}
+          lineMaxWidthMm={visitorLayout ? 75 : undefined}
+        />
       </div>
     </footer>
   )
 }
 
-function SignatureBlock({ name, role }: { name: string; role: string }) {
+function SignatureBlock({
+  name,
+  role,
+  nameGapMm,
+  lineMaxWidthMm,
+}: {
+  name: string
+  role: string
+  nameGapMm: number
+  lineMaxWidthMm?: number
+}) {
   return (
     <div className="text-center">
-      <div className="border-t border-black" />
-      <div className="mt-[1mm] text-[9.5pt] font-bold">{name}</div>
-      <div className="mt-[0.3mm] text-[7.5pt] uppercase tracking-wider">{role}</div>
+      <div
+        className="mx-auto border-t border-black"
+        style={lineMaxWidthMm ? { maxWidth: `${lineMaxWidthMm}mm` } : undefined}
+      />
+      <div
+        className="text-[9.5pt] font-bold"
+        style={{ marginTop: `${nameGapMm}mm` }}
+      >
+        {name}
+      </div>
+      <div className="mt-[0.8mm] text-[7.5pt] uppercase tracking-wider">{role}</div>
     </div>
   )
 }
@@ -56,4 +98,6 @@ interface AttendanceSignatureSheetFooterProps {
   compact?: boolean
   /** Omite contagem e data — útil na folha de visitantes preenchida à mão. */
   hideMeta?: boolean
+  /** Espaçamento institucional da folha de visitantes (15 mm / 5 mm). */
+  visitorLayout?: boolean
 }

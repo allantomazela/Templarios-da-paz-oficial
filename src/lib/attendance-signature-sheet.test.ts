@@ -93,13 +93,15 @@ describe('signatureSheetRowHeightMm', () => {
 })
 
 describe('visitorSignatureBlankRowCount', () => {
-  it('cabe numa única A4 com altura fixa das linhas', () => {
+  it('gera 25 linhas com altura fixa que cabem numa única A4', () => {
     const count = visitorSignatureBlankRowCount()
+    expect(count).toBe(25)
     expect(count).toBe(
       Math.floor(
         VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM / VISITOR_SIGNATURE_SHEET_ROW_MM,
       ),
     )
+    expect(visitorSignatureSheetRowHeightMm()).toBe(VISITOR_SIGNATURE_SHEET_ROW_MM)
     expect(count * visitorSignatureSheetRowHeightMm()).toBeLessThanOrEqual(
       VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM,
     )

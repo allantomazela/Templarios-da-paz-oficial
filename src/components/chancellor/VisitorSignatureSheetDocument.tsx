@@ -22,7 +22,8 @@ export function VisitorSignatureSheetDocument({
   chancellor,
   blankRowCount = visitorSignatureBlankRowCount(),
 }: VisitorSignatureSheetDocumentProps) {
-  const rowStyle = { height: `${visitorSignatureSheetRowHeightMm()}mm` }
+  const rowHeightMm = visitorSignatureSheetRowHeightMm()
+  const cellStyle = { height: `${rowHeightMm}mm`, minHeight: `${rowHeightMm}mm` }
   const rows = Array.from({ length: blankRowCount }, (_, index) => index + 1)
 
   return (
@@ -42,13 +43,14 @@ export function VisitorSignatureSheetDocument({
         style={{ emptyCells: 'show' }}
       >
         <colgroup>
+          {/* Prioriza Nome e Assinatura; Loja/Nº permanece usável (~190 mm úteis). */}
           <col style={{ width: '8mm' }} />
-          <col style={{ width: '40mm' }} />
-          <col style={{ width: '15mm' }} />
-          <col style={{ width: '15mm' }} />
-          <col style={{ width: '48mm' }} />
-          <col style={{ width: '20mm' }} />
+          <col style={{ width: '52mm' }} />
+          <col style={{ width: '14mm' }} />
+          <col style={{ width: '14mm' }} />
           <col style={{ width: '36mm' }} />
+          <col style={{ width: '18mm' }} />
+          <col style={{ width: '48mm' }} />
         </colgroup>
         <thead>
           <tr>
@@ -63,14 +65,28 @@ export function VisitorSignatureSheetDocument({
         </thead>
         <tbody>
           {rows.map((order) => (
-            <tr key={order} style={rowStyle}>
-              <td className={`${CELL} text-center text-[8pt]`}>{order}</td>
-              <td className={CELL}>{EMPTY}</td>
-              <td className={CELL}>{EMPTY}</td>
-              <td className={CELL}>{EMPTY}</td>
-              <td className={CELL}>{EMPTY}</td>
-              <td className={CELL}>{EMPTY}</td>
-              <td className={CELL}>{EMPTY}</td>
+            <tr key={order}>
+              <td className={`${CELL} text-center text-[8pt]`} style={cellStyle}>
+                {order}
+              </td>
+              <td className={CELL} style={cellStyle}>
+                {EMPTY}
+              </td>
+              <td className={CELL} style={cellStyle}>
+                {EMPTY}
+              </td>
+              <td className={CELL} style={cellStyle}>
+                {EMPTY}
+              </td>
+              <td className={CELL} style={cellStyle}>
+                {EMPTY}
+              </td>
+              <td className={CELL} style={cellStyle}>
+                {EMPTY}
+              </td>
+              <td className={CELL} style={cellStyle}>
+                {EMPTY}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -81,8 +97,8 @@ export function VisitorSignatureSheetDocument({
         totalBrothers={blankRowCount}
         venerableMaster={venerableMaster}
         chancellor={chancellor}
-        compact
         hideMeta
+        visitorLayout
       />
     </div>
   )

@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | e22b45e |
 
 **O que ficou pronto:** a impressão **Visitantes A4** saía em branco porque `#visitor-signature-sheet-container` não estava na lista de visibilidade do `@media print` em `main.css` (o mesmo padrão da folha do quadro). Arquivos: `src/main.css`, `src/lib/attendance-signature-sheet.ts`.
 
@@ -25,7 +25,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-Validar a impressão **Visitantes A4** (preview e impressora) e, se estiver ok, pedir commit e push.
+O próximo passo é o que for pedido a partir daqui.
 
 ## Como ver isto de novo
 

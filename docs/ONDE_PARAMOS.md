@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | ad58263 |
 
 **O que ficou pronto:** a folha de visitantes em branco saiu do diálogo da loja (**Visitantes A4**), com pré-visualização visível, e a impressão foi limitada a **uma única A4** (25 linhas de 7 mm). Arquivos: `src/components/chancellor/VisitorSignatureSheetDialog.tsx`, `src/lib/attendance-signature-sheet.ts`.
 
@@ -25,7 +25,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-Validar a impressão **Visitantes A4** (uma folha) e, se estiver ok, pedir commit e push.
+O próximo passo é o que for pedido a partir daqui.
 
 ## Como ver isto de novo
 

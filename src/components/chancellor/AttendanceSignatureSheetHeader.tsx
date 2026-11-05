@@ -14,6 +14,7 @@ export function AttendanceSignatureSheetHeader({
   eventTime,
   locationName,
   sessionDegree,
+  documentHeading = 'Livro de Presença',
 }: AttendanceSignatureSheetHeaderProps) {
   const { logoUrl, siteTitle, contact } = useSiteSettingsStore()
   const lodgeName = formatLodgeNameWithPrefix(siteTitle || 'Templários da Paz')
@@ -47,9 +48,9 @@ export function AttendanceSignatureSheetHeader({
       <div
         role="heading"
         aria-level={1}
-        className="mt-[1.5mm] text-center text-[13pt] font-bold uppercase leading-tight tracking-[0.25em]"
+        className="mt-[1.5mm] text-center text-[13pt] font-bold uppercase leading-tight tracking-[0.18em]"
       >
-        Livro de Presença
+        {documentHeading}
       </div>
 
       <dl className="mt-[1mm] grid grid-cols-[1.5fr_1.4fr_0.7fr_0.9fr_1.3fr] border border-black text-center leading-tight">
@@ -90,4 +91,6 @@ interface AttendanceSignatureSheetHeaderProps {
   eventTime?: string
   locationName?: string
   sessionDegree: MasonicDegree
+  /** Título abaixo do brasão. Padrão: Livro de Presença. */
+  documentHeading?: string
 }

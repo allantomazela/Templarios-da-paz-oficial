@@ -7,6 +7,7 @@ export function AttendanceSignatureSheetFooter({
   totalBrothers,
   venerableMaster,
   chancellor,
+  totalLabel = 'Irmãos do quadro convocados para esta sessão',
 }: AttendanceSignatureSheetFooterProps) {
   const { contact } = useSiteSettingsStore()
   const longDate = formatCalendarDate(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
@@ -15,7 +16,7 @@ export function AttendanceSignatureSheetFooter({
     <footer className="mt-[2mm] break-inside-avoid leading-tight">
       <div className="flex items-baseline justify-between gap-[4mm]">
         <div className="text-[8.5pt]">
-          Irmãos do quadro convocados para esta sessão: {totalBrothers}
+          {totalLabel}: {totalBrothers}
         </div>
         <div className="text-[9pt]">
           {contact.city ? `Oriente de ${contact.city}, ` : ''}
@@ -46,4 +47,5 @@ interface AttendanceSignatureSheetFooterProps {
   totalBrothers: number
   venerableMaster: string
   chancellor: string
+  totalLabel?: string
 }

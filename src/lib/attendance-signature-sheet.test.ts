@@ -3,6 +3,7 @@ import type { Brother } from '@/lib/data'
 import {
   buildSignatureSheetRows,
   signatureSheetRowHeightMm,
+  visitorSignatureBlankRowCount,
   SIGNATURE_SHEET_MAX_ROW_MM,
   SIGNATURE_SHEET_MIN_ROW_MM,
   SIGNATURE_SHEET_ROWS_AREA_MM,
@@ -85,5 +86,17 @@ describe('signatureSheetRowHeightMm', () => {
     expect(signatureSheetRowHeightMm(29)).toBe(7.1)
     expect(signatureSheetRowHeightMm(10)).toBe(SIGNATURE_SHEET_MAX_ROW_MM)
     expect(signatureSheetRowHeightMm(0)).toBe(SIGNATURE_SHEET_MAX_ROW_MM)
+  })
+})
+
+describe('visitorSignatureBlankRowCount', () => {
+  it('usa o máximo de linhas que cabem na área útil da A4', () => {
+    const count = visitorSignatureBlankRowCount()
+    expect(count).toBe(
+      Math.floor(SIGNATURE_SHEET_ROWS_AREA_MM / SIGNATURE_SHEET_MIN_ROW_MM),
+    )
+    expect(count * SIGNATURE_SHEET_MIN_ROW_MM).toBeLessThanOrEqual(
+      SIGNATURE_SHEET_ROWS_AREA_MM,
+    )
   })
 })

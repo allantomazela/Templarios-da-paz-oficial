@@ -76,6 +76,13 @@ export function signatureSheetDocumentTitle(eventDate: string, degree: MasonicDe
   return `Folha_Presenca_${eventDate}_${degree}`
 }
 
+export function visitorSignatureSheetDocumentTitle(
+  eventDate: string,
+  degree: MasonicDegree,
+) {
+  return `Folha_Presenca_Visitantes_${eventDate}_${degree}`
+}
+
 /**
  * Altura útil para as linhas de assinatura numa única página A4: 297mm menos as margens
  * da @page (2 × 10mm), o cabeçalho (~40mm), o título da tabela (~5mm), o rodapé (~23mm)
@@ -84,6 +91,17 @@ export function signatureSheetDocumentTitle(eventDate: string, degree: MasonicDe
 export const SIGNATURE_SHEET_ROWS_AREA_MM = 208
 export const SIGNATURE_SHEET_MIN_ROW_MM = 5.2
 export const SIGNATURE_SHEET_MAX_ROW_MM = 9
+
+/**
+ * Máximo de linhas em branco na folha de visitantes numa A4, usando a altura mínima
+ * de linha já usada no livro de presença.
+ */
+export function visitorSignatureBlankRowCount(
+  rowsAreaMm = SIGNATURE_SHEET_ROWS_AREA_MM,
+  minRowMm = SIGNATURE_SHEET_MIN_ROW_MM,
+): number {
+  return Math.max(1, Math.floor(rowsAreaMm / minRowMm))
+}
 
 /** Até 40 irmãos cabem numa página; com menos irmãos, as linhas crescem para facilitar a assinatura. */
 export function signatureSheetRowHeightMm(rowCount: number): number {

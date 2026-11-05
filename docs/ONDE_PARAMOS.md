@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | dfec9c6 |
 
 **O que ficou pronto:** na folha **Visitantes A4**, Nome ficou um pouco menor e Loja/Nº ganhou o espaço restante; Sessão, Data, Horário, Grau e Local saem em branco para preenchimento à mão. Arquivos: `VisitorSignatureSheetDocument.tsx`, `AttendanceSignatureSheetHeader.tsx`.
 
@@ -25,7 +25,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-Validar a pré-visualização **Visitantes A4** e, se estiver ok, pedir commit e push.
+O próximo passo é o que for pedido a partir daqui.
 
 ## Como ver isto de novo
 

@@ -132,25 +132,5 @@ export const SIGNATURE_SHEET_PRINT_STYLE = `
   }
 `
 
-/** Mesmo A4, forçando uma página e sem o padding da pré-visualização. */
-export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
-  @page { size: A4 portrait; margin: 10mm 14mm; }
-  @media print {
-    html, body {
-      height: auto !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    #visitor-signature-sheet-container {
-      padding: 0 !important;
-      margin: 0 !important;
-      max-width: none !important;
-      box-shadow: none !important;
-    }
-    .visitor-signature-sheet {
-      page-break-after: avoid;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-  }
-`
+/** Mesmo A4 da folha do quadro — a visibilidade no print vem de `#visitor-signature-sheet-container` em main.css. */
+export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = SIGNATURE_SHEET_PRINT_STYLE

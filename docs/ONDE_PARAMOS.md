@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | dfec9c6 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** na folha **Visitantes A4**, Nome ficou um pouco menor e Loja/Nº ganhou o espaço restante; Sessão, Data, Horário, Grau e Local saem em branco para preenchimento à mão. Arquivos: `VisitorSignatureSheetDocument.tsx`, `AttendanceSignatureSheetHeader.tsx`.
+**O que ficou pronto:** a impressão **Visitantes A4** saía em branco porque `#visitor-signature-sheet-container` não estava na lista de visibilidade do `@media print` em `main.css` (o mesmo padrão da folha do quadro). Arquivos: `src/main.css`, `src/lib/attendance-signature-sheet.ts`.
 
 ## Banco
 
@@ -25,7 +25,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-O próximo passo é o que for pedido a partir daqui.
+Validar a impressão **Visitantes A4** (preview e impressora) e, se estiver ok, pedir commit e push.
 
 ## Como ver isto de novo
 

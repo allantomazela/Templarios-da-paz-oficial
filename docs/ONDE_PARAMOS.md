@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 8833e66 |
 
 **O que ficou pronto:** grade da **Visitantes A4** corrigida (células vazias com nbsp + empty-cells/bordas no print); removidos contagem e data do rodapé do documento. Arquivos: `VisitorSignatureSheetDocument.tsx`, `main.css`, `attendance-signature-sheet.ts`.
 
@@ -25,7 +25,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-Validar a grade da **Visitantes A4** e, se estiver ok, pedir commit e push. Na impressão, desmarcar “Imprimir cabeçalhos e rodapés”.
+O próximo passo é o que for pedido a partir daqui. Na impressão Visitantes A4, desmarcar “Imprimir cabeçalhos e rodapés” no Chrome.
 
 ## Como ver isto de novo
 

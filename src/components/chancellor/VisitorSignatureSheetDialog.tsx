@@ -95,8 +95,8 @@ export function VisitorSignatureSheetDialog({
           <DialogTitle>Folha de presença — Visitantes</DialogTitle>
           <DialogDescription>
             Sessão, data, horário, grau e local saem em branco para preencher à
-            mão. Linhas para Nome, Grau, CIM, Loja/Nº, Obediência e Assinatura.
-            Impressão aparte da folha do quadro.
+            mão. Na impressão, desmarque “Imprimir cabeçalhos e rodapés” para não
+            sair número da folha nem data do navegador.
           </DialogDescription>
         </DialogHeader>
 

@@ -132,5 +132,37 @@ export const SIGNATURE_SHEET_PRINT_STYLE = `
   }
 `
 
-/** Mesmo A4 da folha do quadro — a visibilidade no print vem de `#visitor-signature-sheet-container` em main.css. */
-export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = SIGNATURE_SHEET_PRINT_STYLE
+/**
+ * A4 da folha de visitantes: força grades das células vazias (Chrome colapsa bordas
+ * sem empty-cells/nbsp) e margens compatíveis com desligar cabeçalho/rodapé do navegador.
+ */
+export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
+  @page { size: A4 portrait; margin: 10mm 14mm; }
+  @media print {
+    html, body {
+      height: auto !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #visitor-signature-sheet-container {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: none !important;
+      box-shadow: none !important;
+      background: white !important;
+      color: #000 !important;
+    }
+    #visitor-signature-sheet-container table {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse !important;
+      empty-cells: show !important;
+    }
+    #visitor-signature-sheet-container th,
+    #visitor-signature-sheet-container td {
+      border: 0.4pt solid #000 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+`

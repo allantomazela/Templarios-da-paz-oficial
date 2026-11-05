@@ -412,6 +412,19 @@ body {
     break-inside: avoid;
   }
 
+  /* Grade da folha de visitantes: células vazias precisam de empty-cells + borda explícita */
+  #visitor-signature-sheet-container table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    empty-cells: show !important;
+  }
+
+  #visitor-signature-sheet-container th,
+  #visitor-signature-sheet-container td {
+    border: 0.4pt solid #000 !important;
+  }
+
   /* Mostrar relatório do chanceler na impressão */
   #chancellor-report-container {
     display: block !important;

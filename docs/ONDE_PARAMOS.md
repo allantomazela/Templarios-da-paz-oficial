@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | e22b45e |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** a impressão **Visitantes A4** saía em branco porque `#visitor-signature-sheet-container` não estava na lista de visibilidade do `@media print` em `main.css` (o mesmo padrão da folha do quadro). Arquivos: `src/main.css`, `src/lib/attendance-signature-sheet.ts`.
+**O que ficou pronto:** grade da **Visitantes A4** corrigida (células vazias com nbsp + empty-cells/bordas no print); removidos contagem e data do rodapé do documento. Arquivos: `VisitorSignatureSheetDocument.tsx`, `main.css`, `attendance-signature-sheet.ts`.
 
 ## Banco
 
@@ -25,7 +25,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-O próximo passo é o que for pedido a partir daqui.
+Validar a grade da **Visitantes A4** e, se estiver ok, pedir commit e push. Na impressão, desmarcar “Imprimir cabeçalhos e rodapés”.
 
 ## Como ver isto de novo
 

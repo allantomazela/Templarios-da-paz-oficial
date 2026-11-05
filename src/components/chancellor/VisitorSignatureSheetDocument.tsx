@@ -8,6 +8,8 @@ import { AttendanceSignatureSheetFooter } from './AttendanceSignatureSheetFooter
 
 const CELL = 'border border-black px-[1mm] py-0 align-middle leading-none'
 const HEAD_CELL = `${CELL} bg-gray-100 py-[0.8mm] text-[6.5pt] font-bold uppercase tracking-wider`
+/** Células vazias precisam de conteúdo para o Chrome não colapsar bordas na impressão. */
+const EMPTY = '\u00A0'
 
 /** Folha A4 em branco para assinatura de irmãos visitantes no livro de presença. */
 export function VisitorSignatureSheetDocument({
@@ -35,15 +37,18 @@ export function VisitorSignatureSheetDocument({
         blankSessionFields
       />
 
-      <table className="w-full table-fixed border-collapse">
+      <table
+        className="w-full table-fixed border-collapse border border-black"
+        style={{ emptyCells: 'show' }}
+      >
         <colgroup>
-          <col className="w-[7mm]" />
-          <col className="w-[38mm]" />
-          <col className="w-[14mm]" />
-          <col className="w-[14mm]" />
-          <col />
-          <col className="w-[18mm]" />
-          <col className="w-[34mm]" />
+          <col style={{ width: '8mm' }} />
+          <col style={{ width: '40mm' }} />
+          <col style={{ width: '15mm' }} />
+          <col style={{ width: '15mm' }} />
+          <col style={{ width: '48mm' }} />
+          <col style={{ width: '20mm' }} />
+          <col style={{ width: '36mm' }} />
         </colgroup>
         <thead>
           <tr>
@@ -60,12 +65,12 @@ export function VisitorSignatureSheetDocument({
           {rows.map((order) => (
             <tr key={order} style={rowStyle}>
               <td className={`${CELL} text-center text-[8pt]`}>{order}</td>
-              <td className={CELL} />
-              <td className={CELL} />
-              <td className={CELL} />
-              <td className={CELL} />
-              <td className={CELL} />
-              <td className={CELL} />
+              <td className={CELL}>{EMPTY}</td>
+              <td className={CELL}>{EMPTY}</td>
+              <td className={CELL}>{EMPTY}</td>
+              <td className={CELL}>{EMPTY}</td>
+              <td className={CELL}>{EMPTY}</td>
+              <td className={CELL}>{EMPTY}</td>
             </tr>
           ))}
         </tbody>
@@ -76,8 +81,8 @@ export function VisitorSignatureSheetDocument({
         totalBrothers={blankRowCount}
         venerableMaster={venerableMaster}
         chancellor={chancellor}
-        totalLabel="Linhas em branco para assinatura de visitantes"
         compact
+        hideMeta
       />
     </div>
   )

@@ -34,8 +34,10 @@ describe('VisitorSignatureSheetDocument', () => {
     expect(screen.getByText('1')).toBeTruthy()
     expect(screen.getByText('5')).toBeTruthy()
     expect(
-      screen.getByText(/Linhas em branco para assinatura de visitantes: 5/),
-    ).toBeTruthy()
+      screen.queryByText(/Linhas em branco para assinatura de visitantes/),
+    ).toBeNull()
+    expect(screen.getByText('VM Teste')).toBeTruthy()
+    expect(screen.getByText('Chanceler Teste')).toBeTruthy()
     expect(screen.getByRole('img', { name: 'Esquadro e Compasso' })).toBeTruthy()
   })
 })

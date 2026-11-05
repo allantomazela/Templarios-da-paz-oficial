@@ -1,13 +1,13 @@
 import {
-  signatureSheetRowHeightMm,
   visitorSignatureBlankRowCount,
+  visitorSignatureSheetRowHeightMm,
 } from '@/lib/attendance-signature-sheet'
 import type { MasonicDegree } from '@/lib/masonic-degree'
 import { AttendanceSignatureSheetHeader } from './AttendanceSignatureSheetHeader'
 import { AttendanceSignatureSheetFooter } from './AttendanceSignatureSheetFooter'
 
 const CELL = 'border border-black px-[1mm] py-0 align-middle leading-none'
-const HEAD_CELL = `${CELL} bg-gray-100 py-[1mm] text-[6.5pt] font-bold uppercase tracking-wider`
+const HEAD_CELL = `${CELL} bg-gray-100 py-[0.8mm] text-[6.5pt] font-bold uppercase tracking-wider`
 
 /** Folha A4 em branco para assinatura de irmãos visitantes no livro de presença. */
 export function VisitorSignatureSheetDocument({
@@ -20,11 +20,11 @@ export function VisitorSignatureSheetDocument({
   chancellor,
   blankRowCount = visitorSignatureBlankRowCount(),
 }: VisitorSignatureSheetDocumentProps) {
-  const rowStyle = { height: `${signatureSheetRowHeightMm(blankRowCount)}mm` }
+  const rowStyle = { height: `${visitorSignatureSheetRowHeightMm()}mm` }
   const rows = Array.from({ length: blankRowCount }, (_, index) => index + 1)
 
   return (
-    <div className="bg-white text-[10pt] leading-snug text-black">
+    <div className="visitor-signature-sheet bg-white text-[10pt] leading-snug text-black">
       <AttendanceSignatureSheetHeader
         eventTitle={eventTitle}
         eventDate={eventDate}
@@ -57,7 +57,7 @@ export function VisitorSignatureSheetDocument({
         </thead>
         <tbody>
           {rows.map((order) => (
-            <tr key={order} style={rowStyle} className="break-inside-avoid">
+            <tr key={order} style={rowStyle}>
               <td className={`${CELL} text-center text-[8pt]`}>{order}</td>
               <td className={CELL} />
               <td className={CELL} />
@@ -76,6 +76,7 @@ export function VisitorSignatureSheetDocument({
         venerableMaster={venerableMaster}
         chancellor={chancellor}
         totalLabel="Linhas em branco para assinatura de visitantes"
+        compact
       />
     </div>
   )

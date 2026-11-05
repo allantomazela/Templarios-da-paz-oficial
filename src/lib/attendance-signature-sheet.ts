@@ -93,14 +93,25 @@ export const SIGNATURE_SHEET_MIN_ROW_MM = 5.2
 export const SIGNATURE_SHEET_MAX_ROW_MM = 9
 
 /**
- * Máximo de linhas em branco na folha de visitantes numa A4, usando a altura mínima
- * de linha já usada no livro de presença.
+ * Área útil da folha de visitantes (mais folga que a do quadro): título mais longo,
+ * mais colunas e margem para a impressão não gerar 2ª página.
  */
+export const VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM = 175
+/** Altura fixa das linhas em branco — suficiente para assinar e cabe numa A4. */
+export const VISITOR_SIGNATURE_SHEET_ROW_MM = 7
+
+/** Quantidade de linhas em branco que cabem numa única A4. */
 export function visitorSignatureBlankRowCount(
-  rowsAreaMm = SIGNATURE_SHEET_ROWS_AREA_MM,
-  minRowMm = SIGNATURE_SHEET_MIN_ROW_MM,
+  rowsAreaMm = VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM,
+  rowMm = VISITOR_SIGNATURE_SHEET_ROW_MM,
 ): number {
-  return Math.max(1, Math.floor(rowsAreaMm / minRowMm))
+  return Math.max(1, Math.floor(rowsAreaMm / rowMm))
+}
+
+export function visitorSignatureSheetRowHeightMm(
+  rowMm = VISITOR_SIGNATURE_SHEET_ROW_MM,
+): number {
+  return rowMm
 }
 
 /** Até 40 irmãos cabem numa página; com menos irmãos, as linhas crescem para facilitar a assinatura. */
@@ -117,6 +128,29 @@ export const SIGNATURE_SHEET_PRINT_STYLE = `
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+  }
+`
+
+/** Mesmo A4, forçando uma página e sem o padding da pré-visualização. */
+export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
+  @page { size: A4 portrait; margin: 10mm 14mm; }
+  @media print {
+    html, body {
+      height: auto !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #visitor-signature-sheet-container {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: none !important;
+      box-shadow: none !important;
+    }
+    .visitor-signature-sheet {
+      page-break-after: avoid;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
   }
 `

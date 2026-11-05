@@ -29,13 +29,10 @@ import {
   SIGNATURE_SHEET_ORDER_LABELS,
   SIGNATURE_SHEET_PRINT_STYLE,
   signatureSheetDocumentTitle,
-  visitorSignatureBlankRowCount,
-  visitorSignatureSheetDocumentTitle,
   type SignatureSheetOrder,
 } from '@/lib/attendance-signature-sheet'
 import { resolvePrintedEventLocation } from '@/lib/event-locations'
 import { AttendanceSignatureSheetDocument } from './AttendanceSignatureSheetDocument'
-import { VisitorSignatureSheetDocument } from './VisitorSignatureSheetDocument'
 
 export function AttendanceSignatureSheetDialog({
   open,
@@ -51,8 +48,6 @@ export function AttendanceSignatureSheetDialog({
   const [sessionDegree, setSessionDegree] = useState<MasonicDegree>('Aprendiz')
   const [sheetOrder, setSheetOrder] = useState<SignatureSheetOrder>('name')
   const sheetRef = useRef<HTMLDivElement>(null)
-  const visitorSheetRef = useRef<HTMLDivElement>(null)
-  const visitorBlankRows = visitorSignatureBlankRowCount()
 
   useEffect(() => {
     if (open && !initialized) void fetchPositions()
@@ -73,28 +68,15 @@ export function AttendanceSignatureSheetDialog({
     [brothers, sessionDegree, sheetOrder],
   )
 
-  const handlePrintLodge = usePrintReport({
+  const handlePrint = usePrintReport({
     contentRef: sheetRef,
     documentTitle: event
       ? signatureSheetDocumentTitle(event.date, sessionDegree)
       : 'Folha_Presenca',
     pageStyle: SIGNATURE_SHEET_PRINT_STYLE,
-    successTitle: 'Folha da loja enviada à impressão',
+    successTitle: 'Folha de presença enviada à impressão',
     successDescription: 'Imprima em papel A4 para colar no livro de presença.',
     errorDescription: 'Não foi possível gerar a folha de presença. Tente novamente.',
-  })
-
-  const handlePrintVisitors = usePrintReport({
-    contentRef: visitorSheetRef,
-    documentTitle: event
-      ? visitorSignatureSheetDocumentTitle(event.date, sessionDegree)
-      : 'Folha_Presenca_Visitantes',
-    pageStyle: SIGNATURE_SHEET_PRINT_STYLE,
-    successTitle: 'Folha de visitantes enviada à impressão',
-    successDescription:
-      'Folha em branco para assinatura de visitantes. Imprima em A4, em folhas separadas da lista da loja.',
-    errorDescription:
-      'Não foi possível gerar a folha de visitantes. Tente novamente.',
   })
 
   if (!event) return null
@@ -118,9 +100,8 @@ export function AttendanceSignatureSheetDialog({
         <DialogHeader>
           <DialogTitle>Folha de presença para o livro</DialogTitle>
           <DialogDescription>
-            Imprima a lista do quadro da loja e, se precisar, a folha em branco
-            para assinatura de visitantes — em trabalhos separados, para ficarem
-            em folhas distintas no livro.
+            Lista o quadro ativo (inclui afastados por saúde; desligados ficam de fora).
+            Escolha o grau da sessão e a ordem da lista antes de imprimir.
           </DialogDescription>
         </DialogHeader>
 
@@ -164,10 +145,8 @@ export function AttendanceSignatureSheetDialog({
             </Select>
           </div>
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            {rows.length} irmão{rows.length !== 1 ? 's' : ''} na folha da loja. A ordem
-            alfabética é a padrão; por grau vale só nesta impressão. A folha de
-            visitantes sai com {visitorBlankRows} linhas em branco (CIM, loja e
-            assinatura).
+            {rows.length} irmão{rows.length !== 1 ? 's' : ''} na folha. A ordem alfabética
+            é a padrão; por grau vale só nesta impressão.
           </p>
         </div>
 
@@ -190,45 +169,13 @@ export function AttendanceSignatureSheetDialog({
           </div>
         </div>
 
-        {/* Fora da pré-visualização: só entra na impressão da folha de visitantes. */}
-        <div className="pointer-events-none absolute left-[-10000px] top-0 w-[210mm]" aria-hidden>
-          <div
-            ref={visitorSheetRef}
-            id="visitor-signature-sheet-container"
-            className="bg-white p-8"
-          >
-            <VisitorSignatureSheetDocument
-              eventTitle={event.title}
-              eventDate={event.date}
-              eventTime={event.time}
-              locationName={locationName}
-              sessionDegree={sessionDegree}
-              venerableMaster={venerableMaster}
-              chancellor={chancellor}
-              blankRowCount={visitorBlankRows}
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => handlePrintVisitors()}
-            className="gap-2"
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir visitantes (em branco)
-          </Button>
-          <Button
-            onClick={() => handlePrintLodge()}
-            disabled={rows.length === 0}
-            className="gap-2"
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir folha da loja
+          <Button onClick={() => handlePrint()} disabled={rows.length === 0}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimir A4
           </Button>
         </DialogFooter>
       </DialogContent>

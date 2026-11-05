@@ -8,6 +8,7 @@ export function AttendanceSignatureSheetFooter({
   venerableMaster,
   chancellor,
   totalLabel = 'Irmãos do quadro convocados para esta sessão',
+  compact = false,
 }: AttendanceSignatureSheetFooterProps) {
   const { contact } = useSiteSettingsStore()
   const longDate = formatCalendarDate(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
@@ -24,7 +25,7 @@ export function AttendanceSignatureSheetFooter({
         </div>
       </div>
 
-      <div className="mt-[8mm] grid grid-cols-2 gap-[14mm]">
+      <div className={`grid grid-cols-2 gap-[14mm] ${compact ? 'mt-[4mm]' : 'mt-[8mm]'}`}>
         <SignatureBlock name={venerableMaster} role="Venerável Mestre em Exercício" />
         <SignatureBlock name={chancellor} role="Chanceler" />
       </div>
@@ -48,4 +49,6 @@ interface AttendanceSignatureSheetFooterProps {
   venerableMaster: string
   chancellor: string
   totalLabel?: string
+  /** Menor espaço antes das assinaturas — ajuda a folha de visitantes a caber numa A4. */
+  compact?: boolean
 }

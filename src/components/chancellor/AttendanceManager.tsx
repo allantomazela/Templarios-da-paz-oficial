@@ -7,6 +7,7 @@ import useChancellorStore from '@/stores/useChancellorStore'
 import { AttendanceDialog } from './AttendanceDialog'
 import { AttendanceSignatureSheetDialog } from './AttendanceSignatureSheetDialog'
 import { AttendanceSignatureSheetBatchDialog } from './AttendanceSignatureSheetBatchDialog'
+import { VisitorSignatureSheetDialog } from './VisitorSignatureSheetDialog'
 import { AttendancePresenceList } from './AttendancePresenceList'
 import { QRCheckinScanner } from './QRCheckinScanner'
 import {
@@ -54,9 +55,11 @@ export function AttendanceManager() {
   const [selectedRecord, setSelectedRecord] = useState<SessionRecord | null>(null)
   const [openingEventId, setOpeningEventId] = useState<string | null>(null)
   const [signatureSheetEvent, setSignatureSheetEvent] = useState<Event | null>(null)
+  const [visitorSheetEvent, setVisitorSheetEvent] = useState<Event | null>(null)
   const dialog = useDialog()
   const scannerDialog = useDialog()
   const signatureSheetDialog = useDialog()
+  const visitorSheetDialog = useDialog()
   const signatureSheetBatchDialog = useDialog()
 
   devLog('log', `AttendanceManager: Total de eventos no store: ${events.length}`)
@@ -154,6 +157,11 @@ export function AttendanceManager() {
     signatureSheetDialog.openDialog()
   }
 
+  const handleOpenVisitorSheet = (event: Event) => {
+    setVisitorSheetEvent(event)
+    visitorSheetDialog.openDialog()
+  }
+
   const renderSignatureSheetButton = (event: Event, fullWidth = false) => {
     if (!canManageSessions) return null
     return (
@@ -162,10 +170,26 @@ export function AttendanceManager() {
         variant="outline"
         className={fullWidth ? 'w-full' : undefined}
         onClick={() => handleOpenSignatureSheet(event)}
-        title="Imprimir folha de presença A4 para o livro"
+        title="Imprimir folha de presença A4 do quadro para o livro"
       >
         <Printer className="mr-2 h-4 w-4" />
         Folha A4
+      </Button>
+    )
+  }
+
+  const renderVisitorSheetButton = (event: Event, fullWidth = false) => {
+    if (!canManageSessions) return null
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className={fullWidth ? 'w-full' : undefined}
+        onClick={() => handleOpenVisitorSheet(event)}
+        title="Imprimir folha A4 em branco para assinatura de visitantes"
+      >
+        <Printer className="mr-2 h-4 w-4" />
+        Visitantes A4
       </Button>
     )
   }
@@ -310,6 +334,7 @@ export function AttendanceManager() {
         renderActions={(item, fullWidth) => (
           <>
             {renderSignatureSheetButton(item.event, fullWidth)}
+            {renderVisitorSheetButton(item.event, fullWidth)}
             {renderActionButton(item.event, item.record, item.displayStatus, fullWidth)}
           </>
         )}
@@ -328,6 +353,12 @@ export function AttendanceManager() {
         open={signatureSheetDialog.open}
         onOpenChange={signatureSheetDialog.onOpenChange}
         event={signatureSheetEvent}
+      />
+
+      <VisitorSignatureSheetDialog
+        open={visitorSheetDialog.open}
+        onOpenChange={visitorSheetDialog.onOpenChange}
+        event={visitorSheetEvent}
       />
 
       <AttendanceSignatureSheetBatchDialog

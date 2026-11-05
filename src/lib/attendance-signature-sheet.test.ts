@@ -4,9 +4,12 @@ import {
   buildSignatureSheetRows,
   signatureSheetRowHeightMm,
   visitorSignatureBlankRowCount,
+  visitorSignatureSheetRowHeightMm,
   SIGNATURE_SHEET_MAX_ROW_MM,
   SIGNATURE_SHEET_MIN_ROW_MM,
   SIGNATURE_SHEET_ROWS_AREA_MM,
+  VISITOR_SIGNATURE_SHEET_ROW_MM,
+  VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM,
 } from '@/lib/attendance-signature-sheet'
 
 function brother(overrides: Partial<Brother>): Brother {
@@ -90,13 +93,15 @@ describe('signatureSheetRowHeightMm', () => {
 })
 
 describe('visitorSignatureBlankRowCount', () => {
-  it('usa o máximo de linhas que cabem na área útil da A4', () => {
+  it('cabe numa única A4 com altura fixa das linhas', () => {
     const count = visitorSignatureBlankRowCount()
     expect(count).toBe(
-      Math.floor(SIGNATURE_SHEET_ROWS_AREA_MM / SIGNATURE_SHEET_MIN_ROW_MM),
+      Math.floor(
+        VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM / VISITOR_SIGNATURE_SHEET_ROW_MM,
+      ),
     )
-    expect(count * SIGNATURE_SHEET_MIN_ROW_MM).toBeLessThanOrEqual(
-      SIGNATURE_SHEET_ROWS_AREA_MM,
+    expect(count * visitorSignatureSheetRowHeightMm()).toBeLessThanOrEqual(
+      VISITOR_SIGNATURE_SHEET_ROWS_AREA_MM,
     )
   })
 })

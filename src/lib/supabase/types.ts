@@ -3195,6 +3195,10 @@ export type Database = {
         Args: { b: Database["public"]["Tables"]["brothers"]["Row"] }
         Returns: boolean
       }
+      notify_active_brothers: {
+        Args: { p_title: string; p_message: string; p_link?: string }
+        Returns: number
+      }
       normalize_profile_masonic_degree: {
         Args: { deg: string }
         Returns: string

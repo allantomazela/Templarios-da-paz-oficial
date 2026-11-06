@@ -56,16 +56,34 @@ export function EventNotifications({ event }: EventNotificationsProps) {
     }
   }, [template, templates])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     setIsSending(true)
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsSending(false)
-      toast({
-        title: 'Notificações Enviadas',
-        description: `Email enviado para ${activeBrothersCount} irmãos ativos com sucesso.`,
+    try {
+      const { sendAgendaBroadcast } = await import('@/lib/agenda-broadcast')
+      const sent = await sendAgendaBroadcast({
+        title: subject.trim(),
+        message: message.trim(),
+        link: '/dashboard/agenda',
       })
-    }, 1500)
+      toast({
+        title: sent > 0 ? 'Aviso enviado' : 'Nenhum irmão notificado',
+        description:
+          sent > 0
+            ? `${sent} irmão(s) com conta no aplicativo receberam o aviso no sino. Se o celular estiver com o app aberto e as notificações permitidas, o alerta aparece na tela.`
+            : 'Não há irmão ativo com conta aprovada, além de quem enviou, para receber este aviso.',
+      })
+    } catch (error) {
+      toast({
+        title: 'Não foi possível enviar',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'O aviso não foi gravado. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -78,10 +96,12 @@ export function EventNotifications({ event }: EventNotificationsProps) {
                 <Mail className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-semibold">Comunicação em Massa</h3>
-                <p className="text-xs text-muted-foreground">
-                  Envie emails para todos os {activeBrothersCount} membros ativos.
-                </p>
+              <h3 className="font-semibold">Comunicação em Massa</h3>
+              <p className="text-xs text-muted-foreground">
+                Envia o aviso para o sino do aplicativo dos {activeBrothersCount}{' '}
+                irmãos ativos que tenham conta. Quem já permitiu notificações
+                e estiver com o app aberto também recebe o alerta na tela.
+              </p>
               </div>
             </div>
           </CardContent>
@@ -138,7 +158,7 @@ export function EventNotifications({ event }: EventNotificationsProps) {
           )}
           {isSending
             ? 'Enviando...'
-            : `Enviar para ${activeBrothersCount} Irmãos`}
+            : `Enviar aviso para ${activeBrothersCount} Irmãos`}
         </Button>
       </div>
     </div>

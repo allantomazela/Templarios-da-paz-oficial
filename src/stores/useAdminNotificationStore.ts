@@ -28,6 +28,8 @@ export interface AppNotification {
 interface AdminNotificationState {
   notifications: AppNotification[]
   loading: boolean
+  /** true depois da primeira busca concluída. Evita tratar o histórico como aviso novo. */
+  initialized: boolean
   unreadCount: number
   fetchNotifications: () => Promise<void>
   markAsRead: (id: string) => Promise<void>
@@ -38,6 +40,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
   (set) => ({
     notifications: [],
     loading: false,
+    initialized: false,
     unreadCount: 0,
 
     fetchNotifications: async () => {
@@ -60,7 +63,7 @@ export const useAdminNotificationStore = create<AdminNotificationState>(
 
         if (data && notificationsFetchSeq.isCurrent(id)) {
           const unread = data.filter((n: AppNotification) => !n.is_read).length
-          set({ notifications: data, unreadCount: unread })
+          set({ notifications: data, unreadCount: unread, initialized: true })
         }
       } catch (error) {
         if (handleAuthError(error)) return

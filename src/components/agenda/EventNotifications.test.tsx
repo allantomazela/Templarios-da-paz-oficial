@@ -20,7 +20,7 @@ describe('EventNotifications', () => {
 
     expect(screen.getByText('Comunicação em Massa')).toBeTruthy()
     expect(
-      screen.getByRole('button', { name: /Enviar para \d+ Irmãos/ }),
+      screen.getByRole('button', { name: /Enviar aviso para \d+ Irmãos/ }),
     ).toBeTruthy()
   })
 })

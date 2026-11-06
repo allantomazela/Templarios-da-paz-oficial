@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Bell, Search, Menu, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -19,19 +19,26 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import useAdminNotificationStore from '@/stores/useAdminNotificationStore'
+import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
+import { selectFreshNotifications } from '@/lib/incoming-notifications'
+import { showDeviceNotification } from '@/lib/device-notification'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 export function AppHeader() {
   const location = useLocation()
+  const userId = useAuthStore((state) => state.user?.id)
   const {
     notifications,
     unreadCount,
+    initialized,
     fetchNotifications,
     markAsRead,
     markAllAsRead,
   } = useAdminNotificationStore()
+  const knownNotificationIds = useRef<Set<string> | null>(null)
 
   useEffect(() => {
     fetchNotifications()
@@ -39,6 +46,56 @@ export function AppHeader() {
     const interval = setInterval(fetchNotifications, 60000)
     return () => clearInterval(interval)
   }, [fetchNotifications])
+
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `profile_id=eq.${userId}`,
+        },
+        () => {
+          void fetchNotifications()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [userId, fetchNotifications])
+
+  useEffect(() => {
+    if (!initialized) return
+
+    if (!knownNotificationIds.current) {
+      knownNotificationIds.current = new Set(
+        notifications.map((notification) => notification.id),
+      )
+      return
+    }
+
+    const fresh = selectFreshNotifications(
+      knownNotificationIds.current,
+      notifications,
+    )
+    for (const notification of notifications) {
+      knownNotificationIds.current.add(notification.id)
+    }
+    for (const notification of fresh) {
+      void showDeviceNotification(
+        notification.title,
+        notification.message,
+        notification.id,
+      )
+    }
+  }, [initialized, notifications])
 
   const getPageTitle = () => {
     const path = location.pathname

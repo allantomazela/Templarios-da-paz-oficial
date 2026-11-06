@@ -294,41 +294,44 @@ export function EventDetailsSheet({
 
           <TabsContent
             value="checkin"
-            className="flex-1 overflow-hidden p-6 mt-0"
+            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden p-0"
           >
-            <div className="flex flex-col items-center justify-center h-full space-y-6">
-              <div className="bg-primary/10 p-6 rounded-full">
-                <CalendarCheck className="h-12 w-12 text-primary" />
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+                <div className="flex flex-col items-center space-y-6 text-center">
+                  <div className="bg-primary/10 p-6 rounded-full">
+                    <CalendarCheck className="h-12 w-12 text-primary" />
+                  </div>
+                  <div className="space-y-2 max-w-md">
+                    <h3 className="text-xl font-semibold">
+                      Registro de Presença
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      O registro de presença deve ser realizado no módulo{' '}
+                      <strong>Chanceler</strong>.
+                    </p>
+                  </div>
+                  <Alert className="max-w-md border-primary/20 bg-primary/5 text-left">
+                    <CalendarCheck className="h-4 w-4 text-primary" />
+                    <AlertTitle className="text-sm font-semibold">
+                      Como registrar presença?
+                    </AlertTitle>
+                    <AlertDescription className="text-sm mt-2">
+                      Para registrar a presença dos irmãos neste evento, acesse o
+                      módulo <strong>Chanceler</strong> e utilize a seção{' '}
+                      <strong>Controle de Presença</strong>.
+                    </AlertDescription>
+                  </Alert>
+                </div>
               </div>
-              <div className="text-center space-y-2 max-w-md">
-                <h3 className="text-xl font-semibold">
-                  Registro de Presença
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  O registro de presença deve ser realizado no módulo{' '}
-                  <strong>Chanceler</strong>.
-                </p>
-              </div>
-              <Alert className="max-w-md border-primary/20 bg-primary/5">
-                <CalendarCheck className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-sm font-semibold">
-                  Como registrar presença?
-                </AlertTitle>
-                <AlertDescription className="text-sm mt-2 space-y-2">
-                  <p>
-                    Para registrar a presença dos irmãos neste evento, acesse o
-                    módulo <strong>Chanceler</strong> e utilize a seção{' '}
-                    <strong>Controle de Presença</strong>.
-                  </p>
-                  <Link
-                    to="/dashboard/chancellor"
-                    className="inline-flex items-center gap-2 text-primary hover:underline font-medium mt-3"
-                  >
+              <div className="shrink-0 border-t bg-background p-4">
+                <Button asChild className="w-full">
+                  <Link to="/dashboard/chancellor">
                     Ir para o módulo Chanceler
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
-                </AlertDescription>
-              </Alert>
+                </Button>
+              </div>
             </div>
           </TabsContent>
 

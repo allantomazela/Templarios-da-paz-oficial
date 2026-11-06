@@ -69,7 +69,7 @@ export function EventNotifications({ event }: EventNotificationsProps) {
         title: sent > 0 ? 'Aviso enviado' : 'Nenhum irmão notificado',
         description:
           sent > 0
-            ? `${sent} irmão(s) com conta no aplicativo receberam o aviso no sino. Se o celular estiver com o app aberto e as notificações permitidas, o alerta aparece na tela.`
+            ? `${sent} irmão(s) com conta receberam o aviso no sino. Quem já ativou as notificações do celular também recebe o alerta na tela.`
             : 'Não há irmão ativo com conta aprovada, além de quem enviou, para receber este aviso.',
       })
     } catch (error) {
@@ -98,9 +98,10 @@ export function EventNotifications({ event }: EventNotificationsProps) {
               <div>
               <h3 className="font-semibold">Comunicação em Massa</h3>
               <p className="text-xs text-muted-foreground">
-                Envia o aviso para o sino do aplicativo dos {activeBrothersCount}{' '}
-                irmãos ativos que tenham conta. Quem já permitiu notificações
-                e estiver com o app aberto também recebe o alerta na tela.
+                Envia o aviso para o sino dos {activeBrothersCount} irmãos ativos
+                com conta. Quem ativou as notificações do celular também recebe
+                o alerta na tela, mesmo com o aplicativo fechado. No iPhone, o
+                site precisa estar na tela inicial.
               </p>
               </div>
             </div>

@@ -92,7 +92,7 @@ export function AppHeader() {
       void showDeviceNotification(
         notification.title,
         notification.message,
-        notification.id,
+        'lodge-broadcast',
       )
     }
   }, [initialized, notifications])

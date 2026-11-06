@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { logWarning, logError } from '@/lib/logger'
-import { supabase } from '@/lib/supabase/client'
 import { isAuthError } from '@/lib/auth-utils'
 import useAuthStore from '@/stores/useAuthStore'
+import { registerDevicePushSubscription } from '@/lib/push-subscription'
 
 function handleAuthError(error: unknown): boolean {
   if (isAuthError(error)) {
@@ -49,58 +49,11 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       set({ permission })
 
       if (permission === 'granted') {
-        const registration = await navigator.serviceWorker.ready
-
-        // In a real scenario with VAPID keys:
-        // const subscription = await registration.pushManager.subscribe({
-        //   userVisibleOnly: true,
-        //   applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        // })
-
-        // For this implementation, we simulate subscription or create a basic one if supported without keys (unlikely to work for push messages but works for object creation)
-        // We will try to subscribe. If it fails due to missing keys, we will mock the object for the DB storage requirement.
-
-        let subscriptionJSON = {}
-
-        try {
-          // This usually requires a VAPID key in options.
-          // We will proceed by mocking the "store tokens" part if subscription fails or is not feasible without keys in this env.
-          // However, to satisfy "infrastructure... store tokens", we should store what we can.
-          const subscription = await registration.pushManager
-            .subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: 'BIX_Q....', // Placeholder, would need real key
-            })
-            .catch(() => null) // Catch error if key is invalid
-
-          if (subscription) {
-            subscriptionJSON = subscription.toJSON()
-          } else {
-            // Mock for demonstration if real push isn't configured
-            subscriptionJSON = {
-              endpoint: 'https://fcm.googleapis.com/fcm/send/mock-token',
-              keys: { auth: 'mock', p256dh: 'mock' },
-            }
-          }
-        } catch (e) {
-          logWarning(
-            'Push subscription failed, mocking for storage compliance',
-            e,
-          )
-          subscriptionJSON = {
-            endpoint: 'https://mock.service/endpoint',
-            keys: { auth: 'mock', p256dh: 'mock' },
-          }
+        const saved = await registerDevicePushSubscription(profileId)
+        set({ isSubscribed: saved })
+        if (!saved) {
+          logWarning('Push subscription was not stored')
         }
-
-        // Store in Supabase
-        const { error } = await supabase.from('push_subscriptions').insert({
-          profile_id: profileId,
-          subscription_data: subscriptionJSON,
-        })
-
-        if (error) throw error
-        set({ isSubscribed: true })
       }
     } catch (error) {
       if (handleAuthError(error)) return

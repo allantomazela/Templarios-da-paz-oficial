@@ -43,13 +43,13 @@ export function VisitorSignatureSheetDocument({
         style={{ emptyCells: 'show' }}
       >
         <colgroup>
-          {/* ~190 mm úteis. A largura da antiga coluna Obediência foi para Loja. */}
+          {/* ~190 mm úteis. Assinatura cedeu 16 mm ao Nome do Irmão. */}
           <col style={{ width: '8mm' }} />
-          <col style={{ width: '52mm' }} />
+          <col style={{ width: '68mm' }} />
           <col style={{ width: '14mm' }} />
           <col style={{ width: '14mm' }} />
           <col style={{ width: '54mm' }} />
-          <col style={{ width: '48mm' }} />
+          <col style={{ width: '32mm' }} />
         </colgroup>
         <thead>
           <tr>

@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | a21ac41 |
+| Commit | 9095441 |
 
-**O que ficou pronto:** layout profissional da **Visitantes A4** — grade estável (sem absolute/break-inside por tr), linhas 7,2 mm × 25, Nome/Assinatura priorizados, 15 mm até assinaturas e 5 mm até o nome, margens 10/12/10/10. Arquivos: `VisitorSignatureSheetDocument.tsx`, `AttendanceSignatureSheetFooter.tsx`, `attendance-signature-sheet.ts`, `main.css`.
+**O que ficou pronto:** na folha **Visitantes A4**, o cabeçalho `Loja / Nº` virou só `Loja` e a coluna `Obediência` saiu. Os 18 mm dessa coluna passaram para o nome da loja (36 mm → 54 mm). Arquivo: `VisitorSignatureSheetDocument.tsx`.
 
 ## Banco
 

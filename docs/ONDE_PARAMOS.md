@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | ee3cd0c |
+| Commit | 9308302 |
 
-**O que ficou pronto:** na folha **Visitantes A4**, a coluna Assinatura foi de 48 mm para 32 mm e Nome do Irmão de 52 mm para 68 mm. Arquivo: `VisitorSignatureSheetDocument.tsx`.
+**O que ficou pronto:** na Agenda, o botão **Enviar para N Irmãos** da aba Notificar ficou fixo no rodapé do painel. O formulário do comunicado rola por cima dele. Arquivos: `EventDetailsSheet.tsx`, `EventNotifications.tsx`.
 
 ## Banco
 

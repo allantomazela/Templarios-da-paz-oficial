@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | 67fdff1 |
+| Commit | fccf238 |
 
-**O que ficou pronto:** o envio da aba Notificar da Agenda grava o aviso no sino dos irmãos ativos com conta aprovada. Se o app estiver aberto e a notificação do celular já estiver permitida, o alerta aparece na tela. Função nova `notify_active_brothers`, sem mudar políticas antigas. Arquivos: `EventNotifications.tsx`, `AppHeader.tsx`, `agenda-broadcast.ts`.
+**O que ficou pronto:** o aviso da Agenda também dispara push no celular, e o botão **Ir para o módulo Chanceler** da aba Check-in ficou fixo no rodapé. A chave privada do push está só nos segredos do Supabase. Arquivos: `send-lodge-push`, `sw.js`, `EventDetailsSheet.tsx`.
 
 ## Banco
 

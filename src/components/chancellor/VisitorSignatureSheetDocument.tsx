@@ -43,13 +43,12 @@ export function VisitorSignatureSheetDocument({
         style={{ emptyCells: 'show' }}
       >
         <colgroup>
-          {/* Prioriza Nome e Assinatura; Loja/Nº permanece usável (~190 mm úteis). */}
+          {/* ~190 mm úteis. A largura da antiga coluna Obediência foi para Loja. */}
           <col style={{ width: '8mm' }} />
           <col style={{ width: '52mm' }} />
           <col style={{ width: '14mm' }} />
           <col style={{ width: '14mm' }} />
-          <col style={{ width: '36mm' }} />
-          <col style={{ width: '18mm' }} />
+          <col style={{ width: '54mm' }} />
           <col style={{ width: '48mm' }} />
         </colgroup>
         <thead>
@@ -58,8 +57,7 @@ export function VisitorSignatureSheetDocument({
             <th className={`${HEAD_CELL} text-left`}>Nome do Irmão</th>
             <th className={`${HEAD_CELL} text-center`}>Grau</th>
             <th className={`${HEAD_CELL} text-center`}>CIM</th>
-            <th className={`${HEAD_CELL} text-center`}>Loja / Nº</th>
-            <th className={`${HEAD_CELL} text-center`}>Obediência</th>
+            <th className={`${HEAD_CELL} text-left`}>Loja</th>
             <th className={`${HEAD_CELL} text-center`}>Assinatura</th>
           </tr>
         </thead>
@@ -68,9 +66,6 @@ export function VisitorSignatureSheetDocument({
             <tr key={order}>
               <td className={`${CELL} text-center text-[8pt]`} style={cellStyle}>
                 {order}
-              </td>
-              <td className={CELL} style={cellStyle}>
-                {EMPTY}
               </td>
               <td className={CELL} style={cellStyle}>
                 {EMPTY}

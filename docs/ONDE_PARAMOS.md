@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 05/11/2026 |
-| Commit | 9308302 |
+| Commit | 67fdff1 |
 
-**O que ficou pronto:** na Agenda, o botão **Enviar para N Irmãos** da aba Notificar ficou fixo no rodapé do painel. O formulário do comunicado rola por cima dele. Arquivos: `EventDetailsSheet.tsx`, `EventNotifications.tsx`.
+**O que ficou pronto:** o envio da aba Notificar da Agenda grava o aviso no sino dos irmãos ativos com conta aprovada. Se o app estiver aberto e a notificação do celular já estiver permitida, o alerta aparece na tela. Função nova `notify_active_brothers`, sem mudar políticas antigas. Arquivos: `EventNotifications.tsx`, `AppHeader.tsx`, `agenda-broadcast.ts`.
 
 ## Banco
 

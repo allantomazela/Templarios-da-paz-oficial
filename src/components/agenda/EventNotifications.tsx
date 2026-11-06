@@ -69,59 +69,63 @@ export function EventNotifications({ event }: EventNotificationsProps) {
   }
 
   return (
-    <div className="space-y-6 py-2">
-      <Card className="bg-muted/30">
-        <CardContent className="pt-6 pb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/10 rounded-full text-primary">
-              <Mail className="h-5 w-5" />
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+        <Card className="bg-muted/30">
+          <CardContent className="pt-6 pb-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-primary/10 rounded-full text-primary">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Comunicação em Massa</h3>
+                <p className="text-xs text-muted-foreground">
+                  Envie emails para todos os {activeBrothersCount} membros ativos.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold">Comunicação em Massa</h3>
-              <p className="text-xs text-muted-foreground">
-                Envie emails para todos os {activeBrothersCount} membros ativos.
-              </p>
-            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Modelo de Email</Label>
+            <Select value={template} onValueChange={setTemplate}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="invitation">Convite Padrão</SelectItem>
+                <SelectItem value="reminder">Lembrete de Evento</SelectItem>
+                <SelectItem value="cancellation">
+                  Aviso de Cancelamento
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Modelo de Email</Label>
-          <Select value={template} onValueChange={setTemplate}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="invitation">Convite Padrão</SelectItem>
-              <SelectItem value="reminder">Lembrete de Evento</SelectItem>
-              <SelectItem value="cancellation">
-                Aviso de Cancelamento
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label>Assunto</Label>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Assunto do email"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Mensagem</Label>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="min-h-[140px]"
+              placeholder="Corpo do email..."
+            />
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label>Assunto</Label>
-          <Input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Assunto do email"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Mensagem</Label>
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="min-h-[200px]"
-            placeholder="Corpo do email..."
-          />
-        </div>
-
+      <div className="shrink-0 border-t bg-background p-4">
         <Button
           className="w-full"
           onClick={handleSend}

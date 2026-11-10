@@ -53,6 +53,7 @@ import {
   UserX,
   Pencil,
   Trash2,
+  UserPlus,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
 import { useCanApproveUsers } from '@/hooks/use-can-approve-users'
@@ -72,6 +73,7 @@ import {
   admitPreInitiationAccount,
   preparePreInitiationAccount,
 } from '@/lib/pre-initiation'
+import { CreatePreInitiationDialog } from '@/components/admin/CreatePreInitiationDialog'
 
 function roleLabel(role: Profile['role']) {
   switch (role) {
@@ -112,6 +114,7 @@ export function UserManagement() {
   const [admitTarget, setAdmitTarget] = useState<Profile | null>(null)
   const [initiationDate, setInitiationDate] = useState('')
   const [preInitiationBusy, setPreInitiationBusy] = useState(false)
+  const [createPreInitOpen, setCreatePreInitOpen] = useState(false)
 
   const similarByPendingUserId = useMemo(() => {
     const map = new Map<string, Profile[]>()
@@ -406,6 +409,12 @@ export function UserManagement() {
             </SelectContent>
           </Select>
         </div>
+        {isSystemAdmin && (
+          <Button type="button" onClick={() => setCreatePreInitOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Criar iniciando
+          </Button>
+        )}
       </div>
 
       <div className="rounded-md border bg-card">
@@ -639,6 +648,19 @@ export function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreatePreInitiationDialog
+        open={createPreInitOpen}
+        onOpenChange={setCreatePreInitOpen}
+        onCreated={() => {
+          void fetchUsers()
+          toast({
+            title: 'Iniciando criado',
+            description:
+              'Conta em pré-iniciação. Entregue a senha temporária quando for o momento.',
+          })
+        }}
+      />
 
       <UserEditDialog
         open={!!editUser}

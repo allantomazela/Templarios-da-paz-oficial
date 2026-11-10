@@ -9,25 +9,19 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | eafedd5 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** pré-iniciação. Cadastro pendente pode ser liberado só para o perfil; não entra no quadro nem na mensalidade. O Chanceler inclui os iniciandos na chamada e na Folha A4 da sessão de iniciação. Depois da cerimônia, **Admitir no quadro** grava a data, o grau Aprendiz e o início da mensalidade. Banco **Templários Oficial** já recebeu o status `pre_iniciacao` e a situação correspondente. Arquivos: `src/lib/pre-initiation.ts`, `UserManagement.tsx`, `AttendanceDialog.tsx`, `AttendanceSignatureSheetDialog.tsx`.
+**O que ficou pronto:** cadastro admin de iniciando em pré-iniciação, sem passar pelo fluxo pendente/aprovado. Em **Admin → Gestão de Perfis**, o botão **Criar iniciando** gera conta com e-mail já confirmado, status `pre_iniciacao`, senha temporária só na tela do admin, e registro na secretaria fora do quadro (sem mensalidade). Migração `pre_iniciacao_confirm_email_and_signup_meta` aplicada no **Templários Oficial**: `handle_new_user` respeita metadata `pre_initiation`; confirmação de e-mail também em `pre_iniciacao`; e-mail `account_approved` continua só em `approved`. Edge Function `admin-create-pre-initiation-user` publicada (`verify_jwt` off, auth via `requireAdmin`). Arquivos: `CreatePreInitiationDialog.tsx`, `admin-user-api.ts`, `UserManagement.tsx`, `supabase/functions/admin-create-pre-initiation-user/`.
 
 ## Banco
 
+Em 10/11/2026 a migração `pre_iniciacao_confirm_email_and_signup_meta` foi aplicada no Supabase **Templários Oficial**.
+
 Em 06/11/2026 as migrações `user_status_pre_iniciacao` e `pre_iniciacao_situation_and_privilege` foram aplicadas no Supabase **Templários Oficial**.
-
-Em 26/10/2026 o SQL `20261016120000_brothers_membership_situation_in_memoriam.sql` foi executado no Supabase **Templários Oficial** e concluiu com sucesso. A situação `in_memoriam` está aceita em `public.brothers`.
-
-No mesmo dia, o CIM da planilha `membros_obreiros-v2.xlsx` foi gravado para o quadro. Celso de Paiva Costa ficou `338371` e José Antônio Dalanezi ficou `327932`, conferidos na imagem do Chanceler.
-
-A folha de presença ganhou a opção **Ordem da lista**, na impressão avulsa e no lote. O padrão continua alfabético. O Chanceler pode escolher **Por grau (Mestres, Companheiros, Aprendizes)** só naquela impressão. Dentro de cada grau, a ordem segue o nome.
-
-A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período e marca o que vai falar: aniversário, cunha, sobrinhos, iniciação, elevação, exaltação e um conjunto curto de datas da sociedade. A lista só sai na impressão A4. A Agenda e os feriados já existentes não foram alterados. Datas pessoais só aparecem se estiverem no cadastro.
 
 ## Onde continuar
 
-Após o deploy: cadastrar Otacilio e Luciano → Liberar pré-iniciação → no dia 14/11 marcar Incluir iniciandos → depois Admitir no quadro.
+Cadastrar Otacilio e Luciano via **Criar iniciando** → no dia 14/11 marcar Incluir iniciandos na chamada → depois **Admitir no quadro**.
 
 ## Como ver isto de novo
 

@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | e3d66c8 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** destaque visual da sessão de Ágape em foco. Sessão aberta (mais recente) ou, se não houver, a próxima não finalizada por data; linha âmbar + badge Em foco/Próxima. Arquivos: `agape-session-focus.ts`, `AgapeSessionsList.tsx`.
+**O que ficou pronto:** correção do destaque da sessão de Ágape. O foco segue a ordem do calendário: próxima não finalizada por data (ex. 14/11 antes de 28/11); ao finalizar, passa para a seguinte. Arquivos: `agape-session-focus.ts`, `AgapeSessionsList.tsx`.
 
 ## Banco
 
@@ -19,7 +19,7 @@ Sem mudança de banco nesta correção.
 
 ## Onde continuar
 
-Validar na lista de sessões do Ágape: fechar uma e confirmar que o destaque passa para a seguinte. Depois: Admitir Otacilio e Luciano com data 14/11.
+Validar que o destaque cai em 14/11/2026 (e não numa sessão mais nova). Depois: Admitir Otacilio e Luciano com data 14/11.
 
 ## Como ver isto de novo
 

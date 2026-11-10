@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | eafedd5 |
 
 **O que ficou pronto:** pré-iniciação. Cadastro pendente pode ser liberado só para o perfil; não entra no quadro nem na mensalidade. O Chanceler inclui os iniciandos na chamada e na Folha A4 da sessão de iniciação. Depois da cerimônia, **Admitir no quadro** grava a data, o grau Aprendiz e o início da mensalidade. Banco **Templários Oficial** já recebeu o status `pre_iniciacao` e a situação correspondente. Arquivos: `src/lib/pre-initiation.ts`, `UserManagement.tsx`, `AttendanceDialog.tsx`, `AttendanceSignatureSheetDialog.tsx`.
 

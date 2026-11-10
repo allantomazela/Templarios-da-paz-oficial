@@ -10,6 +10,7 @@ import { Loader2, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NotificationBanner } from '@/components/NotificationBanner'
 import { resetStuckModuleLoading } from '@/lib/module-loading-reset'
+import { isPreInitiationStatus } from '@/lib/pre-initiation'
 
 export default function DashboardLayout() {
   const { isAuthenticated, user, loading, initialized, signOut } = useAuthStore()
@@ -117,6 +118,15 @@ export default function DashboardLayout() {
 
   if (!isMasterAdmin && isBlockedStatus) {
     return <Navigate to="/access-denied" replace />
+  }
+
+  const isPreInitiation =
+    !isMasterAdmin && isPreInitiationStatus(userStatus)
+  if (
+    isPreInitiation &&
+    location.pathname !== '/dashboard/profile'
+  ) {
+    return <Navigate to="/dashboard/profile" replace />
   }
 
   return (

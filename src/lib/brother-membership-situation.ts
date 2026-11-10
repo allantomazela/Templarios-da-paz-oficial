@@ -5,12 +5,14 @@ export type MembershipSituation =
   | 'afastado'
   | 'desligado'
   | 'in_memoriam'
+  | 'pre_iniciacao'
 
 export const MEMBERSHIP_SITUATION_LABELS: Record<MembershipSituation, string> = {
   regular: 'Regular',
   afastado: 'Afastado (saúde)',
   desligado: 'Desligado',
   in_memoriam: 'In Memoriam',
+  pre_iniciacao: 'Pré-iniciação',
 }
 
 export const DEFAULT_MEMBERSHIP_BASE_AMOUNT = 200
@@ -24,6 +26,9 @@ export function normalizeMembershipSituation(
   if (normalized === 'desligado') return 'desligado'
   if (normalized === 'in_memoriam' || normalized === 'inmemoriam') {
     return 'in_memoriam'
+  }
+  if (normalized === 'pre_iniciacao' || normalized === 'preiniciacao') {
+    return 'pre_iniciacao'
   }
   return 'regular'
 }
@@ -58,7 +63,9 @@ export function isBrotherOnActiveSecretariatRoster(brother: Pick<
 export function brotherStatusForSituation(
   situation: MembershipSituation,
 ): Brother['status'] {
-  return situation === 'desligado' || situation === 'in_memoriam'
+  return situation === 'desligado' ||
+    situation === 'in_memoriam' ||
+    situation === 'pre_iniciacao'
     ? 'Inativo'
     : 'Ativo'
 }
@@ -69,15 +76,25 @@ export function regularStatusForSituation(
   if (situation === 'desligado') return 'Desligado'
   if (situation === 'in_memoriam') return 'In Memoriam'
   if (situation === 'afastado') return 'Afastado'
+  if (situation === 'pre_iniciacao') return 'Pré-iniciação'
   return 'Regular'
 }
 
 export function profileStatusForSituation(
   situation: MembershipSituation,
-): 'approved' | 'blocked' | 'in_memoriam' {
+): 'approved' | 'blocked' | 'in_memoriam' | 'pre_iniciacao' {
   if (situation === 'desligado') return 'blocked'
   if (situation === 'in_memoriam') return 'in_memoriam'
+  if (situation === 'pre_iniciacao') return 'pre_iniciacao'
   return 'approved'
+}
+
+/** Cadastrado para a iniciação: ainda não é do quadro e não gera mensalidade. */
+export function isBrotherAwaitingInitiation(brother: Pick<
+  Brother,
+  'status' | 'regularStatus' | 'membershipSituation'
+>): boolean {
+  return inferMembershipSituation(brother) === 'pre_iniciacao'
 }
 
 export function isBrotherBillable(situation: MembershipSituation): boolean {

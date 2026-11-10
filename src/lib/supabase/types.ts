@@ -3260,6 +3260,7 @@ export type Database = {
         | "blocked"
         | "in_memoriam"
         | "adormecido"
+        | "pre_iniciacao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3407,6 +3408,7 @@ export const Constants = {
         "blocked",
         "in_memoriam",
         "adormecido",
+        "pre_iniciacao",
       ],
     },
   },

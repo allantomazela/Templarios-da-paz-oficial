@@ -48,6 +48,7 @@ import {
   resolveProfileAvatarUrl,
 } from '@/lib/profile-avatar'
 import { useAgapeClosingPermissions } from '@/hooks/use-agape-closing-permissions'
+import { isPreInitiationStatus } from '@/lib/pre-initiation'
 import { useTempleSalesPermissions } from '@/hooks/use-temple-sales-permissions'
 
 const CheckinPresenceModal = lazy(() =>
@@ -88,6 +89,8 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
 
   const userRole = user?.role || 'member'
   const isMasterAdmin = isMasterAdminEmail(user?.email)
+  const isPreInitiation =
+    !isMasterAdmin && isPreInitiationStatus(user?.profile?.status)
   
   // Verificar permissões baseadas em cargo
   const userPermissions = user?.id ? getUserPermissions(user.id) : []
@@ -124,7 +127,9 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
     ['admin', 'editor', 'member'].includes(userRole) || 
     isMasterAdmin
 
-  const navItems: SidebarNavItem[] = [
+  const navItems: SidebarNavItem[] = isPreInitiation
+    ? [{ name: 'Meu Perfil', icon: UserCircle, path: '/dashboard/profile' }]
+    : [
     { name: 'Painel', icon: LayoutDashboard, path: '/dashboard', end: true },
     ...(canAccessModule('secretariat') || isMasterAdmin
       ? [{ name: 'Secretaria', icon: Users, path: '/dashboard/secretariat' }]
@@ -247,6 +252,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
         )}
       </div>
 
+      {!isPreInitiation && (
       <div className="shrink-0 px-2 pb-2">
         <Button
           variant="default"
@@ -258,6 +264,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
           {!effectiveCollapsed && <span className="ml-2">Registrar presença</span>}
         </Button>
       </div>
+      )}
 
       <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 py-4 no-scrollbar">
         {navItems.map((item) => {

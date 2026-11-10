@@ -21,9 +21,19 @@ describe('brother-membership-situation', () => {
     expect(resolveContributionAmountForSituation('afastado', settings)).toBe(200)
   })
 
-  it('desligado e in memoriam não geram cobrança', () => {
+  it('desligado, in memoriam e pré-iniciação não geram cobrança', () => {
     expect(resolveContributionAmountForSituation('desligado', settings)).toBeNull()
     expect(resolveContributionAmountForSituation('in_memoriam', settings)).toBeNull()
+    expect(resolveContributionAmountForSituation('pre_iniciacao', settings)).toBeNull()
+  })
+
+  it('pré-iniciação fica fora do quadro ativo', () => {
+    expect(
+      isBrotherOnActiveSecretariatRoster({
+        status: 'Inativo',
+        membershipSituation: 'pre_iniciacao',
+      }),
+    ).toBe(false)
   })
 
   it('infere afastado pelo regularStatus legado', () => {

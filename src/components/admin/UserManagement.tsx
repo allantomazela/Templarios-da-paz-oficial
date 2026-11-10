@@ -59,6 +59,19 @@ import { useCanApproveUsers } from '@/hooks/use-can-approve-users'
 import { sendUserEmail } from '@/lib/user-email-api'
 import { findSimilarNameMatches } from '@/lib/person-name-similarity'
 import { DuplicateApprovalDialog } from '@/components/admin/DuplicateApprovalDialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import {
+  admitPreInitiationAccount,
+  preparePreInitiationAccount,
+} from '@/lib/pre-initiation'
 
 function roleLabel(role: Profile['role']) {
   switch (role) {
@@ -96,6 +109,9 @@ export function UserManagement() {
     user: Profile
     matches: Profile[]
   } | null>(null)
+  const [admitTarget, setAdmitTarget] = useState<Profile | null>(null)
+  const [initiationDate, setInitiationDate] = useState('')
+  const [preInitiationBusy, setPreInitiationBusy] = useState(false)
 
   const similarByPendingUserId = useMemo(() => {
     const map = new Map<string, Profile[]>()
@@ -130,6 +146,63 @@ export function UserManagement() {
     if (user.id === currentUser?.id) return false
     if (isMasterAdminEmail(user.email)) return false
     return true
+  }
+
+  const handlePreparePreInitiation = async (user: Profile) => {
+    if (!user.email) {
+      toast({
+        variant: 'destructive',
+        title: 'E-mail obrigatório',
+        description: 'A pré-iniciação precisa de um e-mail no cadastro.',
+      })
+      return
+    }
+    setPreInitiationBusy(true)
+    try {
+      await preparePreInitiationAccount({
+        profileId: user.id,
+        fullName: user.full_name,
+        email: user.email,
+      })
+      await fetchUsers()
+      toast({
+        title: 'Pré-iniciação liberada',
+        description: `${user.full_name} pode entrar só para completar o perfil. Ainda não faz parte do quadro.`,
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível liberar',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      })
+    } finally {
+      setPreInitiationBusy(false)
+    }
+  }
+
+  const handleAdmit = async () => {
+    if (!admitTarget) return
+    setPreInitiationBusy(true)
+    try {
+      await admitPreInitiationAccount({
+        profileId: admitTarget.id,
+        initiationDate,
+      })
+      await fetchUsers()
+      toast({
+        title: 'Admitido no quadro',
+        description: `${admitTarget.full_name} passou a Aprendiz e a mensalidade começa no mês da iniciação.`,
+      })
+      setAdmitTarget(null)
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível admitir',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      })
+    } finally {
+      setPreInitiationBusy(false)
+    }
   }
 
   const handleStatusChange = async (
@@ -266,6 +339,12 @@ export function UserManagement() {
             Adormecido
           </Badge>
         )
+      case 'pre_iniciacao':
+        return (
+          <Badge variant="outline" className="border-amber-500 text-amber-700">
+            Pré-iniciação
+          </Badge>
+        )
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -312,6 +391,7 @@ export function UserManagement() {
               <SelectItem value="blocked">Bloqueado</SelectItem>
               <SelectItem value="in_memoriam">In Memoriam</SelectItem>
               <SelectItem value="adormecido">Adormecido</SelectItem>
+              <SelectItem value="pre_iniciacao">Pré-iniciação</SelectItem>
             </SelectContent>
           </Select>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -441,6 +521,24 @@ export function UserManagement() {
                               Cadastro
                             </DropdownMenuItem>
                           )}
+                          {user.status === 'pending' && user.email && (
+                            <DropdownMenuItem
+                              onClick={() => void handlePreparePreInitiation(user)}
+                            >
+                              <Shield className="mr-2 h-4 w-4" /> Liberar pré-iniciação
+                            </DropdownMenuItem>
+                          )}
+                          {user.status === 'pre_iniciacao' && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setInitiationDate(new Date().toISOString().slice(0, 10))
+                                setAdmitTarget(user)
+                              }}
+                              className="text-green-600 focus:text-green-600 focus:bg-green-50"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" /> Admitir no quadro
+                            </DropdownMenuItem>
+                          )}
                           {user.status === 'blocked' && (
                             <DropdownMenuItem
                               onClick={() => handleStatusChange(user, 'approved')}
@@ -505,6 +603,42 @@ export function UserManagement() {
         onCancel={() => setApprovalCandidate(null)}
         onConfirm={confirmApproval}
       />
+
+      <Dialog
+        open={!!admitTarget}
+        onOpenChange={(open) => !open && !preInitiationBusy && setAdmitTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Admitir no quadro</DialogTitle>
+            <DialogDescription>
+              Confirma a iniciação de {admitTarget?.full_name}. A conta passa a
+              ter acesso normal e a mensalidade começa no mês desta data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="initiation-date">Data da iniciação</Label>
+            <Input
+              id="initiation-date"
+              type="date"
+              value={initiationDate}
+              onChange={(event) => setInitiationDate(event.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={preInitiationBusy}
+              onClick={() => setAdmitTarget(null)}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={preInitiationBusy} onClick={() => void handleAdmit()}>
+              {preInitiationBusy ? 'Salvando...' : 'Admitir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <UserEditDialog
         open={!!editUser}

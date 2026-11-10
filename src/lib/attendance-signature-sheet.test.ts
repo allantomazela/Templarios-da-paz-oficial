@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Brother } from '@/lib/data'
 import {
+  appendPreInitiationSheetRows,
   buildSignatureSheetRows,
   signatureSheetRowHeightMm,
   visitorSignatureBlankRowCount,
@@ -75,6 +76,26 @@ describe('buildSignatureSheetRows', () => {
     expect(rows.some((row) => row.name === 'Afastado')).toBe(true)
     expect(rows.find((row) => row.name === 'Mestre B')?.cim).toBe('123')
     expect(rows.find((row) => row.name === 'Aprendiz A')?.cim).toBe('')
+  })
+})
+
+describe('appendPreInitiationSheetRows', () => {
+  it('acrescenta iniciandos depois do quadro, sem misturar na lista padrão', () => {
+    const roster = buildSignatureSheetRows(brothers, 'Aprendiz')
+    const initiate = brother({
+      id: 'ini-1',
+      name: 'Candidato Silva',
+      degree: 'Aprendiz',
+      membershipSituation: 'pre_iniciacao',
+      status: 'Inativo',
+    })
+    expect(roster.some((row) => row.name === 'Candidato Silva')).toBe(false)
+    const withInitiates = appendPreInitiationSheetRows(roster, [...brothers, initiate])
+    expect(withInitiates.at(-1)).toMatchObject({
+      name: 'Candidato Silva',
+      degree: 'Iniciando',
+      order: roster.length + 1,
+    })
   })
 })
 

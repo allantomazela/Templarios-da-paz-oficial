@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -24,6 +25,7 @@ import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 import { usePrintReport } from '@/hooks/use-print-report'
 import { MASONIC_DEGREE_OPTIONS, type MasonicDegree } from '@/lib/masonic-degree'
 import {
+  appendPreInitiationSheetRows,
   buildSignatureSheetRows,
   SIGNATURE_SHEET_DEGREE_LABELS,
   SIGNATURE_SHEET_ORDER_LABELS,
@@ -47,6 +49,7 @@ export function AttendanceSignatureSheetDialog({
   const templeName = useSiteSettingsStore((s) => s.sessionSchedule.templeName)
   const [sessionDegree, setSessionDegree] = useState<MasonicDegree>('Aprendiz')
   const [sheetOrder, setSheetOrder] = useState<SignatureSheetOrder>('name')
+  const [includeInitiates, setIncludeInitiates] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -61,12 +64,13 @@ export function AttendanceSignatureSheetDialog({
     if (!open) return
     setSessionDegree(event?.degree ?? 'Aprendiz')
     setSheetOrder('name')
+    setIncludeInitiates(false)
   }, [open, event?.id, event?.degree])
 
-  const rows = useMemo(
-    () => buildSignatureSheetRows(brothers, sessionDegree, sheetOrder),
-    [brothers, sessionDegree, sheetOrder],
-  )
+  const rows = useMemo(() => {
+    const roster = buildSignatureSheetRows(brothers, sessionDegree, sheetOrder)
+    return includeInitiates ? appendPreInitiationSheetRows(roster, brothers) : roster
+  }, [brothers, sessionDegree, sheetOrder, includeInitiates])
 
   const handlePrint = usePrintReport({
     contentRef: sheetRef,
@@ -148,6 +152,16 @@ export function AttendanceSignatureSheetDialog({
             {rows.length} irmão{rows.length !== 1 ? 's' : ''} na folha. A ordem alfabética
             é a padrão; por grau vale só nesta impressão.
           </p>
+          <label className="flex items-start gap-2 text-sm sm:col-span-2">
+            <Checkbox
+              checked={includeInitiates}
+              onCheckedChange={(checked) => setIncludeInitiates(checked === true)}
+            />
+            <span>
+              Incluir iniciandos nesta folha. Eles ainda não fazem parte do quadro
+              e só devem assinar na sessão de iniciação.
+            </span>
+          </label>
         </div>
 
         <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3">

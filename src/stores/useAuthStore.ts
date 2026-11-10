@@ -11,7 +11,13 @@ import { getAppOrigin } from '@/lib/app-origin'
 import { sendUserEmail } from '@/lib/user-email-api'
 import { sanitizeAuthProfile } from '@/lib/profile-avatar'
 
-export type UserStatus = 'pending' | 'approved' | 'blocked' | 'in_memoriam' | 'adormecido'
+export type UserStatus =
+  | 'pending'
+  | 'approved'
+  | 'blocked'
+  | 'in_memoriam'
+  | 'adormecido'
+  | 'pre_iniciacao'
 
 export interface Profile {
   id: string

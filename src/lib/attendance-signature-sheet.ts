@@ -1,5 +1,6 @@
 import type { Brother } from '@/lib/data'
 import { isBrotherOnAttendanceRoster } from '@/lib/chancellor-attendance'
+import { isBrotherAwaitingInitiation } from '@/lib/brother-membership-situation'
 import {
   canAccessDegree,
   normalizeMasonicDegree,
@@ -70,6 +71,31 @@ export function buildSignatureSheetRows(
       degree: brother.degree,
       cim: brother.cim?.trim() ?? '',
     }))
+}
+
+/** Iniciandos não entram no quadro. O Chanceler inclui só na sessão de iniciação. */
+export function appendPreInitiationSheetRows(
+  rows: SignatureSheetRow[],
+  brothers: Brother[],
+): SignatureSheetRow[] {
+  const extras = brothers
+    .filter(isBrotherAwaitingInitiation)
+    .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
+
+  let order = rows.length
+  return [
+    ...rows,
+    ...extras.map((brother) => {
+      order += 1
+      return {
+        order,
+        brotherId: brother.id,
+        name: brother.name,
+        degree: 'Iniciando',
+        cim: '',
+      }
+    }),
+  ]
 }
 
 export function signatureSheetDocumentTitle(eventDate: string, degree: MasonicDegree) {

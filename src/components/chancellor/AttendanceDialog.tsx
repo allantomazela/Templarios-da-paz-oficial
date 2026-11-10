@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +43,7 @@ import {
   defaultAttendanceForBrother,
   selectBrothersForAttendanceList,
 } from '@/lib/chancellor-attendance'
+import { isBrotherAwaitingInitiation } from '@/lib/brother-membership-situation'
 
 interface AttendanceDialogProps {
   open: boolean
@@ -80,6 +82,7 @@ export function AttendanceDialog({
   const certificateRef = useRef<HTMLDivElement>(null)
 
   const [observations, setObservations] = useState<string>('')
+  const [includeInitiates, setIncludeInitiates] = useState(false)
   const [attendances, setAttendances] = useState<
     {
       brotherId: string
@@ -167,6 +170,7 @@ export function AttendanceDialog({
   useEffect(() => {
     if (!open) {
       initSessionKeyRef.current = null
+      setIncludeInitiates(false)
       return
     }
 
@@ -473,6 +477,39 @@ export function AttendanceDialog({
             </div>
           )}
 
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox
+              checked={includeInitiates}
+              onCheckedChange={(checked) => {
+                const enabled = checked === true
+                setIncludeInitiates(enabled)
+                const initiates = brothers.filter(isBrotherAwaitingInitiation)
+                if (enabled) {
+                  setAttendances((prev) => {
+                    const listed = new Set(prev.map((item) => item.brotherId))
+                    const extra = initiates
+                      .filter((brother) => !listed.has(brother.id))
+                      .map((brother) => ({
+                        brotherId: brother.id,
+                        status: 'Ausente' as const,
+                        justification: '',
+                      }))
+                    return [...prev, ...extra]
+                  })
+                  return
+                }
+                const initiateIds = new Set(initiates.map((brother) => brother.id))
+                setAttendances((prev) =>
+                  prev.filter((item) => !initiateIds.has(item.brotherId)),
+                )
+              }}
+            />
+            <span>
+              Incluir iniciandos nesta chamada. Eles não entram nas sessões
+              comuns e a presença só conta se for marcada como Presente.
+            </span>
+          </label>
+
           <div>
             <Label className="mb-2 block">Lista de Presença</Label>
             <div className="border rounded-md">
@@ -494,7 +531,9 @@ export function AttendanceDialog({
                         <TableCell>
                           <div className="font-medium">{brother?.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {brother?.degree}
+                            {brother && isBrotherAwaitingInitiation(brother)
+                              ? 'Iniciando'
+                              : brother?.degree}
                           </div>
                         </TableCell>
                         <TableCell>

@@ -43,7 +43,12 @@ export interface Brother {
   membershipDuesStartDate?: string
   regularStatus?: string
   /** Situação operacional para cobrança e acesso */
-  membershipSituation?: 'regular' | 'afastado' | 'desligado' | 'in_memoriam'
+  membershipSituation?:
+    | 'regular'
+    | 'afastado'
+    | 'desligado'
+    | 'in_memoriam'
+    | 'pre_iniciacao'
   notes?: string
   
   // Spouse information

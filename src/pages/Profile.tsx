@@ -15,6 +15,7 @@ import {
   fetchBrotherForProfile,
 } from '@/lib/brothers-api'
 import { isBrotherRegistrationComplete } from '@/lib/brother-registration-utils'
+import { isPreInitiationStatus } from '@/lib/pre-initiation'
 
 export default function Profile() {
   const { user } = useAuthStore()
@@ -74,7 +75,9 @@ export default function Profile() {
       <div className="flex flex-col gap-2">
         <h2 className="text-3xl font-bold tracking-tight">Meu Perfil</h2>
         <p className="text-muted-foreground">
-          Gerencie suas informações pessoais e configurações da conta.
+          {isPreInitiationStatus(profile.status)
+            ? 'Sua conta está em pré-iniciação. Complete seus dados. O acesso ao restante da loja será liberado depois da iniciação.'
+            : 'Gerencie suas informações pessoais e configurações da conta.'}
         </p>
       </div>
 

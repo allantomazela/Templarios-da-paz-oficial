@@ -42,6 +42,7 @@ const userEditSchema = z.object({
     'blocked',
     'in_memoriam',
     'adormecido',
+    'pre_iniciacao',
   ]),
   masonic_degree: z.enum(['Aprendiz', 'Companheiro', 'Mestre']),
 })
@@ -216,6 +217,7 @@ export function UserEditDialog({
                       <SelectItem value="blocked">Bloqueado</SelectItem>
                       <SelectItem value="in_memoriam">In Memoriam</SelectItem>
                       <SelectItem value="adormecido">Adormecido</SelectItem>
+                      <SelectItem value="pre_iniciacao">Pré-iniciação</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

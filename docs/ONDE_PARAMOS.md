@@ -8,12 +8,14 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 05/11/2026 |
-| Commit | fccf238 |
+| Data | 10/11/2026 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** o aviso da Agenda também dispara push no celular, e o botão **Ir para o módulo Chanceler** da aba Check-in ficou fixo no rodapé. A chave privada do push está só nos segredos do Supabase. Arquivos: `send-lodge-push`, `sw.js`, `EventDetailsSheet.tsx`.
+**O que ficou pronto:** pré-iniciação. Cadastro pendente pode ser liberado só para o perfil; não entra no quadro nem na mensalidade. O Chanceler inclui os iniciandos na chamada e na Folha A4 da sessão de iniciação. Depois da cerimônia, **Admitir no quadro** grava a data, o grau Aprendiz e o início da mensalidade. Banco **Templários Oficial** já recebeu o status `pre_iniciacao` e a situação correspondente. Arquivos: `src/lib/pre-initiation.ts`, `UserManagement.tsx`, `AttendanceDialog.tsx`, `AttendanceSignatureSheetDialog.tsx`.
 
 ## Banco
+
+Em 06/11/2026 as migrações `user_status_pre_iniciacao` e `pre_iniciacao_situation_and_privilege` foram aplicadas no Supabase **Templários Oficial**.
 
 Em 26/10/2026 o SQL `20261016120000_brothers_membership_situation_in_memoriam.sql` foi executado no Supabase **Templários Oficial** e concluiu com sucesso. A situação `in_memoriam` está aceita em `public.brothers`.
 
@@ -25,7 +27,7 @@ A Chancelaria ganhou a aba **Falas da sessão**. O Chanceler escolhe o período 
 
 ## Onde continuar
 
-O próximo passo é o que for pedido a partir daqui. Na impressão Visitantes A4, desmarcar “Imprimir cabeçalhos e rodapés” e preferir escala 100%.
+Após o deploy: cadastrar Otacilio e Luciano → Liberar pré-iniciação → no dia 14/11 marcar Incluir iniciandos → depois Admitir no quadro.
 
 ## Como ver isto de novo
 

@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 4c37d2d |
 
 **O que ficou pronto:** sessões do Ágape ordenadas da mais nova para a mais antiga (data desc, depois `created_at`). Arquivos: `useAgapeStore.ts`, `AgapeSessionsList.tsx`.
 

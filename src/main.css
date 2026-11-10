@@ -245,6 +245,13 @@ body {
 
 /* Print Styles */
 @media print {
+  /* Evita tarja escura abaixo do conteúdo quando o app está em tema dark. */
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -412,6 +419,7 @@ body {
   /*
    * Folha de visitantes: sem position:absolute nem break-inside por tr —
    * no Chromium isso fazia as horizontais sumirem a partir da ~linha 15.
+   * Fundo branco explícito evita tarja preta após as assinaturas no tema dark.
    */
   #visitor-signature-sheet-container {
     position: static !important;
@@ -419,11 +427,16 @@ body {
     max-width: none;
     margin: 0;
     padding: 0 !important;
-    background: white !important;
+    background: #fff !important;
     color: #000 !important;
     box-shadow: none !important;
     box-sizing: border-box;
     font-size: 10pt;
+  }
+
+  #visitor-signature-sheet-container .visitor-signature-sheet {
+    background: #fff !important;
+    color: #000 !important;
   }
 
   #visitor-signature-sheet-container thead {

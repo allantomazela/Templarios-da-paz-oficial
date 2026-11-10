@@ -173,6 +173,8 @@ export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
       height: auto !important;
       margin: 0 !important;
       padding: 0 !important;
+      background: #fff !important;
+      color: #000 !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -182,12 +184,12 @@ export const VISITOR_SIGNATURE_SHEET_PRINT_STYLE = `
       margin: 0 !important;
       max-width: none !important;
       box-shadow: none !important;
-      background: white !important;
+      background: #fff !important;
       color: #000 !important;
     }
     #visitor-signature-sheet-container .visitor-signature-sheet {
-      page-break-inside: avoid;
-      break-inside: avoid-page;
+      background: #fff !important;
+      color: #000 !important;
     }
     #visitor-signature-sheet-container table {
       width: 100% !important;

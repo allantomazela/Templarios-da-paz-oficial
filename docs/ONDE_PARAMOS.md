@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 2c0321e |
 
 **O que ficou pronto:** controle de materiais na Chancelaria (aba **Materiais**). Catálogo com rituais, pins, aventais, luvas etc.; entrada/saída/ajuste atômico via RPC; histórico por item; alerta de estoque baixo; saída pode vincular irmão. Migração `lodge_materials_inventory` aplicada no **Templários Oficial** com seed inicial. Arquivos: `MaterialsManager.tsx`, `lodge-materials.ts`, `lodge-materials-api.ts`, `supabase/migrations/20261110160000_lodge_materials_inventory.sql`.
 

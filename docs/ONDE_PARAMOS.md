@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 1e5f3cd |
 
 **O que ficou pronto:** correção do destaque da sessão de Ágape. O foco segue a ordem do calendário: próxima não finalizada por data (ex. 14/11 antes de 28/11); ao finalizar, passa para a seguinte. Arquivos: `agape-session-focus.ts`, `AgapeSessionsList.tsx`.
 

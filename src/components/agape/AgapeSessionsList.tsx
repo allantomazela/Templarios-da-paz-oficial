@@ -40,6 +40,8 @@ import { ptBR } from 'date-fns/locale'
 import { formatCalendarDate, formatDateBR } from '@/lib/format-utils'
 import { useToast } from '@/hooks/use-toast'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
+import { resolveFocusSessionId } from '@/lib/agape-session-focus'
+import { cn } from '@/lib/utils'
 
 export function AgapeSessionsList() {
   const { sessions, loading, closeSession, finalizeSession, reopenSession, deleteSession } =
@@ -60,6 +62,11 @@ export function AgapeSessionsList() {
         if (byDate !== 0) return byDate
         return (b.created_at ?? '').localeCompare(a.created_at ?? '')
       }),
+    [sessions],
+  )
+
+  const focusSessionId = useMemo(
+    () => resolveFocusSessionId(sessions),
     [sessions],
   )
 
@@ -211,14 +218,31 @@ export function AgapeSessionsList() {
                   </TableCell>
                 </TableRow>
               ) : (
-                orderedSessions.map((session) => (
-                  <TableRow key={session.id}>
+                orderedSessions.map((session) => {
+                  const isFocus = session.id === focusSessionId
+                  return (
+                  <TableRow
+                    key={session.id}
+                    className={cn(
+                      isFocus &&
+                        'bg-amber-50 hover:bg-amber-50/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/50',
+                    )}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {formatCalendarDate(session.date, "dd 'de' MMMM 'de' yyyy", {
-                          locale: ptBR,
-                        })}
+                        <div>
+                          <div>
+                            {formatCalendarDate(session.date, "dd 'de' MMMM 'de' yyyy", {
+                              locale: ptBR,
+                            })}
+                          </div>
+                          {isFocus ? (
+                            <Badge className="mt-1 bg-amber-200 text-amber-950 hover:bg-amber-200">
+                              {session.status === 'open' ? 'Em foco' : 'Próxima'}
+                            </Badge>
+                          ) : null}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{session.description || '-'}</TableCell>
@@ -291,7 +315,8 @@ export function AgapeSessionsList() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  )
+                })
               )}
             </TableBody>
           </Table>

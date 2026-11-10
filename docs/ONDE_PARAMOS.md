@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | e3d66c8 |
 
 **O que ficou pronto:** destaque visual da sessão de Ágape em foco. Sessão aberta (mais recente) ou, se não houver, a próxima não finalizada por data; linha âmbar + badge Em foco/Próxima. Arquivos: `agape-session-focus.ts`, `AgapeSessionsList.tsx`.
 

@@ -2113,6 +2113,120 @@ export type Database = {
           },
         ]
       }
+      lodge_materials: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          minimum_quantity: number
+          name: string
+          notes: string
+          quantity_on_hand: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          minimum_quantity?: number
+          name: string
+          notes?: string
+          quantity_on_hand?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          minimum_quantity?: number
+          name?: string
+          notes?: string
+          quantity_on_hand?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lodge_materials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lodge_material_movements: {
+        Row: {
+          brother_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          material_id: string
+          moved_at: string
+          movement_type: string
+          quantity: number
+          quantity_after: number
+          quantity_before: number
+          reason: string
+        }
+        Insert: {
+          brother_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          material_id: string
+          moved_at?: string
+          movement_type: string
+          quantity: number
+          quantity_after: number
+          quantity_before: number
+          reason?: string
+        }
+        Update: {
+          brother_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          material_id?: string
+          moved_at?: string
+          movement_type?: string
+          quantity?: number
+          quantity_after?: number
+          quantity_before?: number
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lodge_material_movements_brother_id_fkey"
+            columns: ["brother_id"]
+            isOneToOne: false
+            referencedRelation: "brothers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lodge_material_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lodge_material_movements_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "lodge_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lodge_position_history: {
         Row: {
           created_at: string
@@ -3088,6 +3202,28 @@ export type Database = {
       can_manage_chancellor_data: {
         Args: { p_user_id: string }
         Returns: boolean
+      }
+      apply_lodge_material_movement: {
+        Args: {
+          p_material_id: string
+          p_movement_type: string
+          p_quantity: number
+          p_brother_id?: string | null
+          p_reason?: string
+        }
+        Returns: {
+          brother_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          material_id: string
+          moved_at: string
+          movement_type: string
+          quantity: number
+          quantity_after: number
+          quantity_before: number
+          reason: string
+        }
       }
       can_manage_secretariat: { Args: { p_user_id: string }; Returns: boolean }
       can_manage_temple_sales: { Args: { p_user_id: string }; Returns: boolean }

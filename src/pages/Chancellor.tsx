@@ -34,6 +34,11 @@ const SolidsManager = lazy(() =>
     default: m.SolidsManager,
   })),
 )
+const MaterialsManager = lazy(() =>
+  import('@/components/chancellor/MaterialsManager').then((m) => ({
+    default: m.MaterialsManager,
+  })),
+)
 const EventsManager = lazy(() =>
   import('@/components/chancellor/EventsManager').then((m) => ({
     default: m.EventsManager,
@@ -51,6 +56,7 @@ type ChancellorTabId =
   | 'speech'
   | 'events'
   | 'solids'
+  | 'materials'
   | 'degrees'
   | 'reports'
   | 'certificate'
@@ -61,6 +67,7 @@ const CHANCELLOR_TABS: { id: ChancellorTabId; label: string }[] = [
   { id: 'speech', label: 'Falas da sessão' },
   { id: 'events', label: 'Agenda da Loja' },
   { id: 'solids', label: 'Sólidos' },
+  { id: 'materials', label: 'Materiais' },
   { id: 'degrees', label: 'Controle de Graus' },
   { id: 'reports', label: 'Relatórios' },
   { id: 'certificate', label: 'Certificado de Visitante' },
@@ -94,7 +101,8 @@ export default function Chancellor() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Chancelaria</h2>
         <p className="text-muted-foreground">
-          Gestão de presença, histórico de graus e tronco de beneficência.
+          Gestão de presença, materiais, histórico de graus e tronco de
+          beneficência.
         </p>
       </div>
 
@@ -149,6 +157,9 @@ export default function Chancellor() {
           </ChancellorTabPanel>
           <ChancellorTabPanel active={tab === 'solids'}>
             <SolidsManager />
+          </ChancellorTabPanel>
+          <ChancellorTabPanel active={tab === 'materials'}>
+            <MaterialsManager />
           </ChancellorTabPanel>
           <ChancellorTabPanel active={tab === 'degrees'}>
             <DegreeManager />

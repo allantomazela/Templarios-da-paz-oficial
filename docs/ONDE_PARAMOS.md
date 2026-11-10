@@ -9,17 +9,17 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | 12b914d |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** correção da tarja preta na impressão da folha A4 de visitantes. O fundo da página (`html`/`body`) e do documento passam a forçar branco na impressão, inclusive com o app em tema dark; removido o `break-inside` agressivo no bloco inteiro que podia gerar artefato após as assinaturas. Arquivos: `src/lib/attendance-signature-sheet.ts`, `src/main.css`.
+**O que ficou pronto:** controle de materiais na Chancelaria (aba **Materiais**). Catálogo com rituais, pins, aventais, luvas etc.; entrada/saída/ajuste atômico via RPC; histórico por item; alerta de estoque baixo; saída pode vincular irmão. Migração `lodge_materials_inventory` aplicada no **Templários Oficial** com seed inicial. Arquivos: `MaterialsManager.tsx`, `lodge-materials.ts`, `lodge-materials-api.ts`, `supabase/migrations/20261110160000_lodge_materials_inventory.sql`.
 
 ## Banco
 
-Sem mudança de banco nesta correção.
+Em 10/11/2026 a migração `lodge_materials_inventory` foi aplicada no Supabase **Templários Oficial**.
 
 ## Onde continuar
 
-Reimprimir a folha de visitantes (preferencialmente com tema dark ativo) e confirmar que não há tarja após Venerável/Chanceler. Depois: Admitir Otacilio e Luciano com data 14/11 e imprimir a folha do quadro.
+Chanceler: abrir **Materiais**, registrar as quantidades reais (entrada/ajuste) e usar saída nas entregas. Depois: Admitir Otacilio e Luciano com data 14/11.
 
 ## Como ver isto de novo
 

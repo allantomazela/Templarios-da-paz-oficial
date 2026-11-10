@@ -54,7 +54,12 @@ export function AgapeSessionsList() {
   const { toast } = useToast()
 
   const orderedSessions = useMemo(
-    () => [...sessions].sort((a, b) => a.date.localeCompare(b.date)),
+    () =>
+      [...sessions].sort((a, b) => {
+        const byDate = b.date.localeCompare(a.date)
+        if (byDate !== 0) return byDate
+        return (b.created_at ?? '').localeCompare(a.created_at ?? '')
+      }),
     [sessions],
   )
 

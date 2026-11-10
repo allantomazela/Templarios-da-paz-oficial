@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 10/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 12b914d |
 
 **O que ficou pronto:** correção da tarja preta na impressão da folha A4 de visitantes. O fundo da página (`html`/`body`) e do documento passam a forçar branco na impressão, inclusive com o app em tema dark; removido o `break-inside` agressivo no bloco inteiro que podia gerar artefato após as assinaturas. Arquivos: `src/lib/attendance-signature-sheet.ts`, `src/main.css`.
 

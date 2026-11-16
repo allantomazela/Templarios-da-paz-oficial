@@ -39,12 +39,12 @@ export function NotificationBanner() {
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-4 right-4 z-50 max-w-md w-full p-4"
-        >
+        <div className="fixed bottom-4 right-4 z-50 max-w-md w-full p-4">
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+          >
           <div className="bg-primary text-primary-foreground p-4 rounded-lg shadow-lg flex items-start gap-4">
             <div className="p-2 bg-white/20 rounded-full shrink-0">
               <Bell className="h-6 w-6" />
@@ -81,7 +81,8 @@ export function NotificationBanner() {
               <X className="h-4 w-4" />
             </button>
           </div>
-        </motion.div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   )

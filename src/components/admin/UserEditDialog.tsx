@@ -68,7 +68,6 @@ export function UserEditDialog({
     resolver: zodResolver(userEditSchema),
     defaultValues: {
       full_name: '',
-      email: '',
       role: 'member',
       status: 'pending',
       masonic_degree: 'Aprendiz',

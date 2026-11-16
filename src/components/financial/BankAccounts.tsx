@@ -33,10 +33,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRLMaybeHidden } from '@/lib/financial-amount-visibility'
 import { fetchAccountsWithBalances, type BankAccountWithBalance } from '@/lib/financial-balances'
+import { useFinancialAmountVisibility } from '@/hooks/use-financial-amount-visibility'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { AccountReconciliationPanel } from './AccountReconciliationPanel'
+import { FinancialAmountVisibilityToggle } from '@/components/financial/FinancialAmountVisibilityToggle'
 
 export function BankAccounts() {
   const [accounts, setAccounts] = useState<BankAccountWithBalance[]>([])
@@ -51,6 +53,10 @@ export function BankAccounts() {
   )
   const { toast } = useToast()
   const loadSeqRef = useRef(0)
+  const { amountsVisible, toggleAmountsVisible } =
+    useFinancialAmountVisibility()
+  const formatAmount = (value: number) =>
+    formatCurrencyBRLMaybeHidden(value, amountsVisible)
 
   // Load accounts from Supabase
   const loadAccounts = useAsyncOperation(
@@ -218,16 +224,22 @@ export function BankAccounts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <div>
           <h3 className="text-lg font-medium">Contas Bancárias e Caixas</h3>
           <p className="text-sm text-muted-foreground">
             Gerencie suas contas e saldos.
           </p>
         </div>
-        <Button onClick={openNew} disabled={loading}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Conta
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <FinancialAmountVisibilityToggle
+            amountsVisible={amountsVisible}
+            onToggle={toggleAmountsVisible}
+          />
+          <Button onClick={openNew} disabled={loading}>
+            <Plus className="mr-2 h-4 w-4" /> Nova Conta
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -286,10 +298,10 @@ export function BankAccounts() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrencyBRL(balance)}
+                    {formatAmount(balance)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Saldo inicial: {formatCurrencyBRL(account.initialBalance)}
+                    Saldo inicial: {formatAmount(account.initialBalance)}
                   </p>
                 </CardContent>
               </Card>

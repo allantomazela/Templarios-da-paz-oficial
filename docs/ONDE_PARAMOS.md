@@ -8,16 +8,16 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 15/11/2026 |
-| Commit | f56ce03 |
+| Data | 16/11/2026 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** correção do logout ao confirmar senha do admin (logout Auth só com `scope=local` + reauth no cliente). Botão **Copiar mensagem** leva nome, e-mail, senha e orientação para `www.templariosdapazoficial.com.br`; após salvar, a mensagem é copiada automaticamente. Edge Function já republicada.
+**O que ficou pronto:** olhinho para mostrar/ocultar valores no Financeiro — abas **Dashboard** e **Contas Bancárias** (inclui conferência de caixa). Preferência compartilhada em `localStorage`.
 
-**Arquivos:** `admin-credentials.ts`, `admin-user-api.ts`, `AdminChangePasswordDialog.tsx`, `member-access-message.ts`.
+**Arquivos:** `use-financial-amount-visibility.ts`, `FinancialAmountVisibilityToggle.tsx`, `financial-amount-visibility.ts`, `FinancialOverview.tsx`, `BankAccounts.tsx`, `AccountReconciliationPanel.tsx`, `CashReconciliationSummary.tsx`.
 
 ## Onde continuar
 
-Em Admin → Usuários: **Alterar senha** para Luciano e Otacílio → gerar provisória → alterar senha → colar a mensagem no WhatsApp/privado.
+Validar no Financeiro: ocultar valores, trocar de aba e confirmar que permanece oculto. Commit/push quando pedir.
 
 ## Como ver isto de novo
 

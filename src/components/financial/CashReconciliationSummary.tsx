@@ -1,21 +1,25 @@
 import { Scale, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRLMaybeHidden } from '@/lib/financial-amount-visibility'
 import type { CashReconciliationSummary } from '@/lib/account-reconciliation-difference-causes'
 import { cn } from '@/lib/utils'
 
 interface CashReconciliationSummaryProps {
   summary: CashReconciliationSummary
+  amountsVisible?: boolean
 }
 
 export function CashReconciliationSummaryCard({
   summary,
+  amountsVisible = true,
 }: CashReconciliationSummaryProps) {
   const hasExtrato = summary.accountsWithExtrato > 0
   const matched =
     hasExtrato &&
     summary.accountsWithDifference === 0 &&
     summary.allInformedMatched
+  const formatAmount = (value: number) =>
+    formatCurrencyBRLMaybeHidden(value, amountsVisible)
 
   return (
     <Card
@@ -43,13 +47,13 @@ export function CashReconciliationSummaryCard({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryMetric
             label="Saldo no sistema (total)"
-            value={formatCurrencyBRL(summary.totalSystemBalance)}
+            value={formatAmount(summary.totalSystemBalance)}
           />
           <SummaryMetric
             label="Saldo no extrato (informado)"
             value={
               summary.totalRealBalance !== null
-                ? formatCurrencyBRL(summary.totalRealBalance)
+                ? formatAmount(summary.totalRealBalance)
                 : '—'
             }
           />
@@ -57,7 +61,7 @@ export function CashReconciliationSummaryCard({
             label="Diferença total"
             value={
               summary.totalDifference !== null
-                ? formatCurrencyBRL(summary.totalDifference)
+                ? formatAmount(summary.totalDifference)
                 : '—'
             }
             highlight={

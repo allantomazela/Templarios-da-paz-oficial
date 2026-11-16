@@ -26,6 +26,8 @@ import {
   Wrench,
 } from 'lucide-react'
 import { formatCurrencyBRL } from '@/lib/format-utils'
+import { formatCurrencyBRLMaybeHidden } from '@/lib/financial-amount-visibility'
+import { useFinancialAmountVisibility } from '@/hooks/use-financial-amount-visibility'
 import {
   buildAccountReconciliationDetails,
   buildReconciliationAudit,
@@ -88,6 +90,7 @@ function parseRealBalanceInput(value: string): number | null {
 }
 
 export function AccountReconciliationPanel() {
+  const { amountsVisible } = useFinancialAmountVisibility()
   const { accounts, transactions, loading: coreLoading } = useFinancialCoreData({
     fullHistory: true,
   })
@@ -316,7 +319,10 @@ export function AccountReconciliationPanel() {
 
   return (
     <div className="space-y-4">
-      <CashReconciliationSummaryCard summary={cashSummary} />
+      <CashReconciliationSummaryCard
+        summary={cashSummary}
+        amountsVisible={amountsVisible}
+      />
 
       <Card>
         <CardHeader>
@@ -383,6 +389,7 @@ export function AccountReconciliationPanel() {
                   <ReconciliationRow
                     key={detail.accountId}
                     detail={detail}
+                    amountsVisible={amountsVisible}
                     realBalanceInput={
                       extratoByAccount[detail.accountId]?.balance ?? ''
                     }
@@ -448,6 +455,7 @@ export function AccountReconciliationPanel() {
 
 interface ReconciliationRowProps {
   detail: AccountReconciliationWithReal
+  amountsVisible: boolean
   realBalanceInput: string
   noteInput: string
   saving: boolean
@@ -462,6 +470,7 @@ interface ReconciliationRowProps {
 
 function ReconciliationRow({
   detail,
+  amountsVisible,
   realBalanceInput,
   noteInput,
   saving,
@@ -479,6 +488,8 @@ function ReconciliationRow({
     detail.realBalance !== null && !hasDifference
   const suggestedNegative =
     detail.suggestedInitialBalance !== null && detail.suggestedInitialBalance < 0
+  const formatAmount = (value: number) =>
+    formatCurrencyBRLMaybeHidden(value, amountsVisible)
 
   return (
     <TableRow>
@@ -490,17 +501,25 @@ function ReconciliationRow({
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="text-right">{formatCurrencyBRL(detail.systemBalance)}</TableCell>
+      <TableCell className="text-right">{formatAmount(detail.systemBalance)}</TableCell>
       <TableCell>
-        <Input
-          type="number"
-          step="0.01"
-          placeholder="0,00"
-          value={realBalanceInput}
-          onChange={(event) => onRealBalanceChange(event.target.value)}
-          onBlur={(event) => onRealBalanceBlur(event.target.value)}
-          className="h-8"
-        />
+        {amountsVisible ? (
+          <Input
+            type="number"
+            step="0.01"
+            placeholder="0,00"
+            value={realBalanceInput}
+            onChange={(event) => onRealBalanceChange(event.target.value)}
+            onBlur={(event) => onRealBalanceBlur(event.target.value)}
+            className="h-8"
+          />
+        ) : (
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {realBalanceInput.trim()
+              ? formatAmount(Number(realBalanceInput.replace(',', '.')) || 0)
+              : '—'}
+          </span>
+        )}
       </TableCell>
       <TableCell
         className={cn(
@@ -509,7 +528,7 @@ function ReconciliationRow({
           isMatched && 'text-green-600',
         )}
       >
-        {detail.difference === null ? '—' : formatCurrencyBRL(detail.difference)}
+        {detail.difference === null ? '—' : formatAmount(detail.difference)}
       </TableCell>
       <TableCell>
         {detail.realBalance === null ? (
@@ -536,12 +555,12 @@ function ReconciliationRow({
         </div>
       </TableCell>
       <TableCell className="text-right text-muted-foreground">
-        {formatCurrencyBRL(detail.initialBalance)}
+        {formatAmount(detail.initialBalance)}
       </TableCell>
       <TableCell className="text-right">
         {detail.suggestedInitialBalance === null
           ? '—'
-          : formatCurrencyBRL(detail.suggestedInitialBalance)}
+          : formatAmount(detail.suggestedInitialBalance)}
       </TableCell>
       <TableCell className="text-right">
         {detail.canApplySuggestedInitial ? (

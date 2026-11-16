@@ -17,15 +17,17 @@ import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart } from 'recharts'
 import { ArrowUp, ArrowDown, Wallet, AlertTriangle, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  formatCurrencyBRL,
   getCalendarDateTimestamp,
   parseCalendarDate,
 } from '@/lib/format-utils'
+import { formatCurrencyBRLMaybeHidden } from '@/lib/financial-amount-visibility'
 import { computeGlobalBalance } from '@/lib/financial-balances'
 import { useFinancialCoreData } from '@/hooks/use-financial-core-data'
+import { useFinancialAmountVisibility } from '@/hooks/use-financial-amount-visibility'
 import useFinancialStore from '@/stores/useFinancialStore'
 import { isTreasuryTransaction } from '@/lib/transaction-control-only'
 import { findLowBalanceAccountsForAlert } from '@/lib/financial-low-balance-alerts'
+import { FinancialAmountVisibilityToggle } from '@/components/financial/FinancialAmountVisibilityToggle'
 import {
   Select,
   SelectContent,
@@ -51,7 +53,11 @@ const chartConfig = {
 export function FinancialOverview() {
   const { accounts, transactions, loading } = useFinancialCoreData()
   const balanceLedger = useFinancialStore((state) => state.balanceLedger)
+  const { amountsVisible, toggleAmountsVisible } =
+    useFinancialAmountVisibility()
   const [period, setPeriod] = useState('current_year')
+  const formatAmount = (value: number) =>
+    formatCurrencyBRLMaybeHidden(value, amountsVisible)
   const getDateRange = () => {
     const now = new Date()
     switch (period) {
@@ -151,11 +157,15 @@ export function FinancialOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <h2 className="text-xl font-bold tracking-tight">
           Dashboard Interativo
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <FinancialAmountVisibilityToggle
+            amountsVisible={amountsVisible}
+            onToggle={toggleAmountsVisible}
+          />
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[180px]">
@@ -182,7 +192,8 @@ export function FinancialOverview() {
               {lowBalanceAccounts.map((acc) => (
                 <li key={acc.id}>
                   A conta <strong>{acc.name}</strong> está com saldo baixo após
-                  movimentação (abaixo de R$ 100,00).
+                  movimentação
+                  {amountsVisible ? ' (abaixo de R$ 100,00)' : ''}.
                 </li>
               ))}
             </ul>
@@ -203,7 +214,7 @@ export function FinancialOverview() {
                 globalBalance >= 0 ? 'text-primary' : 'text-destructive',
               )}
             >
-              {formatCurrencyBRL(globalBalance)}
+              {formatAmount(globalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
               Total em todas as contas
@@ -219,7 +230,7 @@ export function FinancialOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">
-              {formatCurrencyBRL(totalIncome)}
+              {formatAmount(totalIncome)}
             </div>
             <p className="text-xs text-muted-foreground">Entradas filtradas</p>
           </CardContent>
@@ -233,7 +244,7 @@ export function FinancialOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-500">
-              {formatCurrencyBRL(totalExpense)}
+              {formatAmount(totalExpense)}
             </div>
             <p className="text-xs text-muted-foreground">Saídas filtradas</p>
           </CardContent>
@@ -257,7 +268,7 @@ export function FinancialOverview() {
                 periodResult >= 0 ? 'text-green-600' : 'text-red-600',
               )}
             >
-              {formatCurrencyBRL(periodResult)}
+              {formatAmount(periodResult)}
             </div>
             <p className="text-xs text-muted-foreground">
               Balanço do período selecionado
@@ -287,7 +298,7 @@ export function FinancialOverview() {
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      formatter={(value) => formatCurrencyBRL(Number(value))}
+                      formatter={(value) => formatAmount(Number(value))}
                     />
                   }
                 />
@@ -312,7 +323,7 @@ export function FinancialOverview() {
                   content={
                     <ChartTooltipContent
                       hideLabel
-                      formatter={(value) => formatCurrencyBRL(Number(value))}
+                      formatter={(value) => formatAmount(Number(value))}
                     />
                   }
                 />

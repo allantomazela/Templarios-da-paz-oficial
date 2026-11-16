@@ -40,6 +40,8 @@ import useAuthStore from '@/stores/useAuthStore'
 import { deleteUserAsAdmin } from '@/lib/admin-user-api'
 import { isMasterAdminEmail } from '@/config/master-admin'
 import { UserEditDialog } from '@/components/admin/UserEditDialog'
+import { AdminChangePasswordDialog } from '@/components/admin/AdminChangePasswordDialog'
+import { AdminChangeEmailDialog } from '@/components/admin/AdminChangeEmailDialog'
 import {
   MoreHorizontal,
   Search,
@@ -54,6 +56,8 @@ import {
   Pencil,
   Trash2,
   UserPlus,
+  KeyRound,
+  AtSign,
 } from 'lucide-react'
 import { Profile } from '@/stores/useAuthStore'
 import { useCanApproveUsers } from '@/hooks/use-can-approve-users'
@@ -105,6 +109,8 @@ export function UserManagement() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [editUser, setEditUser] = useState<Profile | null>(null)
+  const [passwordUser, setPasswordUser] = useState<Profile | null>(null)
+  const [emailUser, setEmailUser] = useState<Profile | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [approvalCandidate, setApprovalCandidate] = useState<{
@@ -148,6 +154,18 @@ export function UserManagement() {
     if (!isSystemAdmin) return false
     if (user.id === currentUser?.id) return false
     if (isMasterAdminEmail(user.email)) return false
+    return true
+  }
+
+  const canManageCredentials = (user: Profile) => {
+    if (!isSystemAdmin) return false
+    if (user.id === currentUser?.id) return false
+    if (
+      isMasterAdminEmail(user.email) &&
+      !isMasterAdminEmail(currentUser?.email)
+    ) {
+      return false
+    }
     return true
   }
 
@@ -456,6 +474,14 @@ export function UserManagement() {
                           Nome parecido com cadastro existente
                         </Badge>
                       )}
+                      {user.must_change_password && (
+                        <Badge
+                          variant="outline"
+                          className="mt-1 w-fit border-sky-300 bg-sky-50 text-sky-800"
+                        >
+                          Troca de senha pendente
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -509,6 +535,22 @@ export function UserManagement() {
                             <DropdownMenuItem onClick={() => setEditUser(user)}>
                               <Pencil className="mr-2 h-4 w-4" /> Editar perfil
                             </DropdownMenuItem>
+                          )}
+                          {canManageCredentials(user) && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => setPasswordUser(user)}
+                              >
+                                <KeyRound className="mr-2 h-4 w-4" /> Alterar
+                                senha
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setEmailUser(user)}
+                              >
+                                <AtSign className="mr-2 h-4 w-4" /> Alterar
+                                e-mail
+                              </DropdownMenuItem>
+                            </>
                           )}
                           {canDeleteUser(user) && (
                             <DropdownMenuItem
@@ -667,6 +709,20 @@ export function UserManagement() {
         onOpenChange={(open) => !open && setEditUser(null)}
         user={editUser}
         onSave={handleSaveProfile}
+      />
+
+      <AdminChangePasswordDialog
+        open={!!passwordUser}
+        onOpenChange={(open) => !open && setPasswordUser(null)}
+        user={passwordUser}
+        onSuccess={() => void fetchUsers()}
+      />
+
+      <AdminChangeEmailDialog
+        open={!!emailUser}
+        onOpenChange={(open) => !open && setEmailUser(null)}
+        user={emailUser}
+        onSuccess={() => void fetchUsers()}
       />
 
       <AlertDialog

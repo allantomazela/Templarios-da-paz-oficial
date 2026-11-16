@@ -20,6 +20,9 @@ import { lazyPublicPage } from '@/lib/lazy-page'
 const Index = lazyPublicPage(() => import('@/pages/Index'))
 const Login = lazyPublicPage(() => import('@/pages/Login'))
 const ResetPassword = lazyPublicPage(() => import('@/pages/ResetPassword'))
+const ForceChangePassword = lazyPublicPage(
+  () => import('@/pages/ForceChangePassword'),
+)
 const Privacy = lazyPublicPage(() => import('@/pages/Privacy'))
 const TermsOfUse = lazyPublicPage(() => import('@/pages/TermsOfUse'))
 const AccessDenied = lazyPublicPage(() => import('@/pages/AccessDenied'))
@@ -128,6 +131,10 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/force-change-password"
+              element={<ForceChangePassword />}
+            />
             <Route path="/access-denied" element={<AccessDenied />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<TermsOfUse />} />

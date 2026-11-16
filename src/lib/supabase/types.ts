@@ -2539,6 +2539,7 @@ export type Database = {
           full_name: string | null
           id: string
           masonic_degree: string | null
+          must_change_password: boolean
           role: Database["public"]["Enums"]["app_role"] | null
           status: Database["public"]["Enums"]["user_status"] | null
           updated_at: string
@@ -2550,6 +2551,7 @@ export type Database = {
           full_name?: string | null
           id: string
           masonic_degree?: string | null
+          must_change_password?: boolean
           role?: Database["public"]["Enums"]["app_role"] | null
           status?: Database["public"]["Enums"]["user_status"] | null
           updated_at?: string
@@ -2561,6 +2563,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           masonic_degree?: string | null
+          must_change_password?: boolean
           role?: Database["public"]["Enums"]["app_role"] | null
           status?: Database["public"]["Enums"]["user_status"] | null
           updated_at?: string
@@ -3231,6 +3234,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      clear_own_must_change_password: { Args: never; Returns: undefined }
       get_account_balance: {
         Args: { p_account_id: string; p_date?: string }
         Returns: number

@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 
 export default function Login() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
 
   if (isAuthenticated) {
+    if (user?.profile?.must_change_password) {
+      return <Navigate to="/force-change-password" replace />
+    }
     return <Navigate to="/dashboard" replace />
   }
 

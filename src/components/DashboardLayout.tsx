@@ -107,6 +107,10 @@ export default function DashboardLayout() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  if (user?.profile?.must_change_password) {
+    return <Navigate to="/force-change-password" replace />
+  }
+
   const isMasterAdmin = isMasterAdminEmail(user?.email)
   const userStatus = user?.profile?.status
   const isBlockedStatus =

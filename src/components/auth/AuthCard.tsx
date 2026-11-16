@@ -138,11 +138,15 @@ export function AuthCard() {
           description: friendlyMessage,
         })
       } else {
+        const mustChange =
+          useAuthStore.getState().user?.profile?.must_change_password === true
         toast({
-          title: 'Bem-vindo!',
-          description: 'Login realizado com sucesso.',
+          title: mustChange ? 'Troca de senha necessária' : 'Bem-vindo!',
+          description: mustChange
+            ? 'Defina uma nova senha pessoal para continuar.'
+            : 'Login realizado com sucesso.',
         })
-        navigate('/dashboard')
+        navigate(mustChange ? '/force-change-password' : '/dashboard')
       }
     } catch (_e) {
       setLoginError('Ocorreu um erro inesperado.')

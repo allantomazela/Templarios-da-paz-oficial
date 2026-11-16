@@ -27,6 +27,8 @@ export interface Profile {
   status: UserStatus
   masonic_degree?: string
   avatar_url?: string
+  /** Quando true, o app redireciona para troca obrigatória de senha. */
+  must_change_password?: boolean
 }
 
 interface AuthState {
@@ -51,6 +53,8 @@ interface AuthState {
   ) => Promise<{ error: any; emailSent?: boolean }>
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>
   updatePassword: (password: string) => Promise<{ error: any }>
+  /** Limpa a flag must_change_password do perfil autenticado. */
+  clearMustChangePasswordFlag: () => Promise<{ ok: boolean; error?: string }>
   /** Limpa sessão e redireciona para /login (ex.: quando refresh token é inválido) */
   clearSessionAndRedirectToLogin: () => void
 }
@@ -483,6 +487,32 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { error } = await supabase.auth.updateUser({ password })
     set({ loading: false })
     return { error }
+  },
+
+  clearMustChangePasswordFlag: async () => {
+    const { error } = await supabase.rpc('clear_own_must_change_password')
+    if (error) {
+      logError('Erro ao limpar must_change_password', error)
+      return {
+        ok: false,
+        error: error.message || 'Não foi possível liberar o acesso.',
+      }
+    }
+
+    set((state) => {
+      if (!state.user?.profile) return state
+      return {
+        user: {
+          ...state.user,
+          profile: {
+            ...state.user.profile,
+            must_change_password: false,
+          },
+        },
+      }
+    })
+
+    return { ok: true }
   },
 }))
 

@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { PersonNameInput } from '@/components/ui/person-name-input'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -34,7 +35,6 @@ import type { UserProfileUpdate } from '@/stores/useUserStore'
 
 const userEditSchema = z.object({
   full_name: z.string().min(2, 'Nome é obrigatório'),
-  email: z.union([z.string().email('E-mail inválido'), z.literal('')]),
   role: z.enum(['admin', 'editor', 'member']),
   status: z.enum([
     'pending',
@@ -79,7 +79,6 @@ export function UserEditDialog({
     if (!open || !user) return
     form.reset({
       full_name: user.full_name || '',
-      email: user.email || '',
       role: user.role,
       status: user.status,
       masonic_degree:
@@ -93,7 +92,6 @@ export function UserEditDialog({
     try {
       await onSave(user.id, {
         full_name: values.full_name,
-        email: values.email || undefined,
         role: values.role,
         status: values.status,
         masonic_degree: values.masonic_degree,
@@ -110,7 +108,8 @@ export function UserEditDialog({
         <DialogHeader>
           <DialogTitle>Editar usuário</DialogTitle>
           <DialogDescription>
-            Altere os dados do perfil. Ações disponíveis apenas para administradores do sistema.
+            Altere os dados do perfil. Para e-mail ou senha, use as ações
+            dedicadas no menu do usuário (sincronizam o login).
           </DialogDescription>
         </DialogHeader>
 
@@ -133,23 +132,19 @@ export function UserEditDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>E-mail</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="email@exemplo.com"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-1.5">
+              <Label>E-mail de login</Label>
+              <Input
+                type="email"
+                value={user?.email || ''}
+                disabled
+                readOnly
+              />
+              <p className="text-xs text-muted-foreground">
+                Use &quot;Alterar e-mail&quot; no menu de ações se o endereço
+                foi desativado.
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField

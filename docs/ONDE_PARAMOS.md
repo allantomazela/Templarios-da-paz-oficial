@@ -8,18 +8,20 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 10/11/2026 |
-| Commit | 1e5f3cd |
+| Data | 15/11/2026 |
+| Commit | (em push) |
 
-**O que ficou pronto:** correção do destaque da sessão de Ágape. O foco segue a ordem do calendário: próxima não finalizada por data (ex. 14/11 antes de 28/11); ao finalizar, passa para a seguinte. Arquivos: `agape-session-focus.ts`, `AgapeSessionsList.tsx`.
+**O que ficou pronto:** Admin pode **Alterar senha** e **Alterar e-mail** (com senha do admin). Senha provisória exige troca em `/force-change-password`. Migration e Edge Function `admin-manage-credentials` já estão no Supabase Templários Oficial. Mantida a gestão de pré-iniciação já existente no remoto.
 
-## Banco
+**Arquivos principais:** `UserManagement.tsx`, dialogs de senha/e-mail, `ForceChangePassword.tsx`, `admin-manage-credentials`, migration `20261115210000_profiles_must_change_password.sql`.
 
-Sem mudança de banco nesta correção.
+## Banco / deploy
+
+- Migration e função ativas em `hxncevpbwcearzxrstzj`.
 
 ## Onde continuar
 
-Validar que o destaque cai em 14/11/2026 (e não numa sessão mais nova). Depois: Admitir Otacilio e Luciano com data 14/11.
+Em Admin → Usuários: **Alterar senha** para Luciano e Otacílio (gerar provisória + exigir troca). Se o e-mail estiver morto, use **Alterar e-mail** antes. Admitir no quadro com a data da iniciação quando for o caso.
 
 ## Como ver isto de novo
 

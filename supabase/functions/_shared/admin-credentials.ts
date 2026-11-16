@@ -25,8 +25,9 @@ export function isValidNewPassword(password: string): boolean {
 }
 
 /**
- * Confirma a senha do administrador autenticado antes de ações sensíveis.
- * Usa cliente anônimo isolado e encerra a sessão criada na verificação.
+ * Confirma a senha do administrador sem encerrar outras sessões.
+ * Usa o endpoint de token do Auth e faz logout só da sessão criada
+ * (`scope=local`), para não deslogar o painel no navegador.
  */
 export async function verifyActorPassword(
   supabaseUrl: string,
@@ -43,16 +44,19 @@ export async function verifyActorPassword(
     }
   }
 
-  const verifyClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const tokenResponse = await fetch(
+    `${supabaseUrl}/auth/v1/token?grant_type=password`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: actorEmail, password }),
+    },
+  )
 
-  const { error } = await verifyClient.auth.signInWithPassword({
-    email: actorEmail,
-    password,
-  })
-
-  if (error) {
+  if (!tokenResponse.ok) {
     return {
       ok: false,
       status: 403,
@@ -60,7 +64,18 @@ export async function verifyActorPassword(
     }
   }
 
-  await verifyClient.auth.signOut()
+  const tokens = (await tokenResponse.json()) as { access_token?: string }
+  if (tokens.access_token) {
+    await fetch(`${supabaseUrl}/auth/v1/logout?scope=local`, {
+      method: 'POST',
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${tokens.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+
   return { ok: true }
 }
 

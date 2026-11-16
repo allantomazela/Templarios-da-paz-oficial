@@ -9,13 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 15/11/2026 |
-| Commit | 7649ee9 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** correção de tipagem no CI (`UserEditDialog` sem `email` residual + `NotificationBanner` compatível com framer-motion). A feature de Alterar senha/e-mail (`e4c4fb6`) permanece.
+**O que ficou pronto:** correção do logout ao confirmar senha do admin (logout Auth só com `scope=local` + reauth no cliente). Botão **Copiar mensagem** leva nome, e-mail, senha e orientação para `www.templariosdapazoficial.com.br`; após salvar, a mensagem é copiada automaticamente. Edge Function republicada.
+
+**Arquivos:** `admin-credentials.ts`, `admin-user-api.ts`, `AdminChangePasswordDialog.tsx`, `member-access-message.ts`.
 
 ## Onde continuar
 
-Em Admin → Usuários: **Alterar senha** para Luciano e Otacílio (gerar provisória + exigir troca). Se o e-mail estiver morto, use **Alterar e-mail** antes.
+Em Admin → Usuários: **Alterar senha** para Luciano e Otacílio → gerar provisória → alterar senha → colar a mensagem no WhatsApp/privado.
 
 ## Como ver isto de novo
 

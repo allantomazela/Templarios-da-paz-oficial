@@ -27,6 +27,7 @@ import {
   generateProvisionalPassword,
   setUserPasswordAsAdmin,
 } from '@/lib/admin-user-api'
+import { buildMemberAccessMessage } from '@/lib/member-access-message'
 import type { Profile } from '@/stores/useAuthStore'
 import { Loader2, RefreshCw, Copy, Check } from 'lucide-react'
 
@@ -66,6 +67,7 @@ export function AdminChangePasswordDialog({
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [savedPassword, setSavedPassword] = useState<string | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -86,7 +88,16 @@ export function AdminChangePasswordDialog({
       forcePasswordChange: true,
     })
     setCopied(false)
+    setSavedPassword(null)
   }, [open, form])
+
+  function accessMessageFor(password: string) {
+    return buildMemberAccessMessage({
+      fullName: user?.full_name || '',
+      email: user?.email,
+      password,
+    })
+  }
 
   function handleGenerate() {
     const generated = generateProvisionalPassword()
@@ -95,23 +106,31 @@ export function AdminChangePasswordDialog({
     setCopied(false)
   }
 
-  async function handleCopy() {
-    const value = form.getValues('newPassword')
-    if (!value) return
+  async function copyAccessMessage(password: string) {
+    const message = accessMessageFor(password)
     try {
-      await navigator.clipboard.writeText(value)
+      await navigator.clipboard.writeText(message)
       setCopied(true)
       toast({
-        title: 'Senha copiada',
-        description: 'Cole apenas no canal privado com o irmão.',
+        title: 'Mensagem copiada',
+        description:
+          'Nome, e-mail, senha e orientação de acesso prontos para enviar ao irmão.',
       })
+      return true
     } catch {
       toast({
         variant: 'destructive',
         title: 'Não foi possível copiar',
-        description: 'Copie a senha manualmente.',
+        description: 'Copie a mensagem manualmente pelo botão novamente.',
       })
+      return false
     }
+  }
+
+  async function handleCopy() {
+    const value = form.getValues('newPassword') || savedPassword
+    if (!value) return
+    await copyAccessMessage(value)
   }
 
   async function onSubmit(values: FormValues) {
@@ -124,13 +143,14 @@ export function AdminChangePasswordDialog({
         newPassword: values.newPassword,
         forcePasswordChange: values.forcePasswordChange,
       })
+      setSavedPassword(values.newPassword)
+      await copyAccessMessage(values.newPassword)
       toast({
         title: 'Senha atualizada',
         description: values.forcePasswordChange
-          ? `${user.full_name} deverá alterar a senha no próximo login.`
-          : `A senha de ${user.full_name} foi alterada.`,
+          ? `${user.full_name} deverá alterar a senha no próximo login. A mensagem já foi copiada.`
+          : `A senha de ${user.full_name} foi alterada. A mensagem já foi copiada.`,
       })
-      onOpenChange(false)
       onSuccess?.()
     } catch (error) {
       toast({
@@ -159,138 +179,169 @@ export function AdminChangePasswordDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nova senha do membro</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      autoComplete="new-password"
-                      disabled={submitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirmar nova senha</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      autoComplete="new-password"
-                      disabled={submitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex flex-wrap gap-2">
+        {savedPassword ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Senha aplicada. A mensagem com nome, e-mail, senha e o link{' '}
+              <strong>www.templariosdapazoficial.com.br</strong> já foi copiada
+              para a área de transferência.
+            </p>
+            <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                disabled={submitting}
-                onClick={handleGenerate}
-              >
-                <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                Gerar provisória
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={submitting || !form.watch('newPassword')}
                 onClick={() => void handleCopy()}
               >
                 {copied ? (
-                  <Check className="mr-2 h-3.5 w-3.5" />
+                  <Check className="mr-2 h-4 w-4" />
                 ) : (
-                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  <Copy className="mr-2 h-4 w-4" />
                 )}
-                Copiar
+                Copiar mensagem de novo
               </Button>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="forcePasswordChange"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) =>
-                        field.onChange(checked === true)
-                      }
-                      disabled={submitting}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Exigir troca no próximo login</FormLabel>
-                    <FormDescription>
-                      Recomendado para senha provisória passada ao irmão.
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="adminPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sua senha de administrador</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      autoComplete="current-password"
-                      disabled={submitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Confirma que a alteração foi autorizada por você.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={submitting}
-                onClick={() => onOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Alterar senha'
-                )}
+              <Button type="button" onClick={() => onOpenChange(false)}>
+                Fechar
               </Button>
             </DialogFooter>
-          </form>
-        </Form>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nova senha do membro</FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="new-password"
+                        disabled={submitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmar nova senha</FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="new-password"
+                        disabled={submitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={submitting}
+                  onClick={handleGenerate}
+                >
+                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                  Gerar provisória
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={submitting || !form.watch('newPassword')}
+                  onClick={() => void handleCopy()}
+                >
+                  {copied ? (
+                    <Check className="mr-2 h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="mr-2 h-3.5 w-3.5" />
+                  )}
+                  Copiar mensagem
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A mensagem inclui nome, e-mail, senha e como entrar em
+                www.templariosdapazoficial.com.br.
+              </p>
+
+              <FormField
+                control={form.control}
+                name="forcePasswordChange"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked === true)
+                        }
+                        disabled={submitting}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Exigir troca no próximo login</FormLabel>
+                      <FormDescription>
+                        Recomendado para senha provisória passada ao irmão.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="adminPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sua senha de administrador</FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="current-password"
+                        disabled={submitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Confirma que a alteração foi autorizada por você.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={submitting}
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Alterar senha'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   )

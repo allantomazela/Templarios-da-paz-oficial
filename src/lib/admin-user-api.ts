@@ -23,13 +23,42 @@ async function parseInvokeError(error: unknown, fallback: string): Promise<strin
   return fallback
 }
 
-async function requireLoggedInUser(): Promise<void> {
+async function requireLoggedInUser(): Promise<{
+  id: string
+  email: string
+}> {
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser()
   if (userError || !user) {
     throw new Error('Faça login para continuar.')
+  }
+  const email = user.email?.trim()
+  if (!email) {
+    throw new Error('Sua conta de administrador está sem e-mail.')
+  }
+  return { id: user.id, email }
+}
+
+/**
+ * Revalida a senha do admin na sessão atual (não desloga o painel).
+ * A Edge Function ainda confirma a senha no servidor com logout local.
+ */
+async function confirmAdminPassword(adminPassword: string): Promise<void> {
+  const password = adminPassword?.trim()
+  if (!password) {
+    throw new Error('Informe a sua senha de administrador para confirmar.')
+  }
+
+  const { email } = await requireLoggedInUser()
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    throw new Error('Senha do administrador incorreta.')
   }
 }
 
@@ -140,7 +169,7 @@ export async function setUserPasswordAsAdmin(params: {
   newPassword: string
   forcePasswordChange?: boolean
 }): Promise<{ forcePasswordChange: boolean }> {
-  await requireLoggedInUser()
+  await confirmAdminPassword(params.adminPassword)
 
   const userId = params.userId?.trim()
   if (!userId) throw new Error('ID do usuário não informado.')
@@ -183,7 +212,7 @@ export async function changeUserEmailAsAdmin(params: {
   adminPassword: string
   newEmail: string
 }): Promise<{ email: string; previousEmail: string | null }> {
-  await requireLoggedInUser()
+  await confirmAdminPassword(params.adminPassword)
 
   const userId = params.userId?.trim()
   if (!userId) throw new Error('ID do usuário não informado.')

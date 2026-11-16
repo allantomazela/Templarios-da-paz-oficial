@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 15/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | f56ce03 |
 
-**O que ficou pronto:** correção do logout ao confirmar senha do admin (logout Auth só com `scope=local` + reauth no cliente). Botão **Copiar mensagem** leva nome, e-mail, senha e orientação para `www.templariosdapazoficial.com.br`; após salvar, a mensagem é copiada automaticamente. Edge Function republicada.
+**O que ficou pronto:** correção do logout ao confirmar senha do admin (logout Auth só com `scope=local` + reauth no cliente). Botão **Copiar mensagem** leva nome, e-mail, senha e orientação para `www.templariosdapazoficial.com.br`; após salvar, a mensagem é copiada automaticamente. Edge Function já republicada.
 
 **Arquivos:** `admin-credentials.ts`, `admin-user-api.ts`, `AdminChangePasswordDialog.tsx`, `member-access-message.ts`.
 

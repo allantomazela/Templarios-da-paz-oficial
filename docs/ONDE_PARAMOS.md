@@ -9,15 +9,16 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 15/11/2026 |
-| Commit | (em push) |
+| Commit | e4c4fb6 |
 
-**O que ficou pronto:** Admin pode **Alterar senha** e **Alterar e-mail** (com senha do admin). Senha provisória exige troca em `/force-change-password`. Migration e Edge Function `admin-manage-credentials` já estão no Supabase Templários Oficial. Mantida a gestão de pré-iniciação já existente no remoto.
+**O que ficou pronto:** Admin pode **Alterar senha** e **Alterar e-mail** (com senha do admin). Senha provisória exige troca em `/force-change-password`. Migration e Edge Function `admin-manage-credentials` já estão no Supabase Templários Oficial. Mantida a gestão de pré-iniciação já existente.
 
 **Arquivos principais:** `UserManagement.tsx`, dialogs de senha/e-mail, `ForceChangePassword.tsx`, `admin-manage-credentials`, migration `20261115210000_profiles_must_change_password.sql`.
 
 ## Banco / deploy
 
 - Migration e função ativas em `hxncevpbwcearzxrstzj`.
+- Front: commit `e4c4fb6` no GitHub para atualizar o servidor.
 
 ## Onde continuar
 

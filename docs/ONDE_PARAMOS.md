@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 16/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 3d31a48 |
 
 **O que ficou pronto:** olhinho para mostrar/ocultar valores no Financeiro — abas **Dashboard** e **Contas Bancárias** (inclui conferência de caixa). Preferência compartilhada em `localStorage`.
 
@@ -17,7 +17,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 ## Onde continuar
 
-Validar no Financeiro: ocultar valores, trocar de aba e confirmar que permanece oculto. Commit/push quando pedir.
+Validar no Financeiro: ocultar valores, trocar de aba e confirmar que permanece oculto.
 
 ## Como ver isto de novo
 

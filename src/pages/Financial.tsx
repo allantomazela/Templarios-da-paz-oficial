@@ -76,6 +76,11 @@ const FinancialReports = lazy(() =>
     default: m.FinancialReports,
   })),
 )
+const FinancialLodgePresentation = lazy(() =>
+  import('@/components/financial/FinancialLodgePresentation').then((m) => ({
+    default: m.FinancialLodgePresentation,
+  })),
+)
 const CategoryList = lazy(() =>
   import('@/components/financial/CategoryList').then((m) => ({
     default: m.CategoryList,
@@ -101,6 +106,7 @@ const FINANCIAL_TABS = [
   { value: 'budgets', label: 'Metas e Orçamentos' },
   { value: 'planning', label: 'Planejamento' },
   { value: 'reports', label: 'Relatório' },
+  { value: 'presentation', label: 'Apresentação' },
   { value: 'categories', label: 'Categorias' },
   { value: 'settings', label: 'Configurações' },
 ] as const
@@ -313,6 +319,12 @@ export default function Financial() {
         <TabsContent value="reports">
           <FinancialTabPanel active={activeTab === 'reports'}>
             <FinancialReports />
+          </FinancialTabPanel>
+        </TabsContent>
+
+        <TabsContent value="presentation">
+          <FinancialTabPanel active={activeTab === 'presentation'}>
+            <FinancialLodgePresentation />
           </FinancialTabPanel>
         </TabsContent>
 

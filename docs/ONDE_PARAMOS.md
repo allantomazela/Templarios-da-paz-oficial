@@ -9,15 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 16/11/2026 |
-| Commit | 3d31a48 |
+| Commit | 3ab0b4e |
 
-**O que ficou pronto:** olhinho para mostrar/ocultar valores no Financeiro — abas **Dashboard** e **Contas Bancárias** (inclui conferência de caixa). Preferência compartilhada em `localStorage`.
+**O que ficou pronto:** aba **Apresentação** no Financeiro — roteiro da Tesouraria em tela cheia + **Imprimir / Salvar PDF** (A4 paisagem, um slide por página). Mudança aditiva às demais abas.
 
-**Arquivos:** `use-financial-amount-visibility.ts`, `FinancialAmountVisibilityToggle.tsx`, `financial-amount-visibility.ts`, `FinancialOverview.tsx`, `BankAccounts.tsx`, `AccountReconciliationPanel.tsx`, `CashReconciliationSummary.tsx`.
+**Arquivos:** `FinancialLodgePresentation.tsx`, `FinancialLodgePresentationDeck.tsx`, `FinancialLodgePresentationDocument.tsx`, `financial-lodge-presentation.ts`, `financial-lodge-presentation.test.ts`, `financial-lodge-presentation-print-style.ts`, `Financial.tsx`.
 
 ## Onde continuar
 
-Validar no Financeiro: ocultar valores, trocar de aba e confirmar que permanece oculto.
+Validar no browser: Financeiro → Apresentação → iniciar slides e Imprimir / Salvar PDF. Opcional: polish visual do PDF ou export `.pptx` nativo.
 
 ## Como ver isto de novo
 

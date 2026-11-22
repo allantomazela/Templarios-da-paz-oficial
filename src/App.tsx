@@ -48,6 +48,8 @@ const Profile = lazy(() => import('@/pages/Profile'))
 const UserSettings = lazy(() => import('@/pages/UserSettings'))
 const MyMessages = lazy(() => import('@/pages/MyMessages'))
 const MyPayments = lazy(() => import('@/pages/MyPayments'))
+const LodgePranchaPage = lazy(() => import('@/pages/LodgePranchaPage'))
+const LodgePranchaNew = lazy(() => import('@/pages/LodgePranchaNew'))
 const Notices = lazy(() => import('@/pages/Notices'))
 const EssentialLinks = lazy(() => import('@/pages/EssentialLinks'))
 
@@ -226,6 +228,22 @@ const App = () => (
               <Route path="profile" element={<Profile />} />
               <Route path="messages" element={<MyMessages />} />
               <Route path="payments" element={<MyPayments />} />
+              <Route
+                path="prancha"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
+                    <LodgePranchaPage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="prancha/nova"
+                element={
+                  <RoleGuard allowedRoles={['admin', 'editor', 'member']}>
+                    <LodgePranchaNew />
+                  </RoleGuard>
+                }
+              />
               <Route path="notices" element={<Notices />} />
               <Route path="settings/user" element={<UserSettings />} />
               <Route

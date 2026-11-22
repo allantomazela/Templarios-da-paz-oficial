@@ -109,6 +109,8 @@ export function AppHeader() {
     if (path.includes('/dashboard/links')) return 'Links Essenciais'
     if (path.includes('/dashboard/agape')) return 'Ágape'
     if (path.includes('/dashboard/notices')) return 'Mural de Avisos'
+    if (path.includes('/dashboard/prancha/nova')) return 'Nova prancha'
+    if (path.includes('/dashboard/prancha')) return 'Prancha'
     if (path.includes('/dashboard/messages')) return 'Minhas Mensagens'
     if (path.includes('/dashboard/payments')) return 'Meus Pagamentos'
     if (path.includes('/dashboard/profile')) return 'Meu Perfil'

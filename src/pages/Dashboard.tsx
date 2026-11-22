@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Users,
   Loader2,
+  ScrollText,
 } from 'lucide-react'
 import {
   format,
@@ -215,6 +216,27 @@ export default function Dashboard() {
           {user?.profile?.full_name || user?.email || 'Irmão'}!
         </p>
       </div>
+
+      <Card className="glass-card border-l-4 border-l-amber-700/80">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Saco de propostas
+          </CardTitle>
+          <ScrollText className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Gere a prancha automaticamente, imprima para assinar e envie ao
+            Venerável Mestre.
+          </p>
+          <Button asChild className="shrink-0 gap-2">
+            <Link to="/dashboard/prancha/nova">
+              <ScrollText className="h-4 w-4" />
+              Nova prancha
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="col-span-1 glass-card border-l-4 border-l-primary hover:shadow-elevation transition-all">

@@ -2254,6 +2254,56 @@ export type Database = {
         }
         Relationships: []
       }
+      lodge_pranchas: {
+        Row: {
+          id: string
+          author_id: string
+          author_name: string
+          subject: string
+          body: string
+          session_date: string | null
+          status: string
+          submitted_at: string | null
+          read_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          author_id: string
+          author_name: string
+          subject: string
+          body: string
+          session_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          read_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          author_id?: string
+          author_name?: string
+          subject?: string
+          body?: string
+          session_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          read_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lodge_pranchas_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lodge_positions: {
         Row: {
           created_at: string
@@ -3339,6 +3389,12 @@ export type Database = {
         Args: { p_title: string; p_message: string; p_link?: string }
         Returns: number
       }
+      submit_lodge_prancha: {
+        Args: { p_prancha_id: string }
+        Returns: Database["public"]["Tables"]["lodge_pranchas"]["Row"]
+      }
+      can_manage_lodge_pranchas: { Args: never; Returns: boolean }
+      is_master_admin_email: { Args: never; Returns: boolean }
       normalize_profile_masonic_degree: {
         Args: { deg: string }
         Returns: string

@@ -22,6 +22,7 @@ import {
   UtensilsCrossed,
   QrCode,
   Link2,
+  ScrollText,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -172,6 +173,7 @@ export function AppSidebar({ variant = 'default' }: AppSidebarProps) {
       ? [{ name: 'Ágape', icon: UtensilsCrossed, path: '/dashboard/agape' }]
       : []),
     { name: 'Avisos', icon: Megaphone, path: '/dashboard/notices' },
+    { name: 'Prancha', icon: ScrollText, path: '/dashboard/prancha' },
     { name: 'Minhas Mensagens', icon: Mail, path: '/dashboard/messages' },
     { name: 'Meus Pagamentos', icon: Wallet, path: '/dashboard/payments' },
     ...(canSeeMedia

@@ -6,11 +6,20 @@
  * enquanto aba anônima sem cache “funcionava”.
  *
  * Ao ativar, apagamos caches antigos deste domínio para limpar instalações anteriores.
- * Versão lógica: v15 (push do aviso da loja; sem interceptação de fetch).
+ * Versão lógica: v16 (atualização forçada pós-deploy + ícone oficial).
+ * O marcador __SW_BUILD_ID__ é substituído no build para mudar o arquivo a cada deploy.
  */
+
+const SW_BUILD_ID = '__SW_BUILD_ID__'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting())
+})
+
+self.addEventListener('message', (event) => {
+  if (event?.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {
@@ -77,3 +86,6 @@ self.addEventListener('notificationclick', (event) => {
     }),
   )
 })
+
+// Referência para o build id aparecer no arquivo (detecção de update pelo browser).
+void SW_BUILD_ID

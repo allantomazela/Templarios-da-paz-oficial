@@ -1,7 +1,23 @@
 /* Vite config for building the frontend react app: https://vite.dev/config/ */
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import fs from 'node:fs'
 import path from 'path'
+
+/** Garante que dist/sw.js mude a cada deploy (browser detecta update do Service Worker). */
+function stampServiceWorkerBuildId(): Plugin {
+  return {
+    name: 'stamp-service-worker-build-id',
+    closeBundle() {
+      const swPath = path.resolve(__dirname, 'dist/sw.js')
+      if (!fs.existsSync(swPath)) return
+      const buildId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+      const source = fs.readFileSync(swPath, 'utf8')
+      const stamped = source.replaceAll('__SW_BUILD_ID__', buildId)
+      fs.writeFileSync(swPath, stamped)
+    },
+  }
+}
 
 const SHARED_VENDOR_PATTERN =
   /node_modules[\\/](clsx|tslib|@babel[\\/]runtime|react-is|prop-types)[\\/]/
@@ -63,7 +79,7 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  plugins: [react()],
+  plugins: [react(), stampServiceWorkerBuildId()],
   define: {
     'process.env.NODE_ENV': JSON.stringify(mode ?? process.env.NODE_ENV ?? 'production'),
   },

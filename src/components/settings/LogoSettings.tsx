@@ -150,13 +150,19 @@ export function LogoSettings() {
     setIsSavingLogo(true)
     try {
       await updateLogo(lUrl)
+      // Mantém a aba do navegador alinhada ao brasão oficial (mesmo arquivo do logo).
+      if (lUrl?.trim()) {
+        await updateFavicon(lUrl.trim())
+        setFUrl(lUrl.trim())
+        setFaviconPreviewVersion(Date.now())
+      }
       setLogoPreviewVersion(Date.now())
       const pwaSynced = await syncPwaIconsAfterLogoChange(lUrl)
       toast({
         title: 'Logo Atualizado',
         description: pwaSynced
-          ? 'Logo salvo. Ícones do app (PWA) foram gerados — faça o deploy para publicá-los na instalação.'
-          : 'Logo salvo. Os ícones do app serão regenerados no próximo deploy do site.',
+          ? 'Logo e ícone da aba salvos. Ícones do app (PWA) foram gerados — faça o deploy para publicá-los na instalação.'
+          : 'Logo e ícone da aba salvos. Os ícones do app serão regenerados no próximo deploy do site.',
       })
     } catch (error) {
       toast({

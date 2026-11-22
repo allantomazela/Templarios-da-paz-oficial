@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
+import { resolveSiteFaviconUrl } from '@/lib/default-brand-assets'
 
 export function SeoManager() {
-  const { siteTitle, metaDescription, faviconUrl } = useSiteSettingsStore()
+  const { siteTitle, metaDescription, faviconUrl, logoUrl } =
+    useSiteSettingsStore()
 
   useEffect(() => {
     // Update Title
@@ -21,56 +23,54 @@ export function SeoManager() {
       metaDesc.setAttribute('content', metaDescription)
     }
 
-    // Update Favicon with multiple sizes and cache busting
-    if (faviconUrl) {
-      const timestamp = Date.now()
-      const faviconUrlWithCache = `${faviconUrl}?t=${timestamp}`
+    const resolvedFavicon = resolveSiteFaviconUrl(faviconUrl, logoUrl)
+    const timestamp = Date.now()
+    const faviconUrlWithCache = resolvedFavicon.includes('?')
+      ? `${resolvedFavicon}&t=${timestamp}`
+      : `${resolvedFavicon}?t=${timestamp}`
 
-      // Remove ALL existing favicon links (including default from index.html)
-      const existingFavicons = document.querySelectorAll(
-        "link[rel='icon'], link[rel='shortcut icon'], link[rel='mask-icon']",
-      )
-      existingFavicons.forEach((link) => link.remove())
+    // Remove ALL existing favicon links (including default from index.html)
+    const existingFavicons = document.querySelectorAll(
+      "link[rel='icon'], link[rel='shortcut icon'], link[rel='mask-icon']",
+    )
+    existingFavicons.forEach((link) => link.remove())
 
-      // Create standard favicon (primary - browsers will use this)
-      const favicon = document.createElement('link')
-      favicon.rel = 'icon'
-      favicon.type = 'image/png'
-      favicon.href = faviconUrlWithCache
-      favicon.sizes = 'any'
-      document.head.appendChild(favicon)
-
-      // Create 16x16 favicon
-      const favicon16 = document.createElement('link')
-      favicon16.rel = 'icon'
-      favicon16.type = 'image/png'
-      favicon16.href = faviconUrlWithCache
-      favicon16.sizes = '16x16'
-      document.head.appendChild(favicon16)
-
-      // Create 32x32 favicon
-      const favicon32 = document.createElement('link')
-      favicon32.rel = 'icon'
-      favicon32.type = 'image/png'
-      favicon32.href = faviconUrlWithCache
-      favicon32.sizes = '32x32'
-      document.head.appendChild(favicon32)
-
-      // Create shortcut icon for older browsers
-      const shortcutIcon = document.createElement('link')
-      shortcutIcon.rel = 'shortcut icon'
-      shortcutIcon.type = 'image/png'
-      shortcutIcon.href = faviconUrlWithCache
-      document.head.appendChild(shortcutIcon)
-
-      // apple-touch-icon e ícones PWA permanecem fixos em index.html (/icon-192.png, /icon-512.png)
-      // para não quebrar instalação no iOS/Android com tamanhos incorretos do favicon dinâmico.
+    // Preferência .ico para navegadores que pedem /favicon.ico na abertura
+    if (resolvedFavicon.startsWith('/')) {
+      const ico = document.createElement('link')
+      ico.rel = 'icon'
+      ico.href = `/favicon.ico?t=${timestamp}`
+      ico.sizes = 'any'
+      document.head.appendChild(ico)
     }
+
+    const favicon = document.createElement('link')
+    favicon.rel = 'icon'
+    favicon.type = 'image/png'
+    favicon.href = faviconUrlWithCache
+    favicon.sizes = 'any'
+    document.head.appendChild(favicon)
+
+    const favicon32 = document.createElement('link')
+    favicon32.rel = 'icon'
+    favicon32.type = 'image/png'
+    favicon32.href = faviconUrlWithCache
+    favicon32.sizes = '32x32'
+    document.head.appendChild(favicon32)
+
+    const shortcutIcon = document.createElement('link')
+    shortcutIcon.rel = 'shortcut icon'
+    shortcutIcon.type = 'image/png'
+    shortcutIcon.href = faviconUrlWithCache
+    document.head.appendChild(shortcutIcon)
+
+    // apple-touch-icon e ícones PWA permanecem fixos em index.html (/icon-192.png, /icon-512.png)
+    // para não quebrar instalação no iOS/Android com tamanhos incorretos do favicon dinâmico.
 
     // Update Open Graph Tags
     updateMetaTag('og:title', siteTitle)
     updateMetaTag('og:description', metaDescription)
-  }, [siteTitle, metaDescription, faviconUrl])
+  }, [siteTitle, metaDescription, faviconUrl, logoUrl])
 
   return null
 }

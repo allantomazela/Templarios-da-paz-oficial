@@ -161,6 +161,38 @@ async function renderSquareIcon(sourceBuffer, size) {
     .toBuffer()
 }
 
+/** Empacota PNGs em .ico (formato PNG-in-ICO aceito pelos navegadores modernos). */
+function buildIcoFromPngs(pngEntries) {
+  const count = pngEntries.length
+  const headerSize = 6
+  const entrySize = 16
+  const dataOffset = headerSize + entrySize * count
+  const header = Buffer.alloc(headerSize)
+  header.writeUInt16LE(0, 0)
+  header.writeUInt16LE(1, 2)
+  header.writeUInt16LE(count, 4)
+
+  const entries = []
+  const blobs = []
+  let offset = dataOffset
+  for (const { size, buffer } of pngEntries) {
+    const entry = Buffer.alloc(entrySize)
+    entry.writeUInt8(size >= 256 ? 0 : size, 0)
+    entry.writeUInt8(size >= 256 ? 0 : size, 1)
+    entry.writeUInt8(0, 2)
+    entry.writeUInt8(0, 3)
+    entry.writeUInt16LE(1, 4)
+    entry.writeUInt16LE(32, 6)
+    entry.writeUInt32LE(buffer.length, 8)
+    entry.writeUInt32LE(offset, 12)
+    entries.push(entry)
+    blobs.push(buffer)
+    offset += buffer.length
+  }
+
+  return Buffer.concat([header, ...entries, ...blobs])
+}
+
 async function main() {
   const { source } = parseArgs(process.argv.slice(2))
   const sourceBuffer = await loadImageBuffer(source)
@@ -171,6 +203,16 @@ async function main() {
     fs.writeFileSync(outPath, png)
     console.log(`Gerado ${filename} (${size}x${size})`)
   }
+
+  const icoPngs = await Promise.all(
+    [16, 32, 48].map(async (size) => ({
+      size,
+      buffer: await renderSquareIcon(sourceBuffer, size),
+    })),
+  )
+  const icoPath = path.join(PUBLIC_DIR, 'favicon.ico')
+  fs.writeFileSync(icoPath, buildIcoFromPngs(icoPngs))
+  console.log('Gerado favicon.ico (16/32/48)')
 
   console.log('Ícones PWA atualizados em public/')
 }

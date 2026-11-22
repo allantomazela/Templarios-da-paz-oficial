@@ -9,15 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | cf1b8e2 |
+| Commit | 330f30e |
 
-**O que ficou pronto:** layout da **Prancha** no modelo ornamental A4 (fundo oficial + texto dinâmico para impressão/assinatura).
+**O que ficou pronto:** prancha com solicitante = usuário logado, texto escuro e alinhamento/fundo limpos no modelo A4.
 
-**Arquivos:** `public/prancha-template-a4.png`, `LodgePranchaDocument.tsx`, `lodge-prancha-print-style.ts`, `LodgePranchaNew.tsx`.
+**Arquivos:** `LodgePranchaDocument.tsx`, `LodgePranchaNew.tsx`, `lodge-prancha-print-style.ts`, `public/prancha-template-a4.png`.
 
 ## Onde continuar
 
-Validar prévia/impressão após o deploy. Ajuste fino de posição do texto se necessário.
+Validar prévia/impressão após o deploy. Ajuste fino de posição se ainda precisar.
 
 ## Como ver isto de novo
 

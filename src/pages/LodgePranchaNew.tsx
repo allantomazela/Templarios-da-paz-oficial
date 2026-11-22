@@ -178,7 +178,8 @@ export default function LodgePranchaNew() {
           <CardHeader>
             <CardTitle className="text-base">Dados da prancha</CardTitle>
             <CardDescription>
-              O texto abaixo será o documento oficial para o saco de propostas.
+              O documento sai no layout oficial da Loja (modelo ornamental A4).
+              Assunto e texto alimentam a prancha pronta para assinar.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -264,7 +265,7 @@ export default function LodgePranchaNew() {
           <CardHeader className="no-print">
             <CardTitle className="text-base">Pré-visualização</CardTitle>
             <CardDescription>
-              Assim a prancha sairá na impressão (assinatura no rodapé).
+              Prévia no layout do modelo (moldura, colunas e cabeçalho da Loja).
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 sm:p-4">

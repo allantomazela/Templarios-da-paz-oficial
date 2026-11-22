@@ -22,12 +22,29 @@ export const LODGE_PRANCHA_PRINT_STYLE = `
       margin: 0 !important;
       box-shadow: none !important;
       color: #0a0a0a !important;
+      font-family: Georgia, 'Times New Roman', Times, serif !important;
+      font-size: 12pt !important;
+      line-height: 1.55 !important;
+      letter-spacing: normal !important;
+      word-spacing: normal !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    .lodge-prancha-document,
+    .lodge-prancha-document * {
+      letter-spacing: normal !important;
+      word-spacing: normal !important;
+      text-transform: none !important;
+    }
     .lodge-prancha-document p,
-    .lodge-prancha-document span {
+    .lodge-prancha-document span,
+    .lodge-prancha-document strong {
       color: #0a0a0a !important;
+      font-size: inherit !important;
+      line-height: 1.55 !important;
+      letter-spacing: normal !important;
+      word-spacing: normal !important;
+      white-space: normal !important;
     }
   }
 `

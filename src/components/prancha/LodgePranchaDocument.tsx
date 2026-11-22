@@ -14,11 +14,11 @@ export interface LodgePranchaDocumentProps {
 const DEFAULT_LODGE_NAME = 'Templários da Paz'
 const DEFAULT_LODGE_NUMBER = '3969'
 const DEFAULT_ORIENTE = 'Botucatu – SP'
-const TEXT_COLOR = '#0a0a0a'
 
 /**
  * Prancha no layout ornamental do modelo A4 da Loja.
- * Texto escuro para contraste; nome vem sempre de quem está logado.
+ * Tipografia isolada em `.lodge-prancha-document` (main.css) para não
+ * herdar letter-spacing/line-height do tema e encavalar o texto.
  */
 export function LodgePranchaDocument({
   authorName,
@@ -53,107 +53,63 @@ export function LodgePranchaDocument({
         backgroundSize: '100% 100%',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
-        color: TEXT_COLOR,
       }}
     >
-      {/*
-        Zona de conteúdo: entre as colunas e abaixo do banner PRANCHA.
-        Percentuais calibrados para o template A4 ornamental.
-      */}
-      <div
-        className="absolute font-serif"
-        style={{
-          left: '16.5%',
-          right: '16.5%',
-          top: '41%',
-          bottom: '12%',
-          color: TEXT_COLOR,
-          fontSize: '11.5pt',
-          lineHeight: 1.48,
-        }}
-      >
-        <div className="flex h-full flex-col">
-          <p
-            className="mb-2 text-center italic"
-            style={{ color: TEXT_COLOR, fontSize: '10.5pt' }}
-          >
-            Solicitação ao Venerável Mestre para aprovação em Loja
-          </p>
+      <div className="prancha-content absolute inset-x-[16.5%] top-[41%] bottom-[12%] flex flex-col overflow-hidden">
+        <p className="prancha-kicker italic">
+          Solicitação ao Venerável Mestre para aprovação em Loja
+        </p>
 
-          <p className="mb-3 text-justify" style={{ color: TEXT_COLOR }}>
-            Ao Venerável Mestre da ARLS {lodgeLabel},
-          </p>
+        <p>
+          Ao Venerável Mestre da ARLS {lodgeLabel},
+        </p>
 
-          <p className="mb-3 text-justify" style={{ color: TEXT_COLOR }}>
-            Eu Ir∴{' '}
-            <span className="font-semibold" style={{ color: TEXT_COLOR }}>
-              {brotherName || '________________'}
-            </span>
-            , respeitosamente, submeto à apreciação desta Oficina a presente
-            prancha de solicitação
-            {topic ? (
-              <>
-                {' '}
-                acerca de{' '}
-                <span className="font-semibold" style={{ color: TEXT_COLOR }}>
-                  {topic}
-                </span>
-              </>
-            ) : null}
-            .
-          </p>
-
-          {sessionDate ? (
-            <p className="mb-3 text-justify" style={{ color: TEXT_COLOR }}>
-              Sessão / data de referência: {formatDateBR(sessionDate)}.
-            </p>
+        <p>
+          Eu Ir∴ <strong>{brotherName || '________________'}</strong>,
+          respeitosamente, submeto à apreciação desta Oficina a presente
+          prancha de solicitação
+          {topic ? (
+            <>
+              {' '}
+              acerca de <strong>{topic}</strong>
+            </>
           ) : null}
+          .
+        </p>
 
-          <div
-            className="min-h-0 flex-1 space-y-2.5 overflow-hidden text-justify"
-            style={{ color: TEXT_COLOR }}
-          >
-            {paragraphs.length > 0 ? (
-              paragraphs.map((paragraph, index) => (
-                <p key={`${index}-${paragraph.slice(0, 24)}`} style={{ color: TEXT_COLOR }}>
-                  {paragraph}
-                </p>
-              ))
-            ) : (
-              <p style={{ color: '#444444' }}>
-                [Descreva aqui o pedido ou proposta]
-              </p>
-            )}
-            <p className="pt-1 text-justify italic" style={{ color: TEXT_COLOR }}>
-              Nestes termos, peço deferimento sob os auspícios do Grande Oriente
-              do Brasil.
+        {sessionDate ? (
+          <p>Sessão / data de referência: {formatDateBR(sessionDate)}.</p>
+        ) : null}
+
+        <div className="prancha-body-block min-h-0 flex-1 overflow-hidden">
+          {paragraphs.length > 0 ? (
+            paragraphs.map((paragraph, index) => (
+              <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
+            ))
+          ) : (
+            <p>[Descreva aqui o pedido ou proposta]</p>
+          )}
+          <p className="prancha-closing">
+            Nestes termos, peço deferimento sob os auspícios do Grande Oriente
+            do Brasil.
+          </p>
+        </div>
+
+        <div className="prancha-footer mt-3 shrink-0">
+          <p className="prancha-date">
+            Oriente de {orienteCity}, ______ de ____________________ de{' '}
+            {documentYear}
+            {createdAtLabel ? (
+              <span className="sr-only"> (gerada em {createdAtLabel})</span>
+            ) : null}
+          </p>
+
+          <div className="mx-auto mt-6 w-[68%] max-w-[14rem] text-center">
+            <div className="mb-1 border-b border-black pt-8" />
+            <p className="prancha-sign-name">
+              Ir∴ {brotherName || '________________'}
             </p>
-          </div>
-
-          <div className="mt-4 shrink-0 text-center" style={{ color: TEXT_COLOR }}>
-            <p className="mb-5" style={{ color: TEXT_COLOR, fontSize: '10.5pt' }}>
-              Oriente de {orienteCity}, ______ de ____________________ de{' '}
-              {documentYear}
-              {createdAtLabel ? (
-                <span className="sr-only"> (gerada em {createdAtLabel})</span>
-              ) : null}
-            </p>
-
-            <div className="mx-auto w-[68%] max-w-[14rem]">
-              <div
-                className="mb-1 border-b pt-7"
-                style={{ borderColor: TEXT_COLOR }}
-              />
-              <p
-                className="font-semibold italic"
-                style={{ color: TEXT_COLOR, fontSize: '11pt' }}
-              >
-                Ir∴ {brotherName || '________________'}
-              </p>
-              <p style={{ color: TEXT_COLOR, fontSize: '9.5pt' }}>
-                Solicitante à Loja
-              </p>
-            </div>
+            <p className="prancha-sign-role">Solicitante à Loja</p>
           </div>
         </div>
       </div>

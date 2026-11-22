@@ -8,16 +8,16 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 16/11/2026 |
-| Commit | 3ab0b4e |
+| Data | 22/11/2026 |
+| Commit | a7d0828 |
 
-**O que ficou pronto:** aba **Apresentação** no Financeiro — roteiro da Tesouraria em tela cheia + **Imprimir / Salvar PDF** (A4 paisagem, um slide por página). Mudança aditiva às demais abas.
+**O que ficou pronto:** favicon/aba alinhados ao brasão oficial; PWA força update (SW carimbado + reload); Nginx estável com no-cache para favicon/manifest/ícones (aplicado no deploy via `apply-stable-nginx.sh`).
 
-**Arquivos:** `FinancialLodgePresentation.tsx`, `FinancialLodgePresentationDeck.tsx`, `FinancialLodgePresentationDocument.tsx`, `financial-lodge-presentation.ts`, `financial-lodge-presentation.test.ts`, `financial-lodge-presentation-print-style.ts`, `Financial.tsx`.
+**Arquivos:** `SeoManager.tsx`, `register-service-worker.ts`, `default-brand-assets.ts`, `LogoSettings.tsx`, `vite.config.ts`, `public/sw.js`, `public/.htaccess`, `public/favicon.ico`, `docs/nginx-templarios-stable.conf`.
 
 ## Onde continuar
 
-Validar no browser: Financeiro → Apresentação → iniciar slides e Imprimir / Salvar PDF. Opcional: polish visual do PDF ou export `.pptx` nativo.
+Após o Actions concluir o deploy: validar ícone da aba (hard refresh) e headers `Cache-Control` em `/favicon.png` e `/sw.js`. Confirmar que o app instalado recarrega após o publish.
 
 ## Como ver isto de novo
 

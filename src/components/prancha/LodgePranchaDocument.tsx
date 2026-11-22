@@ -2,22 +2,23 @@ import { formatDateBR } from '@/lib/format-utils'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 
 export interface LodgePranchaDocumentProps {
+  /** Nome do irmão logado (nunca inventar nome fixo). */
   authorName: string
   subject: string
   body: string
   sessionDate?: string | null
   createdAtLabel?: string
-  /** Ano exibido na linha de data (padrão: ano atual). */
   documentYear?: number
 }
 
 const DEFAULT_LODGE_NAME = 'Templários da Paz'
 const DEFAULT_LODGE_NUMBER = '3969'
 const DEFAULT_ORIENTE = 'Botucatu – SP'
+const TEXT_COLOR = '#0a0a0a'
 
 /**
- * Prancha no layout ornamental do modelo A4 da Loja
- * (moldura, colunas, cabeçalho GOB e piso mosaico).
+ * Prancha no layout ornamental do modelo A4 da Loja.
+ * Texto escuro para contraste; nome vem sempre de quem está logado.
  */
 export function LodgePranchaDocument({
   authorName,
@@ -31,17 +32,13 @@ export function LodgePranchaDocument({
   const contact = useSiteSettingsStore((s) => s.contact)
 
   const lodgeName = siteTitle?.trim() || DEFAULT_LODGE_NAME
-  const orienteCity =
-    contact.city?.trim() ||
-    (lodgeName.toLowerCase().includes('templários')
-      ? DEFAULT_ORIENTE
-      : '—')
-  const lodgeLabel = lodgeName.toLowerCase().includes('nº')
+  const orienteCity = contact.city?.trim() || DEFAULT_ORIENTE
+  const lodgeLabel = /n[º°.]/i.test(lodgeName)
     ? lodgeName
     : `${lodgeName} nº ${DEFAULT_LODGE_NUMBER}`
 
-  const brotherName = authorName.trim() || 'Irmão autor'
-  const topic = subject.trim() || '—'
+  const brotherName = authorName.trim()
+  const topic = subject.trim()
   const paragraphs = body
     .split(/\n+/)
     .map((line) => line.trim())
@@ -49,74 +46,114 @@ export function LodgePranchaDocument({
 
   return (
     <div
-      className="lodge-prancha-document relative mx-auto w-full max-w-[210mm] overflow-hidden bg-[#f7ecd8] text-black shadow-sm"
+      className="lodge-prancha-document relative mx-auto w-full max-w-[210mm] overflow-hidden bg-[#f6ebd7] shadow-sm"
       style={{
         aspectRatio: '210 / 297',
         backgroundImage: "url('/prancha-template-a4.png')",
         backgroundSize: '100% 100%',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
+        color: TEXT_COLOR,
       }}
     >
-      {/* Zona de texto alinhada à área em branco do modelo */}
+      {/*
+        Zona de conteúdo: entre as colunas e abaixo do banner PRANCHA.
+        Percentuais calibrados para o template A4 ornamental.
+      */}
       <div
-        className="absolute inset-x-[15%] top-[44%] bottom-[13%] flex flex-col font-serif text-[12px] leading-[1.45] sm:text-[13px] print:text-[11.5pt] print:leading-[1.4]"
-        style={{ color: '#1a1a1a' }}
+        className="absolute font-serif"
+        style={{
+          left: '16.5%',
+          right: '16.5%',
+          top: '41%',
+          bottom: '12%',
+          color: TEXT_COLOR,
+          fontSize: '11.5pt',
+          lineHeight: 1.48,
+        }}
       >
-        <p className="mb-3 text-justify">
-          Ao Venerável Mestre da ARLS {lodgeLabel},
-        </p>
-
-        <p className="mb-3 text-justify">
-          Eu Ir∴ <span className="font-semibold text-[#7a1f1f]">{brotherName}</span>
-          , respeitosamente, submeto à apreciação desta Oficina a presente
-          prancha de solicitação
-          {topic && topic !== '—' ? (
-            <>
-              {' '}
-              acerca de <span className="font-semibold">{topic}</span>
-            </>
-          ) : null}
-          .
-        </p>
-
-        {sessionDate ? (
-          <p className="mb-3 text-justify">
-            Sessão / data de referência: {formatDateBR(sessionDate)}.
+        <div className="flex h-full flex-col">
+          <p
+            className="mb-2 text-center italic"
+            style={{ color: TEXT_COLOR, fontSize: '10.5pt' }}
+          >
+            Solicitação ao Venerável Mestre para aprovação em Loja
           </p>
-        ) : null}
 
-        <div className="min-h-0 flex-1 space-y-2.5 overflow-hidden text-justify">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => (
-              <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
-            ))
-          ) : (
-            <p className="text-gray-500">[Descreva aqui o pedido ou proposta]</p>
-          )}
-          <p className="pt-1 text-justify italic text-[#7a1f1f]">
-            Nestes termos, peço deferimento sob os auspícios do Grande Oriente
-            do Brasil.
+          <p className="mb-3 text-justify" style={{ color: TEXT_COLOR }}>
+            Ao Venerável Mestre da ARLS {lodgeLabel},
           </p>
-        </div>
 
-        <div className="mt-auto pt-3 text-center">
-          <p className="mb-6 text-[11px] sm:text-[12px] print:text-[10.5pt]">
-            Oriente de {orienteCity}, ______ de ____________________ de{' '}
-            {documentYear}
-            {createdAtLabel ? (
-              <span className="sr-only"> (gerada em {createdAtLabel})</span>
+          <p className="mb-3 text-justify" style={{ color: TEXT_COLOR }}>
+            Eu Ir∴{' '}
+            <span className="font-semibold" style={{ color: TEXT_COLOR }}>
+              {brotherName || '________________'}
+            </span>
+            , respeitosamente, submeto à apreciação desta Oficina a presente
+            prancha de solicitação
+            {topic ? (
+              <>
+                {' '}
+                acerca de{' '}
+                <span className="font-semibold" style={{ color: TEXT_COLOR }}>
+                  {topic}
+                </span>
+              </>
             ) : null}
+            .
           </p>
 
-          <div className="mx-auto w-[70%] max-w-xs">
-            <div className="mb-1 border-b border-black pt-8" />
-            <p className="text-[12px] font-semibold italic text-[#7a1f1f] sm:text-[13px] print:text-[11pt]">
-              Ir∴ {brotherName}
+          {sessionDate ? (
+            <p className="mb-3 text-justify" style={{ color: TEXT_COLOR }}>
+              Sessão / data de referência: {formatDateBR(sessionDate)}.
             </p>
-            <p className="text-[10px] text-black sm:text-[11px] print:text-[9.5pt]">
-              Solicitante à Loja
+          ) : null}
+
+          <div
+            className="min-h-0 flex-1 space-y-2.5 overflow-hidden text-justify"
+            style={{ color: TEXT_COLOR }}
+          >
+            {paragraphs.length > 0 ? (
+              paragraphs.map((paragraph, index) => (
+                <p key={`${index}-${paragraph.slice(0, 24)}`} style={{ color: TEXT_COLOR }}>
+                  {paragraph}
+                </p>
+              ))
+            ) : (
+              <p style={{ color: '#444444' }}>
+                [Descreva aqui o pedido ou proposta]
+              </p>
+            )}
+            <p className="pt-1 text-justify italic" style={{ color: TEXT_COLOR }}>
+              Nestes termos, peço deferimento sob os auspícios do Grande Oriente
+              do Brasil.
             </p>
+          </div>
+
+          <div className="mt-4 shrink-0 text-center" style={{ color: TEXT_COLOR }}>
+            <p className="mb-5" style={{ color: TEXT_COLOR, fontSize: '10.5pt' }}>
+              Oriente de {orienteCity}, ______ de ____________________ de{' '}
+              {documentYear}
+              {createdAtLabel ? (
+                <span className="sr-only"> (gerada em {createdAtLabel})</span>
+              ) : null}
+            </p>
+
+            <div className="mx-auto w-[68%] max-w-[14rem]">
+              <div
+                className="mb-1 border-b pt-7"
+                style={{ borderColor: TEXT_COLOR }}
+              />
+              <p
+                className="font-semibold italic"
+                style={{ color: TEXT_COLOR, fontSize: '11pt' }}
+              >
+                Ir∴ {brotherName || '________________'}
+              </p>
+              <p style={{ color: TEXT_COLOR, fontSize: '9.5pt' }}>
+                Solicitante à Loja
+              </p>
+            </div>
           </div>
         </div>
       </div>

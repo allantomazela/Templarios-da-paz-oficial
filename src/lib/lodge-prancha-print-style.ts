@@ -21,8 +21,13 @@ export const LODGE_PRANCHA_PRINT_STYLE = `
       max-width: none !important;
       margin: 0 !important;
       box-shadow: none !important;
+      color: #0a0a0a !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+    .lodge-prancha-document p,
+    .lodge-prancha-document span {
+      color: #0a0a0a !important;
     }
   }
 `

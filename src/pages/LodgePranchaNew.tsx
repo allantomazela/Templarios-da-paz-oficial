@@ -36,16 +36,18 @@ import { getSaveErrorMessage } from '@/lib/auth-utils'
 /**
  * Formulário para qualquer irmão gerar prancha pronta para impressão
  * e envio digital ao Venerável Mestre.
+ * O nome do solicitante vem sempre do usuário logado.
  */
 export default function LodgePranchaNew() {
   const { toast } = useToast()
   const user = useAuthStore((s) => s.user)
   const printRef = useRef<HTMLDivElement>(null)
 
-  const defaultName =
-    user?.profile?.full_name?.trim() || user?.email?.split('@')[0] || ''
+  const loggedBrotherName = useMemo(
+    () => user?.profile?.full_name?.trim() || '',
+    [user?.profile?.full_name],
+  )
 
-  const [authorName, setAuthorName] = useState(defaultName)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [sessionDate, setSessionDate] = useState('')
@@ -58,7 +60,10 @@ export default function LodgePranchaNew() {
     [],
   )
 
-  const canPrint = subject.trim().length > 2 && body.trim().length > 10
+  const canPrint =
+    Boolean(loggedBrotherName) &&
+    subject.trim().length > 2 &&
+    body.trim().length > 10
   const printTitle = buildPranchaPrintTitle(subject)
 
   const handlePrint = usePrintReport({
@@ -80,6 +85,15 @@ export default function LodgePranchaNew() {
       })
       return null
     }
+    if (!loggedBrotherName) {
+      toast({
+        variant: 'destructive',
+        title: 'Nome do perfil',
+        description:
+          'Seu cadastro ainda não tem nome completo. Atualize em Meu Perfil.',
+      })
+      return null
+    }
     if (!canPrint) {
       toast({
         variant: 'destructive',
@@ -92,7 +106,7 @@ export default function LodgePranchaNew() {
     setSaving(true)
     try {
       const payload = {
-        authorName: authorName.trim() || defaultName || 'Irmão',
+        authorName: loggedBrotherName,
         subject: subject.trim(),
         body: body.trim(),
         sessionDate: sessionDate || null,
@@ -102,7 +116,6 @@ export default function LodgePranchaNew() {
           const row = await updateLodgePranchaDraft(savedId, payload)
           return row.id
         } catch {
-          // Já enviada: segue com o id existente (RPC de envio atualiza status).
           return savedId
         }
       }
@@ -178,19 +191,25 @@ export default function LodgePranchaNew() {
           <CardHeader>
             <CardTitle className="text-base">Dados da prancha</CardTitle>
             <CardDescription>
-              O documento sai no layout oficial da Loja (modelo ornamental A4).
-              Assunto e texto alimentam a prancha pronta para assinar.
+              O solicitante é preenchido automaticamente com o nome de quem está
+              logado. Assunto e texto alimentam o documento oficial.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="prancha-author">Nome do irmão</Label>
+              <Label htmlFor="prancha-author">Solicitante (usuário logado)</Label>
               <Input
                 id="prancha-author"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Seu nome completo"
+                value={loggedBrotherName}
+                readOnly
+                placeholder="Carregando nome do perfil..."
+                className="bg-muted/40"
               />
+              {!loggedBrotherName ? (
+                <p className="text-xs text-destructive">
+                  Nome não encontrado no perfil. Atualize em Meu Perfil.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="prancha-subject">Assunto</Label>
@@ -227,7 +246,7 @@ export default function LodgePranchaNew() {
                 type="button"
                 variant="outline"
                 onClick={() => void handleSaveDraft()}
-                disabled={saving || submitting}
+                disabled={saving || submitting || !loggedBrotherName}
               >
                 {saving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -272,7 +291,7 @@ export default function LodgePranchaNew() {
             <div className="max-h-[70vh] overflow-auto border-t bg-muted/20 p-3 sm:rounded-md sm:border">
               <div ref={printRef} className="bg-white">
                 <LodgePranchaDocument
-                  authorName={authorName || defaultName}
+                  authorName={loggedBrotherName}
                   subject={subject}
                   body={body}
                   sessionDate={sessionDate || null}

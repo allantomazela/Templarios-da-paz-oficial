@@ -9,15 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | 330f30e |
+| Commit | a1944f6 |
 
-**O que ficou pronto:** prancha com solicitante = usuário logado, texto escuro e alinhamento/fundo limpos no modelo A4.
+**O que ficou pronto:** tipografia da prancha isolada do tema global — texto não encavala mais (letter-spacing/line-height/font-size resetados).
 
-**Arquivos:** `LodgePranchaDocument.tsx`, `LodgePranchaNew.tsx`, `lodge-prancha-print-style.ts`, `public/prancha-template-a4.png`.
+**Arquivos:** `main.css`, `LodgePranchaDocument.tsx`, `lodge-prancha-print-style.ts`.
 
 ## Onde continuar
 
-Validar prévia/impressão após o deploy. Ajuste fino de posição se ainda precisar.
+Validar prévia/impressão após o deploy.
 
 ## Como ver isto de novo
 

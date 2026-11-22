@@ -9,15 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | d614dbc |
+| Commit | cf1b8e2 |
 
-**O que ficou pronto:** módulo **Prancha** (saco de propostas) — formulário com impressão/PDF, envio ao Venerável e caixa restrita ao VM + admin geral. Migration no Supabase já aplicada.
+**O que ficou pronto:** layout da **Prancha** no modelo ornamental A4 (fundo oficial + texto dinâmico para impressão/assinatura).
 
-**Arquivos:** `LodgePranchaPage.tsx`, `LodgePranchaNew.tsx`, `LodgePranchaDocument.tsx`, `lodge-prancha*.ts`, `20261122200000_lodge_pranchas.sql`, `App.tsx`, `AppSidebar.tsx`, `Dashboard.tsx`.
+**Arquivos:** `public/prancha-template-a4.png`, `LodgePranchaDocument.tsx`, `lodge-prancha-print-style.ts`, `LodgePranchaNew.tsx`.
 
 ## Onde continuar
 
-Validar no site após o deploy: Nova prancha → imprimir → enviar; abrir caixa como VM/admin. Opcional: alinhar layout à imagem-modelo e numeração sequencial.
+Validar prévia/impressão após o deploy. Ajuste fino de posição do texto se necessário.
 
 ## Como ver isto de novo
 

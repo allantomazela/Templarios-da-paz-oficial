@@ -9,11 +9,11 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | a1944f6 |
+| Commit | fbd72d6 |
 
-**O que ficou pronto:** tipografia da prancha isolada do tema global — texto não encavala mais (letter-spacing/line-height/font-size resetados).
+**O que ficou pronto:** prancha sem texto residual no fundo; painel opaco + tipografia em `div` para evitar sobreposição/encavalamento.
 
-**Arquivos:** `main.css`, `LodgePranchaDocument.tsx`, `lodge-prancha-print-style.ts`.
+**Arquivos:** `public/prancha-template-a4.png`, `LodgePranchaDocument.tsx`, `main.css`, `lodge-prancha-print-style.ts`.
 
 ## Onde continuar
 

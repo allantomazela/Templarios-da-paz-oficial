@@ -121,13 +121,22 @@ export function LodgePranchaDocument({
           bottom: '11%',
           backgroundColor: '#f8f0dc',
           padding: '10px 12px 8px',
+          minWidth: 0,
+          maxWidth: '100%',
           ...ink,
         }}
       >
         <div
           ref={contentRef}
-          className="prancha-fit-content flex h-full min-h-0 flex-col"
-          style={{ ...ink, fontSize: `${bodyFontPx}px` }}
+          className="prancha-fit-content flex h-full min-h-0 w-full min-w-0 flex-col"
+          style={{
+            ...ink,
+            fontSize: `${bodyFontPx}px`,
+            minWidth: 0,
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+          }}
         >
           <div
             className="prancha-title shrink-0 text-center"
@@ -208,13 +217,29 @@ export function LodgePranchaDocument({
           ) : null}
 
           <div
-            className="prancha-body min-h-0 flex-1"
-            style={{ ...ink, fontSize: '1em' }}
+            className="prancha-body min-h-0 min-w-0 w-full flex-1"
+            style={{
+              ...ink,
+              fontSize: '1em',
+              minWidth: 0,
+              maxWidth: '100%',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+            }}
           >
             {safeBodyHtml ? (
               <div
                 className="prancha-rich-body"
-                style={{ ...ink, fontSize: 'inherit' }}
+                style={{
+                  ...ink,
+                  fontSize: 'inherit',
+                  color: '#0a0a0a',
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'normal',
+                }}
                 dangerouslySetInnerHTML={{ __html: safeBodyHtml }}
               />
             ) : (

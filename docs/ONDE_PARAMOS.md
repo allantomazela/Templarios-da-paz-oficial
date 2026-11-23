@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 0ef0d26 |
 
 **O que ficou pronto:** editor TipTap na prancha (negrito/itálico/sublinhado/alinhamento) com HTML sanitizado; quebras preservadas; auto-ajuste de fonte para caber no painel A4 na prévia/impressão.
 
@@ -17,7 +17,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 ## Onde continuar
 
-Validar prévia/impressão com texto longo formatado; depois commit/push se aprovado.
+Validar prévia/impressão com texto longo formatado após o deploy.
 
 ## Como ver isto de novo
 

@@ -9,7 +9,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | 416df53 |
 
 **O que ficou pronto:** texto da prancha em preto (sobrepõe a regra global branca dos `p`) e quebra de linha dentro do painel do modelo (`min-width: 0` + `overflow-wrap`), sem alterar o editor TipTap nem o fluxo de salvar/imprimir.
 
@@ -17,7 +17,7 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 ## Onde continuar
 
-Validar prévia/impressão (cor preta + wrap no limite do painel); depois commit/push se aprovado.
+Validar prévia/impressão (cor preta + wrap no limite do painel) após o deploy.
 
 ## Como ver isto de novo
 

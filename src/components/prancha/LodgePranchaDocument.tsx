@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { formatDateBR } from '@/lib/format-utils'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 
@@ -15,10 +16,24 @@ const DEFAULT_LODGE_NAME = 'Templários da Paz'
 const DEFAULT_LODGE_NUMBER = '3969'
 const DEFAULT_ORIENTE = 'Botucatu – SP'
 
+const ink: CSSProperties = {
+  color: '#0a0a0a',
+  fontFamily: "Georgia, 'Times New Roman', Times, serif",
+  fontSize: '12px',
+  fontWeight: 400,
+  lineHeight: 1.6,
+  letterSpacing: 'normal',
+  wordSpacing: 'normal',
+  textTransform: 'none',
+  whiteSpace: 'normal',
+  margin: 0,
+  padding: 0,
+}
+
 /**
- * Prancha no layout ornamental do modelo A4 da Loja.
- * Tipografia isolada em `.lodge-prancha-document` (main.css) para não
- * herdar letter-spacing/line-height do tema e encavalar o texto.
+ * Prancha no layout ornamental A4.
+ * Usa painel opaco + `div` (não `p`) para não herdar tipografia global do site
+ * e não misturar com texto residual do fundo.
  */
 export function LodgePranchaDocument({
   authorName,
@@ -46,70 +61,172 @@ export function LodgePranchaDocument({
 
   return (
     <div
-      className="lodge-prancha-document relative mx-auto w-full max-w-[210mm] overflow-hidden bg-[#f6ebd7] shadow-sm"
+      className="lodge-prancha-document relative mx-auto w-full max-w-[210mm] overflow-hidden bg-[#f8f0dc] shadow-sm"
       style={{
         aspectRatio: '210 / 297',
         backgroundImage: "url('/prancha-template-a4.png')",
         backgroundSize: '100% 100%',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
+        ...ink,
       }}
     >
-      <div className="prancha-content absolute inset-x-[16.5%] top-[41%] bottom-[12%] flex flex-col overflow-hidden">
-        <p className="prancha-kicker italic">
+      {/* Painel opaco: cobre qualquer residual do PNG e contém só o texto dinâmico */}
+      <div
+        className="prancha-panel absolute box-border flex flex-col overflow-hidden"
+        style={{
+          left: '15%',
+          right: '15%',
+          top: '30%',
+          bottom: '11%',
+          backgroundColor: '#f8f0dc',
+          padding: '10px 12px 8px',
+          ...ink,
+        }}
+      >
+        <div
+          className="prancha-title shrink-0 text-center"
+          style={{
+            ...ink,
+            marginBottom: '8px',
+            fontSize: '22px',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            color: '#6b1212',
+            lineHeight: 1.2,
+          }}
+        >
+          PRANCHA
+        </div>
+
+        <div
+          className="prancha-kicker shrink-0 text-center italic"
+          style={{
+            ...ink,
+            marginBottom: '12px',
+            fontSize: '11px',
+            color: '#6b1212',
+            lineHeight: 1.35,
+          }}
+        >
           Solicitação ao Venerável Mestre para aprovação em Loja
-        </p>
+        </div>
 
-        <p>
+        <div
+          style={{
+            ...ink,
+            marginBottom: '10px',
+            textAlign: 'justify',
+          }}
+        >
           Ao Venerável Mestre da ARLS {lodgeLabel},
-        </p>
+        </div>
 
-        <p>
-          Eu Ir∴ <strong>{brotherName || '________________'}</strong>,
-          respeitosamente, submeto à apreciação desta Oficina a presente
+        <div
+          style={{
+            ...ink,
+            marginBottom: '10px',
+            textAlign: 'justify',
+          }}
+        >
+          Eu Ir∴{' '}
+          <span style={{ ...ink, fontWeight: 700 }}>
+            {brotherName || '________________'}
+          </span>
+          , respeitosamente, submeto à apreciação desta Oficina a presente
           prancha de solicitação
           {topic ? (
             <>
               {' '}
-              acerca de <strong>{topic}</strong>
+              acerca de <span style={{ ...ink, fontWeight: 700 }}>{topic}</span>
             </>
           ) : null}
           .
-        </p>
-
-        {sessionDate ? (
-          <p>Sessão / data de referência: {formatDateBR(sessionDate)}.</p>
-        ) : null}
-
-        <div className="prancha-body-block min-h-0 flex-1 overflow-hidden">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => (
-              <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
-            ))
-          ) : (
-            <p>[Descreva aqui o pedido ou proposta]</p>
-          )}
-          <p className="prancha-closing">
-            Nestes termos, peço deferimento sob os auspícios do Grande Oriente
-            do Brasil.
-          </p>
         </div>
 
-        <div className="prancha-footer mt-3 shrink-0">
-          <p className="prancha-date">
+        {sessionDate ? (
+          <div
+            style={{
+              ...ink,
+              marginBottom: '10px',
+              textAlign: 'justify',
+            }}
+          >
+            Sessão / data de referência: {formatDateBR(sessionDate)}.
+          </div>
+        ) : null}
+
+        <div
+          className="prancha-body min-h-0 flex-1 overflow-auto"
+          style={{ ...ink }}
+        >
+          {paragraphs.length > 0 ? (
+            paragraphs.map((paragraph, index) => (
+              <div
+                key={`${index}-${paragraph.slice(0, 24)}`}
+                style={{
+                  ...ink,
+                  marginBottom: '10px',
+                  textAlign: 'justify',
+                }}
+              >
+                {paragraph}
+              </div>
+            ))
+          ) : (
+            <div style={{ ...ink, marginBottom: '10px', color: '#444' }}>
+              [Descreva aqui o pedido ou proposta]
+            </div>
+          )}
+          <div
+            style={{
+              ...ink,
+              marginBottom: '10px',
+              textAlign: 'justify',
+              fontStyle: 'italic',
+            }}
+          >
+            Nestes termos, peço deferimento sob os auspícios do Grande Oriente
+            do Brasil.
+          </div>
+        </div>
+
+        <div className="prancha-footer shrink-0" style={{ ...ink, marginTop: '8px' }}>
+          <div
+            style={{
+              ...ink,
+              marginBottom: '18px',
+              textAlign: 'center',
+              fontSize: '11px',
+            }}
+          >
             Oriente de {orienteCity}, ______ de ____________________ de{' '}
             {documentYear}
             {createdAtLabel ? (
               <span className="sr-only"> (gerada em {createdAtLabel})</span>
             ) : null}
-          </p>
+          </div>
 
-          <div className="mx-auto mt-6 w-[68%] max-w-[14rem] text-center">
-            <div className="mb-1 border-b border-black pt-8" />
-            <p className="prancha-sign-name">
+          <div style={{ width: '70%', maxWidth: '220px', margin: '0 auto', textAlign: 'center' }}>
+            <div
+              style={{
+                borderBottom: '1px solid #0a0a0a',
+                marginBottom: '6px',
+                paddingTop: '28px',
+              }}
+            />
+            <div
+              style={{
+                ...ink,
+                fontWeight: 700,
+                fontStyle: 'italic',
+                fontSize: '12px',
+                marginBottom: '2px',
+              }}
+            >
               Ir∴ {brotherName || '________________'}
-            </p>
-            <p className="prancha-sign-role">Solicitante à Loja</p>
+            </div>
+            <div style={{ ...ink, fontSize: '10px' }}>Solicitante à Loja</div>
           </div>
         </div>
       </div>

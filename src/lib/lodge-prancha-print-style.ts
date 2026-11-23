@@ -21,6 +21,7 @@ export const LODGE_PRANCHA_PRINT_STYLE = `
       max-width: none !important;
       margin: 0 !important;
       box-shadow: none !important;
+      overflow: hidden !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -29,10 +30,34 @@ export const LODGE_PRANCHA_PRINT_STYLE = `
       letter-spacing: normal !important;
       word-spacing: normal !important;
       text-transform: none !important;
-      color: #0a0a0a !important;
       font-family: Georgia, 'Times New Roman', Times, serif !important;
-      line-height: 1.6 !important;
-      white-space: normal !important;
+    }
+    .lodge-prancha-document .prancha-panel {
+      overflow: hidden !important;
+    }
+    .lodge-prancha-document .prancha-rich-body p {
+      margin: 0 0 0.7em 0 !important;
+      line-height: 1.55 !important;
+    }
+    .lodge-prancha-document .prancha-rich-body br {
+      display: block !important;
+      content: '' !important;
+      margin-top: 0 !important;
+    }
+    .lodge-prancha-document strong,
+    .lodge-prancha-document b {
+      font-weight: 700 !important;
+    }
+    .lodge-prancha-document em,
+    .lodge-prancha-document i {
+      font-style: italic !important;
+    }
+    .lodge-prancha-document u {
+      text-decoration: underline !important;
+    }
+    .lodge-prancha-document .prancha-title,
+    .lodge-prancha-document .prancha-kicker {
+      color: #6b1212 !important;
     }
   }
 `

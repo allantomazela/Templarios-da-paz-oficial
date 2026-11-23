@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { usePrintReport } from '@/hooks/use-print-report'
 import useAuthStore from '@/stores/useAuthStore'
+import { LodgePranchaBodyEditor } from '@/components/prancha/LodgePranchaBodyEditor'
 import { LodgePranchaDocument } from '@/components/prancha/LodgePranchaDocument'
 import { LODGE_PRANCHA_PRINT_STYLE } from '@/lib/lodge-prancha-print-style'
 import {
@@ -31,6 +31,7 @@ import {
   updateLodgePranchaDraft,
 } from '@/lib/lodge-prancha-api'
 import { buildPranchaPrintTitle } from '@/lib/lodge-prancha'
+import { pranchaHtmlToPlainText } from '@/lib/lodge-prancha-html'
 import { getSaveErrorMessage } from '@/lib/auth-utils'
 
 /**
@@ -60,10 +61,11 @@ export default function LodgePranchaNew() {
     [],
   )
 
+  const plainBody = pranchaHtmlToPlainText(body)
   const canPrint =
     Boolean(loggedBrotherName) &&
     subject.trim().length > 2 &&
-    body.trim().length > 10
+    plainBody.length > 10
   const printTitle = buildPranchaPrintTitle(subject)
 
   const handlePrint = usePrintReport({
@@ -231,13 +233,11 @@ export default function LodgePranchaNew() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prancha-body">Texto da prancha</Label>
-              <Textarea
-                id="prancha-body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
+              <Label>Texto da prancha</Label>
+              <LodgePranchaBodyEditor
+                content={body}
+                onChange={setBody}
                 placeholder="Descreva com clareza o que solicita ou propõe à Loja..."
-                className="min-h-[220px]"
               />
             </div>
 

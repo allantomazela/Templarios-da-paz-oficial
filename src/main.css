@@ -784,8 +784,8 @@ h6 {
 
 /*
  * Prancha ornamental — tipografia isolada do tema global.
- * O documento usa divs (não p) + estilos inline; este bloco reforça
- * letter-spacing/line-height normais caso alguma regra vaze.
+ * Permite negrito/itálico/alinhamento do corpo HTML sem herdar
+ * letter-spacing/tamanho do site.
  */
 .lodge-prancha-document,
 .lodge-prancha-document * {
@@ -798,21 +798,64 @@ h6 {
 .lodge-prancha-document {
   width: 100%;
   min-width: 0;
-  color: #0a0a0a !important;
-  font-family: Georgia, 'Times New Roman', Times, serif !important;
-  font-size: 12px !important;
-  font-weight: 400 !important;
-  line-height: 1.6 !important;
+  color: #0a0a0a;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  line-height: 1.55;
+}
+
+.lodge-prancha-document .prancha-panel {
+  overflow: hidden;
 }
 
 .lodge-prancha-document .prancha-panel,
 .lodge-prancha-document .prancha-panel * {
-  color: #0a0a0a !important;
   font-family: Georgia, 'Times New Roman', Times, serif !important;
-  line-height: 1.6 !important;
   letter-spacing: normal !important;
   word-spacing: normal !important;
-  white-space: normal !important;
+}
+
+.lodge-prancha-document .prancha-title,
+.lodge-prancha-document .prancha-kicker {
+  color: #6b1212 !important;
+}
+
+.lodge-prancha-document .prancha-rich-body p {
+  margin: 0 0 0.7em 0;
+  line-height: 1.55;
+}
+
+.lodge-prancha-document .prancha-rich-body p:last-child {
+  margin-bottom: 0;
+}
+
+.lodge-prancha-document strong,
+.lodge-prancha-document b {
+  font-weight: 700 !important;
+}
+
+.lodge-prancha-document em,
+.lodge-prancha-document i {
+  font-style: italic !important;
+}
+
+.lodge-prancha-document u {
+  text-decoration: underline !important;
+}
+
+.prancha-tiptap-editor p {
+  margin: 0 0 0.65em 0;
+}
+
+.prancha-tiptap-editor p:last-child {
+  margin-bottom: 0;
+}
+
+.prancha-tiptap-editor .is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
 /* Balancete contábil — tela e impressão */

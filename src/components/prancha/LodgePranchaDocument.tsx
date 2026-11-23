@@ -1,5 +1,9 @@
-import type { CSSProperties } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { formatDateBR } from '@/lib/format-utils'
+import {
+  normalizePranchaBodyHtml,
+  sanitizePranchaHtml,
+} from '@/lib/lodge-prancha-html'
 import useSiteSettingsStore from '@/stores/useSiteSettingsStore'
 
 export interface LodgePranchaDocumentProps {
@@ -16,12 +20,15 @@ const DEFAULT_LODGE_NAME = 'Templários da Paz'
 const DEFAULT_LODGE_NUMBER = '3969'
 const DEFAULT_ORIENTE = 'Botucatu – SP'
 
+const BASE_BODY_FONT_PX = 12
+const MIN_BODY_FONT_PX = 8
+
 const ink: CSSProperties = {
   color: '#0a0a0a',
   fontFamily: "Georgia, 'Times New Roman', Times, serif",
   fontSize: '12px',
   fontWeight: 400,
-  lineHeight: 1.6,
+  lineHeight: 1.55,
   letterSpacing: 'normal',
   wordSpacing: 'normal',
   textTransform: 'none',
@@ -32,8 +39,8 @@ const ink: CSSProperties = {
 
 /**
  * Prancha no layout ornamental A4.
- * Usa painel opaco + `div` (não `p`) para não herdar tipografia global do site
- * e não misturar com texto residual do fundo.
+ * Corpo em HTML sanitizado (negrito/itálico/alinhamento/quebras)
+ * com redução automática de fonte para caber no painel.
  */
 export function LodgePranchaDocument({
   authorName,
@@ -45,6 +52,9 @@ export function LodgePranchaDocument({
 }: LodgePranchaDocumentProps) {
   const siteTitle = useSiteSettingsStore((s) => s.siteTitle)
   const contact = useSiteSettingsStore((s) => s.contact)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [bodyFontPx, setBodyFontPx] = useState(BASE_BODY_FONT_PX)
 
   const lodgeName = siteTitle?.trim() || DEFAULT_LODGE_NAME
   const orienteCity = contact.city?.trim() || DEFAULT_ORIENTE
@@ -54,10 +64,40 @@ export function LodgePranchaDocument({
 
   const brotherName = authorName.trim()
   const topic = subject.trim()
-  const paragraphs = body
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+
+  const safeBodyHtml = useMemo(() => {
+    const normalized = normalizePranchaBodyHtml(body)
+    if (!normalized) return ''
+    return sanitizePranchaHtml(normalized)
+  }, [body])
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const content = contentRef.current
+    if (!panel || !content) return
+
+    if (panel.clientHeight < 40 || content.clientHeight < 40) {
+      setBodyFontPx(BASE_BODY_FONT_PX)
+      return
+    }
+
+    let size = BASE_BODY_FONT_PX
+    content.style.fontSize = `${size}px`
+
+    // Reduz a fonte do bloco até caber no painel (sem scroll).
+    let guard = 0
+    while (
+      guard < 32 &&
+      size > MIN_BODY_FONT_PX &&
+      content.scrollHeight > content.clientHeight + 1
+    ) {
+      size -= 0.25
+      content.style.fontSize = `${size}px`
+      guard += 1
+    }
+
+    setBodyFontPx(Number(size.toFixed(2)))
+  }, [safeBodyHtml, brotherName, topic, sessionDate, orienteCity, lodgeLabel])
 
   return (
     <div
@@ -71,9 +111,9 @@ export function LodgePranchaDocument({
         ...ink,
       }}
     >
-      {/* Painel opaco: cobre qualquer residual do PNG e contém só o texto dinâmico */}
       <div
-        className="prancha-panel absolute box-border flex flex-col overflow-hidden"
+        ref={panelRef}
+        className="prancha-panel absolute box-border overflow-hidden"
         style={{
           left: '15%',
           right: '15%',
@@ -85,148 +125,165 @@ export function LodgePranchaDocument({
         }}
       >
         <div
-          className="prancha-title shrink-0 text-center"
-          style={{
-            ...ink,
-            marginBottom: '8px',
-            fontSize: '22px',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            color: '#6b1212',
-            lineHeight: 1.2,
-          }}
+          ref={contentRef}
+          className="prancha-fit-content flex h-full min-h-0 flex-col"
+          style={{ ...ink, fontSize: `${bodyFontPx}px` }}
         >
-          PRANCHA
-        </div>
-
-        <div
-          className="prancha-kicker shrink-0 text-center italic"
-          style={{
-            ...ink,
-            marginBottom: '12px',
-            fontSize: '11px',
-            color: '#6b1212',
-            lineHeight: 1.35,
-          }}
-        >
-          Solicitação ao Venerável Mestre para aprovação em Loja
-        </div>
-
-        <div
-          style={{
-            ...ink,
-            marginBottom: '10px',
-            textAlign: 'justify',
-          }}
-        >
-          Ao Venerável Mestre da ARLS {lodgeLabel},
-        </div>
-
-        <div
-          style={{
-            ...ink,
-            marginBottom: '10px',
-            textAlign: 'justify',
-          }}
-        >
-          Eu Ir∴{' '}
-          <span style={{ ...ink, fontWeight: 700 }}>
-            {brotherName || '________________'}
-          </span>
-          , respeitosamente, submeto à apreciação desta Oficina a presente
-          prancha de solicitação
-          {topic ? (
-            <>
-              {' '}
-              acerca de <span style={{ ...ink, fontWeight: 700 }}>{topic}</span>
-            </>
-          ) : null}
-          .
-        </div>
-
-        {sessionDate ? (
           <div
+            className="prancha-title shrink-0 text-center"
             style={{
               ...ink,
-              marginBottom: '10px',
-              textAlign: 'justify',
+              marginBottom: '0.55em',
+              fontSize: '1.7em',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              color: '#6b1212',
+              lineHeight: 1.2,
             }}
           >
-            Sessão / data de referência: {formatDateBR(sessionDate)}.
+            PRANCHA
           </div>
-        ) : null}
 
-        <div
-          className="prancha-body min-h-0 flex-1 overflow-auto"
-          style={{ ...ink }}
-        >
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => (
-              <div
-                key={`${index}-${paragraph.slice(0, 24)}`}
-                style={{
-                  ...ink,
-                  marginBottom: '10px',
-                  textAlign: 'justify',
-                }}
-              >
-                {paragraph}
-              </div>
-            ))
-          ) : (
-            <div style={{ ...ink, marginBottom: '10px', color: '#444' }}>
-              [Descreva aqui o pedido ou proposta]
-            </div>
-          )}
           <div
+            className="prancha-kicker shrink-0 text-center italic"
             style={{
               ...ink,
-              marginBottom: '10px',
-              textAlign: 'justify',
-              fontStyle: 'italic',
+              marginBottom: '0.85em',
+              fontSize: '0.92em',
+              color: '#6b1212',
+              lineHeight: 1.35,
             }}
           >
-            Nestes termos, peço deferimento sob os auspícios do Grande Oriente
-            do Brasil.
+            Solicitação ao Venerável Mestre para aprovação em Loja
           </div>
-        </div>
 
-        <div className="prancha-footer shrink-0" style={{ ...ink, marginTop: '8px' }}>
           <div
             style={{
               ...ink,
-              marginBottom: '18px',
-              textAlign: 'center',
-              fontSize: '11px',
+              marginBottom: '0.7em',
+              textAlign: 'justify',
+              fontSize: '1em',
             }}
           >
-            Oriente de {orienteCity}, ______ de ____________________ de{' '}
-            {documentYear}
-            {createdAtLabel ? (
-              <span className="sr-only"> (gerada em {createdAtLabel})</span>
+            Ao Venerável Mestre da ARLS {lodgeLabel},
+          </div>
+
+          <div
+            style={{
+              ...ink,
+              marginBottom: '0.7em',
+              textAlign: 'justify',
+              fontSize: '1em',
+            }}
+          >
+            Eu Ir∴{' '}
+            <span style={{ ...ink, fontWeight: 700, fontSize: 'inherit' }}>
+              {brotherName || '________________'}
+            </span>
+            , respeitosamente, submeto à apreciação desta Oficina a presente
+            prancha de solicitação
+            {topic ? (
+              <>
+                {' '}
+                acerca de{' '}
+                <span style={{ ...ink, fontWeight: 700, fontSize: 'inherit' }}>
+                  {topic}
+                </span>
+              </>
             ) : null}
+            .
           </div>
 
-          <div style={{ width: '70%', maxWidth: '220px', margin: '0 auto', textAlign: 'center' }}>
-            <div
-              style={{
-                borderBottom: '1px solid #0a0a0a',
-                marginBottom: '6px',
-                paddingTop: '28px',
-              }}
-            />
+          {sessionDate ? (
             <div
               style={{
                 ...ink,
-                fontWeight: 700,
-                fontStyle: 'italic',
-                fontSize: '12px',
-                marginBottom: '2px',
+                marginBottom: '0.7em',
+                textAlign: 'justify',
+                fontSize: '1em',
               }}
             >
-              Ir∴ {brotherName || '________________'}
+              Sessão / data de referência: {formatDateBR(sessionDate)}.
             </div>
-            <div style={{ ...ink, fontSize: '10px' }}>Solicitante à Loja</div>
+          ) : null}
+
+          <div
+            className="prancha-body min-h-0 flex-1"
+            style={{ ...ink, fontSize: '1em' }}
+          >
+            {safeBodyHtml ? (
+              <div
+                className="prancha-rich-body"
+                style={{ ...ink, fontSize: 'inherit' }}
+                dangerouslySetInnerHTML={{ __html: safeBodyHtml }}
+              />
+            ) : (
+              <div style={{ ...ink, marginBottom: '0.7em', color: '#444' }}>
+                [Descreva aqui o pedido ou proposta]
+              </div>
+            )}
+            <div
+              style={{
+                ...ink,
+                marginTop: '0.7em',
+                marginBottom: '0.7em',
+                textAlign: 'justify',
+                fontStyle: 'italic',
+                fontSize: '1em',
+              }}
+            >
+              Nestes termos, peço deferimento sob os auspícios do Grande Oriente
+              do Brasil.
+            </div>
+          </div>
+
+          <div
+            className="prancha-footer shrink-0"
+            style={{ ...ink, marginTop: '0.5em', fontSize: '1em' }}
+          >
+            <div
+              style={{
+                ...ink,
+                marginBottom: '1.1em',
+                textAlign: 'center',
+                fontSize: '0.92em',
+              }}
+            >
+              Oriente de {orienteCity}, ______ de ____________________ de{' '}
+              {documentYear}
+              {createdAtLabel ? (
+                <span className="sr-only"> (gerada em {createdAtLabel})</span>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                width: '70%',
+                maxWidth: '220px',
+                margin: '0 auto',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  borderBottom: '1px solid #0a0a0a',
+                  marginBottom: '6px',
+                  paddingTop: '1.6em',
+                }}
+              />
+              <div
+                style={{
+                  ...ink,
+                  fontWeight: 700,
+                  fontStyle: 'italic',
+                  fontSize: '1em',
+                  marginBottom: '2px',
+                }}
+              >
+                Ir∴ {brotherName || '________________'}
+              </div>
+              <div style={{ ...ink, fontSize: '0.85em' }}>Solicitante à Loja</div>
+            </div>
           </div>
         </div>
       </div>

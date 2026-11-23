@@ -9,15 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 22/11/2026 |
-| Commit | fbd72d6 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** prancha sem texto residual no fundo; painel opaco + tipografia em `div` para evitar sobreposição/encavalamento.
+**O que ficou pronto:** editor TipTap na prancha (negrito/itálico/sublinhado/alinhamento) com HTML sanitizado; quebras preservadas; auto-ajuste de fonte para caber no painel A4 na prévia/impressão.
 
-**Arquivos:** `public/prancha-template-a4.png`, `LodgePranchaDocument.tsx`, `main.css`, `lodge-prancha-print-style.ts`.
+**Arquivos:** `LodgePranchaBodyEditor.tsx`, `LodgePranchaDocument.tsx`, `LodgePranchaNew.tsx`, `lodge-prancha-html.ts`, `lodge-prancha-print-style.ts`, `main.css`.
 
 ## Onde continuar
 
-Validar prévia/impressão após o deploy.
+Validar prévia/impressão com texto longo formatado; depois commit/push se aprovado.
 
 ## Como ver isto de novo
 

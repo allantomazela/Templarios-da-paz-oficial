@@ -8,16 +8,16 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 
 | Campo | Valor |
 |-------|--------|
-| Data | 22/11/2026 |
-| Commit | 416df53 |
+| Data | 23/11/2026 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** texto da prancha em preto (sobrepõe a regra global branca dos `p`) e quebra de linha dentro do painel do modelo (`min-width: 0` + `overflow-wrap`), sem alterar o editor TipTap nem o fluxo de salvar/imprimir.
+**O que ficou pronto:** correção do crash TipTap na prancha/atas — `underline` duplicado (já incluso no StarterKit 3) removido; `getHTML` protegido contra editor destruído; `immediatelyRender: false`.
 
-**Arquivos:** `main.css`, `lodge-prancha-print-style.ts`, `LodgePranchaDocument.tsx`.
+**Arquivos:** `LodgePranchaBodyEditor.tsx`, `RichTextEditor.tsx`.
 
 ## Onde continuar
 
-Validar prévia/impressão (cor preta + wrap no limite do painel) após o deploy.
+Validar Nova Prancha e editor de atas sem warning de underline nem ErrorBoundary; depois commit/push se aprovado.
 
 ## Como ver isto de novo
 

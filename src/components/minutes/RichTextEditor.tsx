@@ -2,7 +2,6 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
@@ -34,6 +33,8 @@ export function RichTextEditor({
   placeholder = 'Digite o conteúdo da ata...',
 }: RichTextEditorProps) {
   const editor = useEditor({
+    // TipTap 3: Underline já vem no StarterKit — não registrar de novo.
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -46,7 +47,6 @@ export function RichTextEditor({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      Underline,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -55,8 +55,13 @@ export function RichTextEditor({
       }),
     ],
     content,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+    onUpdate: ({ editor: current }) => {
+      if (current.isDestroyed) return
+      try {
+        onChange(current.getHTML())
+      } catch {
+        // Schema destruído no unmount (Strict Mode) — ignorar.
+      }
     },
     editorProps: {
       attributes: {
@@ -68,12 +73,17 @@ export function RichTextEditor({
 
   // Sincronizar conteúdo quando mudar externamente (ex: template selecionado)
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content)
+    if (!editor || editor.isDestroyed) return
+    try {
+      if (content !== editor.getHTML()) {
+        editor.commands.setContent(content)
+      }
+    } catch {
+      // Schema destruído no unmount — ignorar.
     }
   }, [content, editor])
 
-  if (!editor) {
+  if (!editor || editor.isDestroyed) {
     return null
   }
 

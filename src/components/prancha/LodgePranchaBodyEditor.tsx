@@ -3,7 +3,6 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
 import {
   AlignCenter,
   AlignJustify,
@@ -22,6 +21,18 @@ interface LodgePranchaBodyEditorProps {
   placeholder?: string
 }
 
+function safeEditorHtml(editor: {
+  isDestroyed: boolean
+  getHTML: () => string
+}): string | null {
+  if (editor.isDestroyed) return null
+  try {
+    return editor.getHTML()
+  } catch {
+    return null
+  }
+}
+
 /** Editor enxuto da prancha: negrito, itálico, sublinhado e alinhamento. */
 export function LodgePranchaBodyEditor({
   content,
@@ -29,6 +40,8 @@ export function LodgePranchaBodyEditor({
   placeholder = 'Escreva o pedido com Enter para quebrar linha...',
 }: LodgePranchaBodyEditorProps) {
   const editor = useEditor({
+    // TipTap 3: Underline já vem no StarterKit — não registrar de novo.
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: false,
@@ -42,11 +55,11 @@ export function LodgePranchaBodyEditor({
       }),
       Placeholder.configure({ placeholder }),
       TextAlign.configure({ types: ['paragraph'] }),
-      Underline,
     ],
     content: normalizePranchaBodyHtml(content) || '<p></p>',
     onUpdate: ({ editor: current }) => {
-      onChange(current.getHTML())
+      const html = safeEditorHtml(current)
+      if (html != null) onChange(html)
     },
     editorProps: {
       attributes: {
@@ -57,14 +70,14 @@ export function LodgePranchaBodyEditor({
   })
 
   useEffect(() => {
-    if (!editor) return
+    if (!editor || editor.isDestroyed) return
     const next = normalizePranchaBodyHtml(content) || '<p></p>'
-    if (next !== editor.getHTML()) {
-      editor.commands.setContent(next)
-    }
+    const current = safeEditorHtml(editor)
+    if (current == null || next === current) return
+    editor.commands.setContent(next)
   }, [content, editor])
 
-  if (!editor) return null
+  if (!editor || editor.isDestroyed) return null
 
   return (
     <div className="overflow-hidden rounded-md border">

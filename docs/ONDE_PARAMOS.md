@@ -9,9 +9,9 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 23/11/2026 |
-| Commit | alteração local ainda não commitada |
+| Commit | af55f06 |
 
-**O que ficou pronto:** ponto de restauração de produção `restore-point-2026-11-23` (commit `f199ae7`), branch `restore/baseline-2026-11-23`, `STABLE_COMMIT` atualizado no workflow de rollback e registro em `docs/PONTO_RESTAURACAO.md`.
+**O que ficou pronto:** ponto de restauração de produção `restore-point-2026-11-23` (código `f199ae7`), branch `restore/baseline-2026-11-23`, `STABLE_COMMIT` no workflow de rollback e registro em `docs/PONTO_RESTAURACAO.md`.
 
 **Arquivos:** `docs/PONTO_RESTAURACAO.md`, `.github/workflows/rollback-emergency.yml`.
 

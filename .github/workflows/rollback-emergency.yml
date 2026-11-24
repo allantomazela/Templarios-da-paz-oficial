@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      # Baseline validado 26/06/2026 — ver docs/PONTO_RESTAURACAO.md
-      # Tag: restore-point-2026-06-26 | Commit anterior emergência 24/06: 47b511d
-      STABLE_COMMIT: 9452701
+      # Baseline validado 23/11/2026 — ver docs/PONTO_RESTAURACAO.md
+      # Tag: restore-point-2026-11-23 | Branch: restore/baseline-2026-11-23
+      STABLE_COMMIT: f199ae7
 
     steps:
       - uses: actions/checkout@v6

@@ -1,3 +1,38 @@
+# Ponto de restauração — baseline 23/11/2026 (pré-novas implementações)
+
+Ponto seguro **antes de novas features**, com o sistema já em produção.
+Use este baseline se uma implementação futura comprometer o site no ar.
+
+| Item | Valor |
+|------|--------|
+| **Tag Git** | `restore-point-2026-11-23` |
+| **Branch de backup** | `restore/baseline-2026-11-23` |
+| **Commit de referência (`STABLE_COMMIT`)** | `f199ae7` — TipTap sem underline duplicado + prancha estável |
+| **Versão package.json** | `0.0.79` |
+| **Inclui** | Financeiro, prancha (editor TipTap + impressão A4), PWA, módulos já validados |
+
+### Como restaurar o código a este ponto
+
+```bash
+git fetch origin --tags
+git checkout restore-point-2026-11-23
+npm install --legacy-peer-deps
+npm run build
+# Deploy conforme docs/DEPLOY-CHECKLIST.md
+```
+
+### Rollback de emergência (GitHub Actions)
+
+1. Repositório → **Actions** → **Rollback emergência (baseline restauração)**
+2. **Run workflow** (disparo manual)
+3. O workflow faz checkout de `STABLE_COMMIT` (`f199ae7`), build e deploy no Vultr
+
+> Banco de dados (Supabase): este ponto **não** reverte migrations. Antes de
+> migrations destrutivas, exporte backup no Dashboard. Reversão de schema exige
+> plano manual.
+
+---
+
 # Ponto de restauração — baseline 07/07/2026 (dedupe de mensalidades)
 
 | Item | Valor |

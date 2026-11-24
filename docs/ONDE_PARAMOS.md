@@ -9,15 +9,15 @@ Arquivo de continuidade. Leia isto no início de uma sessão e atualize ao termi
 | Campo | Valor |
 |-------|--------|
 | Data | 23/11/2026 |
-| Commit | 7e9b867 |
+| Commit | alteração local ainda não commitada |
 
-**O que ficou pronto:** correção do crash TipTap na prancha/atas — `underline` duplicado (já incluso no StarterKit 3) removido; `getHTML` protegido contra editor destruído; `immediatelyRender: false`.
+**O que ficou pronto:** ponto de restauração de produção `restore-point-2026-11-23` (commit `f199ae7`), branch `restore/baseline-2026-11-23`, `STABLE_COMMIT` atualizado no workflow de rollback e registro em `docs/PONTO_RESTAURACAO.md`.
 
-**Arquivos:** `LodgePranchaBodyEditor.tsx`, `RichTextEditor.tsx`.
+**Arquivos:** `docs/PONTO_RESTAURACAO.md`, `.github/workflows/rollback-emergency.yml`.
 
 ## Onde continuar
 
-Validar Nova Prancha e editor de atas sem warning de underline nem ErrorBoundary após o deploy.
+Novas implementações a partir deste baseline; em imprevisto, restaurar pela tag ou pelo Actions de rollback.
 
 ## Como ver isto de novo
 
